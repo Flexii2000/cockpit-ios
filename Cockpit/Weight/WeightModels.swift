@@ -70,6 +70,12 @@ struct DashboardConfig: Codable, Sendable {
 struct NewWeightRequest: Encodable, Sendable {
     let date: CalendarDate
     let weightKg: Double
+    /// Laesst einen bereits vorhandenen Wert fuer diesen Tag stehen.
+    ///
+    /// Gesetzt nur beim Abgleich mit Apple Health: es gibt genau einen Wert
+    /// pro Tag, und der von Hand eingetragene ist der verlaesslichere. Wer im
+    /// Browser oder hier von Hand eintraegt, ueberschreibt weiterhin.
+    let keepExisting: Bool?
 }
 
 struct UpdateTargetRequest: Encodable, Sendable {

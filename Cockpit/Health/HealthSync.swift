@@ -34,7 +34,18 @@ final class HealthSync {
         let call: HKObserverQueryCompletionHandler
     }
 
-    var isAvailable: Bool { HKHealthStore.isHealthDataAvailable() }
+    var isAvailable: Bool {
+        #if DEBUG
+        // Der Health-Dialog laesst sich im Simulator nicht wegklicken
+        // (`simctl privacy` kennt keinen Health-Dienst) und verdeckt damit
+        // jeden Screenshot des Gewicht-Tabs. COCKPIT_NO_HEALTH=1 schaltet die
+        // Anbindung fuer solche Laeufe ab.
+        if ProcessInfo.processInfo.environment["COCKPIT_NO_HEALTH"] == "1" {
+            return false
+        }
+        #endif
+        return HKHealthStore.isHealthDataAvailable()
+    }
 
     /// Fragt nach Leseerlaubnis. Ein „nein" ist kein Fehler - dann bleibt es
     /// beim Eintragen von Hand.
@@ -81,9 +92,12 @@ final class HealthSync {
         }
         var sent = false
         for value in HealthSamples.dailyValues(samples) {
-            // Ein erneutes POST auf denselben Tag ersetzt den Wert (siehe
-            // docs/BACKENDS.md) - doppelt schicken schadet also nicht.
-            if (try? await api.add(date: value.date, weightKg: value.value)) != nil {
+            // `keepExisting` ist hier der Punkt: es gibt genau einen Wert pro
+            // Tag, und ein von Hand eingetragener ist der verlaesslichere.
+            // Ohne das haenge es davon ab, wer zuletzt geschrieben hat - und
+            // das waere je nach Weckzeitpunkt von iOS mal so und mal so.
+            if (try? await api.add(date: value.date, weightKg: value.value,
+                                   keepExisting: true)) != nil {
                 sent = true
             }
         }

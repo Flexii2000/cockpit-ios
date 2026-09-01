@@ -25,9 +25,14 @@ struct WeightAPI: Sendable {
         try await client.send("PUT", "/api/dashboard", body: DashboardConfig(widgets: widgets))
     }
 
-    func add(date: CalendarDate, weightKg: Double) async throws -> WeightSummary {
+    /// - Parameter keepExisting: `true` laesst einen vorhandenen Wert fuer
+    ///   diesen Tag stehen - fuer den Health-Abgleich, der nichts
+    ///   ueberschreiben soll.
+    func add(date: CalendarDate, weightKg: Double,
+             keepExisting: Bool = false) async throws -> WeightSummary {
         try await client.send("POST", "/api/weight",
-                              body: NewWeightRequest(date: date, weightKg: weightKg))
+                              body: NewWeightRequest(date: date, weightKg: weightKg,
+                                                     keepExisting: keepExisting))
     }
 
     func updateTarget(_ weightKg: Double) async throws -> WeightSummary {
