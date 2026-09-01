@@ -25,6 +25,19 @@ struct FoodTab: View {
                     }
                 }
 
+                if let running = store.running {
+                    Section { runningRow(running) }
+                }
+
+                if let message = store.captureError {
+                    Section {
+                        ErrorBanner(message: message, isAccessProblem: false)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .onTapGesture { store.clearCaptureError() }
+                    }
+                }
+
                 if let day = store.day {
                     Section { gauges(day) }
                     ForEach(store.mealSections) { section in
@@ -39,11 +52,23 @@ struct FoodTab: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .refreshable { await store.load() }
-            .task { await store.load() }
+            .task {
+                await store.load()
+                // Ein Auftrag, der beim letzten Beenden noch lief, rechnet auf
+                // dem Server weiter - hier wird er wieder aufgenommen.
+                await store.resumeQuickCaptureIfNeeded()
+            }
             .sheet(item: $addTarget) { target in
                 AddEntrySheet(store: store, meal: target.meal)
             }
             .sheet(isPresented: $showingTargets) { TargetsSheet(store: store) }
+            .sheet(isPresented: Binding(
+                get: { store.pendingPreview != nil },
+                set: { if !$0 { store.discardPreview() } })) {
+                if let preview = store.pendingPreview {
+                    QuickCapturePreviewSheet(store: store, preview: preview)
+                }
+            }
             .sheet(isPresented: $showingDatePicker) { datePicker }
         }
     }
@@ -107,6 +132,25 @@ struct FoodTab: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    /// Zeigt, dass im Hintergrund noch etwas laeuft. Ohne das waere nach dem
+    /// Abschicken nichts mehr zu sehen und man wuesste nicht, ob es angekommen
+    /// ist.
+    private func runningRow(_ running: FoodStore.RunningCapture) -> some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Wird ausgewertet …").font(.callout)
+                if !running.text.isEmpty {
+                    Text(running.text)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer()
+        }
     }
 
     // MARK: - Tachos

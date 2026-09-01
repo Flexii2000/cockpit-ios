@@ -1,12 +1,5 @@
 import Foundation
-
-/// Wie eine Schnellerfassung ausgegangen ist. `Result` scheidet aus, weil
-/// dessen Fehlerfall ein `Error` sein muss - hier ist es schlicht ein Satz,
-/// den der Server oder die Wartezeit geliefert hat.
-enum QuickCaptureOutcome: Sendable {
-    case ready(QuickCapturePreview)
-    case failed(String)
-}
+import UIKit
 
 @MainActor
 @Observable
@@ -215,32 +208,108 @@ final class FoodStore {
 
     // MARK: - Schnellerfassung
 
-    /// Schickt den Text weg und wartet, bis der Server fertig ist.
-    ///
-    /// Der Auftrag laeuft als Claude-Session und dauert bis zu einer Minute;
-    /// gefragt wird alle zwei Sekunden nach. Nach `timeout` wird aufgegeben -
-    /// serverseitig ist bei 180 s Schluss, danach kommt ohnehin nichts mehr.
-    func runQuickCapture(text: String, meal: Meal?,
-                         timeout: TimeInterval = 190) async -> QuickCaptureOutcome {
-        do {
-            var job = try await api.startQuickCapture(
-                QuickCaptureRequest(date: date, text: text, meal: meal))
-            let deadline = Date().addingTimeInterval(timeout)
-            while job.isRunning {
-                if Date() > deadline {
-                    return .failed("Die Auswertung hat zu lange gedauert.")
-                }
-                try await Task.sleep(for: .seconds(2))
-                job = try await api.quickCaptureStatus(id: job.id)
+    /// Ein laufender Auftrag. Er gehoert dem Store und nicht dem Blatt -
+    /// sonst waere er mit dem Zuklappen weg, und genau das soll er ueberleben.
+    struct RunningCapture: Sendable, Equatable {
+        let id: String
+        let text: String
+        let meal: Meal?
+        let startedAt: Date
+    }
+
+    private(set) var running: RunningCapture?
+    /// Fertiger Vorschlag, der noch bestaetigt werden will.
+    private(set) var pendingPreview: QuickCapturePreview?
+    private(set) var captureError: String?
+    private var captureTask: Task<Void, Never>?
+
+    /// Merkt sich den Auftrag ueber einen App-Neustart hinweg. Der Server
+    /// rechnet weiter, auch wenn die App weggeraeumt wird - ohne die Kennung
+    /// waere das Ergebnis danach nicht mehr abholbar.
+    private static let runningJobKey = "food.quickCapture.jobId"
+
+    /// Schickt den Text weg und kehrt sofort zurueck. Das Nachfragen laeuft
+    /// im Hintergrund; ist der Vorschlag da, meldet sich die App.
+    func startQuickCapture(text: String, meal: Meal?) {
+        captureTask?.cancel()
+        captureError = nil
+        pendingPreview = nil
+        let day = date
+        captureTask = Task { [weak self] in
+            guard let self else { return }
+            await Notifications.requestPermission()
+            do {
+                let job = try await api.startQuickCapture(
+                    QuickCaptureRequest(date: day, text: text, meal: meal))
+                running = RunningCapture(id: job.id, text: text, meal: meal,
+                                         startedAt: Date())
+                UserDefaults.standard.set(job.id, forKey: Self.runningJobKey)
+                await follow(job)
+            } catch {
+                finish(with: error.localizedDescription)
             }
-            if let preview = job.preview, job.status == QuickCaptureJob.done {
-                return .ready(preview)
-            }
-            return .failed(job.error ?? "Die Auswertung ist fehlgeschlagen.")
-        } catch {
-            report(error)
-            return .failed(error.localizedDescription)
         }
+    }
+
+    /// Nimmt einen Auftrag wieder auf, der beim letzten Start noch lief.
+    func resumeQuickCaptureIfNeeded() async {
+        guard running == nil, pendingPreview == nil,
+              let id = UserDefaults.standard.string(forKey: Self.runningJobKey),
+              let job = try? await api.quickCaptureStatus(id: id) else { return }
+        running = RunningCapture(id: id, text: "", meal: nil, startedAt: Date())
+        await follow(job)
+    }
+
+    /// Fragt im Zwei-Sekunden-Takt nach, bis der Server fertig ist.
+    private func follow(_ job: QuickCaptureJob) async {
+        var current = job
+        // Serverseitig ist bei 180 s Schluss; danach kommt nichts mehr.
+        let deadline = Date().addingTimeInterval(190)
+        while current.isRunning {
+            if Date() > deadline {
+                finish(with: "Die Auswertung hat zu lange gedauert.")
+                return
+            }
+            do {
+                try await Task.sleep(for: .seconds(2))
+                current = try await api.quickCaptureStatus(id: current.id)
+            } catch {
+                if Task.isCancelled { return }
+                finish(with: error.localizedDescription)
+                return
+            }
+        }
+        if let preview = current.preview, current.status == QuickCaptureJob.done {
+            await finish(with: preview)
+        } else {
+            finish(with: current.error ?? "Die Auswertung ist fehlgeschlagen.")
+        }
+    }
+
+    private func finish(with preview: QuickCapturePreview) async {
+        running = nil
+        pendingPreview = preview
+        UserDefaults.standard.removeObject(forKey: Self.runningJobKey)
+        // Ist die App im Bild, sieht man das Blatt ohnehin aufgehen - eine
+        // Benachrichtigung obendrauf waere Laerm.
+        if UIApplication.shared.applicationState != .active {
+            await Notifications.post(title: "Vorschlag ist fertig",
+                                     body: "\(preview.name) – antippen zum Übernehmen.")
+        }
+    }
+
+    private func finish(with message: String) {
+        running = nil
+        captureError = message
+        UserDefaults.standard.removeObject(forKey: Self.runningJobKey)
+    }
+
+    func discardPreview() {
+        pendingPreview = nil
+    }
+
+    func clearCaptureError() {
+        captureError = nil
     }
 
     // MARK: - Fehler

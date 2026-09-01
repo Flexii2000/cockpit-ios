@@ -120,6 +120,7 @@ struct AddEntrySheet: View {
                 }
             }
             .sheet(isPresented: $showingQuickCapture) {
+                // Ist der Auftrag weg, hat dieses Blatt nichts mehr zu tun.
                 QuickCaptureSheet(store: store, meal: meal) { dismiss() }
             }
         }

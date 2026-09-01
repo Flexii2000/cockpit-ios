@@ -3,6 +3,23 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-01 — Die Schnellerfassung wartet nicht mehr im Blatt
+Der Auftrag gehört dem Store, nicht der Ansicht. Abschicken schließt das Blatt
+sofort; das Nachfragen läuft weiter, eine Zeile in der Tagesliste zeigt es an,
+und ist der Vorschlag da, geht er von selbst auf.
+**Warum:** eine Minute auf ein Blatt zu starren, das nichts tut, war der
+schlechteste Teil des Ablaufs — und der Server arbeitet ohnehin schon
+asynchron, nur die App stand daneben.
+**Die Kennung wird gemerkt** (`UserDefaults`): wird die App weggeräumt,
+rechnet der Server weiter, und ohne die Kennung wäre das Ergebnis danach
+nicht mehr abholbar.
+**Benachrichtigung nur, wenn die App nicht im Bild ist** — sonst sieht man das
+Blatt ohnehin aufgehen, und die Meldung wäre Lärm.
+**Grenze, bewusst in Kauf genommen:** liegt das Handy gesperrt, friert iOS die
+App nach etwa 30 Sekunden ein; der Auftrag dauert bis zu 56. Die Meldung kommt
+dann erst beim nächsten Öffnen. Für „Handy weglegen" bräuchte es echtes Push
+und damit einen APNs-Dienst im food-Backend.
+
 ## 2026-09-01 — Der Zeitbereich eines Diagramms kommt vom gewählten Zeitraum
 `FoodChartView` bekommt `from`/`to` von außen; die Achse steht per
 `.chartXScale`, statt sich aus den Daten zu ergeben.

@@ -124,6 +124,15 @@ Geprüft ist die Logik, nicht das Bild.
 
 ### Nachgereicht auf Zuruf
 
+* **Schnellerfassung blockiert nicht mehr.** Abschicken schließt das Blatt,
+  der Auftrag läuft im Store weiter, eine Zeile in der Tagesliste zeigt ihn an,
+  der fertige Vorschlag geht von selbst auf. Ist die App nicht im Bild, kommt
+  eine lokale Benachrichtigung. Läuft beim Beenden noch etwas, wird es beim
+  nächsten Start wieder aufgenommen.
+  ⚠️ Bei gesperrtem Handy friert iOS die App nach ~30 s ein — die Meldung
+  kommt dann erst beim Öffnen. Echtes Push wäre ein APNs-Dienst im
+  food-Backend.
+
 * **Wischen löscht ohne Wort** — nur noch die Mülltonne. `onDelete` schreibt
   „Löschen" aus; jetzt eine eigene Wischaktion mit `labelStyle(.iconOnly)`,
   der Titel bleibt am Label für VoiceOver.
