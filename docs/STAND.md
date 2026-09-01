@@ -124,6 +124,12 @@ Geprüft ist die Logik, nicht das Bild.
 
 ### Nachgereicht auf Zuruf
 
+* **Der Essen-Tab geht in die Zukunft.** Der Vorwärtspfeil war an „heute"
+  gesperrt — meine Annahme, nicht Felix'. Mahlzeiten vorplanen ist ein guter
+  Grund, und das Backend nimmt Einträge mit beliebigem Datum an (`today()`
+  steht dort nur als Vorgabe, wenn keins mitkommt). Benachbarte Tage heißen
+  jetzt „Gestern"/„Morgen" statt eines Datums.
+
 * **Schnellerfassung blockiert nicht mehr.** Abschicken schließt das Blatt,
   der Auftrag läuft im Store weiter, eine Zeile in der Tagesliste zeigt ihn an,
   der fertige Vorschlag geht von selbst auf. Ist die App nicht im Bild, kommt

@@ -74,7 +74,14 @@ struct FoodTab: View {
     }
 
     private var title: String {
-        store.isToday ? "Heute" : store.date.short
+        // Beim Planen springt man zwischen benachbarten Tagen hin und her -
+        // "Morgen" ist dabei schneller zu erfassen als ein Datum.
+        switch store.date.daysFromToday() {
+        case 0:  "Heute"
+        case 1:  "Morgen"
+        case -1: "Gestern"
+        default: store.date.short
+        }
     }
 
     @ToolbarContentBuilder
@@ -85,11 +92,12 @@ struct FoodTab: View {
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
-            // Vorwaerts nur bis heute: fuer morgen gibt es nichts einzutragen.
+            // Auch in die Zukunft: Mahlzeiten lassen sich vorplanen, und das
+            // Backend nimmt Eintraege mit beliebigem Datum an - `today()`
+            // steht dort nur als Vorgabe, wenn keins mitkommt.
             Button { Task { await store.step(days: 1) } } label: {
                 Image(systemName: "chevron.right")
             }
-            .disabled(store.isToday)
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
