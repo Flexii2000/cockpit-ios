@@ -5,7 +5,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-[ -d Cockpit.xcodeproj ] || tools/bootstrap.sh
+# Immer neu erzeugen, nicht nur wenn die .xcodeproj fehlt: sonst baut man
+# gegen einen alten Projektstand weiter, waehrend die Aenderung an
+# project.yml nie ankommt - und sucht den Fehler im Code.
+tools/bootstrap.sh >/dev/null
 
 # Simulator nicht fest verdrahten: die Namen aendern sich mit jeder
 # iOS-Version, und ein fest eingetragenes "iPhone 16" laesst das Skript

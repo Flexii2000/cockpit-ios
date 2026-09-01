@@ -1,11 +1,13 @@
 # Stand
 
-> **Nächster Schritt:** warten, bis die iOS-Simulator-Runtime geladen ist
-> (`xcodebuild -downloadPlatform iOS`, 8,52 GB), dann `tools/verify.sh`.
-> Ohne installierte Plattform findet `xcodebuild` **gar keine Destination** —
-> weder Simulator noch Gerät, auch nicht mit `-sdk iphoneos`.
+> **Nächster Schritt:** Phase 1 — der Gewicht-Tab wird nativ. Anfangen mit
+> den Modellen und `WeightAPI`, dann das Diagramm. Endpunkte und Feldlisten
+> stehen in `docs/BACKENDS.md`.
+>
+> Parallel, unabhängig davon: Apple Developer Program (99 €/Jahr). Ohne das
+> läuft die App sieben Tage nach dem Installieren ab.
 
-## Phase 0 — Gerüst · in Arbeit
+## Phase 0 — Gerüst · **fertig** (2026-09-01)
 
 - [x] Repo, Doku, `.gitignore`
 - [x] `project.yml` (XcodeGen), `tools/bootstrap.sh`, `tools/verify.sh`
@@ -27,9 +29,21 @@
       `tools/verify.sh` **nicht**: gelinkt wurde nichts, und die Tests in
       `Tests/` sind damit nicht abgedeckt (`@testable import` braucht das
       gebaute Modul).
-- [ ] `tools/verify.sh` grün (Build + Tests im Simulator)
-      ← blockiert durch die laufende Runtime-Installation
+- [x] **`tools/verify.sh` grün**: Build plus 6 Tests im Simulator
+      (iPhone 17, iOS 26.5), `** TEST SUCCEEDED **`
+- [x] **Startet auch wirklich**: im Simulator installiert und gestartet, die
+      App zeigt die vier Tabs und springt ohne hinterlegte Token von selbst
+      in den Zugang-Bildschirm
 - [ ] Läuft auf dem Gerät (braucht Apple-Developer-Account)
+
+Zwei Fallen dabei, beide behoben:
+
+* `GENERATE_INFOPLIST_FILE` gehört auf **Projektebene**. Stand es nur beim
+  App-Target, scheiterte das Test-Bundle am Signieren — mit einer Meldung,
+  die nach einem Fehler im App-Target aussah.
+* `tools/verify.sh` erzeugte das Projekt nur, **wenn es fehlte**. Eine
+  Änderung an `project.yml` kam so nie an, und man sucht den Fehler im Code
+  statt im Projektstand. Es erzeugt jetzt immer neu.
 
 ## Phase 1 — Gewicht nativ · offen
 
