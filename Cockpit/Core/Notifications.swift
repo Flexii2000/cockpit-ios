@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import UserNotifications
 
 /// Lokale Benachrichtigungen - kein Server, kein APNs.
@@ -17,12 +18,30 @@ enum Notifications {
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .notDetermined:
-            return (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+            let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+            if granted {
+                // Erst ab hier darf ueberhaupt etwas zugestellt werden - also
+                // auch erst ab hier beim Push-Dienst anmelden.
+                await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }
+            }
+            return granted
         case .denied:
             return false
         default:
             return true
         }
+    }
+
+    /// Meldet das Geraet bei Apple an, wenn die Erlaubnis schon vorliegt.
+    ///
+    /// Bei jedem Start: iOS vergibt die Kennung gelegentlich neu, und eine
+    /// veraltete faellt sonst erst auf, wenn eine Benachrichtigung ins Leere
+    /// geht. Bewusst **ohne** Nachfrage - die kommt im Zusammenhang, wenn die
+    /// erste Schnellerfassung laeuft.
+    static func registerForPushIfAllowed() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+        await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }
     }
 
     static func post(title: String, body: String) async {

@@ -54,6 +54,12 @@ struct FoodAPI: Sendable {
         try await client.get("/api/food/features")
     }
 
+    /// Meldet dieses Geraet fuer Benachrichtigungen an.
+    func registerDevice(token: String) async throws {
+        let _: APIClient.Empty = try await client.send(
+            "POST", "/api/food/devices", body: DeviceRegistration(token: token))
+    }
+
     func startQuickCapture(_ request: QuickCaptureRequest) async throws -> QuickCaptureJob {
         try await client.send("POST", "/api/food/quick-capture", body: request)
     }

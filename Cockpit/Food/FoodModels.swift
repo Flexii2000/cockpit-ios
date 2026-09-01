@@ -156,3 +156,8 @@ struct QuickCapturePreview: Decodable, Sendable {
     let valueSources: [String: String]
     let note: String?
 }
+
+/// Die Push-Kennung dieses Geraets, wie der Server sie erwartet.
+struct DeviceRegistration: Encodable, Sendable {
+    let token: String
+}

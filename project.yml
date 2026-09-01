@@ -39,9 +39,30 @@ targets:
     platform: iOS
     sources:
       - path: Cockpit
+    entitlements:
+      path: Cockpit/Cockpit.entitlements
+      properties:
+        # Lesen von Gesundheitsdaten. Braucht die bezahlte Mitgliedschaft -
+        # mit dem Personal Team laesst sich das nicht signieren.
+        com.apple.developer.healthkit: true
+        # Eigener Schluessel, und genau der Teil, der zaehlt: damit weckt iOS
+        # die App, wenn ein neuer Gewichtswert geschrieben wird - auch wenn
+        # sie beendet ist.
+        com.apple.developer.healthkit.background-delivery: true
+        # Push. "development" passt zu einer Entwicklungssignatur; die
+        # Geraetekennungen daraus kennt NUR die APNs-Sandbox. Fuer TestFlight
+        # oder App Store muesste hier "production" stehen - und der Server
+        # muesste auf den anderen Host zeigen.
+        aps-environment: development
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit
+        # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
+        # App beim ersten HealthKit-Aufruf.
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit dein Gewicht aus Health automatisch im Cockpit landet.
+        # Keine Schreib-Erklaerung, solange nicht geschrieben wird: mit ihr
+        # sagt iOS im Dialog "zugreifen und sie aktualisieren" - und das waere
+        # zu viel versprochen. Kommt der Rueckweg, kommt sie wieder.
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_KEY_CFBundleDisplayName: Cockpit

@@ -33,6 +33,15 @@ struct WeightTab: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Ziel anpassen …") { showingTarget = true }
+                        if HealthSync.shared.isAvailable {
+                            Button("Aus Health holen") {
+                                Task {
+                                    await HealthSync.shared.requestPermission()
+                                    await HealthSync.shared.syncNow()
+                                    await store.load()
+                                }
+                            }
+                        }
                         if !store.addableWidgets.isEmpty {
                             Menu("Kachel hinzufügen") {
                                 ForEach(store.addableWidgets) { widget in
@@ -54,8 +63,18 @@ struct WeightTab: View {
                     }
                 }
             }
-            .refreshable { await store.load() }
-            .task { await store.load() }
+            .refreshable {
+                await HealthSync.shared.syncNow()
+                await store.load()
+            }
+            .task {
+                // Erlaubnis im Zusammenhang erfragen, nicht beim ersten Start
+                // der App: hier ist erkennbar, wofuer sie gebraucht wird. iOS
+                // zeigt seine Nachfrage ohnehin nur einmal.
+                await HealthSync.shared.requestPermission()
+                await HealthSync.shared.syncNow()
+                await store.load()
+            }
             .sheet(isPresented: $showingEntry) { WeightEntrySheet(store: store) }
             .sheet(isPresented: $showingTarget) { WeightTargetSheet(store: store) }
         }
