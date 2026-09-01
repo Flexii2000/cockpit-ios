@@ -61,7 +61,9 @@ struct FoodChartView: View {
             }
         }
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 4)) { value in
+            // `.aligned` haelt die aeusseren Beschriftungen im Bild - ohne das
+            // wird die letzte am rechten Rand abgeschnitten ("1....").
+            AxisMarks(preset: .aligned, values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine()
                 if let date = value.as(Date.self) {
                     AxisValueLabel {
@@ -77,7 +79,7 @@ struct FoodChartView: View {
         guard let kcalTarget, kcal > kcalTarget + NutritionTone.kcalTolerance else {
             return Palette.kcal.opacity(0.85)
         }
-        return Color(hex: 0xEF5350).opacity(0.9)
+        return Palette.over.opacity(0.9)
     }
 
     // MARK: - Skalen

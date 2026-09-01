@@ -3,6 +3,32 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-01 — Diagrammfarben folgen dem Erscheinungsbild, der Rest von selbst
+`Palette.adaptive(light:dark:)` statt fester Werte.
+**Warum:** die Farben stammen aus den Weboberflächen, und die sind dunkel.
+Dieselben hellen Pastelltöne auf weißem Grund haben zu wenig Kontrast — die
+7-Tage-Kurve war kaum vom Hintergrund zu unterscheiden. Im Dunkeln bleibt es
+exakt bei den Webwerten, damit dieselbe Kurve in App und Browser gleich
+aussieht; im Hellen kommt die kräftigere Stufe derselben Farbe.
+**Verworfen:** einen eigenen Farbsatz erfinden (dann sähen App und Browser
+verschieden aus) und alles hell zu lassen (schlechter lesbar).
+
+Alles andere — Karten, Listen, Leisten, Tacho-Spuren — folgt dem System schon,
+weil durchgehend Systemfarben und `.thinMaterial` benutzt werden. Das war kein
+Zufall, sondern der Grund, keine eigenen Grautöne zu setzen.
+
+## 2026-09-01 — Der Simulator bekommt die Token über die Umgebung
+`Access.seedFromEnvironment()`, nur unter `#if DEBUG`, gefüttert von
+`tools/run-simulator.sh` aus dem macOS-Schlüsselbund.
+**Warum:** ohne Zugang zeigen die nativen Tabs nur Fehlermeldungen, und
+Layoutfehler sieht man erst mit echten Daten — die drei oben gefundenen hätte
+kein Test gefunden. Von Hand eintippen wäre bei jedem Simulator-Neustart
+fällig.
+**Warum hinter `#if DEBUG`:** ein Token, das über eine Umgebungsvariable in
+die App kommt, hat in einem Build für ein echtes Gerät nichts zu suchen.
+**Verworfen:** Token in einer Datei im Repo (landet in Git), UI-Test zum
+Eintippen (viel Maschinerie für ein Textfeld).
+
 ## 2026-09-01 — Die Gewichtskurve wird in die kcal-Skala hineingerechnet
 Swift Charts kennt nur **eine** y-Skala. Das Gewicht wird deshalb linear in
 den kcal-Bereich abgebildet und rechts mit eigenen Beschriftungen versehen.

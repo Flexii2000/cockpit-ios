@@ -43,7 +43,21 @@ aufmachen.
 ```bash
 tools/bootstrap.sh   # einmalig + nach Änderungen an project.yml
 tools/verify.sh      # baut fuer den Simulator und laesst die Tests laufen
+tools/run-simulator.sh weight bild.png   # mit Zugang starten und aufnehmen
 ```
+
+`run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
+auf Wunsch einen Screenshot ab — der einzige Weg, Layoutfehler zu sehen statt
+sie sich vorzustellen. Erstes Argument ist der Tab (`food`, `weight`,
+`finance`, `setup`), zweites der Pfad fürs Bild.
+
+Die Token dafür stehen im **macOS-Schlüsselbund** unter dem Konto
+`cockpit-ios` (Dienste `fh_private` und `weight_app_token`) — nicht im Repo,
+nicht in einer Datei. Wie sie dort hinkommen, steht im Kopf des Skripts. Die
+App liest sie nur im Debug-Build (`Access.seedFromEnvironment`).
+
+Erscheinungsbild umschalten: `xcrun simctl ui booted appearance dark|light`.
+**Beide anschauen**, bevor etwas als fertig gilt.
 
 **Nie behaupten, etwas baue, ohne `tools/verify.sh` gelaufen zu haben.**
 Swift-Code, der nur "aussieht wie er kompiliert", ist ungeprüfter Code —

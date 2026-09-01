@@ -27,6 +27,12 @@ final class Access {
     init() {
         privateToken = Keychain.read(Self.privateTokenKey)
         weightToken = Keychain.read(Self.weightTokenKey)
+        #if DEBUG
+        // Muss hier passieren und nicht erst in einer `.task`: `RootView`
+        // entscheidet beim Erscheinen, ob es zum Zugang-Bildschirm springt -
+        // und das ist frueher.
+        seedFromEnvironment()
+        #endif
     }
 
     func store(privateToken: String, weightToken: String) async {
@@ -38,6 +44,27 @@ final class Access {
         self.weightToken = w
         await applyCookies()
     }
+
+#if DEBUG
+    /// Nimmt die Token aus der Prozessumgebung, falls welche da sind.
+    ///
+    /// Nur fuer den Simulator (siehe `tools/run-simulator.sh`): sonst muesste
+    /// man sie vor jedem Blick auf die Oberflaeche von Hand eintippen, und
+    /// ohne Token zeigen die Tabs nur Fehlermeldungen. Bewusst hinter
+    /// `#if DEBUG` - ein Token, das ueber eine Umgebungsvariable in die App
+    /// kommt, hat in einem Build fuer ein echtes Geraet nichts zu suchen.
+    func seedFromEnvironment() {
+        let environment = ProcessInfo.processInfo.environment
+        if let value = environment["COCKPIT_FH_PRIVATE_TOKEN"], !value.isEmpty {
+            Keychain.save(value, for: Self.privateTokenKey)
+            privateToken = value
+        }
+        if let value = environment["COCKPIT_WEIGHT_TOKEN"], !value.isEmpty {
+            Keychain.save(value, for: Self.weightTokenKey)
+            weightToken = value
+        }
+    }
+#endif
 
     func reset() {
         Keychain.delete(Self.privateTokenKey)

@@ -3,9 +3,10 @@
 > **Nächster Schritt:** M3 — HealthKit, Widget, Siri-Kurzbefehl,
 > Face-ID-Sperre. Braucht die bezahlte Mitgliedschaft.
 >
-> Vorher offen: die native Oberfläche ist **noch nie mit echten Daten
-> gesehen** worden — sie kompiliert und die Logik ist getestet, aber im
-> Simulator liegen keine Token. Erster Blick gehört aufs Gerät.
+> Offen aus der Planung: eine Übersicht der **doppelt gepflegten
+> Anzeigeregeln** (Toleranzen, BMI-Größe, Tacho-Geometrie) mit ihrer
+> Gegenstelle im Web-Quelltext — damit beim Ändern nicht eine der beiden
+> Seiten stehenbleibt.
 >
 > ⚠️ **Terminsache:** das Provisioning-Profil läuft am **8. September 2026,
 > 18:41 Uhr** ab (Personal Team). Bis dahin sollte die bezahlte Mitgliedschaft
@@ -91,6 +92,29 @@ Zwei Fallen dabei, beide behoben:
       mit Herkunft je Wert, alles korrigierbar vor dem Übernehmen
 - [x] Verlaufsdiagramm: kcal als Säulen, Zielline, Gewichtskurve darüber
 - [x] 30 Tests grün
+
+### Am echten Datenbestand nachgezogen (2026-09-01)
+
+Die Oberfläche ließ sich zunächst nur blind bauen — im Simulator lagen keine
+Token. Mit `tools/run-simulator.sh` ist das erledigt, und beim ersten Blick
+fielen drei Dinge auf, die kein Test gefunden hätte:
+
+* **Die y-Achse der Gewichtskurve lief von 0 bis 100.** Ein `RectangleMark`
+  ohne y-Grenzen (die Urlaubsbänder) zieht den Bereich bis zur Null herunter;
+  die Kurve saß als flacher Strich im obersten Zehntel. Jetzt steht der
+  Bereich explizit und rechnet den Zielkorridor mit ein.
+* **Ein Urlaub, der in die Zukunft reicht, dehnte die x-Achse.** „Uniblock"
+  läuft bis 2. Oktober — rechts stand ein Fünftel des Diagramms leer. Die
+  Bänder werden jetzt auf den Datenbereich zugeschnitten, wie im Web.
+* **Die letzte Achsenbeschriftung war abgeschnitten** („1...."), behoben mit
+  `AxisMarks(preset: .aligned)`.
+
+### Hell und Dunkel
+
+Beides geprüft. Chrome, Karten und Listen folgen dem System von selbst; die
+Diagrammfarben stammen aus den dunklen Weboberflächen und waren auf Weiß zu
+blass — sie sind jetzt modusabhängig (`Palette.adaptive`), im Dunkeln
+unverändert wie im Browser, im Hellen die kräftigere Stufe derselben Farbe.
 
 **Nicht übernommen aus der Weboberfläche:** der Hover-Schleier der Diagramme
 (auf einem Touchgerät gibt es kein Hover) und die Umschalter je Serie im

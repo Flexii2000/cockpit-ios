@@ -5,6 +5,22 @@ import SwiftUI
 /// an jeder Verwendungsstelle eine Umstaendlichkeit.
 enum TabSelection: Hashable {
     case food, weight, finance, setup
+
+    /// Womit die App aufmacht. Im Debug-Build laesst sich das ueber
+    /// `COCKPIT_TAB` vorgeben - so kann ein Skript jeden Tab einzeln
+    /// aufnehmen, ohne dass jemand tippen muss.
+    static var initial: TabSelection {
+        #if DEBUG
+        switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
+        case "weight":  return .weight
+        case "finance": return .finance
+        case "setup":   return .setup
+        default:        return .food
+        }
+        #else
+        return .food
+        #endif
+    }
 }
 
 /// Das Tab-Geruest. Jeder Tab ist eine eigene Datei, damit der Umbau von
@@ -12,7 +28,7 @@ enum TabSelection: Hashable {
 struct RootView: View {
 
     @Environment(Access.self) private var access
-    @State private var selection: TabSelection = .food
+    @State private var selection: TabSelection = .initial
 
     var body: some View {
         TabView(selection: $selection) {
