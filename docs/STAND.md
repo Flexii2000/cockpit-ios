@@ -34,7 +34,18 @@
 - [x] **Startet auch wirklich**: im Simulator installiert und gestartet, die
       App zeigt die vier Tabs und springt ohne hinterlegte Token von selbst
       in den Zugang-Bildschirm
-- [ ] Läuft auf dem Gerät (braucht Apple-Developer-Account)
+- [x] **Auf dem iPhone installiert** (iPhone 16 Pro, per `devicectl`).
+      Signiert mit dem **Personal Team** `ZWFV263P59` — die Aufnahme ins
+      Apple Developer Program lief zu dem Zeitpunkt noch (Apple zeigt bis
+      zur Freigabe nur eine Enrollment-ID, noch keine Team-ID).
+      ⚠️ **Damit laufen App und Zertifikat nach sieben Tagen ab.** Sobald die
+      Mitgliedschaft steht: `DEVELOPMENT_TEAM` in `project.yml` auf die
+      Team-ID der bezahlten Mitgliedschaft umstellen, dann gilt ein Jahr.
+- [ ] Erststart auf dem Gerät: das Entwicklerprofil muss am iPhone unter
+      *Einstellungen → Allgemein → VPN & Geräteverwaltung* einmal als
+      vertrauenswürdig bestätigt werden. Ohne das verweigert iOS den Start
+      (`FBSOpenApplicationServiceErrorDomain error 1`) — nicht
+      automatisierbar, das ist so gewollt
 
 Zwei Fallen dabei, beide behoben:
 

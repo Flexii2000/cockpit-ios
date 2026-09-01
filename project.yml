@@ -19,6 +19,16 @@ settings:
     # Auf Projektebene, nicht nur beim App-Target: sonst scheitert das
     # Test-Bundle beim Signieren an einer fehlenden Info.plist.
     GENERATE_INFOPLIST_FILE: YES
+    # Signieren. Steht hier und nicht nur in der .xcodeproj, weil die
+    # generiert wird - eine Einstellung, die man in Xcode anklickt, waere
+    # beim naechsten bootstrap.sh wieder weg.
+    #
+    # Derzeit das kostenlose Personal Team: die App laeuft damit nur SIEBEN
+    # TAGE, danach neu installieren. Sobald die Aufnahme ins Apple Developer
+    # Program durch ist, hier die Team-ID der bezahlten Mitgliedschaft
+    # eintragen - dann wird ein Jahr daraus.
+    DEVELOPMENT_TEAM: ZWFV263P59
+    CODE_SIGN_STYLE: Automatic
 
 targets:
   Cockpit:
