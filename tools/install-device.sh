@@ -51,20 +51,23 @@ if [ -z "${DEVICE_ID:-}" ]; then
     exit 1
 fi
 
-if [ "$DEVICE_STATE" != "bereit" ]; then
-    echo "$DEVICE_NAME ist gekoppelt, aber gerade nicht erreichbar." >&2
-    echo "Entsperren, ins selbe WLAN bringen - oder Kabel anstecken." >&2
-    exit 1
-fi
-
-echo "Ziel: $DEVICE_NAME"
+# Kein Vorab-Abbruch anhand von tunnelState: der Tunnel wird bei Bedarf
+# aufgebaut, "disconnected" heisst also NICHT unerreichbar. Wer hier zu frueh
+# aufgibt, weist ein Geraet ab, das gleich geantwortet haette.
+echo "Ziel: $DEVICE_NAME ($DEVICE_STATE)"
 tools/bootstrap.sh > /dev/null
 xcodebuild build -project Cockpit.xcodeproj -scheme Cockpit \
     -destination 'generic/platform=iOS' -allowProvisioningUpdates \
     -derivedDataPath build/device -quiet
 
-xcrun devicectl device install app --device "$DEVICE_ID" \
-    build/device/Build/Products/Debug-iphoneos/Cockpit.app
+if ! xcrun devicectl device install app --device "$DEVICE_ID" \
+        build/device/Build/Products/Debug-iphoneos/Cockpit.app; then
+    echo >&2
+    echo "Installation fehlgeschlagen. Haeufigster Grund: $DEVICE_NAME ist" >&2
+    echo "gesperrt oder nicht im selben WLAN. Entsperren und noch einmal -" >&2
+    echo "oder Kabel anstecken." >&2
+    exit 1
+fi
 
 if $LAUNCH; then
     # Beim ersten Mal mit einem neuen Zertifikat verweigert iOS den Start, bis
