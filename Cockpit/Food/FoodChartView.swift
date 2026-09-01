@@ -46,7 +46,12 @@ struct FoodChartView: View {
                     }
                     .foregroundStyle(Palette.kcal)
                     .lineStyle(StrokeStyle(lineWidth: 2))
-                    .interpolationMethod(.catmullRom)
+                    // Bewusst keine Glaettung: eine Kurve durch die Punkte (Catmull-Rom)
+                // ueberschwingt zwischen weit auseinanderliegenden Werten und
+                // zeichnet damit Zahlen, die nie gemessen wurden. Gerade
+                // Verbindungen behaupten nur, was zwischen zwei Messungen
+                // plausibel ist: nichts.
+                    .interpolationMethod(.linear)
                 }
             }
 
@@ -71,7 +76,7 @@ struct FoodChartView: View {
                                  ? Palette.measured : Palette.avg7)
                 .lineStyle(StrokeStyle(
                     lineWidth: run.id.hasPrefix(WeightSeries.measured.rawValue) ? 1.3 : 2))
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
             }
         }
         .chartYScale(domain: kcalDomain)

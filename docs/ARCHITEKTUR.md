@@ -51,6 +51,7 @@ Cockpit/
   Web/       WKWebView-Einbettung fuer die noch nicht nativen Tabs
   Weight/    nativ: API, Store, Diagramm, Kacheln, Eingabe
   Food/      nativ: Tagesansicht, Tachos, Gerichte, Schnellerfassung
+  Health/    Abgleich mit Apple Health (nur lesend)
   Finance/   bleibt duenn: nur der WebView-Tab
 project.yml  Quelle des Xcode-Projekts (XcodeGen)
 tools/       bootstrap.sh (Projekt erzeugen), verify.sh (bauen + testen)
@@ -70,6 +71,23 @@ Das erspart das `\/setup?token=…`-Ritual pro Gerät und überlebt einen
 App-Neustart. Der Finanzen-Tab bleibt außen vor: dort meldet man sich im
 WebView mit Passwort + Einmalcode an, das Session-Cookie hält 7 Tage und
 verlängert sich bei Nutzung.
+
+## Was ausserhalb der Oberfläche läuft
+
+Zwei Dinge passieren, ohne dass jemand die App offen hat — und beide brauchen
+deshalb einen `AppDelegate` statt einer `.task` an einer View: wird die App im
+Hintergrund geweckt, gibt es gar keine Oberfläche.
+
+**HealthKit.** Eine `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
+App, wenn ein neuer Gewichtswert geschrieben wird. Ein Anker merkt sich, was
+schon geholt wurde, und wird erst **nach** erfolgreichem Senden gespeichert —
+sonst gingen Werte verloren, wenn der Server gerade nicht erreichbar war.
+
+**Push.** Die Schnellerfassung läuft auf dem Server; der schickt eine
+Benachrichtigung, wenn sie fertig ist. Die App meldet ihre Kennung bei jedem
+Start neu an (`/api/food/devices`), weil iOS sie gelegentlich austauscht.
+Unabhängig davon fragt die App weiter selbst nach, solange sie läuft: die
+Benachrichtigung ist ein Zustellweg, keine Voraussetzung.
 
 ## Was die App bewusst nicht tut
 

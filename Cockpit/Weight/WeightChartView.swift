@@ -63,7 +63,12 @@ struct WeightChartView: View {
                         }
                         .foregroundStyle(Palette.kcal)
                         .lineStyle(StrokeStyle(lineWidth: 1.6))
-                        .interpolationMethod(.catmullRom)
+                        // Bewusst keine Glaettung: eine Kurve durch die Punkte (Catmull-Rom)
+                // ueberschwingt zwischen weit auseinanderliegenden Werten und
+                // zeichnet damit Zahlen, die nie gemessen wurden. Gerade
+                // Verbindungen behaupten nur, was zwischen zwei Messungen
+                // plausibel ist: nichts.
+                        .interpolationMethod(.linear)
                     }
                 }
             }
@@ -76,7 +81,7 @@ struct WeightChartView: View {
                 }
                 .foregroundStyle(Palette.measured)
                 .lineStyle(StrokeStyle(lineWidth: 1.6))
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
             }
 
             ForEach(averageSegments) { segment in
@@ -90,7 +95,7 @@ struct WeightChartView: View {
                 // ist - am aktuellen Rand ist es das nie.
                 .lineStyle(StrokeStyle(lineWidth: 2.2,
                                        dash: segment.complete ? [] : [1, 5]))
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
             }
 
             if visible.contains(.target) {

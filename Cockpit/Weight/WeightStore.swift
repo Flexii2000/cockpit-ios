@@ -62,7 +62,7 @@ final class WeightStore {
             async let dashboard = api.dashboard()
 
             self.summary = try await summary
-            self.points = try await points
+            self.points = Self.trim(try await points, to: range)
             self.vacations = try await vacations
             self.extraWidgets = Self.sanitize(try await dashboard.widgets)
             clearError()
@@ -92,7 +92,7 @@ final class WeightStore {
         // bliebe ein Haken stehen, zu dem keine Linie gehoert.
         visibleSeries.formIntersection(range.availableSeries)
         do {
-            points = try await api.points(range)
+            points = Self.trim(try await api.points(range), to: range)
             clearError()
         } catch {
             report(error)
@@ -103,7 +103,7 @@ final class WeightStore {
     func add(date: CalendarDate, weightKg: Double) async -> Bool {
         do {
             summary = try await api.add(date: date, weightKg: weightKg)
-            points = try await api.points(range)
+            points = Self.trim(try await api.points(range), to: range)
             clearError()
             return true
         } catch {
@@ -116,7 +116,7 @@ final class WeightStore {
         do {
             summary = try await api.updateTarget(weightKg)
             // Die Zielkurve haengt am Ziel: die Punkte muessen mit.
-            points = try await api.points(range)
+            points = Self.trim(try await api.points(range), to: range)
             clearError()
             return true
         } catch {
@@ -147,6 +147,25 @@ final class WeightStore {
         } catch {
             extraWidgets = previous
             report(error)
+        }
+    }
+
+    /// Schneidet eine Reihe auf das Fenster des Zeitraums zu.
+    ///
+    /// Nur fuer Zeitraeume ohne eigenen Endpunkt: „3 Jahre" holt die volle
+    /// Reihe und behaelt davon die letzten 1095 Tage plus eine Woche Vorgriff -
+    /// dieselbe Form, die der Jahres-Endpunkt serverseitig liefert.
+    static func trim(_ points: [WeightPoint], to range: WeightRange) -> [WeightPoint] {
+        guard let windowDays = range.windowDays else { return points }
+        let today = CalendarDate.today()
+        let calendar = Calendar(identifier: .gregorian)
+        guard let from = calendar.date(byAdding: .day, value: -windowDays, to: today.startOfDay()),
+              let to = calendar.date(byAdding: .day, value: WeightRange.lookAheadDays,
+                                     to: today.startOfDay())
+        else { return points }
+        return points.filter {
+            let day = $0.date.startOfDay()
+            return day >= from && day <= to
         }
     }
 

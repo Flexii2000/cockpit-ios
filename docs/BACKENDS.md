@@ -57,7 +57,7 @@ Ein `JSONDecoder` mit `.iso8601` scheitert am reinen Datum. Deshalb die
 | GET | `/api/weight/vacations` | `[Vacation]` |
 | GET | `/api/weight/summary` | `WeightSummary` |
 | PUT | `/api/weight/target` | Body `{targetWeightKg}` → `WeightSummary` |
-| POST | `/api/weight` | Body `{date, weightKg}` → `WeightSummary` |
+| POST | `/api/weight` | Body `{date, weightKg, keepExisting?}` → `WeightSummary` |
 | GET/PUT | `/api/dashboard` | `{widgets: [String]}` — welche Kacheln sichtbar sind |
 | GET | `/setup?token=…` | setzt das Cookie (braucht die App nicht) |
 
@@ -69,6 +69,28 @@ WeightSummary  date, current?, avg7?, avg14?, avg30?, target?, targetDate?,
                corridorLower?, corridorUpper?, corridorReachedOn?
 Vacation       start, end, label
 ```
+⚠️ **`keepExisting` ist die Regel für Importe.** Es gibt genau **einen** Wert
+pro Tag. Steht `keepExisting: true` im Body und der Tag ist schon belegt, bleibt
+der vorhandene Wert stehen und die Antwort enthält den unveränderten Stand.
+Gesetzt wird das **nur vom Health-Abgleich**: ein von Hand eingetragener Wert
+ist der verlässlichere, und ohne diese Regel hinge das Ergebnis daran, wer
+zuletzt geschrieben hat — je nach Weckzeitpunkt von iOS mal so, mal so. Im
+Browser und in der App wird weiterhin überschrieben.
+
+⚠️ **Die Reihen beginnen beim frühesten Messwert, nicht beim
+Aufzeichnungsbeginn.** Seit dem Health-Abgleich reicht der Bestand bis 2018
+zurück; `year` und `all-time` zeigen das. **Die Zielkurve (`target`) ist vor
+`recordingStart` `null`** — sie startet per Definition beim Startgewicht an
+diesem Tag, und weiter zurück gezeichnet behauptete sie eine Vorgabe, die es
+damals nicht gab. Ein Client muss also damit rechnen, dass `target` fehlt,
+während `measured` dasteht.
+
+⚠️ **`corridorReachedOn` betrachtet nur Einträge ab `recordingStart`.** Wer
+2022 einmal im Zielkorridor war, ist deshalb heute nicht in der Halte-Phase.
+Ohne diese Grenze meldete die Zusammenfassung nach dem Health-Import den
+Korridor als erreicht, und jedes Frontend streckte seine Achse, um ein Band
+unterzubringen, das über das laufende Vorhaben nichts aussagt.
+
 ⚠️ **Es gibt kein DELETE für Messwerte** — aber es braucht auch keins:
 `POST /api/weight` mit einem Datum, das schon existiert, **ersetzt** den Wert
 (`removeIf` + `add` in `WeightRepository`). Ein Tippfehler wird also durch
@@ -99,6 +121,7 @@ erst ab dem Tag gezeichnet, an dem seine Oberkante erstmals unterschritten war.
 | POST | `/api/food/quick-capture` | Body `{date, text, meal}` → `QuickCaptureJob` |
 | GET | `/api/food/quick-capture/{id}` | `QuickCaptureJob` |
 | GET | `/api/food/status` | `StatusInfo` (für das Statusboard) |
+| POST | `/api/food/devices` | Body `{token}` → 204. Meldet ein Gerät für Push an |
 
 ```
 Nutrients      kcal, proteinG, carbsG, fatG            (alle nicht-optional)
@@ -113,6 +136,16 @@ QuickCaptureJob id, status ("running"|"done"|"failed"), preview?, error?, elapse
 QuickCapturePreview known, dishId?, name, per100g, portionG?, grams, meal,
                valueSources: [String: String], note?
 ```
+
+⚠️ **Der Server meldet sich, wenn ein Auftrag fertig ist.** Seit 2026-09-01
+schickt er eine Push-Benachrichtigung an alle angemeldeten Geräte
+(`/api/food/devices`). Der Schlüssel liegt auf dem Server
+(`/etc/apns-cockpit.p8`), die Kennungen in `data/devices.json`; lehnt Apple
+eine ab, fliegt sie raus. **`APNS_HOST` steht auf der Sandbox** — das passt zu
+einer aus Xcode installierten App. Ein TestFlight- oder App-Store-Build
+braucht `https://api.push.apple.com`, sonst kommt nur `BadDeviceToken`.
+Nachfragen tut die App trotzdem weiter, solange sie läuft: die
+Benachrichtigung ist die Zustellung, nicht die Wahrheit.
 
 ⚠️ **Schnellerfassung ist ein Auftrag, kein Aufruf.** `POST /quick-capture`
 startet auf dem Server eine Claude-Code-Session und kommt sofort mit einer Job-ID
