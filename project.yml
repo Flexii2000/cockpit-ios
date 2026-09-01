@@ -1,0 +1,49 @@
+# Quelle des Xcode-Projekts. Die .xcodeproj wird daraus erzeugt und ist
+# NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
+#
+# Neue Swift-Datei hinzufuegen: Datei unter Cockpit/ anlegen und
+# tools/bootstrap.sh laufen lassen. Fertig - hier ist nichts zu pflegen,
+# weil ganze Ordner eingebunden sind, keine Einzeldateien.
+name: Cockpit
+
+options:
+  bundleIdPrefix: com.fherrmann
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  Cockpit:
+    type: application
+    platform: iOS
+    sources:
+      - path: Cockpit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # Info.plist wird generiert - eine Datei weniger, die auseinanderlaufen kann.
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Cockpit
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        # Nur Hochkant, nur iPhone: die drei Weboberflaechen sind fuers Handy
+        # gebaut, Querformat brachte nie etwas.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        TARGETED_DEVICE_FAMILY: "1"
+        # Keine ATS-Ausnahme noetig: alle drei Domains haben gueltige
+        # Let's-Encrypt-Zertifikate und sprechen HTTPS.
+
+  CockpitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Cockpit

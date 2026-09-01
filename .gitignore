@@ -1,0 +1,20 @@
+# Von XcodeGen erzeugt - die Quelle ist project.yml. Eine eingecheckte
+# .xcodeproj waere eine zweite Wahrheit und der Ort, an dem Merge-Konflikte
+# entstehen, die niemand lesen kann.
+*.xcodeproj/
+*.xcworkspace/
+
+# Xcode-Kram
+DerivedData/
+build/
+.build/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Niemals ins Repo: die Zugangstokens leben im Keychain des Geraets,
+# nicht in einer Datei.
+*.env
+secrets.plist

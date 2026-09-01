@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tools/bootstrap.sh)",
+      "Bash(tools/verify.sh)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcodegen:*)",
+      "Bash(xcrun:*)",
+      "Bash(swift:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
