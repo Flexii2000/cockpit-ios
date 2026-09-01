@@ -1,11 +1,12 @@
 # Stand
 
-> **Nächster Schritt:** Phase 1 — der Gewicht-Tab wird nativ. Anfangen mit
-> den Modellen und `WeightAPI`, dann das Diagramm. Endpunkte und Feldlisten
-> stehen in `docs/BACKENDS.md`.
+> **Nächster Schritt:** M2 — der Essen-Tab wird nativ. Tagesansicht,
+> Gerichte-Merkliste, Schnellerfassung. Endpunkte in `docs/BACKENDS.md`.
 >
-> Parallel, unabhängig davon: Apple Developer Program (99 €/Jahr). Ohne das
-> läuft die App sieben Tage nach dem Installieren ab.
+> ⚠️ **Terminsache:** das Provisioning-Profil läuft am **8. September 2026,
+> 18:41 Uhr** ab (Personal Team). Bis dahin sollte die bezahlte Mitgliedschaft
+> stehen — dann `DEVELOPMENT_TEAM` in `project.yml` tauschen und neu
+> installieren, sonst startet die App nicht mehr.
 
 ## Phase 0 — Gerüst · **fertig** (2026-09-01)
 
@@ -56,17 +57,23 @@ Zwei Fallen dabei, beide behoben:
   Änderung an `project.yml` kam so nie an, und man sucht den Fehler im Code
   statt im Projektstand. Es erzeugt jetzt immer neu.
 
-## Phase 1 — Gewicht nativ · offen
+## M1 — Gewicht nativ · **fertig** (2026-09-01)
 
-- [ ] Modelle `WeightPoint`, `WeightSummary`, `Vacation`
-- [ ] `WeightAPI` (6 GET, 1 PUT, 1 POST — siehe `docs/BACKENDS.md`)
-- [ ] Verlaufsdiagramm mit Swift Charts: Messpunkte, Schnitte 7/14/30,
-      Zielkurve, Korridor, Urlaubs-Bänder
-- [ ] Unvollständige Schnitte gestrichelt (`avg7Complete` etc.)
-- [ ] Gewicht eintragen, Ziel ändern
-- [ ] Kacheln aus `/api/dashboard`
+- [x] Modelle `WeightPoint`, `WeightSummary`, `Vacation`, `DashboardConfig`
+- [x] `WeightAPI` — alle Endpunkte des Weight Trackers
+- [x] Verlaufsdiagramm mit Swift Charts: Messwerte, 7-Tage-Mittel, Zielkurve,
+      Zielkorridor als Band, Urlaube als Hintergrundfläche
+- [x] Unvollständige Mittel gepunktet — Logik in `WeightChartData`, damit sie
+      testbar ist, mit fünf Tests
+- [x] Gewicht eintragen (Blatt mit Datum + Dezimalfeld), Ziel ändern
+- [x] Alle 18 Kacheln der Web-Registry, Zusätze über `/api/dashboard`
+      hinzufügbar und per Kontextmenü entfernbar
+- [x] **App-Icon** — erzeugt von `tools/make-icon.swift`
+- [x] Fehlerbanner, das ein Zugangsproblem von einem sonstigen Fehler
+      unterscheidet
+- [x] 21 Tests grün
 
-## Phase 2 — Essen nativ · offen
+## M2 — Essen nativ · offen
 
 - [ ] Modelle `Nutrients`, `Dish`, `FoodEntry`, `DaySummary`, `DayTotal`
 - [ ] Tagesansicht nach Mahlzeiten, Tacho-Anzeigen
@@ -75,7 +82,7 @@ Zwei Fallen dabei, beide behoben:
       (`/features` vorher abfragen)
 - [ ] Verlaufsdiagramm `\/daily` + Gewichtskurve darüber
 
-## Phase 3 — was nativ erst möglich macht · offen
+## M3 — was nativ erst möglich macht · offen
 
 - [ ] HealthKit: Gewicht aus Apple Health lesen/schreiben
 - [ ] Widget: Restkalorien heute

@@ -22,11 +22,25 @@ Gewicht-Tab die Luft raus ist, hat man trotzdem eine brauchbare App statt
 einer Baustelle.
 
 ```
-Phase 0   [Web]  [Web]  [Web]     <- benutzbar
-Phase 1   [Web]  [nativ][Web]     <- benutzbar
-Phase 2   [nativ][nativ][Web]     <- Zielbild Stufe 2
-Phase 3   + HealthKit, Widget, Shortcuts, Face-ID-Sperre
+Phase 0   [Web]  [Web]  [Web]     <- benutzbar          erledigt
+M1        [Web]  [nativ][Web]     <- benutzbar          erledigt
+M2        [nativ][nativ][Web]     <- Zielbild Stufe 2   offen
+M3        + HealthKit, Widget, Shortcuts, Face-ID-Sperre
 ```
+
+### Aufbau eines nativen Tabs
+
+Dreiteilig, und in M2 genauso wie in M1:
+
+* **`…API`** — nur Endpunkte, kein Zustand. Duenn genug, um beim Lesen der
+  Backend-Doku nebenherzulaufen.
+* **`…Store`** (`@MainActor @Observable`) — haelt, was der Tab anzeigt,
+  faengt Fehler ab und uebersetzt sie: ein Zugangsproblem ist etwas anderes
+  als ein Serverfehler, und nur beim ersten hilft der Hinweis auf den
+  Zugang-Tab.
+* **View + Datenaufbereitung** — Rechnerei, die mehr ist als Formatieren,
+  liegt neben der View statt darin (`WeightChartData`), sonst ist sie nicht
+  testbar.
 
 ## Ordner
 
@@ -35,8 +49,8 @@ Cockpit/
   App/       Einstieg, Tab-Gerüst
   Core/      Keychain, Zugang (Cookies), APIClient, Backend-URLs
   Web/       WKWebView-Einbettung fuer die noch nicht nativen Tabs
-  Weight/    Phase 1
-  Food/      Phase 2
+  Weight/    nativ: API, Store, Diagramm, Kacheln, Eingabe
+  Food/      M2
   Finance/   bleibt duenn: nur der WebView-Tab
 project.yml  Quelle des Xcode-Projekts (XcodeGen)
 tools/       bootstrap.sh (Projekt erzeugen), verify.sh (bauen + testen)

@@ -3,6 +3,40 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-01 — Ein Diagramm mit Umschalter statt vier untereinander
+Die Weboberflaeche zeigt 30 Tage, 90 Tage, 365 Tage und „all time" als vier
+gestapelte Diagramme. Nativ ist es **eines** mit einem Segment-Umschalter.
+**Warum:** auf einem Handy bedeuten vier Diagramme untereinander vor allem
+Scrollweg; man sieht nie zwei davon gleichzeitig, der Vergleich, für den das
+Stapeln gedacht ist, findet also ohnehin nicht statt.
+**Verworfen:** vier Diagramme wie im Web (viel Scrollen), Wischen zwischen
+Zeiträumen (kollidiert mit dem Wischen zwischen Tabs).
+
+## 2026-09-01 — Das Linien-Zerlegen liegt neben der View, nicht darin
+`WeightChartData` statt privater Methoden in `WeightChartView`.
+**Warum:** das Zerlegen an der Vollständigkeitsgrenze ist die einzige Stelle
+im Diagramm mit echter Logik — und ein Fehler darin sieht aus wie ein
+Datenproblem, nicht wie ein Programmfehler. In einer View wäre sie nicht zu
+testen; jetzt hängen fünf Tests daran. Einer davon hat prompt eine falsche
+Annahme von mir aufgedeckt: das verbindende Stück gehört zum **früheren**
+Punkt, genau wie im Web (`points[ctx.p1DataIndex]`).
+**Verworfen:** in der View lassen und „sieht richtig aus" als Prüfung.
+
+## 2026-09-01 — Kacheln als Enum statt als Tabelle von Closures
+**Warum:** die Web-Registry ist ein Objekt aus Closures; in Swift wäre das
+unter strikter Nebenläufigkeit eine nicht-`Sendable` Globale. Als Enum ist
+jede Kachel an einer Stelle vollständig beschrieben, und der Compiler merkt,
+wenn bei einer neuen Kachel ein Fall fehlt.
+
+## 2026-09-01 — Das App-Icon wird erzeugt, nicht abgelegt
+`tools/make-icon.swift` zeichnet die 1024er-PNG.
+**Warum:** so ist nachvollziehbar, woraus das Icon besteht, und eine
+Farbänderung ist eine Zeile statt einer neuen Datei aus einem
+Grafikprogramm. Motiv ist ein Instrument mit dreigeteiltem Bogen — in den
+Verlaufsfarben, die die Tachos des Kalorienzählers schon benutzen.
+**Verworfen:** ein in einem Grafikprogramm gebautes Icon (nicht
+nachvollziehbar, nicht diff-bar).
+
 ## 2026-09-01 — Hybrid statt „alles nativ"
 Essen und Gewicht werden nativ, Finanzen bleibt WebView.
 **Warum:** Weight und Food haben sauberes JSON-REST, da kostet nativ fast nur

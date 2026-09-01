@@ -29,6 +29,9 @@ settings:
     # eintragen - dann wird ein Jahr daraus.
     DEVELOPMENT_TEAM: ZWFV263P59
     CODE_SIGN_STYLE: Automatic
+    # Ohne das findet der Build den Asset-Katalog zwar, benutzt sein Icon aber
+    # nicht - auf dem Homebildschirm bliebe ein weisses Feld.
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
 targets:
   Cockpit:
