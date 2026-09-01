@@ -69,6 +69,13 @@ WeightSummary  date, current?, avg7?, avg14?, avg30?, target?, targetDate?,
                corridorLower?, corridorUpper?, corridorReachedOn?
 Vacation       start, end, label
 ```
+⚠️ **Es gibt kein DELETE für Messwerte** — aber es braucht auch keins:
+`POST /api/weight` mit einem Datum, das schon existiert, **ersetzt** den Wert
+(`removeIf` + `add` in `WeightRepository`). Ein Tippfehler wird also durch
+erneutes Eintragen korrigiert. Was nicht geht: einen Tag wieder ganz leeren.
+Falls das je gebraucht wird, ist das eine Ergänzung im Weight-Backend, nicht
+im Client.
+
 `?` = kann `null` sein, in Swift also `Optional`. Die `avg…Complete`-Flags sagen,
 ob der Schnitt auf einem vollen Fenster steht — die Weboberfläche zeichnet
 unvollständige Schnitte gestrichelt. Das Ziel ist eine **Sättigungskurve**
