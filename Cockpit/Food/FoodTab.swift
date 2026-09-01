@@ -182,10 +182,18 @@ struct FoodTab: View {
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
-            }
-            .onDelete { offsets in
-                let doomed = offsets.map { section.entries[$0] }
-                Task { for entry in doomed { await store.deleteEntry(entry) } }
+                // Eigene Wischaktion statt `onDelete`: die zeigt "Löschen"
+                // ausgeschrieben. Die Mülltonne sagt dasselbe und braucht
+                // weniger Weg - der Titel bleibt aber am Label stehen, damit
+                // VoiceOver etwas vorzulesen hat.
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        Task { await store.deleteEntry(entry) }
+                    } label: {
+                        Label("Löschen", systemImage: "trash")
+                            .labelStyle(.iconOnly)
+                    }
+                }
             }
 
             if let meal = section.meal {
@@ -217,6 +225,14 @@ struct FoodTab: View {
         }
     }
 
+    private func toggleWeight(_ series: WeightSeries) {
+        if store.weightOverlay.contains(series) {
+            store.weightOverlay.remove(series)
+        } else {
+            store.weightOverlay.insert(series)
+        }
+    }
+
     // MARK: - Verlauf
 
     private func historySection(_ day: DaySummary) -> some View {
@@ -237,17 +253,24 @@ struct FoodTab: View {
                           weightPoints: store.weightPoints,
                           kcalTarget: day.targets.kcal,
                           from: store.historyFrom,
-                          to: store.historyTo)
+                          to: store.historyTo,
+                          weightOverlay: store.weightOverlay)
 
-            HStack(spacing: 14) {
-                Label("kcal", systemImage: "minus")
-                    .foregroundStyle(Palette.kcal)
-                Label("über Ziel", systemImage: "circle.fill")
-                    .foregroundStyle(Palette.over)
-                Label("Gewicht", systemImage: "minus")
-                    .foregroundStyle(Palette.avg7)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,
+                               isOn: store.weightOverlay.contains(.avg7)) {
+                        toggleWeight(.avg7)
+                    }
+                    SeriesChip(title: "Gewicht täglich", color: Palette.measured,
+                               isOn: store.weightOverlay.contains(.measured)) {
+                        toggleWeight(.measured)
+                    }
+                }
+                Text("Gelb: kcal je Tag, rote Punkte mehr als 100 kcal über dem Ziel.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
-            .font(.caption2)
         }
     }
 }

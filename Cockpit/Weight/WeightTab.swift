@@ -112,25 +112,15 @@ struct WeightTab: View {
             HStack(spacing: 8) {
                 ForEach(WeightSeries.offered) { series in
                     if store.range.availableSeries.contains(series) {
-                        let isOn = store.visibleSeries.contains(series)
-                        Button {
-                            if isOn { store.visibleSeries.remove(series) }
-                            else { store.visibleSeries.insert(series) }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Circle()
-                                    .fill(series.color)
-                                    .frame(width: 8, height: 8)
-                                Text(series.title).font(.caption)
+                        SeriesChip(title: series.title,
+                                   color: series.color,
+                                   isOn: store.visibleSeries.contains(series)) {
+                            if store.visibleSeries.contains(series) {
+                                store.visibleSeries.remove(series)
+                            } else {
+                                store.visibleSeries.insert(series)
                             }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 10)
-                            .background(isOn ? series.color.opacity(0.18) : Color.clear,
-                                        in: Capsule())
-                            .overlay(Capsule().strokeBorder(.quaternary, lineWidth: isOn ? 0 : 1))
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(isOn ? .primary : .secondary)
                     }
                 }
             }

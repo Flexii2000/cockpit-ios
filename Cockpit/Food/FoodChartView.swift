@@ -18,6 +18,8 @@ struct FoodChartView: View {
     /// etwas eingetragen wurde, und der Umschalter bliebe wirkungslos.
     let from: CalendarDate
     let to: CalendarDate
+    /// Welche Gewichtskurven mitlaufen. Leer heisst: keine.
+    let weightOverlay: Set<WeightSeries>
 
     var body: some View {
         Chart {
@@ -57,12 +59,18 @@ struct FoodChartView: View {
                 .symbolSize(26)
             }
 
-            ForEach(mappedWeight) { sample in
-                LineMark(x: .value("Tag", sample.date, unit: .day),
-                         y: .value("Gewicht", sample.value),
-                         series: .value("Serie", "weight"))
-                .foregroundStyle(Palette.avg7)
-                .lineStyle(StrokeStyle(lineWidth: 2))
+            // Gewicht: Mittel und Tageswerte einzeln zuschaltbar. Auch hier
+            // an Luecken getrennt - an Tagen ohne Messung steht nichts.
+            ForEach(weightRuns) { run in
+                ForEach(run.samples) { sample in
+                    LineMark(x: .value("Tag", sample.date, unit: .day),
+                             y: .value("Gewicht", sample.value),
+                             series: .value("Serie", run.id))
+                }
+                .foregroundStyle(run.id.hasPrefix(WeightSeries.measured.rawValue)
+                                 ? Palette.measured : Palette.avg7)
+                .lineStyle(StrokeStyle(
+                    lineWidth: run.id.hasPrefix(WeightSeries.measured.rawValue) ? 1.3 : 2))
                 .interpolationMethod(.catmullRom)
             }
         }
@@ -75,8 +83,10 @@ struct FoodChartView: View {
                     AxisValueLabel { Text(kcal.whole).font(.caption2) }
                 }
             }
-            // Rechts die Kilogramm zur hineingerechneten Kurve.
-            AxisMarks(position: .trailing, values: weightTicks.map(toKcalScale)) { value in
+            // Rechts die Kilogramm zur hineingerechneten Kurve - nur, wenn
+            // sie ueberhaupt gezeigt wird.
+            AxisMarks(position: .trailing,
+                      values: weightOverlay.isEmpty ? [] : weightTicks.map(toKcalScale)) { value in
                 if let mapped = value.as(Double.self),
                    let kilograms = fromKcalScale(mapped) {
                     AxisValueLabel {
@@ -108,8 +118,21 @@ struct FoodChartView: View {
         FoodChartData.kcalDomain(history, target: kcalTarget)
     }
 
+    /// Alle sichtbaren Gewichtswerte - sie teilen sich eine Skala, sonst
+    /// laegen Mittel und Tageswerte auf verschiedenen Hoehen.
     private var weightValues: [DayValue] {
-        FoodChartData.weightValues(weightPoints, from: from, to: to)
+        weightOverlay.flatMap {
+            FoodChartData.weightValues(weightPoints, series: $0, from: from, to: to)
+        }
+    }
+
+    private var weightRuns: [ChartRun] {
+        weightOverlay.sorted { $0.rawValue < $1.rawValue }.flatMap { series in
+            let mapped = FoodChartData
+                .weightValues(weightPoints, series: series, from: from, to: to)
+                .map { DayValue(date: $0.date, value: toKcalScale($0.value)) }
+            return DaySeries.runs(mapped, key: series.rawValue)
+        }
     }
 
     private var weightRange: ClosedRange<Double>? {
@@ -124,13 +147,6 @@ struct FoodChartView: View {
         FoodChartData.daysOverTarget(history, target: kcalTarget,
                                      tolerance: NutritionTone.kcalTolerance)
             .map { ChartSample(date: $0.date.startOfDay(), value: $0.value) }
-    }
-
-    private var mappedWeight: [ChartSample] {
-        guard weightRange != nil else { return [] }
-        return weightValues.map {
-            ChartSample(date: $0.date.startOfDay(), value: toKcalScale($0.value))
-        }
     }
 
     private var weightTicks: [Double] {

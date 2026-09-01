@@ -34,12 +34,23 @@ enum FoodChartData {
     /// Gewichtskurve war praktisch weg - obwohl fuer den Zeitraum 90 Werte
     /// vorlagen. Zugeschnitten wird auf den Zeitraum, nicht auf die Datenlage
     /// des anderen Dienstes.
-    static func weightValues(_ points: [WeightPoint],
+    /// - Parameter series: `.avg7` fuer die geglaettete Kurve, `.measured`
+    ///   fuer die tatsaechlich gewogenen Tageswerte. Beides ist einzeln
+    ///   zuschaltbar, weil es zwei verschiedene Fragen beantwortet: der
+    ///   Trend und was an einem bestimmten Tag auf der Waage stand.
+    static func weightValues(_ points: [WeightPoint], series: WeightSeries,
                              from: CalendarDate, to: CalendarDate) -> [DayValue] {
         points.compactMap { point in
-            guard point.date >= from, point.date <= to,
-                  let value = point.avg7 ?? point.measured else { return nil }
-            return DayValue(date: point.date, value: value)
+            guard point.date >= from, point.date <= to else { return nil }
+            let raw: Double? = switch series {
+            case .measured: point.measured
+            case .avg7:     point.avg7
+            case .avg14:    point.avg14
+            case .avg30:    point.avg30
+            case .target:   point.target
+            case .kcal:     nil
+            }
+            return raw.map { DayValue(date: point.date, value: $0) }
         }
     }
 

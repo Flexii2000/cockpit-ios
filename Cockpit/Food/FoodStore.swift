@@ -32,6 +32,11 @@ final class FoodStore {
     private(set) var accessProblem = false
 
     var historyDays = 30
+    /// Welche Gewichtskurven ueber dem Verlauf liegen - Mittel, Tageswerte,
+    /// beides oder nichts. Standardmaessig **leer**: sie beantworten eine
+    /// andere Frage als "wie viel habe ich gegessen", und wer sie sehen will,
+    /// holt sie sich dazu.
+    var weightOverlay: Set<WeightSeries> = []
     /// Das Fenster, das der Verlauf zeigt - unabhaengig davon, fuer welche
     /// Tage es ueberhaupt Eintraege gibt. Das Diagramm braucht das: leitete es
     /// seine Achse aus den Daten ab, waere sie bei zwei erfassten Tagen zwei

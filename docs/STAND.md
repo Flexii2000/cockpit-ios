@@ -124,6 +124,14 @@ Geprüft ist die Logik, nicht das Bild.
 
 ### Nachgereicht auf Zuruf
 
+* **Wischen löscht ohne Wort** — nur noch die Mülltonne. `onDelete` schreibt
+  „Löschen" aus; jetzt eine eigene Wischaktion mit `labelStyle(.iconOnly)`,
+  der Titel bleibt am Label für VoiceOver.
+* **Gewicht im Essen-Verlauf ist zuschaltbar**, standardmäßig aus — und zwar
+  getrennt nach **Mittel** und **Tageswerten**. Zwei Serien, kein Rückfall
+  aufeinander: sonst zeigte „täglich" an Tagen ohne Messung heimlich das
+  Mittel.
+
 * **kcal im Gewicht-Tab** — die Kurve fehlte ganz, obwohl die Weboberfläche
   sie zeigt. Sie ist jetzt da, umschaltbar, mit eigener Achse rechts.
 * **Kurve statt Säulen** im Verlauf des Kalorienzählers.

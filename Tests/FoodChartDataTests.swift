@@ -32,16 +32,41 @@ final class FoodChartDataTests: XCTestCase {
     /// Punkte uebrig - obwohl fuer den Zeitraum 30 Gewichtswerte vorlagen.
     func testWeightIsClippedToTheWindowNotToTheFoodData() {
         let points = (1...30).map { weightPoint(8, $0, avg7: 90 + Double($0) * 0.1) }
-        let values = FoodChartData.weightValues(points, from: day(8, 1), to: day(8, 30))
+        let values = FoodChartData.weightValues(points, series: .avg7, from: day(8, 1), to: day(8, 30))
         XCTAssertEqual(values.count, 30, "Das Fenster entscheidet, nicht die kcal-Datenlage")
     }
 
     func testWeightOutsideTheWindowIsDropped() {
         let points = [weightPoint(7, 15, avg7: 95), weightPoint(8, 10, avg7: 92),
                       weightPoint(9, 20, avg7: 90)]
-        let values = FoodChartData.weightValues(points, from: day(8, 1), to: day(8, 31))
+        let values = FoodChartData.weightValues(points, series: .avg7, from: day(8, 1), to: day(8, 31))
         XCTAssertEqual(values.count, 1)
         XCTAssertEqual(values.first?.date, day(8, 10))
+    }
+
+    /// Mittel und Tageswerte sind zwei Serien, nicht eine mit Rueckfall:
+    /// frueher wurde `avg7 ?? measured` genommen - damit haette der Schalter
+    /// "Gewicht taeglich" an Tagen ohne Messung heimlich das Mittel gezeigt.
+    func testAverageAndDailyAreSeparateSeries() {
+        let json = Data(#"{"date":"2026-08-10","measured":91.3,"avg7":90.8,"avg14":null,"avg30":null,"avg7Complete":true,"avg14Complete":false,"avg30Complete":false,"target":90}"#.utf8)
+        let point = try! APIClient.decoder().decode(WeightPoint.self, from: json)
+        let average = FoodChartData.weightValues([point], series: .avg7,
+                                                 from: day(8, 1), to: day(8, 31))
+        let daily = FoodChartData.weightValues([point], series: .measured,
+                                               from: day(8, 1), to: day(8, 31))
+        XCTAssertEqual(average.first?.value, 90.8)
+        XCTAssertEqual(daily.first?.value, 91.3)
+    }
+
+    /// An Tagen ohne Messung fehlt der Tageswert - dort darf nicht das Mittel
+    /// einspringen.
+    func testDailySeriesSkipsDaysWithoutMeasurement() {
+        let json = Data(#"{"date":"2026-08-11","measured":null,"avg7":90.8,"avg14":null,"avg30":null,"avg7Complete":true,"avg14Complete":false,"avg30Complete":false,"target":90}"#.utf8)
+        let point = try! APIClient.decoder().decode(WeightPoint.self, from: json)
+        XCTAssertTrue(FoodChartData.weightValues([point], series: .measured,
+                                                 from: day(8, 1), to: day(8, 31)).isEmpty)
+        XCTAssertEqual(FoodChartData.weightValues([point], series: .avg7,
+                                                  from: day(8, 1), to: day(8, 31)).count, 1)
     }
 
     func testWeightWithoutAnyValueIsSkipped() {
@@ -50,7 +75,7 @@ final class FoodChartDataTests: XCTestCase {
          "avg7Complete":false,"avg14Complete":false,"avg30Complete":false,"target":null}
         """
         let empty = try! APIClient.decoder().decode(WeightPoint.self, from: Data(json.utf8))
-        XCTAssertTrue(FoodChartData.weightValues([empty], from: day(8, 1), to: day(8, 31)).isEmpty)
+        XCTAssertTrue(FoodChartData.weightValues([empty], series: .avg7, from: day(8, 1), to: day(8, 31)).isEmpty)
     }
 
     /// Tage ohne Eintrag liefert der Kalorienzaehler gar nicht. Die Linie darf
