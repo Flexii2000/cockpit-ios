@@ -8,10 +8,10 @@
 > Gegenstelle im Web-Quelltext — damit beim Ändern nicht eine der beiden
 > Seiten stehenbleibt.
 >
-> ⚠️ **Terminsache:** das Provisioning-Profil läuft am **8. September 2026,
-> 18:41 Uhr** ab (Personal Team). Bis dahin sollte die bezahlte Mitgliedschaft
-> stehen — dann `DEVELOPMENT_TEAM` in `project.yml` tauschen und neu
-> installieren, sonst startet die App nicht mehr.
+> **Signatur: erledigt.** Die Mitgliedschaft ist seit dem 01.09.2026 aktiv,
+> das Profil gilt bis **01.09.2027**. Nächste Erneuerung: einmal
+> `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
+> bei Apple: 02.09.2027, 99 €/Jahr.
 
 ## Phase 0 — Gerüst · **fertig** (2026-09-01)
 
@@ -40,13 +40,22 @@
 - [x] **Startet auch wirklich**: im Simulator installiert und gestartet, die
       App zeigt die vier Tabs und springt ohne hinterlegte Token von selbst
       in den Zugang-Bildschirm
-- [x] **Auf dem iPhone installiert** (iPhone 16 Pro, per `devicectl`).
-      Signiert mit dem **Personal Team** `ZWFV263P59` — die Aufnahme ins
-      Apple Developer Program lief zu dem Zeitpunkt noch (Apple zeigt bis
-      zur Freigabe nur eine Enrollment-ID, noch keine Team-ID).
-      ⚠️ **Damit laufen App und Zertifikat nach sieben Tagen ab.** Sobald die
-      Mitgliedschaft steht: `DEVELOPMENT_TEAM` in `project.yml` auf die
-      Team-ID der bezahlten Mitgliedschaft umstellen, dann gilt ein Jahr.
+- [x] **Auf dem iPhone installiert** (iPhone 16 Pro, per `devicectl`),
+      Team `ZWFV263P59`, Profil gültig bis 01.09.2027.
+
+      ⚠️ **Merkposten für das nächste Mal:** bei einer Aufnahme als
+      **Einzelperson bleibt die Team-ID dieselbe** — es kommt kein zweites
+      Team dazu, das bestehende wird aufgewertet. Xcode zeigt den Eintrag
+      trotzdem weiter als „(Personal Team)" an. Woran man es also erkennt,
+      ist **nicht** eine neue ID, sondern die Gültigkeit des Profils:
+      sieben Tage heißt kostenlos, ein Jahr heißt bezahlt.
+
+      ⚠️ **`xcodebuild` kann kein Profil neu anfordern, solange Xcode.app
+      nicht angemeldet ist** („No Accounts: Add a new account in Accounts
+      settings"). Vorherige Builds liefen nur über den Zwischenspeicher in
+      `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`. Wer den
+      löscht, ohne dass die Anmeldung sitzt, kann nicht mehr aufs Gerät
+      bauen.
 - [ ] Erststart auf dem Gerät: das Entwicklerprofil muss am iPhone unter
       *Einstellungen → Allgemein → VPN & Geräteverwaltung* einmal als
       vertrauenswürdig bestätigt werden. Ohne das verweigert iOS den Start

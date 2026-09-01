@@ -164,6 +164,17 @@ Hand geschriebene `pbxproj` als Startpunkt brauchen, die hier niemand
 verifizieren kann, solange kein Xcode installiert ist. Wenn die
 XcodeGen-Abhängigkeit später stört: dann ist der Umstieg ein Einzeiler-Commit.
 
+## 2026-09-01 — Signatur bleibt bei Team `ZWFV263P59`
+Kein Wechsel nötig: bei der Aufnahme als Einzelperson wird das bestehende Team
+aufgewertet, die ID bleibt. `project.yml` musste dafür nicht angefasst werden.
+**Erwartet hatte ich das Gegenteil** — eine zweite Team-ID — und habe deshalb
+vorab vor Nebenwirkungen gewarnt, die es gar nicht gibt: Keychain-Einträge
+sind an das Team-Präfix gebunden und wären bei einem Wechsel verloren gewesen,
+und iOS hätte die App nicht über eine anders signierte drüberinstalliert. Beides
+entfällt.
+**Erkennungsmerkmal ist deshalb die Gültigkeit des Profils, nicht die ID:**
+sieben Tage kostenlos, ein Jahr bezahlt.
+
 ## 2026-09-01 — Token im Keychain, Cookies beim Start gesetzt
 **Warum:** die Backends kennen nur Cookie-Auth. Die App setzt die Cookies
 selbst, statt den Browser-Weg `\/setup?token=…` nachzuspielen — ein Ritual
