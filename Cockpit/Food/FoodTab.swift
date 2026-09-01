@@ -235,7 +235,9 @@ struct FoodTab: View {
 
             FoodChartView(history: store.history,
                           weightPoints: store.weightPoints,
-                          kcalTarget: day.targets.kcal)
+                          kcalTarget: day.targets.kcal,
+                          from: store.historyFrom,
+                          to: store.historyTo)
 
             HStack(spacing: 14) {
                 Label("kcal", systemImage: "minus")

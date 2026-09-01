@@ -109,6 +109,19 @@ fielen drei Dinge auf, die kein Test gefunden hätte:
 * **Die letzte Achsenbeschriftung war abgeschnitten** („1...."), behoben mit
   `AxisMarks(preset: .aligned)`.
 
+### Drei Fehler im Verlauf des Kalorienzählers (gemeldet, behoben)
+
+„1. September ist 2× da", „man kann den Zeitraum nicht ändern", „nur zwei
+Datenpunkte für Gewicht" — drei Meldungen, **eine** Ursache: das Diagramm
+leitete seinen Zeitbereich aus den vorhandenen Daten ab statt aus dem
+gewählten Zeitraum. Behoben über `.chartXScale` mit dem Fenster aus dem Store.
+
+Die Rechnerei liegt jetzt in `FoodChartData` neben der View — mit elf Tests,
+die genau diese drei Fälle festhalten. **Angesehen habe ich das Diagramm
+nicht:** es liegt in der Liste unterhalb des Bildschirms, und `simctl` kann
+nicht scrollen (ein leerer Tag und die kleinste Systemschrift reichten nicht).
+Geprüft ist die Logik, nicht das Bild.
+
 ### Nachgereicht auf Zuruf
 
 * **kcal im Gewicht-Tab** — die Kurve fehlte ganz, obwohl die Weboberfläche

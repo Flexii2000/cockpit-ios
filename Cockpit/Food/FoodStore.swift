@@ -15,7 +15,7 @@ final class FoodStore {
     private let api = FoodAPI()
     private let weightApi = WeightAPI()
 
-    private(set) var date: CalendarDate = .today()
+    private(set) var date: CalendarDate = FoodStore.initialDate
     private(set) var day: DaySummary?
     private(set) var dishes: [Dish] = []
     private(set) var history: [DayTotal] = []
@@ -32,6 +32,25 @@ final class FoodStore {
     private(set) var accessProblem = false
 
     var historyDays = 30
+    /// Das Fenster, das der Verlauf zeigt - unabhaengig davon, fuer welche
+    /// Tage es ueberhaupt Eintraege gibt. Das Diagramm braucht das: leitete es
+    /// seine Achse aus den Daten ab, waere sie bei zwei erfassten Tagen zwei
+    /// Tage breit, und der Zeitraum-Umschalter aenderte sichtbar nichts.
+    private(set) var historyFrom: CalendarDate = .today()
+    private(set) var historyTo: CalendarDate = .today()
+
+    /// Mit welchem Tag die App aufmacht. Im Debug-Build vorgebbar, damit sich
+    /// auch ein leerer Tag ansehen laesst - auf einem vollen Tag liegt der
+    /// Verlauf unterhalb des Bildschirms.
+    private static var initialDate: CalendarDate {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["COCKPIT_DAY"],
+           let day = CalendarDate(iso: raw) {
+            return day
+        }
+        #endif
+        return .today()
+    }
 
     var isToday: Bool { date == CalendarDate.today() }
 
@@ -80,6 +99,8 @@ final class FoodStore {
         let from = CalendarDate(year: parts.year ?? to.year,
                                 month: parts.month ?? to.month,
                                 day: parts.day ?? to.day)
+        historyFrom = from
+        historyTo = to
         do {
             history = try await api.daily(from: from, to: to)
         } catch {

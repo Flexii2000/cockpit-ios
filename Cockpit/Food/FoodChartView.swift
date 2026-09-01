@@ -13,6 +13,11 @@ struct FoodChartView: View {
     let history: [DayTotal]
     let weightPoints: [WeightPoint]
     let kcalTarget: Double?
+    /// Der gewaehlte Zeitraum. Bewusst von aussen gesetzt und nicht aus
+    /// `history` abgeleitet: sonst zeigt das Diagramm nur die Tage, an denen
+    /// etwas eingetragen wurde, und der Umschalter bliebe wirkungslos.
+    let from: CalendarDate
+    let to: CalendarDate
 
     var body: some View {
         Chart {
@@ -62,6 +67,7 @@ struct FoodChartView: View {
             }
         }
         .chartYScale(domain: kcalDomain)
+        .chartXScale(domain: from.startOfDay()...to.startOfDay())
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisGridLine()
@@ -96,49 +102,34 @@ struct FoodChartView: View {
         .frame(height: 220)
     }
 
-    private var kcalRuns: [ChartRun] {
-        DaySeries.runs(history.map { DayValue(date: $0.date, value: $0.consumed.kcal) },
-                       key: "kcal")
-    }
-
-    private var daysOverTarget: [ChartSample] {
-        guard let kcalTarget else { return [] }
-        return history
-            .filter { $0.consumed.kcal > kcalTarget + NutritionTone.kcalTolerance }
-            .map { ChartSample(date: $0.date.startOfDay(), value: $0.consumed.kcal) }
-    }
-
-    // MARK: - Skalen
-
-    /// Nullpunkt der kcal-Achse. Nicht 0: ein Tag liegt praktisch nie unter
-    /// ~1000 kcal, und eine bei null beginnende Achse presst den
-    /// interessanten Bereich in ein paar Pixel zusammen.
-    private static let axisBase: Double = 1500
+    // MARK: - Skalen (Rechnerei in FoodChartData, damit sie testbar ist)
 
     private var kcalDomain: ClosedRange<Double> {
-        let values = history.map(\.consumed.kcal) + [kcalTarget].compactMap { $0 }
-        let lower = min(Self.axisBase, (values.min() ?? Self.axisBase) - 100)
-        let upper = max((values.max() ?? 2500) + 150, (kcalTarget ?? 2000) * 1.1)
-        return lower...max(upper, lower + 100)
+        FoodChartData.kcalDomain(history, target: kcalTarget)
+    }
+
+    private var weightValues: [DayValue] {
+        FoodChartData.weightValues(weightPoints, from: from, to: to)
     }
 
     private var weightRange: ClosedRange<Double>? {
-        let values = weightPoints.compactMap { $0.avg7 ?? $0.measured }
-        guard let low = values.min(), let high = values.max() else { return nil }
-        // Etwas Luft, sonst klebt die Kurve am Rand.
-        let padding = max((high - low) * 0.3, 0.5)
-        return (low - padding)...(high + padding)
+        FoodChartData.weightRange(weightValues)
+    }
+
+    private var kcalRuns: [ChartRun] {
+        FoodChartData.kcalRuns(history)
+    }
+
+    private var daysOverTarget: [ChartSample] {
+        FoodChartData.daysOverTarget(history, target: kcalTarget,
+                                     tolerance: NutritionTone.kcalTolerance)
+            .map { ChartSample(date: $0.date.startOfDay(), value: $0.value) }
     }
 
     private var mappedWeight: [ChartSample] {
         guard weightRange != nil else { return [] }
-        let firstDay = history.first?.date.startOfDay()
-        return weightPoints.compactMap { point in
-            guard let raw = point.avg7 ?? point.measured else { return nil }
-            let day = point.date.startOfDay()
-            // Nur den Ausschnitt zeichnen, der auch kcal-Saeulen hat.
-            if let firstDay, day < firstDay { return nil }
-            return ChartSample(date: day, value: toKcalScale(raw))
+        return weightValues.map {
+            ChartSample(date: $0.date.startOfDay(), value: toKcalScale($0.value))
         }
     }
 
@@ -151,18 +142,16 @@ struct FoodChartView: View {
     }
 
     private func toKcalScale(_ weight: Double) -> Double {
-        guard let range = weightRange, range.upperBound > range.lowerBound else {
-            return kcalDomain.lowerBound
-        }
-        let share = (weight - range.lowerBound) / (range.upperBound - range.lowerBound)
-        return kcalDomain.lowerBound + share * (kcalDomain.upperBound - kcalDomain.lowerBound)
+        guard let range = weightRange else { return kcalDomain.lowerBound }
+        return FoodChartData.scale(weight, from: range, to: kcalDomain)
     }
 
     private func fromKcalScale(_ value: Double) -> Double? {
-        guard let range = weightRange,
-              kcalDomain.upperBound > kcalDomain.lowerBound else { return nil }
-        let share = (value - kcalDomain.lowerBound)
-            / (kcalDomain.upperBound - kcalDomain.lowerBound)
-        return range.lowerBound + share * (range.upperBound - range.lowerBound)
+        guard let range = weightRange else { return nil }
+        return FoodChartData.scale(value, from: kcalDomain, to: range)
+    }
+
+    private func barColor(_ kcal: Double) -> Color {
+        kcal > (kcalTarget ?? .infinity) ? Palette.over : Palette.kcal
     }
 }

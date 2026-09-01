@@ -13,6 +13,10 @@
 #
 # Uebergeben werden sie als Umgebungsvariablen; die App liest sie nur im
 # Debug-Build (siehe Access.seedFromEnvironment).
+#
+# COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
+# fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
+# Bildschirms, und scrollen kann simctl nicht.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -42,6 +46,7 @@ xcrun simctl terminate booted "$BUNDLE" 2>/dev/null || true
 SIMCTL_CHILD_COCKPIT_FH_PRIVATE_TOKEN="$PRIVATE" \
 SIMCTL_CHILD_COCKPIT_WEIGHT_TOKEN="$WEIGHT" \
 SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
+SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
     xcrun simctl launch booted "$BUNDLE" > /dev/null
 
 if [ -n "$SHOT" ]; then

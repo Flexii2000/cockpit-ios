@@ -3,6 +3,22 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-01 — Der Zeitbereich eines Diagramms kommt vom gewählten Zeitraum
+`FoodChartView` bekommt `from`/`to` von außen; die Achse steht per
+`.chartXScale`, statt sich aus den Daten zu ergeben.
+**Warum:** aus den Daten abgeleitet hingen daran gleich **drei** Fehler, die
+wie drei verschiedene aussahen. Bei zwei erfassten Tagen war die Achse zwei
+Tage breit — daher „1. Sep" doppelt (die automatischen Achsenmarken lagen
+innerhalb eines Tages und formatierten sich zum selben Text). Der
+Zeitraum-Umschalter änderte sichtbar nichts, weil 14, 30 und 90 Tage
+dasselbe Bild ergaben. Und die Gewichtskurve war auf den ersten Tag mit
+kcal-Eintrag zugeschnitten, blieb also auf zwei Punkte zusammengestrichen,
+obwohl 90 Werte vorlagen.
+**Die Lehre:** ein Diagramm zeigt einen *Zeitraum*, keine *Datenmenge*. Die
+Datenlage bestimmt, was darin steht — nicht, wie breit es ist.
+**Verworfen:** die Achse weiter aus den Daten ableiten und nur die
+Beschriftung reparieren — das hätte den Umschalter wirkungslos gelassen.
+
 ## 2026-09-01 — kcal als Kurve, an jeder Lücke getrennt
 Im Verlauf des Kalorienzählers standen erst Säulen; jetzt ist es eine Linie.
 Dieselbe Kurve liegt zusätzlich über der Gewichtskurve im Gewicht-Tab.
