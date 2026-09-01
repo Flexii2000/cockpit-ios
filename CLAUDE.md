@@ -60,6 +60,22 @@ App liest sie nur im Debug-Build (`Access.seedFromEnvironment`).
 Erscheinungsbild umschalten: `xcrun simctl ui booted appearance dark|light`.
 **Beide anschauen**, bevor etwas als fertig gilt.
 
+Der Simulator kann **nicht tippen, wischen oder scrollen**. Alles, was hinter
+einer Geste liegt, ist von hier aus nicht zu sehen — dafür gibt es
+Debug-Schalter, die nur im Debug-Build wirken:
+
+| Schalter | Wofür |
+|---|---|
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht |
+| `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`) |
+| `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
+| `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
+
+Jeder dieser Schalter ist entstanden, weil ohne ihn ein Fehler unsichtbar
+geblieben wäre. Was weiterhin **nicht** prüfbar ist: Wischgesten, alles
+unterhalb des ersten Bildschirms, und ob nach erteilter Health-Erlaubnis
+wirklich Werte ankommen.
+
 `install-device.sh` sucht das iPhone selbst. Es muss einmal per Kabel mit
 Xcode gekoppelt worden sein (`Window > Devices`, „Connect via network"),
 danach reicht dasselbe WLAN. Ist es gesperrt oder nicht im Netz, bricht das

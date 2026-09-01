@@ -3,6 +3,59 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-02 — Gerade Linien, keine geglätteten Kurven
+`.interpolationMethod(.linear)` in beiden Diagrammen.
+**Warum:** Catmull-Rom überschwingt zwischen weit auseinanderliegenden Punkten
+und zeichnet Werte, die nie gemessen wurden. Mit der importierten Historie —
+teils Monate zwischen zwei Messungen — wäre das grob irreführend. Eine gerade
+Verbindung behauptet nur, was zwischen zwei Messungen bekannt ist: nichts.
+**Verworfen:** Glättung wie in der Weboberfläche (`tension: 0.2`), die dort
+über dichte Tagesdaten läuft und deshalb weniger anrichtet.
+
+## 2026-09-02 — „3 Jahre" statt „Alles", zugeschnitten im Client
+**Warum:** ein rollendes Fenster ist über neun Jahre lesbarer als die gesamte
+Historie, in der die letzten Monate zu einem Strich zusammenschrumpfen. Der
+Zuschnitt passiert im Client, weil die Reihe klein ist und ein eigener
+Endpunkt je Zeitraum Backend-Arbeit für eine reine Anzeigefrage wäre.
+**Verworfen:** ein `/api/weight/three-years` (Deploy für eine Beschriftung).
+
+## 2026-09-02 — Health-Werte füllen nur Lücken
+`keepExisting` im Backend, gesetzt nur vom Abgleich.
+**Warum:** es gibt genau einen Wert pro Tag, und der von Hand eingetragene ist
+der verlässlichere. Ohne diese Regel hinge das Ergebnis daran, wer zuletzt
+geschrieben hat — je nach Weckzeitpunkt von iOS mal so, mal so.
+**Warum im Backend und nicht im Client:** dort ist die Prüfung atomar und gilt
+für jeden, der schreibt; im Client wäre sie ein Wettlauf zwischen Lesen und
+Schreiben. Im Browser und in der App bleibt Überschreiben ausdrücklich erlaubt
+— die Schonung gilt nur für Importe.
+
+## 2026-09-02 — Der erste Abgleich holt weiterhin alles
+**Warum:** Felix' Entscheidung, nachdem der erste Lauf 265 Werte zurück bis
+2018 eingespielt hat. Eine Neuinstallation spielt sie also wieder ein — was
+folgenlos ist, seit vorhandene Tage geschont werden.
+**Was dabei schiefging und die Entscheidung nötig machte:** ich hatte den
+ersten Abgleich ohne Grenze gebaut. Dass damit acht Jahre Historie in den
+Tracker laufen, hätte vorher zur Sprache gehört, nicht hinterher.
+
+## 2026-09-02 — Die früheste Messung eines Tages gewinnt
+**Warum:** Health kennt beliebig viele Messungen pro Tag, der Weight Tracker
+genau eine. Morgens nüchtern ist der über Tage vergleichbare Wert; eine
+Abendmessung liegt regelmäßig ein bis zwei Kilo darüber und würde die Kurve
+verrauschen.
+**Verworfen:** die letzte Messung (Abendwert), der Tagesdurchschnitt (mischt
+zwei verschiedene Messbedingungen).
+
+## 2026-09-02 — Push liegt im food-Backend, nicht in der App
+**Warum:** die Schnellerfassung läuft dort ohnehin schon asynchron. Nur der
+Server weiß, wann ein Auftrag fertig ist — und nur er läuft weiter, wenn das
+Handy gesperrt ist.
+**Ohne Bibliothek:** APNs ist ein HTTP/2-POST mit einem signierten Token im
+Kopf, und beides kann das JDK. Eine Abhängigkeit für dreißig Zeilen wäre mehr
+Pflege als Ersparnis. Der Fallstrick steckt in der Signatur (DER → JOSE), und
+darauf zeigen drei Tests.
+**Die App fragt trotzdem weiter selbst nach:** die Benachrichtigung ist ein
+Zustellweg, keine Voraussetzung.
+
 ## 2026-09-01 — Die Schnellerfassung wartet nicht mehr im Blatt
 Der Auftrag gehört dem Store, nicht der Ansicht. Abschicken schließt das Blatt
 sofort; das Nachfragen läuft weiter, eine Zeile in der Tagesliste zeigt es an,

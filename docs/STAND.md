@@ -1,7 +1,8 @@
 # Stand
 
-> **Nächster Schritt:** M3 — HealthKit, Widget, Siri-Kurzbefehl,
-> Face-ID-Sperre. Braucht die bezahlte Mitgliedschaft.
+> **Nächster Schritt:** vom M3-Rest sind noch offen: **Widget** mit den
+> Restkalorien, **Siri-Kurzbefehl** für die Schnellerfassung, **Face-ID-Sperre**
+> vor dem Finanzen-Tab. HealthKit und Push sind fertig.
 >
 > Offen aus der Planung: eine Übersicht der **doppelt gepflegten
 > Anzeigeregeln** (Toleranzen, BMI-Größe, Tacho-Geometrie) mit ihrer
@@ -175,12 +176,39 @@ unverändert wie im Browser, im Hellen die kräftigere Stufe derselben Farbe.
 (auf einem Touchgerät gibt es kein Hover) und die Umschalter je Serie im
 kcal-Verlauf (dort sind es nur zwei Serien).
 
-## M3 — was nativ erst möglich macht · offen
+## M3 — was nativ erst möglich macht · **teilweise fertig** (2026-09-02)
 
-- [ ] HealthKit: Gewicht aus Apple Health lesen/schreiben
+- [x] **HealthKit** — Gewicht aus Apple Health kommt von selbst an. Beobachtung
+      mit Hintergrundzustellung plus Abgleich beim Öffnen; ein Wert je Tag, die
+      früheste Messung; vorhandene Tage werden nicht überschrieben.
+      **Nur lesend** — der Rückweg (App → Health) ist offen und bräuchte einen
+      Filter auf die eigene Quelle, sonst liefe der Wert im Kreis.
+- [x] **Push** — der Server meldet, wenn eine Schnellerfassung fertig ist.
+      APNs ohne Bibliothek im food-Backend, Gerätekennungen in
+      `data/devices.json`.
 - [ ] Widget: Restkalorien heute
 - [ ] App Intent / Shortcut für die Schnellerfassung („Hey Siri, …")
 - [ ] Face-ID-Sperre vor dem Finanzen-Tab
+
+### Der erste Health-Abgleich, und was er ausgelöst hat
+
+Der erste Lauf hat **265 Messwerte zurück bis 2018** eingespielt — die
+komplette Health-Historie. Felix' eigene 93 Tage seit dem 01.06.2026 blieben
+unangetastet (nachgeprüft: kein einziger davon trägt Health-typische
+Fließkomma-Artefakte). Drei Folgen, alle behoben:
+
+* **Der Zielkorridor galt plötzlich als erreicht** — ein Wert vom 25.01.2022
+  lag unter 83,5 kg. Die y-Achse streckte sich bis 80, um ein Band
+  unterzubringen, das über das laufende Vorhaben nichts aussagt.
+  `corridorReachedOn` betrachtet jetzt nur Einträge ab `recordingStart`.
+* **Die Historie war unsichtbar** — alle Reihen begannen bei `recordingStart`.
+  Sie beginnen jetzt beim frühesten Messwert; die Zielkurve bleibt davor leer.
+* **Die x-Achse zeigte viermal „1. Jan"** ohne Jahreszahl. Das Format richtet
+  sich jetzt nach der Spanne.
+
+⚠️ **Der erste Abgleich holt weiterhin alles** (so entschieden). Nach einer
+Neuinstallation sind die Alt-Werte also wieder da — folgenlos, seit vorhandene
+Tage geschont werden.
 
 ## Offene Fragen
 
