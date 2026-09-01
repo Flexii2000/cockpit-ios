@@ -3,6 +3,29 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-01 — Die Gewichtskurve wird in die kcal-Skala hineingerechnet
+Swift Charts kennt nur **eine** y-Skala. Das Gewicht wird deshalb linear in
+den kcal-Bereich abgebildet und rechts mit eigenen Beschriftungen versehen.
+**Warum:** die Zusammenschau „viel gegessen → Gewicht reagiert" ist der Grund,
+warum die Kurve überhaupt im Kalorienzähler steht; ihr Verlauf stimmt durch die
+Abbildung, und die rechte Achse sagt, welche Kilogramm dahinterstehen.
+**Verworfen:** zwei getrennte Diagramme untereinander (der zeitliche Bezug geht
+verloren, genau der ist aber der Punkt), und die Kurve wegzulassen.
+
+## 2026-09-01 — Serverfehler behalten ihren Wortlaut
+`APIError.http(Int, String?)` statt nur des Statuscodes.
+**Warum:** die Backends begründen einen 400 im Klartext („Die Anteile müssen
+zusammen 100 % ergeben, sind aber 96,0 %"). Diese Meldung wegzuwerfen und
+„HTTP 400" anzuzeigen wäre die schlechtere von beiden. HTML-Antworten und alles
+über 300 Zeichen werden verworfen — ein Stacktrace gehört nicht auf den
+Bildschirm.
+
+## 2026-09-01 — Die Aufteilung der Mahlzeiten wird im Client vorgeprüft
+**Warum:** der Server nimmt sie nur vollständig und auf 100 % summierend an.
+Das erst nach dem Sichern zu erfahren, obwohl beide Zahlen auf dem Bildschirm
+stehen, wäre unnötig. Der Server prüft weiterhin selbst — die Vorprüfung ist
+Bequemlichkeit, keine Absicherung.
+
 ## 2026-09-01 — Ein Diagramm mit Umschalter statt vier untereinander
 Die Weboberflaeche zeigt 30 Tage, 90 Tage, 365 Tage und „all time" als vier
 gestapelte Diagramme. Nativ ist es **eines** mit einem Segment-Umschalter.

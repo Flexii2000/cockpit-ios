@@ -1,7 +1,11 @@
 # Stand
 
-> **Nächster Schritt:** M2 — der Essen-Tab wird nativ. Tagesansicht,
-> Gerichte-Merkliste, Schnellerfassung. Endpunkte in `docs/BACKENDS.md`.
+> **Nächster Schritt:** M3 — HealthKit, Widget, Siri-Kurzbefehl,
+> Face-ID-Sperre. Braucht die bezahlte Mitgliedschaft.
+>
+> Vorher offen: die native Oberfläche ist **noch nie mit echten Daten
+> gesehen** worden — sie kompiliert und die Logik ist getestet, aber im
+> Simulator liegen keine Token. Erster Blick gehört aufs Gerät.
 >
 > ⚠️ **Terminsache:** das Provisioning-Profil läuft am **8. September 2026,
 > 18:41 Uhr** ab (Personal Team). Bis dahin sollte die bezahlte Mitgliedschaft
@@ -73,14 +77,24 @@ Zwei Fallen dabei, beide behoben:
       unterscheidet
 - [x] 21 Tests grün
 
-## M2 — Essen nativ · offen
+## M2 — Essen nativ · **fertig** (2026-09-01)
 
-- [ ] Modelle `Nutrients`, `Dish`, `FoodEntry`, `DaySummary`, `DayTotal`
-- [ ] Tagesansicht nach Mahlzeiten, Tacho-Anzeigen
-- [ ] Gerichte-Merkliste (CRUD)
-- [ ] Schnellerfassung: Auftrag abschicken, pollen, Vorschau bestätigen
-      (`/features` vorher abfragen)
-- [ ] Verlaufsdiagramm `\/daily` + Gewichtskurve darüber
+- [x] Modelle für alle Endpunkte des Kalorienzählers
+- [x] Tagesansicht nach Mahlzeiten, mit Teilsumme gegen das Mahlzeitenziel;
+      Wischen löscht einen Eintrag
+- [x] Tag vor/zurück, Tag wählen, „Heute"; vorwärts nur bis heute
+- [x] Tachos: drei Makros (Eiweiß als Mindestwert, Fett und Kohlenhydrate als
+      Obergrenzen) plus kcal-Tacho mit Restanzeige, Zielmarke bei 1/1,25
+- [x] Gerichte-Merkliste: anlegen, ändern, löschen, Portions-Knöpfe
+- [x] Tagesziele samt Aufteilung auf die Mahlzeiten
+- [x] Schnellerfassung: Auftrag, Nachfragen im Zwei-Sekunden-Takt, Vorschau
+      mit Herkunft je Wert, alles korrigierbar vor dem Übernehmen
+- [x] Verlaufsdiagramm: kcal als Säulen, Zielline, Gewichtskurve darüber
+- [x] 30 Tests grün
+
+**Nicht übernommen aus der Weboberfläche:** der Hover-Schleier der Diagramme
+(auf einem Touchgerät gibt es kein Hover) und die Umschalter je Serie im
+kcal-Verlauf (dort sind es nur zwei Serien).
 
 ## M3 — was nativ erst möglich macht · offen
 

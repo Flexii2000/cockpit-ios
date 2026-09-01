@@ -119,6 +119,17 @@ normales `POST /entries` zum Eintrag.
 ⚠️ `GET /features` fragen, bevor die Schnellerfassung angeboten wird — sie ist
 abschaltbar (`food.agent.command` leer) und dann gibt es sie schlicht nicht.
 
+⚠️ **`mealShares` ist alles oder nichts.** `PUT /targets` nimmt die Aufteilung
+nur an, wenn **jede** der vier Mahlzeiten drinsteht (auch mit Anteil 0) und die
+Summe 1,0 ergibt (±0,011) — es sind **Anteile, keine Prozent**. Sonst kommt ein
+400 mit Klartext („Die Anteile muessen zusammen 100 % ergeben, sind aber
+96,0 %"). Nachzulesen in `validShares()` in `FoodService.java`. Der Client
+prüft das vorher, damit man den Fehler nicht erst nach dem Sichern sieht.
+
+⚠️ **Fehlerantworten tragen ihre Begründung im Rumpf.** `APIClient` reicht sie
+durch (`APIError.http(Int, String?)`), weil „HTTP 400" die schlechtere von
+beiden Meldungen ist.
+
 ## Finance Cockpit — kein API
 
 Bewusst kein JSON. Die Seite ist statisches HTML, das ein täglicher

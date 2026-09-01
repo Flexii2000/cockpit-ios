@@ -31,3 +31,11 @@ extension CalendarDate {
 extension Optional where Wrapped == CalendarDate {
     var short: String { self?.short ?? "–" }
 }
+
+extension Double {
+    /// Ganze Zahl in deutscher Schreibweise ("1.234").
+    var whole: String { formatted(.number.precision(.fractionLength(0))) }
+
+    /// Eine Nachkommastelle, ohne Einheit.
+    var oneDecimal: String { formatted(.number.precision(.fractionLength(1))) }
+}

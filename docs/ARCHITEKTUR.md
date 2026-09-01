@@ -24,7 +24,7 @@ einer Baustelle.
 ```
 Phase 0   [Web]  [Web]  [Web]     <- benutzbar          erledigt
 M1        [Web]  [nativ][Web]     <- benutzbar          erledigt
-M2        [nativ][nativ][Web]     <- Zielbild Stufe 2   offen
+M2        [nativ][nativ][Web]     <- Zielbild Stufe 2   erledigt
 M3        + HealthKit, Widget, Shortcuts, Face-ID-Sperre
 ```
 
@@ -50,7 +50,7 @@ Cockpit/
   Core/      Keychain, Zugang (Cookies), APIClient, Backend-URLs
   Web/       WKWebView-Einbettung fuer die noch nicht nativen Tabs
   Weight/    nativ: API, Store, Diagramm, Kacheln, Eingabe
-  Food/      M2
+  Food/      nativ: Tagesansicht, Tachos, Gerichte, Schnellerfassung
   Finance/   bleibt duenn: nur der WebView-Tab
 project.yml  Quelle des Xcode-Projekts (XcodeGen)
 tools/       bootstrap.sh (Projekt erzeugen), verify.sh (bauen + testen)

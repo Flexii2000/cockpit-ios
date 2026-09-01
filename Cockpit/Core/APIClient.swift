@@ -2,15 +2,15 @@ import Foundation
 
 enum APIError: LocalizedError {
     case notAuthorised
-    case http(Int)
+    case http(Int, String?)
     case decoding(Error)
 
     var errorDescription: String? {
         switch self {
         case .notAuthorised:
             "Kein Zugang - Token prüfen."
-        case .http(let code):
-            "Der Dienst hat mit \(code) geantwortet."
+        case .http(let code, let message):
+            message ?? "Der Dienst hat mit \(code) geantwortet."
         case .decoding:
             "Die Antwort war nicht zu lesen."
         }
@@ -75,7 +75,12 @@ struct APIClient: Sendable {
         // 2xx deshalb als Zugangsproblem behandeln und gar nicht erst
         // versuchen, es als JSON zu lesen.
         guard (200..<300).contains(status) else {
-            throw status == 403 || status == 302 ? APIError.notAuthorised : APIError.http(status)
+            if status == 403 || status == 302 { throw APIError.notAuthorised }
+            // Die Backends begruenden einen 400 im Klartext ("Die Anteile
+            // muessen zusammen 100 % ergeben, sind aber 96,0 %"). Diese
+            // Meldung wegzuwerfen und "HTTP 400" anzuzeigen waere die
+            // schlechtere Fehlermeldung von beiden.
+            throw APIError.http(status, Self.shortMessage(from: data))
         }
         if T.self == Empty.self, let empty = Empty() as? T { return empty }
         do {
@@ -105,6 +110,16 @@ struct APIClient: Sendable {
             return date
         }
         return decoder
+    }
+
+    /// Der Klartext einer Fehlerantwort, sofern es einer ist. Bewusst
+    /// begrenzt: eine HTML-Seite oder ein Stacktrace gehoert nicht in eine
+    /// Fehlermeldung auf dem Bildschirm.
+    static func shortMessage(from data: Data) -> String? {
+        guard let text = String(data: data, encoding: .utf8) else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.hasPrefix("<"), trimmed.count <= 300 else { return nil }
+        return trimmed
     }
 
     static func parseInstant(_ raw: String) -> Date? {
