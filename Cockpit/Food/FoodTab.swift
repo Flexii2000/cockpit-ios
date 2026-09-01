@@ -238,8 +238,10 @@ struct FoodTab: View {
                           kcalTarget: day.targets.kcal)
 
             HStack(spacing: 14) {
-                Label("kcal", systemImage: "square.fill")
+                Label("kcal", systemImage: "minus")
                     .foregroundStyle(Palette.kcal)
+                Label("über Ziel", systemImage: "circle.fill")
+                    .foregroundStyle(Palette.over)
                 Label("Gewicht", systemImage: "minus")
                     .foregroundStyle(Palette.avg7)
             }

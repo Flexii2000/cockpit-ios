@@ -10,11 +10,17 @@ import Foundation
 final class WeightStore {
 
     private let api = WeightAPI()
+    private let foodApi = FoodAPI()
 
     private(set) var summary: WeightSummary?
     private(set) var points: [WeightPoint] = []
     private(set) var vacations: [Vacation] = []
     private(set) var extraWidgets: [WeightWidget] = []
+    /// Die Tageskalorien zum sichtbaren Zeitraum - dieselbe Zusammenschau wie
+    /// in der Weboberflaeche. Faellt der Kalorienzaehler aus, fehlt nur diese
+    /// Kurve; das Gewicht steht davon unabhaengig da.
+    private(set) var kcalByDay: [DayValue] = []
+    private(set) var kcalTarget: Double?
 
     private(set) var isLoading = false
     private(set) var error: String?
@@ -51,6 +57,21 @@ final class WeightStore {
         } catch {
             report(error)
         }
+        await loadKcal()
+    }
+
+    /// Die kcal sind Beiwerk: ist der Kalorienzaehler nicht erreichbar, fehlt
+    /// die Kurve - der Gewicht-Tab deshalb als kaputt zu melden waere falsch.
+    private func loadKcal() async {
+        guard let first = points.first?.date, let last = points.last?.date else {
+            kcalByDay = []
+            return
+        }
+        let totals = (try? await foodApi.daily(from: first, to: last)) ?? []
+        kcalByDay = totals.map { DayValue(date: $0.date, value: $0.consumed.kcal) }
+        if kcalTarget == nil {
+            kcalTarget = (try? await foodApi.targets())?.kcal
+        }
     }
 
     func select(_ range: WeightRange) async {
@@ -64,6 +85,7 @@ final class WeightStore {
         } catch {
             report(error)
         }
+        await loadKcal()
     }
 
     func add(date: CalendarDate, weightKg: Double) async -> Bool {

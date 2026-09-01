@@ -16,19 +16,40 @@ struct FoodChartView: View {
 
     var body: some View {
         Chart {
-            ForEach(history) { total in
-                BarMark(
-                    x: .value("Tag", total.date.startOfDay(), unit: .day),
-                    yStart: .value("von", kcalDomain.lowerBound),
-                    yEnd: .value("kcal", max(total.consumed.kcal, kcalDomain.lowerBound)))
-                .foregroundStyle(barColor(total.consumed.kcal))
-                .cornerRadius(2)
-            }
-
             if let kcalTarget {
                 RuleMark(y: .value("Ziel", kcalTarget))
                     .foregroundStyle(Palette.kcal.opacity(0.6))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            }
+
+            // Kurve statt Saeulen - aber an jeder Luecke getrennt: Tage ohne
+            // Eintrag liefert der Kalorienzaehler gar nicht, sie sind
+            // unbekannt und nicht null.
+            ForEach(kcalRuns) { run in
+                if run.isSingle, let only = run.samples.first {
+                    PointMark(x: .value("Tag", only.date),
+                              y: .value("kcal", only.value))
+                    .foregroundStyle(Palette.kcal)
+                    .symbolSize(18)
+                } else {
+                    ForEach(run.samples) { sample in
+                        LineMark(x: .value("Tag", sample.date),
+                                 y: .value("kcal", sample.value),
+                                 series: .value("Serie", run.id))
+                    }
+                    .foregroundStyle(Palette.kcal)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                    .interpolationMethod(.catmullRom)
+                }
+            }
+
+            // Was die Saeulenfarbe vorher trug: Tage deutlich ueber dem Ziel
+            // bekommen einen Punkt, sonst ginge die Information verloren.
+            ForEach(daysOverTarget) { sample in
+                PointMark(x: .value("Tag", sample.date),
+                          y: .value("kcal", sample.value))
+                .foregroundStyle(Palette.over)
+                .symbolSize(26)
             }
 
             ForEach(mappedWeight) { sample in
@@ -75,11 +96,16 @@ struct FoodChartView: View {
         .frame(height: 220)
     }
 
-    private func barColor(_ kcal: Double) -> Color {
-        guard let kcalTarget, kcal > kcalTarget + NutritionTone.kcalTolerance else {
-            return Palette.kcal.opacity(0.85)
-        }
-        return Palette.over.opacity(0.9)
+    private var kcalRuns: [ChartRun] {
+        DaySeries.runs(history.map { DayValue(date: $0.date, value: $0.consumed.kcal) },
+                       key: "kcal")
+    }
+
+    private var daysOverTarget: [ChartSample] {
+        guard let kcalTarget else { return [] }
+        return history
+            .filter { $0.consumed.kcal > kcalTarget + NutritionTone.kcalTolerance }
+            .map { ChartSample(date: $0.date.startOfDay(), value: $0.consumed.kcal) }
     }
 
     // MARK: - Skalen

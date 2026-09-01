@@ -6,6 +6,8 @@ struct WeightChartView: View {
     let points: [WeightPoint]
     let vacations: [Vacation]
     let corridor: (lower: Double, upper: Double)?
+    let kcalByDay: [DayValue]
+    let kcalTarget: Double?
     let visible: Set<WeightSeries>
 
     var body: some View {
@@ -32,6 +34,35 @@ struct WeightChartView: View {
                     yStart: .value("unten", corridor.lower),
                     yEnd: .value("oben", corridor.upper))
                 .foregroundStyle(Palette.target.opacity(0.12))
+            }
+
+            if visible.contains(.kcal) {
+                // Zuerst gezeichnet und damit hinter den Gewichtskurven: die
+                // kcal sind Kontext, nicht die Hauptsache.
+                if let kcalTarget {
+                    RuleMark(y: .value("kcal-Ziel", toWeightScale(kcalTarget)))
+                        .foregroundStyle(Palette.kcal.opacity(0.35))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                }
+                ForEach(kcalRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        // Ein Tag zwischen zwei Luecken hat kein Liniensegment
+                        // und waere sonst unsichtbar.
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kcal", only.value))
+                        .foregroundStyle(Palette.kcal)
+                        .symbolSize(14)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kcal", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.kcal)
+                        .lineStyle(StrokeStyle(lineWidth: 1.6))
+                        .interpolationMethod(.catmullRom)
+                    }
+                }
             }
 
             if visible.contains(.measured) {
@@ -86,7 +117,10 @@ struct WeightChartView: View {
             }
         }
         .chartYAxis {
-            AxisMarks { value in
+            // Kilogramm links, kcal rechts. Zwei Skalen kennt Swift Charts
+            // nicht - die kcal sind in den Gewichtsbereich hineingerechnet,
+            // und diese Achse sagt, welche Werte dahinterstehen.
+            AxisMarks(position: .leading) { value in
                 AxisGridLine()
                 if let weight = value.as(Double.self) {
                     AxisValueLabel {
@@ -94,8 +128,60 @@ struct WeightChartView: View {
                     }
                 }
             }
+            if visible.contains(.kcal) {
+                AxisMarks(position: .trailing, values: kcalTicks.map(toWeightScale)) { value in
+                    if let mapped = value.as(Double.self),
+                       let kcal = fromWeightScale(mapped) {
+                        AxisValueLabel {
+                            Text(kcal.whole)
+                                .font(.caption2)
+                                .foregroundStyle(Palette.kcal)
+                        }
+                    }
+                }
+            }
         }
         .frame(height: 260)
+    }
+
+    // MARK: - kcal auf der Gewichtsskala
+
+    /// Nullpunkt der kcal-Skala. Nicht 0: ein Tag liegt praktisch nie unter
+    /// ~1000 kcal, und eine bei null beginnende Skala presst den
+    /// interessanten Bereich in ein paar Pixel zusammen.
+    private static let kcalBase: Double = 1500
+
+    private var kcalDomain: ClosedRange<Double> {
+        let values = kcalByDay.map(\.value) + [kcalTarget].compactMap { $0 }
+        let lower = min(Self.kcalBase, (values.min() ?? Self.kcalBase) - 100)
+        let upper = max((values.max() ?? 2500) + 100, (kcalTarget ?? 2000) * 1.05)
+        return lower...max(upper, lower + 100)
+    }
+
+    private var kcalRuns: [ChartRun] {
+        let mapped = kcalByDay.map { DayValue(date: $0.date, value: toWeightScale($0.value)) }
+        return DaySeries.runs(mapped, key: "kcal")
+    }
+
+    private var kcalTicks: [Double] {
+        let low = kcalDomain.lowerBound, high = kcalDomain.upperBound
+        return [low + (high - low) * 0.25,
+                low + (high - low) * 0.6,
+                low + (high - low) * 0.95]
+    }
+
+    private func toWeightScale(_ kcal: Double) -> Double {
+        let domain = kcalDomain
+        guard domain.upperBound > domain.lowerBound else { return yDomain.lowerBound }
+        let share = (kcal - domain.lowerBound) / (domain.upperBound - domain.lowerBound)
+        return yDomain.lowerBound + share * (yDomain.upperBound - yDomain.lowerBound)
+    }
+
+    private func fromWeightScale(_ value: Double) -> Double? {
+        let domain = kcalDomain
+        guard yDomain.upperBound > yDomain.lowerBound else { return nil }
+        let share = (value - yDomain.lowerBound) / (yDomain.upperBound - yDomain.lowerBound)
+        return domain.lowerBound + share * (domain.upperBound - domain.lowerBound)
     }
 
     /// Ein Urlaubsband, zugeschnitten auf den Bereich, fuer den es Daten gibt.

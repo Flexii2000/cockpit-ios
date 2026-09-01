@@ -51,6 +51,7 @@ extension WeightSeries {
         case .avg14:    Palette.avg14
         case .avg30:    Palette.avg30
         case .target:   Palette.target
+        case .kcal:     Palette.kcal
         }
     }
 }

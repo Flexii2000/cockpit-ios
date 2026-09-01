@@ -3,6 +3,18 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-01 — kcal als Kurve, an jeder Lücke getrennt
+Im Verlauf des Kalorienzählers standen erst Säulen; jetzt ist es eine Linie.
+Dieselbe Kurve liegt zusätzlich über der Gewichtskurve im Gewicht-Tab.
+**Warum getrennt:** `dailyTotals` liefert **nur Tage mit Einträgen** — fehlende
+Tage sind unbekannt, nicht null. Eine durchgezogene Linie darüber hinweg würde
+behaupten, dazwischen sei etwas gemessen worden. Dieselbe Entscheidung wie
+`spanGaps: false` im Web. Ein einzelner Tag zwischen zwei Lücken bekommt einen
+Punkt, sonst wäre er unsichtbar.
+**Was die Säulenfarbe trug,** übernimmt jetzt ein roter Punkt an Tagen, die
+mehr als 100 kcal über dem Ziel liegen — sonst ginge die Information mit den
+Säulen verloren.
+
 ## 2026-09-01 — Diagrammfarben folgen dem Erscheinungsbild, der Rest von selbst
 `Palette.adaptive(light:dark:)` statt fester Werte.
 **Warum:** die Farben stammen aus den Weboberflächen, und die sind dunkel.

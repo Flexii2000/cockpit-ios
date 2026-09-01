@@ -106,14 +106,18 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// 14er darin kaum mehr - dieselbe Einschraenkung wie in der Weboberflaeche.
     var availableSeries: [WeightSeries] {
         switch self {
-        case .month: [.measured, .avg7, .target]
-        default:     [.measured, .avg7, .avg14, .avg30, .target]
+        case .month: [.measured, .avg7, .target, .kcal]
+        default:     [.measured, .avg7, .avg14, .avg30, .target, .kcal]
         }
     }
 }
 
 enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     case measured, avg7, avg14, avg30, target
+    /// Die Tageskalorien aus dem Kalorienzaehler. Sie liegen auf einer
+    /// eigenen Skala und werden in den Gewichtsbereich hineingerechnet -
+    /// dieselbe Zusammenschau wie in der Weboberflaeche.
+    case kcal
 
     var id: String { rawValue }
 
@@ -124,13 +128,14 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
         case .avg14:    "14-Tage-Mittel"
         case .avg30:    "30-Tage-Mittel"
         case .target:   "Zielkurve"
+        case .kcal:     "kcal"
         }
     }
 
     /// Die langen Mittel sind in der Weboberflaeche seit laengerem
     /// ausgeblendet (`SHOW_LONG_AVERAGES = false`); hier gar nicht erst
     /// anbieten, statt einen Umschalter zu zeigen, den niemand benutzt.
-    static let offered: [WeightSeries] = [.measured, .avg7, .target]
+    static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal]
 
-    static let defaultVisible: Set<WeightSeries> = [.avg7, .target]
+    static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .kcal]
 }

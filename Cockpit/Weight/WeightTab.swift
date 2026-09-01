@@ -103,6 +103,8 @@ struct WeightTab: View {
             WeightChartView(points: store.points,
                             vacations: store.vacations,
                             corridor: store.summary?.activeCorridor,
+                            kcalByDay: store.kcalByDay,
+                            kcalTarget: store.kcalTarget,
                             visible: store.visibleSeries)
 
             // Die Umschalter sind zugleich die Legende - eine zweite Liste

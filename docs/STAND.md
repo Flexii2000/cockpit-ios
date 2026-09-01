@@ -109,6 +109,16 @@ fielen drei Dinge auf, die kein Test gefunden hätte:
 * **Die letzte Achsenbeschriftung war abgeschnitten** („1...."), behoben mit
   `AxisMarks(preset: .aligned)`.
 
+### Nachgereicht auf Zuruf
+
+* **kcal im Gewicht-Tab** — die Kurve fehlte ganz, obwohl die Weboberfläche
+  sie zeigt. Sie ist jetzt da, umschaltbar, mit eigener Achse rechts.
+* **Kurve statt Säulen** im Verlauf des Kalorienzählers.
+
+⚠️ Beim Prüfen fiel auf: der Kalorienzähler hat erst **zwei Tage Daten**
+(31.08. und 01.09.). Die kcal-Kurve ist deshalb derzeit ein kurzer Strich —
+das ist kein Fehler, sondern der Datenbestand.
+
 ### Hell und Dunkel
 
 Beides geprüft. Chrome, Karten und Listen folgen dem System von selbst; die
