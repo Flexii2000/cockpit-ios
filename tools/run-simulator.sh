@@ -18,6 +18,9 @@
 # Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken laesst
 # er sich nicht - simctl kennt keinen Health-Dienst.
 #
+# COCKPIT_RANGE=allTime stellt den Gewicht-Tab auf einen Zeitraum
+# (month, last90, year, allTime).
+#
 # COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
 # fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
 # Bildschirms, und scrollen kann simctl nicht.
@@ -52,6 +55,7 @@ SIMCTL_CHILD_COCKPIT_WEIGHT_TOKEN="$WEIGHT" \
 SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
 SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
+SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
     xcrun simctl launch booted "$BUNDLE" > /dev/null
 
 if [ -n "$SHOT" ]; then

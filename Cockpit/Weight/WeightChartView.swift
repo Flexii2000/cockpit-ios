@@ -19,7 +19,10 @@ struct WeightChartView: View {
                     xEnd: .value("bis", band.end))
                 .foregroundStyle(Palette.vacation.opacity(0.16))
                 .annotation(position: .top, alignment: .leading, spacing: 2) {
-                    if let label = band.label, !label.isEmpty {
+                    // In langen Ansichten sind die Baender nur ein paar Pixel
+                    // breit; ihre Beschriftungen liegen dann uebereinander und
+                    // ergeben Buchstabensalat. Erst ab einer lesbaren Breite.
+                    if let label = band.label, !label.isEmpty, isWide(band) {
                         Text(label)
                             .font(.system(size: 9))
                             .foregroundStyle(.secondary)
@@ -110,9 +113,7 @@ struct WeightChartView: View {
             AxisMarks(preset: .aligned, values: .automatic(desiredCount: 4)) { value in
                 AxisGridLine()
                 if let date = value.as(Date.self) {
-                    AxisValueLabel {
-                        Text(date, format: .dateTime.day().month(.abbreviated))
-                    }
+                    AxisValueLabel { Text(date, format: xLabelFormat) }
                 }
             }
         }
@@ -182,6 +183,32 @@ struct WeightChartView: View {
         guard yDomain.upperBound > yDomain.lowerBound else { return nil }
         let share = (value - yDomain.lowerBound) / (yDomain.upperBound - yDomain.lowerBound)
         return domain.lowerBound + share * (domain.upperBound - domain.lowerBound)
+    }
+
+    /// Wie viele Tage die Ansicht umspannt.
+    private var spanDays: Int {
+        guard let first = points.first?.date, let last = points.last?.date else { return 0 }
+        return max(last.daysFromToday() - first.daysFromToday(), 0)
+    }
+
+    /// Das Achsenformat richtet sich nach der Spanne.
+    ///
+    /// Ueber Jahre hinweg ist „1. Jan" ohne Jahreszahl wertlos - und genau das
+    /// stand dort, weil das Format fuer kurze Zeitraeume gewaehlt war.
+    private var xLabelFormat: Date.FormatStyle {
+        switch spanDays {
+        case 800...:  .dateTime.year()
+        case 150...:  .dateTime.month(.abbreviated).year(.twoDigits)
+        default:      .dateTime.day().month(.abbreviated)
+        }
+    }
+
+    /// Ist das Band breit genug, um beschriftet zu werden?
+    private func isWide(_ band: VacationBand) -> Bool {
+        guard spanDays > 0 else { return false }
+        let days = Calendar(identifier: .gregorian)
+            .dateComponents([.day], from: band.start, to: band.end).day ?? 0
+        return Double(days) / Double(spanDays) > 0.08
     }
 
     /// Ein Urlaubsband, zugeschnitten auf den Bereich, fuer den es Daten gibt.

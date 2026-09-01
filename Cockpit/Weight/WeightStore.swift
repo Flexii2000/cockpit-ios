@@ -28,7 +28,19 @@ final class WeightStore {
     /// Zugang-Tab mehr als eine Fehlermeldung.
     private(set) var accessProblem = false
 
-    var range: WeightRange = .last90
+    var range: WeightRange = WeightStore.initialRange
+
+    /// Womit der Gewicht-Tab aufmacht. Im Debug-Build vorgebbar, damit sich
+    /// jeder Zeitraum aufnehmen laesst - tippen kann der Simulator nicht.
+    private static var initialRange: WeightRange {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["COCKPIT_RANGE"],
+           let range = WeightRange(rawValue: raw) {
+            return range
+        }
+        #endif
+        return .last90
+    }
     var visibleSeries: Set<WeightSeries> = WeightSeries.defaultVisible
 
     /// Alle Kacheln in der Reihenfolge, in der sie erscheinen.
