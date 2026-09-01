@@ -44,6 +44,7 @@ aufmachen.
 tools/bootstrap.sh   # einmalig + nach Änderungen an project.yml
 tools/verify.sh      # baut fuer den Simulator und laesst die Tests laufen
 tools/run-simulator.sh weight bild.png   # mit Zugang starten und aufnehmen
+tools/install-device.sh --launch         # aufs iPhone bauen und starten
 ```
 
 `run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
@@ -58,6 +59,11 @@ App liest sie nur im Debug-Build (`Access.seedFromEnvironment`).
 
 Erscheinungsbild umschalten: `xcrun simctl ui booted appearance dark|light`.
 **Beide anschauen**, bevor etwas als fertig gilt.
+
+`install-device.sh` sucht das iPhone selbst. Es muss einmal per Kabel mit
+Xcode gekoppelt worden sein (`Window > Devices`, „Connect via network"),
+danach reicht dasselbe WLAN. Ist es gesperrt oder nicht im Netz, bricht das
+Skript mit einer Erklärung ab statt mit einem Fehlercode.
 
 **Nie behaupten, etwas baue, ohne `tools/verify.sh` gelaufen zu haben.**
 Swift-Code, der nur "aussieht wie er kompiliert", ist ungeprüfter Code —

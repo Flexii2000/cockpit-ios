@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Baut die App signiert und installiert sie auf dem iPhone.
+#
+#   tools/install-device.sh            # bauen und installieren
+#   tools/install-device.sh --launch   # danach auch starten
+#
+# Das Geraet wird selbst gesucht: es muss einmal mit Xcode gekoppelt worden
+# sein, danach reicht dasselbe WLAN - ein Kabel ist nur beim ersten Mal noetig.
+# Ist der Bildschirm gesperrt oder das iPhone nicht im Netz, sagt das Skript
+# das und bricht ab.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+BUNDLE="com.fherrmann.cockpit"
+LAUNCH=false
+[ "${1:-}" = "--launch" ] && LAUNCH=true
+
+JSON=$(mktemp)
+trap 'rm -f "$JSON"' EXIT
+xcrun devicectl list devices --json-output "$JSON" > /dev/null
+
+# Bevorzugt ein Geraet mit offenem Tunnel; sonst das erste gekoppelte, damit
+# die Fehlermeldung wenigstens einen Namen nennen kann.
+read -r DEVICE_ID DEVICE_STATE DEVICE_NAME <<EOF
+$(python3 - "$JSON" <<'PY'
+import json, sys
+best = None
+for device in json.load(open(sys.argv[1])).get("result", {}).get("devices", []):
+    if device.get("hardwareProperties", {}).get("platform") != "iOS":
+        continue
+    connection = device.get("connectionProperties", {})
+    if connection.get("pairingState") != "paired":
+        continue
+    ready = connection.get("tunnelState") == "connected"
+    entry = (device["identifier"],
+             "bereit" if ready else "nicht-erreichbar",
+             device.get("deviceProperties", {}).get("name", "iPhone"))
+    if ready:
+        best = entry
+        break
+    best = best or entry
+print(" ".join(best) if best else "  ")
+PY
+)
+EOF
+
+if [ -z "${DEVICE_ID:-}" ]; then
+    echo "Kein gekoppeltes iPhone gefunden." >&2
+    echo "Einmal per Kabel anschliessen und in Xcode unter Window > Devices" >&2
+    echo "\"Connect via network\" anhaken - danach geht es drahtlos." >&2
+    exit 1
+fi
+
+if [ "$DEVICE_STATE" != "bereit" ]; then
+    echo "$DEVICE_NAME ist gekoppelt, aber gerade nicht erreichbar." >&2
+    echo "Entsperren, ins selbe WLAN bringen - oder Kabel anstecken." >&2
+    exit 1
+fi
+
+echo "Ziel: $DEVICE_NAME"
+tools/bootstrap.sh > /dev/null
+xcodebuild build -project Cockpit.xcodeproj -scheme Cockpit \
+    -destination 'generic/platform=iOS' -allowProvisioningUpdates \
+    -derivedDataPath build/device -quiet
+
+xcrun devicectl device install app --device "$DEVICE_ID" \
+    build/device/Build/Products/Debug-iphoneos/Cockpit.app
+
+if $LAUNCH; then
+    # Beim ersten Mal mit einem neuen Zertifikat verweigert iOS den Start, bis
+    # das Entwicklerprofil am Geraet bestaetigt wurde:
+    # Einstellungen > Allgemein > VPN & Geraeteverwaltung.
+    xcrun devicectl device process launch --device "$DEVICE_ID" "$BUNDLE"
+fi

@@ -21,7 +21,17 @@ nur ein zweiter Client. Bundle-ID `com.fherrmann.cockpit`.
 tools/bootstrap.sh          # prueft Xcode, holt XcodeGen, erzeugt Cockpit.xcodeproj
 open Cockpit.xcodeproj
 tools/verify.sh             # bauen + Tests, ohne Xcode-Fenster
+tools/install-device.sh     # aufs iPhone bauen und installieren
 ```
+
+Aufs iPhone gibt es zwei Wege. **Ohne Xcode-Fenster:**
+`tools/install-device.sh --launch` — sucht das gekoppelte Gerät selbst, baut
+signiert und installiert. **Mit Xcode:** Projekt öffnen, oben in der Leiste
+das iPhone als Ziel wählen, ⌘R.
+
+Gekoppelt wird einmalig per Kabel; hakt man in Xcode unter *Window → Devices
+and Simulators* „Connect via network" an, geht es danach drahtlos, solange
+Mac und iPhone im selben WLAN sind.
 
 Voraussetzungen, in dieser Reihenfolge:
 
