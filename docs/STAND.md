@@ -1,13 +1,19 @@
 # Stand
 
-> **Nächster Schritt:** vom M3-Rest sind noch offen: **Widget** mit den
-> Restkalorien, **Siri-Kurzbefehl** für die Schnellerfassung, **Face-ID-Sperre**
-> vor dem Finanzen-Tab. HealthKit und Push sind fertig.
+> **Nächster Schritt:** vom ursprünglichen Plan ist noch **ein** Punkt offen —
+> der **Siri-Kurzbefehl** für die Schnellerfassung. Alles andere aus M1 bis M3
+> läuft auf dem Gerät.
 >
-> Offen aus der Planung: eine Übersicht der **doppelt gepflegten
-> Anzeigeregeln** (Toleranzen, BMI-Größe, Tacho-Geometrie) mit ihrer
-> Gegenstelle im Web-Quelltext — damit beim Ändern nicht eine der beiden
-> Seiten stehenbleibt.
+> Daneben zwei Dinge, die keine Features sind:
+>
+> * Eine Übersicht der **doppelt gepflegten Anzeigeregeln** (Toleranzen,
+>   BMI-Größe, Tacho-Geometrie) mit ihrer Gegenstelle im Web-Quelltext.
+>   Inzwischen dringlicher als am Anfang: die Schritte gibt es **nur** in der
+>   App, die Weboberfläche kennt sie nicht.
+> * Ein `@JsonIgnore` an `DashboardConfig.isLegacy()` im weight-app: Jackson
+>   schreibt sonst ein überflüssiges `"legacy": false` in `dashboard.json`.
+>   Harmlos, aber es steht dauerhaft in der Datei — beim nächsten ohnehin
+>   fälligen Deploy mitnehmen.
 >
 > **Signatur: erledigt.** Die Mitgliedschaft ist seit dem 01.09.2026 aktiv,
 > das Profil gilt bis **01.09.2027**. Nächste Erneuerung: einmal
@@ -202,7 +208,7 @@ unverändert wie im Browser, im Hellen die kräftigere Stufe derselben Farbe.
 (auf einem Touchgerät gibt es kein Hover) und die Umschalter je Serie im
 kcal-Verlauf (dort sind es nur zwei Serien).
 
-## M3 — was nativ erst möglich macht · **teilweise fertig** (2026-09-02)
+## M3 — was nativ erst möglich macht · **fast fertig** (2026-09-02)
 
 - [x] **HealthKit** — Gewicht aus Apple Health kommt von selbst an. Beobachtung
       mit Hintergrundzustellung plus Abgleich beim Öffnen; ein Wert je Tag, die
@@ -221,6 +227,23 @@ kcal-Verlauf (dort sind es nur zwei Serien).
 - [x] **UI-Test-Harness** (`tools/uitest.sh`) — tippt, wischt, scrollt und
       legt Screenshots ab.
 - [ ] App Intent / Shortcut für die Schnellerfassung („Hey Siri, …")
+
+### Nachgereicht am 2026-09-02
+
+* **Schritte als Leiste statt Tacho** — 👟 mit `3.969/10.000` und einem
+  Balken darunter. Der Tacho beantwortet „drüber oder drunter" und hat dafür
+  eine Zielkerbe; Schritte sind ein Mindestwert, da geht es um „wie weit".
+  Über dem Ziel bleibt der Balken voll statt aus dem Rahmen zu laufen.
+* **Alle Kacheln entfern- und hinzufügbar**, auch die vier früher festen, auch
+  alle auf einmal. Dafür speichert `/api/dashboard` seit Version 1 die
+  **vollständige** Liste statt nur der Zusätze — siehe `docs/BACKENDS.md`.
+* **Der Kachel-Vorschau-Tab steht nur noch auf Anforderung** in der Leiste.
+  `#if DEBUG` allein war keine Schranke: auf dem Gerät läuft ein Debug-Build.
+
+⚠️ **Reihenfolge bei diesem Deploy:** erst das weight-app-Backend, dann die
+App. Andersherum liest die App die gespeicherte Liste als vollständig, während
+der Server noch die alte Bedeutung liefert — und es stehen vier Kacheln
+weniger da.
 
 ### Der erste Health-Abgleich, und was er ausgelöst hat
 

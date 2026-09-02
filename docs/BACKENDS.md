@@ -59,6 +59,9 @@ Ein `JSONDecoder` mit `.iso8601` scheitert am reinen Datum. Deshalb die
 | PUT | `/api/weight/target` | Body `{targetWeightKg}` → `WeightSummary` |
 | POST | `/api/weight` | Body `{date, weightKg, keepExisting?}` → `WeightSummary` |
 | GET/PUT | `/api/dashboard` | `{widgets: [String], version: 1}` — welche Kacheln sichtbar sind |
+| GET | `/api/steps?from=…&to=…` | `[StepDay]` — Tage ohne Messung fehlen |
+| POST | `/api/steps` | Body `{days: [StepDay], replace?}` → der **gespeicherte** Stand dieser Tage |
+| GET/PUT | `/api/steps/goal` | `{stepsPerDay}` |
 | GET | `/setup?token=…` | setzt das Cookie (braucht die App nicht) |
 
 ```
@@ -69,6 +72,30 @@ WeightSummary  date, current?, avg7?, avg14?, avg30?, target?, targetDate?,
                corridorLower?, corridorUpper?, corridorReachedOn?
 Vacation       start, end, label
 ```
+```
+StepDay   date, steps        (beides Pflicht, `steps` >= 0)
+```
+
+⚠️ **Bei Schritten gewinnt das Maximum, nicht der letzte Wert.** Eine
+Schrittzahl kann innerhalb eines Tages nur wachsen; meldet das Handy weniger,
+weil die Uhr ihre Daten noch nicht übertragen hat, ersetzte ein blindes
+Überschreiben einen richtigen Wert durch einen falschen — und an einem Tag
+ohne weiteren Abgleich bliebe der falsche stehen. Die Antwort enthält deshalb
+den **gespeicherten** Stand, der höher sein kann als das Gesendete.
+`replace: true` ist der Ausweg für den einen Fall, den das Maximum verbietet:
+jemand hat Messungen in Health gelöscht, die Zahl soll wirklich sinken.
+
+⚠️ Das ist bewusst **anders als beim Gewicht**, wo `keepExisting` einen von
+Hand eingetragenen Wert schützt. Bei Schritten gibt es keine Handeingabe —
+Health ist die einzige Quelle, und der laufende Tag muss wachsen dürfen. Die
+naheliegende Kopie der Gewichtsregel würde den ersten Teilstand des Tages für
+immer festnageln.
+
+⚠️ **Tage ohne Messung fehlen, statt mit 0 dazustehen.** Health unterscheidet
+„nichts gemessen" nicht von „null Schritte" — also unterscheidet es der
+Bestand, indem der Tag schlicht fehlt. Dieselbe Regel wie bei
+`/api/food/daily`.
+
 ⚠️ **`/api/dashboard` speichert seit Version 1 die *vollständige* Liste.**
 Vorher standen dort nur die Zusätze, und jede Oberfläche setzte vier
 Basis-Kacheln selbst davor — die ließen sich deshalb nicht entfernen. Jetzt ist

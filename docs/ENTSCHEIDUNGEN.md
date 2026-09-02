@@ -3,6 +3,30 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-02 — Das Widget holt seine Daten selbst
+**Warum:** eine Widget-Erweiterung ist ein eigener Prozess mit eigenem
+Container; die Cookies der App sieht sie nicht. Sie liest das Token aus der
+**Keychain-Zugriffsgruppe** — der Vorgabegruppe der App, in der es ohnehin
+liegt — und ruft `/api/food/day` selbst auf. Die App stößt nach einer Änderung
+nur ein Neuzeichnen an.
+**Verworfen:** eine App Group, in die die App den letzten Stand schreibt. Das
+wäre ein zweiter Datenstand (siehe „Kein Offline-Cache"), und das Widget zeigte
+alte Zahlen weiter, wenn die App länger nicht lief. Es zeigt jetzt lieber den
+letzten bekannten Stand **mit Datum**, statt ihn als heutigen auszugeben.
+**Verworfen:** eine zusätzliche Keychain-Gruppe. Die Vorgabegruppe
+(`$(AppIdentifierPrefix)com.fherrmann.cockpit`) reicht, solange beide Ziele
+mit demselben Team signiert sind.
+
+## 2026-09-02 — Die Finanz-Sperre prüft den Gerätebesitzer, nicht das Gesicht
+**Warum:** `deviceOwnerAuthentication` fällt auf den Gerätecode zurück, wenn
+Face ID fehlschlägt oder nicht eingerichtet ist. `…WithBiometrics` hätte den
+Tab auf einem Gerät ohne Face ID unerreichbar gemacht — und im Simulator jeden
+Test.
+**Fallstrick, teuer gelernt:** `evaluatePolicy` schiebt den Systemdialog vor
+die App, die damit `.inactive` wird. Wer beim Verlassen des Vordergrunds neu
+sperrt, sperrt sich mitten in der eigenen Abfrage — der Dialog kommt sofort
+wieder, endlos. Deshalb das `isAuthenticating`-Flag.
+
 ## 2026-09-02 — Die Schritte bekommen eine Leiste, keinen Tacho
 **Warum:** der Tacho im Essen-Tab beantwortet „drüber oder drunter" und hat
 dafür eine Zielkerbe. Schritte sind ein Mindestwert — es geht um „wie weit",

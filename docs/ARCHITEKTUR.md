@@ -45,18 +45,28 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Cockpit/
-  App/       Einstieg, Tab-Gerüst
-  Core/      Keychain, Zugang (Cookies), APIClient, Backend-URLs
-  Web/       WKWebView-Einbettung fuer die noch nicht nativen Tabs
-  Weight/    nativ: API, Store, Diagramm, Kacheln, Eingabe
-  Food/      nativ: Tagesansicht, Tachos, Gerichte, Schnellerfassung
-  Health/    Abgleich mit Apple Health (nur lesend)
-  Finance/   bleibt duenn: nur der WebView-Tab
-project.yml  Quelle des Xcode-Projekts (XcodeGen)
-tools/       bootstrap.sh (Projekt erzeugen), verify.sh (bauen + testen)
-docs/        diese Doku
+Cockpit/            das App-Target
+  App/              Einstieg, Tab-Gerüst, AppDelegate
+  Core/             Zugang (Cookies), Benachrichtigungen, Palette, Bausteine
+  Web/              WKWebView-Einbettung für den Finanzen-Tab
+  Weight/           Diagramm, Kacheln, Eingabe, Schritte-Leiste
+  Food/             Tagesansicht, Tachos, Gerichte, Schnellerfassung
+  Health/           Abgleich mit Apple Health (nur lesend)
+  Finance/          WebView plus Face-ID-Sperre
+Shared/             was App UND Widget übersetzen
+CaloriesWidget/     die Home-Screen-Kachel (eigene Erweiterung)
+Tests/              Unit-Tests
+UITests/            XCUITest: tippen, wischen, scrollen, Screenshots
+project.yml         Quelle des Xcode-Projekts (XcodeGen)
+tools/              bootstrap · verify · run-simulator · uitest · install-device · make-icon
+docs/               diese Doku
 ```
+
+⚠️ **Was in `Shared/` liegt, darf nichts benutzen, das es in einer
+App-Erweiterung nicht gibt.** `UIApplication.shared` etwa ist dort gesperrt —
+deshalb bleibt `Notifications.swift` in `Cockpit/Core/`, und `Palette.swift`
+ist geteilt: die Farb-Initialisierer liegen in `Shared/Color+Hex.swift`, der
+Rest (mit der `WeightSeries`-Erweiterung) im App-Target.
 
 ## Zugang im Client
 
@@ -82,6 +92,13 @@ Hintergrund geweckt, gibt es gar keine Oberfläche.
 App, wenn ein neuer Gewichtswert geschrieben wird. Ein Anker merkt sich, was
 schon geholt wurde, und wird erst **nach** erfolgreichem Senden gespeichert —
 sonst gingen Werte verloren, wenn der Server gerade nicht erreichbar war.
+
+**Das Widget.** Eine eigene Erweiterung, eigener Prozess, eigener Container.
+Sie holt sich `/api/food/day` **selbst** und liest das Token aus der geteilten
+Keychain-Gruppe — die Vorgabegruppe der App, in der es ohnehin schon liegt.
+Cookies der App sieht sie nicht, sie hängt ihren eigenen an die Anfrage. Die
+App stößt nach jeder Änderung nur ein Neuzeichnen an; Daten reicht sie keine
+weiter.
 
 **Push.** Die Schnellerfassung läuft auf dem Server; der schickt eine
 Benachrichtigung, wenn sie fertig ist. Die App meldet ihre Kennung bei jedem

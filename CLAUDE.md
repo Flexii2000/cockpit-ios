@@ -120,7 +120,12 @@ sag das dann auch so.
 
 - **Xcode-Projekt niemals von Hand.** Die `.xcodeproj` ist erzeugt und steht
   in `.gitignore`; die Quelle ist `project.yml`. Neue Datei = Datei anlegen
-  und `tools/bootstrap.sh`, kein Gefummel in einer `pbxproj`.
+  und `tools/bootstrap.sh`, kein Gefummel in einer `pbxproj`. Dasselbe gilt
+  für die `.entitlements` und die `Info.plist` der Erweiterung — auch die
+  erzeugt XcodeGen.
+- **Wohin eine neue Datei gehört.** `Shared/` nur, wenn das **Widget** sie
+  braucht — dort ist `UIApplication.shared` gesperrt, und ein Verstoß fällt
+  erst beim Bauen der Erweiterung auf. Sonst `Cockpit/<Bereich>/`.
 - **Bezeichner englisch, Kommentare deutsch.** Wie im Rest von Felix'
   Projekten. Kommentare erklären das **Warum**, nicht das Was — was der Code
   tut, steht im Code.
@@ -134,8 +139,9 @@ sag das dann auch so.
 
 ## Was hier bewusst fehlt
 
-- **Kein Offline-Cache in Phase 0–2.** Die Dienste sind aus dem Netz
-  erreichbar; ein Cache wäre ein zweiter Datenstand mit eigener
-  Konfliktlogik. Erst wenn es weh tut (siehe `docs/ENTSCHEIDUNGEN.md`).
+- **Kein Offline-Cache.** Die Dienste sind aus dem Netz erreichbar; ein Cache
+  wäre ein zweiter Datenstand mit eigener Konfliktlogik. Die einzige Ausnahme
+  ist der letzte Stand im Widget — und der wird **mit Datum** gezeigt, nie als
+  heutiger Wert ausgegeben.
 - **Kein Multi-User, keine Registrierung.** Wie in den Backends: eine Person,
   ein Gerät, ein geteiltes Geheimnis.
