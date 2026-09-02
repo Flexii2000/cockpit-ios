@@ -1,10 +1,8 @@
 # Stand
 
-> **Nächster Schritt:** den **Habits-Dienst ausrollen** — das Repo liegt schon
-> auf dem Server, es fehlt `ssh -t HeimServerRemote
-> '~/services/habits/deploy/setup-habits.sh'` (sudo) und danach
-> `tools/install-device.sh --launch`. Bis dahin sagt der Habits-Tab „Kein
-> Zugang". Danach: der **Siri-Kurzbefehl** für die Schnellerfassung.
+> **Nächster Schritt:** der **Siri-Kurzbefehl** für die Schnellerfassung —
+> der letzte offene Punkt aus dem ursprünglichen Plan. Alle fünf Tabs laufen
+> auf dem Gerät gegen den Server.
 >
 > Der Noten-Tab ist ausgerollt: Dienst und Timer laufen seit dem 02.09.2026 auf
 > dem Server, die App liegt auf dem Gerät. **Benachrichtigungen über neue Noten
@@ -28,7 +26,12 @@
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
 
-## Habits — fünfter Tab · **gebaut, nicht ausgerollt** (2026-09-02)
+## Habits — fünfter Tab · **fertig** (2026-09-02)
+
+Ausgerollt am 02.09.2026 15:27: `habits.service` läuft, nginx reicht
+`/habits/` durch, und über `https://fherrmann.com/habits/api/habits` kommen
+mit Cookie die drei Habits mit echten Daten aus beiden Quellen — ohne Cookie
+die 302 des Privat-Gates.
 
 Gewohnheiten mit Flamme und Sträh­ne, wie bei Snapchat. Vier Arten: Build
 (abhaken), Quit (zählt von selbst, Rückfall setzt zurück), Track food (aus dem
