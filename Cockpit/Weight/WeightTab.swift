@@ -30,6 +30,12 @@ struct WeightTab: View {
                     }
                 }
                 .padding(16)
+                // Platz fuer die schwebende Tab-Leiste. Ohne den endet der
+                // Inhalt genau hinter ihr: das letzte Element - die
+                // Schritte-Karte - steht angeschnitten da, und es gibt nichts
+                // mehr zu scrollen, was es hervorholen koennte. Vom UI-Test
+                // gefunden, nachdem drei Wischversuche wirkungslos blieben.
+                .padding(.bottom, 60)
             }
             .navigationTitle("Gewicht")
             .toolbar {

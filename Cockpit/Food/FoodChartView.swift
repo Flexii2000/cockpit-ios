@@ -144,8 +144,18 @@ struct FoodChartView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 0)
+                    // `simultaneousGesture` und eine Mindeststrecke, nicht
+                    // `gesture(minimumDistance: 0)`: sonst nimmt das Diagramm
+                    // jede Beruehrung fuer sich und die Seite laesst sich nicht
+                    // mehr scrollen, sobald der Finger darauf landet. Der
+                    // UI-Test hat genau das gefunden - zweimal nach oben
+                    // gewischt, und die Karte darunter blieb angeschnitten.
+                    .simultaneousGesture(DragGesture(minimumDistance: 8)
                         .onChanged { value in
+                            // Nur waagerechte Bewegungen lesen Werte ab.
+                            // Senkrechte gehoeren der Liste.
+                            guard abs(value.translation.width)
+                                    > abs(value.translation.height) else { return }
                             guard let plot = proxy.plotFrame else { return }
                             let x = value.location.x - geometry[plot].origin.x
                             guard let date: Date = proxy.value(atX: x) else { return }
@@ -153,13 +163,29 @@ struct FoodChartView: View {
                             // gesucht wird trotzdem im ganzen Fenster, sonst
                             // springt die Markierung ueber Luecken.
                             selectedDay = ChartSelection.nearestDay(
-                                to: date, in: history.map(\.date))
+                                to: date, in: tageImDiagramm)
                         }
                         .onEnded { _ in selectedDay = nil })
+                    .simultaneousGesture(SpatialTapGesture()
+                        .onEnded { tap in
+                            // Antippen soll auch ohne Bewegung einen Wert
+                            // zeigen - eine Ziehgeste mit Mindeststrecke tut
+                            // das nicht mehr.
+                            guard let plot = proxy.plotFrame else { return }
+                            let x = tap.location.x - geometry[plot].origin.x
+                            guard let date: Date = proxy.value(atX: x) else { return }
+                            selectedDay = ChartSelection.nearestDay(
+                                to: date, in: tageImDiagramm)
+                        })
             }
         }
         .frame(height: 220)
     }
+
+    /// Die Tage, auf die sich eine Beruehrung zuordnen laesst. Der Verlauf hat
+    /// nur an Tagen mit Eintrag Werte - dazwischen springt die Markierung auf
+    /// den naechstgelegenen.
+    private var tageImDiagramm: [CalendarDate] { history.map(\.date) }
 
     /// Alle sichtbaren Reihen fuer diesen Tag.
     private func entries(for day: CalendarDate) -> [CalloutEntry] {

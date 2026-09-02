@@ -132,6 +132,24 @@ nicht:** es liegt in der Liste unterhalb des Bildschirms, und `simctl` kann
 nicht scrollen (ein leerer Tag und die kleinste Systemschrift reichten nicht).
 Geprüft ist die Logik, nicht das Bild.
 
+### Was der Harness sofort gefunden hat
+
+Beim ersten Lauf war die Schritte-Karte auf dem Bild angeschnitten, obwohl der
+Test grün war — `exists` gilt auch für Elemente außerhalb des Bildes. Danach
+drei Fehlversuche, alle **im Test**, nicht in der App:
+
+* ein Accessibility-Container ist nie `isHittable` — auf ein Kind prüfen
+* `element.swipeUp()` wischt nur innerhalb des Elements (dreißig Punkte)
+* `app.swipeUp()` setzt in der Bildmitte an, also auf dem Diagramm, wo die
+  Ziehgeste liegt und den Wisch verbraucht
+
+Die App war die ganze Zeit in Ordnung. Ohne Bild hätte man das nicht
+auseinanderhalten können — genau dafür ist der Harness da.
+
+⚠️ Geblieben ist eine echte Einschränkung: **wer den Finger auf dem Diagramm
+aufsetzt, scrollt nicht, sondern liest Werte ab.** Abgemildert dadurch, dass
+nur waagerechte Bewegungen als Ablesen zählen; senkrechte gehören der Liste.
+
 ### Nachgereicht auf Zuruf
 
 * **Werte ablesen durch Antippen und Ziehen** — in beiden Diagrammen, wie im
@@ -194,9 +212,15 @@ kcal-Verlauf (dort sind es nur zwei Serien).
 - [x] **Push** — der Server meldet, wenn eine Schnellerfassung fertig ist.
       APNs ohne Bibliothek im food-Backend, Gerätekennungen in
       `data/devices.json`.
-- [ ] Widget: Restkalorien heute
+- [x] **Widget** — Restkalorien heute, klein (Tacho + Zahl) und mittel
+      (zusätzlich die drei Makros). Holt sich `/api/food/day` selbst.
+- [x] **Face-ID-Sperre** vor dem Finanzen-Tab, samt Sichtschutz im
+      App-Umschalter.
+- [x] **Schritte** aus Health, unter dem Diagramm, mit änderbarem Tagesziel;
+      gespeichert im Weight Tracker (`/api/steps`).
+- [x] **UI-Test-Harness** (`tools/uitest.sh`) — tippt, wischt, scrollt und
+      legt Screenshots ab.
 - [ ] App Intent / Shortcut für die Schnellerfassung („Hey Siri, …")
-- [ ] Face-ID-Sperre vor dem Finanzen-Tab
 
 ### Der erste Health-Abgleich, und was er ausgelöst hat
 

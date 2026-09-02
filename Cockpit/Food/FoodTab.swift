@@ -234,6 +234,9 @@ struct FoodTab: View {
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
+                // Stabiler Griff fuer den UI-Test. Ueber die Beschriftung zu
+                // suchen bricht, sobald ein anderes Gericht oben steht.
+                .accessibilityIdentifier("foodEntry")
                 // Eigene Wischaktion statt `onDelete`: die zeigt "Löschen"
                 // ausgeschrieben. Die Mülltonne sagt dasselbe und braucht
                 // weniger Weg - der Titel bleibt aber am Label stehen, damit

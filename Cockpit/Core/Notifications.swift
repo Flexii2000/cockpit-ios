@@ -18,6 +18,9 @@ enum Notifications {
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .notDetermined:
+            #if DEBUG
+            if ProcessInfo.processInfo.environment["COCKPIT_NO_PUSH"] == "1" { return false }
+            #endif
             let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
             if granted {
                 // Erst ab hier darf ueberhaupt etwas zugestellt werden - also
@@ -39,6 +42,13 @@ enum Notifications {
     /// geht. Bewusst **ohne** Nachfrage - die kommt im Zusammenhang, wenn die
     /// erste Schnellerfassung laeuft.
     static func registerForPushIfAllowed() async {
+        #if DEBUG
+        // Simulator-Kennungen sind seit iOS 16 echt und landen in
+        // data/devices.json auf dem Server. Ohne diesen Schalter meldet jeder
+        // Testlauf eine neue an - Woche fuer Woche mehr, und bemerkt wuerde es
+        // nur an der wachsenden Datei.
+        if ProcessInfo.processInfo.environment["COCKPIT_NO_PUSH"] == "1" { return }
+        #endif
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
         await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }

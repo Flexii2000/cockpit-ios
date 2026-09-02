@@ -50,6 +50,11 @@ struct StepsCard: View {
             Spacer()
         }
         .padding(.vertical, 8)
+        // `.contain` macht die Karte als ein Element abfragbar. Nur eine
+        // Kennung an den HStack zu haengen reicht nicht - dann taucht sie in
+        // der Elementliste gar nicht auf, und ein Test sucht vergeblich.
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("stepsCard")
     }
 
     private var mainText: String {

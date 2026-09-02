@@ -60,8 +60,29 @@ App liest sie nur im Debug-Build (`Access.seedFromEnvironment`).
 Erscheinungsbild umschalten: `xcrun simctl ui booted appearance dark|light`.
 **Beide anschauen**, bevor etwas als fertig gilt.
 
-Der Simulator kann **nicht tippen, wischen oder scrollen**. Alles, was hinter
-einer Geste liegt, ist von hier aus nicht zu sehen — dafür gibt es
+```bash
+tools/uitest.sh                 # alle UI-Tests, Bilder nach build/screenshots/
+tools/uitest.sh testSwipeOnAn…  # nur ein Test
+```
+
+`uitest.sh` kann, was `simctl` nicht kann: **tippen, wischen, scrollen** — und
+legt von jedem Schritt einen Screenshot ab. Drei Dinge, die dabei nicht
+offensichtlich sind und je einen halben Anlauf gekostet haben:
+
+* **Erst aufnehmen, dann prüfen.** Schlägt eine Prüfung fehl, endet der Test
+  sofort — ohne Bild weiß man nur, *dass* etwas nicht stimmt.
+* **`element.swipeUp()` wischt nur innerhalb des Elements.** Bei einer
+  Beschriftung sind das dreißig Punkte, zu wenig zum Scrollen. Und
+  `app.swipeUp()` setzt in der Bildmitte an — auf dem Diagramm, wo die
+  Ziehgeste liegt. Deshalb `scrollDown()` mit Koordinaten.
+* **Ein Accessibility-Container ist nie `isHittable`.** Auf ein Kind prüfen,
+  nicht auf die Karte selbst.
+
+Was der Harness **nicht** kann: Systemdialoge (Health, Face ID) bedienen —
+dafür sind die Debug-Schalter da.
+
+Der Simulator allein kann **nicht tippen, wischen oder scrollen**. Alles, was
+hinter einer Geste liegt, ist ohne den Harness nicht zu sehen — dafür gibt es
 Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
@@ -70,6 +91,9 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
+| `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |
+| `COCKPIT_FORCE_LOCK=1` | Sperrbildschirm erzwingen (im Simulator ist kein Gesicht hinterlegt) |
+| `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
 
 Jeder dieser Schalter ist entstanden, weil ohne ihn ein Fehler unsichtbar
