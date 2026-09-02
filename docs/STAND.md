@@ -1,7 +1,10 @@
 # Stand
 
-> **Nächster Schritt:** der **Siri-Kurzbefehl** für die Schnellerfassung —
-> der letzte offene Punkt aus dem ursprünglichen Plan.
+> **Nächster Schritt:** den **Habits-Dienst ausrollen** — das Repo liegt schon
+> auf dem Server, es fehlt `ssh -t HeimServerRemote
+> '~/services/habits/deploy/setup-habits.sh'` (sudo) und danach
+> `tools/install-device.sh --launch`. Bis dahin sagt der Habits-Tab „Kein
+> Zugang". Danach: der **Siri-Kurzbefehl** für die Schnellerfassung.
 >
 > Der Noten-Tab ist ausgerollt: Dienst und Timer laufen seit dem 02.09.2026 auf
 > dem Server, die App liegt auf dem Gerät. **Benachrichtigungen über neue Noten
@@ -24,6 +27,22 @@
 > das Profil gilt bis **01.09.2027**. Nächste Erneuerung: einmal
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
+
+## Habits — fünfter Tab · **gebaut, nicht ausgerollt** (2026-09-02)
+
+Gewohnheiten mit Flamme und Sträh­ne, wie bei Snapchat. Vier Arten: Build
+(abhaken), Quit (zählt von selbst, Rückfall setzt zurück), Track food (aus dem
+Kalorienzähler: 80 % des kcal-Ziels oder drei Mahlzeiten) und Schritte pro
+Woche (aus dem Weight Tracker, „30/70k", Woche ab Montag 0:00). Eigenes
+Spring-Backend in `../habits`, **ohne Web-UI** — die App ist der einzige
+Client und rechnet nichts nach.
+
+Der sechste Tab war einer zu viel: **Zugang ist jetzt ein Blatt** hinter dem
+Zahnrad (Noten und Habits in der Leiste, Essen und Gewicht im „…"-Menü).
+
+Geprüft gegen einen lokal gestarteten Dienst mit den echten Quellen: Track
+food stand bei 2 Tagen und 979/1.840 kcal, die Schritte bei 5 Wochen und
+30/70k. UI-Test hakt Logbook ab und wieder los. Hell und dunkel angesehen.
 
 ## Noten — vierter Tab · **fertig** (2026-09-02)
 

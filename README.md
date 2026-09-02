@@ -2,7 +2,7 @@
 
 Eine iOS-App, die Felix' Heimserver-Dienste unter einem Icon zusammenführt:
 **Essen** (Kalorienzähler), **Gewicht** (Weight Tracker), **Finanzen**
-(Finance Cockpit) und **Noten** (Notenübersicht).
+(Finance Cockpit) und **Noten** (Notenübersicht) und **Habits** (Gewohnheiten).
 Bundle-ID `com.fherrmann.cockpit`.
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier ist
@@ -30,6 +30,14 @@ Thesis, dazu best/average/worst case, alle Module mit ihren Noten und der
 Fortschritt. Für offene Module lässt sich eine Note **annehmen**, um zu sehen,
 was sie ausmacht. Ebenfalls hinter **Face ID** — und wenn eine neue Note
 eingetragen wird, meldet sich das Handy von selbst: „Neue Note 1,7".
+
+**Habits** — Gewohnheiten mit Flamme und Sträh­ne. Aufbauen (abhaken),
+Lassen (zählt von selbst, ein Rückfall setzt zurück), Track food (aus dem
+Kalorienzähler) und Schritte pro Woche (aus Apple Health, „30/70k", Woche ab
+Montag). Heute darf offen sein — die Sträh­ne reißt erst um Mitternacht.
+
+**Zugang** — kein Tab mehr, sondern ein Blatt hinter dem Zahnrad (oben links
+bei Noten und Habits, im „…"-Menü bei Essen und Gewicht).
 
 **Widget** — die heute noch übrigen Kalorien auf dem Homescreen, klein
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros).
@@ -84,7 +92,8 @@ Mac und iPhone im selben WLAN sind und der Bildschirm entsperrt ist.
 
 ## Erste Einrichtung auf einem Gerät
 
-Beim ersten Start fragt die App im Tab **Zugang** nach den Token. Sie landen im
+Beim ersten Start öffnet die App das Blatt **Zugang** (später: Zahnrad) und
+fragt nach den Token. Habits braucht keinen eigenen — es nimmt `fh_private`. Sie landen im
 Keychain und werden von da an als Cookies gesetzt:
 
 | Token | Wofür | Wo er steht (auf dem Server) |

@@ -13,6 +13,7 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | Weight Tracker | `https://weight.fherrmann.com` | Cookie `weight_app_token` | **nativ** (Phase 1) |
 | Finance Cockpit | `https://finanzen.fherrmann.com` | Login: Passwort + TOTP → Session-Cookie | **WebView, dauerhaft** |
 | Noten | `https://fherrmann.com/grades` | Cookie `grades_token` **und** Anmeldung → Session-Cookie | **nativ** |
+| Habits | `https://fherrmann.com/habits` | Cookie `fh_private` (wie der Kalorienzähler) | **nativ**, einziger Client |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
 also keine ATS-Ausnahme nötig). Kein VPN, kein Heimnetz-Zwang.
@@ -268,6 +269,48 @@ Notenchecker-Snapshot mit dem zuletzt gesehenen Stand und schickt neue Noten
 selbst über APNs (eigener Schlüssel, nicht über das food-Backend). Die
 Nutzlast trägt `"kind": "grade"` — daran erkennt der `AppDelegate`, welcher
 Tab sich öffnen soll.
+
+## Habits — `/habits/api/habits`
+
+Quelle: `../habits/src/main/java/com/fherrmann/habits/`. Kein Web-UI — die App
+ist der einzige Client, deshalb ist die Antwort schon fertig gerechnet
+(`HabitStatus`) und die App zählt **nichts** nach.
+
+| Methode | Pfad | Was |
+|---|---|---|
+| GET | `/api/habits` | alle Habits mit Sträh­ne und Stand von heute |
+| POST | `/api/habits` | `{name, kind, weeklyStepGoal?}` → 201 |
+| PUT | `/api/habits/{id}` | Name/Wochenziel ändern — **nicht** die Art |
+| DELETE | `/api/habits/{id}` | löscht samt aller Einträge, kein Archiv |
+| POST | `/api/habits/{id}/marks` | `{date?}` — Haken (BUILD) bzw. Rückfall (QUIT), ohne Datum heute |
+| DELETE | `/api/habits/{id}/marks/{date}` | Haken bzw. Rückfall zurücknehmen |
+
+```
+HabitStatus  id, name, kind (BUILD|QUIT|FOOD|STEPS), unit (DAYS|WEEKS),
+             weeklyStepGoal, streak, doneToday, atRisk,
+             progress {value, goal} | null, recent [7 × bool, älteste zuerst],
+             unavailable (String | null)
+```
+
+⚠️ **`atRisk` ist kein Fehler.** Ein Build-Habit, das heute noch nicht
+abgehakt ist, hat seine Sträh­ne nicht verloren — erst um Mitternacht. Bis
+dahin ist `streak` der Stand von gestern und `atRisk` gesetzt. Die App zeigt
+das als blasse Flamme und „heute noch offen". Bei QUIT gibt es das nicht: ein
+Rückfall heute ist entschieden, `streak` ist dann 0.
+
+⚠️ **Was `doneToday` bei QUIT heißt:** *kein* Rückfall heute. Der Knopf in
+der App trägt dann einen ein (`POST …/marks`); ist einer eingetragen, nimmt
+derselbe Knopf ihn zurück (`DELETE …/marks/{heute}`).
+
+⚠️ **Automatische Habits (FOOD, STEPS) nehmen keine Marks** — `POST …/marks`
+ist dort ein 400. Ihr Stand kommt bei jeder Anfrage frisch aus dem
+Kalorienzähler bzw. dem Weight Tracker; `progress` ist kcal gegen 80 % des
+Tagesziels bzw. Schritte gegen das Wochenziel (Woche ab Montag 0:00
+Europe/Berlin). Ist die Quelle weg, steht `unavailable` und alles andere ist
+nicht zu gebrauchen.
+
+⚠️ **Fehler kommen als Klartext** (`Ein Habit braucht einen Namen.`), nicht
+als JSON-Fehlerseite — `APIClient.shortMessage` reicht sie so durch.
 
 ## Finance Cockpit — kein API
 

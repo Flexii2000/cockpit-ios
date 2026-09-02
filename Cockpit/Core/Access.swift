@@ -206,6 +206,19 @@ final class Access {
                                secure: gradesURL.scheme == "https") {
             cookies.append(c)
         }
+        #if DEBUG
+        // Ist der Habits-Dienst auf eine andere Adresse umgeleitet
+        // (COCKPIT_URL_HABITS, lokal gestarteter Dienst), gilt das Cookie fuer
+        // .fherrmann.com dort nicht. Dann dasselbe Token noch einmal fuer
+        // diesen Rechner - ohne das antwortet der lokale Dienst nur mit 403.
+        let habitsURL = Backend.habits.url
+        if let privateToken, let host = habitsURL.host(), !host.hasSuffix("fherrmann.com"),
+           let c = Self.cookie(name: Self.privateTokenKey, value: privateToken,
+                               domain: host, path: habitsURL.path(),
+                               secure: habitsURL.scheme == "https") {
+            cookies.append(c)
+        }
+        #endif
         // Erst alle in den gemeinsamen Speicher - der geht ohne Warten. Wer
         // beides verschraenkt, laesst zwischen dem ersten und dem letzten
         // Cookie ein Zeitfenster offen, in dem eine schon laufende Anfrage

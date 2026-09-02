@@ -27,6 +27,7 @@ M1        [Web]  [nativ][Web]     <- benutzbar          erledigt
 M2        [nativ][nativ][Web]     <- Zielbild Stufe 2   erledigt
 M3        + HealthKit, Widget, Shortcuts, Face-ID-Sperre
 danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
+          + Habits (nativ; der Dienst hat kein Web-UI, die App ist sein einziger Client)
 ```
 
 ### Aufbau eines nativen Tabs
@@ -55,6 +56,7 @@ Cockpit/            das App-Target
   Health/           Abgleich mit Apple Health (nur lesend)
   Finance/          WebView hinter der Sperre
   Grades/           Noten: Modultabelle, Szenarien, Annahmen
+  Habits/           Gewohnheiten: Flamme, Sträh­ne, Abhaken, Anlegen
 Shared/             was App UND Widget übersetzen
 CaloriesWidget/     die Home-Screen-Kachel (eigene Erweiterung)
 Tests/              Unit-Tests
@@ -129,6 +131,13 @@ Endpunkt liegt hinter der Anmeldung. Der Kalorienzähler bekommt sie beim Start,
 die Noten beim ersten Öffnen des Tabs. Wer den Tab nie aufmacht, bekommt keine
 Meldung über Noten; das ist die Folge davon, dass diese Anmeldung etwas wert
 sein soll.
+
+**Zugang ist ein Blatt, kein Tab.** Mit Habits gibt es fünf Dienste — und
+iOS zeigt höchstens fünf Tabs, alles darüber landet unter „Mehr". Zugang wird
+selten gebraucht: ein Zahnrad in der Leiste der nativen Tabs (bei Essen und
+Gewicht im „…"-Menü, weil dort die Leiste voll ist) öffnet dasselbe Blatt.
+`Router.showsSetup` hält den Zustand; ohne Token geht es beim Start von
+selbst auf.
 
 **Zwei Sperren, nicht eine.** `BiometricLock` steht vor Finanzen **und** vor
 den Noten, aber als zwei Instanzen: wer die Kontostände aufgemacht hat, hat

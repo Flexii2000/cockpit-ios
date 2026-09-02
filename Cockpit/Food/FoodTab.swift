@@ -108,6 +108,8 @@ struct FoodTab: View {
                 Divider()
                 NavigationLink("Gerichte verwalten") { DishListView(store: store) }
                 Button("Tagesziele …") { showingTargets = true }
+                Divider()
+                Button("Zugang …") { Router.shared.showsSetup = true }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }

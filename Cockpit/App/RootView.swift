@@ -4,7 +4,7 @@ import SwiftUI
 /// Zugang-Tab zu keinem Dienst gehoert - und `Backend?` als Auswahl waere
 /// an jeder Verwendungsstelle eine Umstaendlichkeit.
 enum TabSelection: Hashable {
-    case food, weight, finance, grades, setup
+    case food, weight, finance, grades, habits
     #if DEBUG
     /// Nur zum Ansehen der Kachel - siehe WidgetPreviewTab.
     case widget
@@ -29,7 +29,7 @@ enum TabSelection: Hashable {
         case "weight":  return .weight
         case "finance": return .finance
         case "grades":  return .grades
-        case "setup":   return .setup
+        case "habits":  return .habits
         case "widget":  return .widget
         default:        return .food
         }
@@ -85,8 +85,10 @@ struct RootView: View {
                 value: TabSelection.grades) {
                 GradesTab(lock: gradesLock)
             }
-            Tab("Zugang", systemImage: "gearshape", value: TabSelection.setup) {
-                SetupView()
+            Tab(Backend.habits.title,
+                systemImage: Backend.habits.systemImage,
+                value: TabSelection.habits) {
+                HabitsTab()
             }
             #if DEBUG
             if TabSelection.showsWidgetPreview {
@@ -98,8 +100,11 @@ struct RootView: View {
         }
         .onAppear {
             // Ohne Token zeigen die Dienst-Tabs nur Anmeldeseiten - dann
-            // gleich dorthin, wo man das aendern kann.
-            if !access.isConfigured { router.selection = .setup }
+            // gleich das Blatt aufmachen, auf dem man das aendern kann.
+            if !access.isConfigured { router.showsSetup = true }
+        }
+        .sheet(isPresented: $router.showsSetup) {
+            SetupView()
         }
         // Sichtschutz fuer den App-Umschalter. iOS macht die Vorschau in dem
         // Moment, in dem die App inaktiv wird - ohne diese Decke stuenden die

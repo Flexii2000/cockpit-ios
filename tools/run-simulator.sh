@@ -2,7 +2,7 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh [food|weight|finance|grades|setup|widget] [screenshot.png]
+#   tools/run-simulator.sh [food|weight|finance|grades|habits|setup|widget] [screenshot.png]
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -25,6 +25,10 @@
 #
 # COCKPIT_NO_LOCK=1 ist dabei noetig: im Simulator ist kein Gesicht hinterlegt,
 # sonst bleibt der Sperrbildschirm stehen.
+#
+# HABITS genauso umleitbar (COCKPIT_URL_HABITS=http://127.0.0.1:48190/habits),
+# z. B. auf einen lokal mit ./gradlew bootRun gestarteten Dienst; der
+# Privat-Token wird dann auch fuer diesen Rechner als Cookie gesetzt.
 #
 # COCKPIT_NO_HEALTH=1 laesst die Health-Anbindung aus. Ohne das verdeckt der
 # Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken laesst
@@ -76,6 +80,7 @@ SIMCTL_CHILD_COCKPIT_FORCE_LOCK="${COCKPIT_FORCE_LOCK:-}" \
 SIMCTL_CHILD_COCKPIT_NO_LOCK="${COCKPIT_NO_LOCK:-}" \
 SIMCTL_CHILD_COCKPIT_NO_PUSH="${COCKPIT_NO_PUSH:-}" \
 SIMCTL_CHILD_COCKPIT_URL_GRADES="${COCKPIT_URL_GRADES:-}" \
+SIMCTL_CHILD_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \

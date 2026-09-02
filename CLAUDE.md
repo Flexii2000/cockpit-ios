@@ -2,13 +2,20 @@
 
 Eine iOS-App, die Felix' Heimserver-Dienste unter einem Icon zusammenführt:
 **Kalorienzähler** (`food.fherrmann.com`), **Weight Tracker**
-(`weight.fherrmann.com`), **Finance Cockpit** (`finanzen.fherrmann.com`) und
-die **Notenübersicht** (`fherrmann.com/grades`).
+(`weight.fherrmann.com`), **Finance Cockpit** (`finanzen.fherrmann.com`), die
+**Notenübersicht** (`fherrmann.com/grades`) und **Habits**
+(`fherrmann.com/habits`).
 
 Dieses Repo enthält **nur den Client**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
-`../grades`) — von hier aus wird an ihnen nichts geändert, auch nicht "mal
-eben".
+`../grades`, `../habits`) — von hier aus wird an ihnen nichts geändert, auch
+nicht "mal eben". Habits hat **kein Web-UI**: die App ist sein einziger
+Client, und der Dienst liefert alles fertig gerechnet — hier wird keine
+Sträh­ne nachgezählt.
+
+⚠️ **Fünf Tabs sind das Maximum.** iOS schiebt den sechsten unter „Mehr".
+Deshalb ist Zugang ein Blatt hinter dem Zahnrad (`Router.showsSetup`) und
+kein Tab mehr. Ein weiterer Dienst braucht einen Platz, nicht einen Tab.
 
 ⚠️ Eine Ausnahme mit Ansage: die Noten haben für diese App eine
 **JSON-Schnittstelle bekommen** (`../grades/app/api/`). Gerechnet wird
@@ -56,7 +63,7 @@ tools/install-device.sh --launch         # aufs iPhone bauen und starten
 `run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
 auf Wunsch einen Screenshot ab — der einzige Weg, Layoutfehler zu sehen statt
 sie sich vorzustellen. Erstes Argument ist der Tab (`food`, `weight`,
-`finance`, `grades`, `setup`), zweites der Pfad fürs Bild.
+`finance`, `grades`, `habits`, `setup`), zweites der Pfad fürs Bild.
 
 Der **Noten-Tab** braucht dafür ein Passwort. Das gehört nicht in den
 Schlüsselbund dieses Rechners — es ist Felix' Anmeldung, kein Dienstgeheimnis.
@@ -106,14 +113,14 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `setup`) |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `habits`); `setup` öffnet das Zugang-Blatt |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
 | `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |
 | `COCKPIT_FORCE_LOCK=1` | Sperrbildschirm erzwingen (im Simulator ist kein Gesicht hinterlegt) |
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
-| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`) - fuer den Noten-Tab gegen einen lokal gestarteten Dienst |
+| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
 

@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// Einmalige Eingabe der beiden Zugangstoken.
+/// Einmalige Eingabe der Zugangstoken.
 ///
-/// Bewusst als eigener Tab und nicht als versteckte Geste: die Token muessen
-/// selten, aber verlaesslich erreichbar sein - etwa wenn eines auf dem Server
-/// gewechselt wird und ploetzlich alle drei Tabs auf die Anmeldeseite
-/// umleiten.
+/// Ein Blatt, erreichbar ueber das Zahnrad in jedem nativen Tab - kein Tab
+/// mehr, seit es fuenf Dienste gibt: iOS zeigt hoechstens fuenf in der Leiste
+/// und schiebt den Rest unter „Mehr". Die Token muessen selten, aber
+/// verlaesslich erreichbar sein - etwa wenn eines auf dem Server gewechselt
+/// wird und ploetzlich alle Tabs auf die Anmeldeseite umleiten.
 struct SetupView: View {
 
     @Environment(Access.self) private var access
+    @Environment(\.dismiss) private var dismiss
     @State private var privateToken = ""
     @State private var weightToken = ""
     @State private var saved = false
@@ -125,6 +127,11 @@ struct SetupView: View {
                 }
             }
             .navigationTitle("Zugang")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                }
+            }
         }
     }
 }

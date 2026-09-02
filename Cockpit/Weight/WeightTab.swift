@@ -60,6 +60,8 @@ struct WeightTab: View {
                                 }
                             }
                         }
+                        Divider()
+                        Button("Zugang …") { Router.shared.showsSetup = true }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }

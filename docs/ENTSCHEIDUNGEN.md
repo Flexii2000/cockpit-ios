@@ -3,6 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-02 — Zugang wird ein Blatt, weil fünf Tabs voll sind
+**Warum:** iOS zeigt höchstens fünf Tabs; der sechste wandert unter „Mehr",
+und dort landete ausgerechnet der Tab, den man braucht, wenn alles andere
+„Kein Zugang" sagt. Zugang ist selten nötig - ein Zahnrad reicht.
+**Verworfen:** Habits unter „Mehr" (der neue Tab wäre der versteckte),
+Finanzen und Noten zusammenlegen (zwei Sperren, zwei Dienste).
+**Nebenwirkung:** `COCKPIT_TAB=setup` gibt es weiter, öffnet aber das Blatt.
+
+## 2026-09-02 — Habits: kein Web-UI, die App rechnet nichts
+**Warum:** Felix' Entscheidung (API + Tab). Ohne zweite Oberfläche gibt es
+keine Anzeigeregeln, die an zwei Stellen stimmen müssten - genau das Problem,
+das die Übersicht der doppelt gepflegten Regeln beschreibt. Deshalb liefert
+der Dienst `HabitStatus` fertig gerechnet: Sträh­ne, „heute erledigt",
+„gefährdet". Die App zeigt und schickt Haken, sonst nichts.
+**Auch so entschieden:** „Track food" zählt automatisch - ab 80 % des
+kcal-Ziels oder wenn Frühstück, Mittag und Abend je einen Eintrag haben
+(Felix' Regel, ein Snack ersetzt keine Mahlzeit).
+
 ## 2026-09-02 — Die Noten melden sich selbst, nicht über den Kalorienzähler
 **Warum:** Felix' Entscheidung. Der naheliegende Weg wäre gewesen, das
 food-Backend zur Push-Zentrale zu machen — dort liegen Schlüssel und

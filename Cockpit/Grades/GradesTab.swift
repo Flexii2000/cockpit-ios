@@ -29,6 +29,9 @@ struct GradesTab: View {
                 }
             }
             .navigationTitle("Noten")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) { AccessButton() }
+            }
         }
         // Beim Wechsel auf den Tab gleich fragen - ein zusaetzlicher Tipp auf
         // „Entsperren" waere ein Klick, der nichts entscheidet.
