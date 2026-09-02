@@ -1,16 +1,13 @@
 # Stand
 
-> **Nächster Schritt:** der **Noten-Tab** ist gebaut und lokal geprüft, aber
-> noch **nicht ausgerollt**. Dafür in dieser Reihenfolge:
+> **Nächster Schritt:** der **Siri-Kurzbefehl** für die Schnellerfassung —
+> der letzte offene Punkt aus dem ursprünglichen Plan.
 >
-> 1. `git pull` im Notendienst auf dem Server, Dienst neu starten
-> 2. `ssh -t HeimServerRemote '~/services/grades/deploy/setup-notenwache.sh'`
->    (Abhängigkeiten, APNs-Schlüssel, Timer — idempotent)
-> 3. `tools/install-device.sh --launch`, dann im Zugang-Tab den Geräte-Token,
->    den Benutzernamen und das Passwort eintragen
->
-> Vom ursprünglichen Plan ist außerdem noch **ein** Punkt offen: der
-> **Siri-Kurzbefehl** für die Schnellerfassung.
+> Der Noten-Tab ist ausgerollt: Dienst und Timer laufen seit dem 02.09.2026 auf
+> dem Server, die App liegt auf dem Gerät. **Benachrichtigungen über neue Noten
+> gibt es erst, nachdem der Tab einmal offen war** — die Push-Kennung meldet
+> die App dort erst an, wenn eine Sitzung steht. Ob es geklappt hat, steht in
+> `~/services/grades/data/devices.json` auf dem Server.
 >
 > Daneben zwei Dinge, die keine Features sind:
 >
@@ -28,7 +25,7 @@
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
 
-## Noten — vierter Tab · **gebaut, nicht ausgerollt** (2026-09-02)
+## Noten — vierter Tab · **fertig** (2026-09-02)
 
 Die Funktionalität von `fherrmann.com/grades`, nativ: Abschlussnote nach
 PO-I23 (ECTS-gewichtet, Thesis dreifach), best/average/worst case, alle Module
