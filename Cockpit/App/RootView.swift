@@ -28,7 +28,10 @@ enum TabSelection: Hashable {
 struct RootView: View {
 
     @Environment(Access.self) private var access
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selection: TabSelection = .initial
+
+    let lock: FinanceLock
 
     var body: some View {
         TabView(selection: $selection) {
@@ -45,7 +48,7 @@ struct RootView: View {
             Tab(Backend.finance.title,
                 systemImage: Backend.finance.systemImage,
                 value: TabSelection.finance) {
-                FinanceTab()
+                FinanceTab(lock: lock)
             }
             Tab("Zugang", systemImage: "gearshape", value: TabSelection.setup) {
                 SetupView()
@@ -56,5 +59,31 @@ struct RootView: View {
             // dann gleich dorthin, wo man das aendern kann.
             if !access.isConfigured { selection = .setup }
         }
+        // Sichtschutz fuer den App-Umschalter. iOS macht die Vorschau in dem
+        // Moment, in dem die App inaktiv wird - ohne diese Decke stuenden die
+        // Kontostaende dort weiter offen, und die Sperre waere mit einem Blick
+        // auf die Vorschau umgangen. Nur ueber den Finanzen-Tab: bei Essen und
+        // Gewicht gibt es nichts zu verbergen, und ein Flackern bei jedem
+        // Wegschalten waere laestig.
+        .overlay {
+            if selection == .finance, scenePhase != .active {
+                privacyCover
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Beim Verlassen wieder zu. Sonst schuetzt die Sperre nur den
+            // ersten Blick und danach nie wieder.
+            if phase != .active { lock.lock() }
+        }
+    }
+
+    private var privacyCover: some View {
+        ZStack {
+            Rectangle().fill(.regularMaterial)
+            Image(systemName: "lock.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+        }
+        .ignoresSafeArea()
     }
 }

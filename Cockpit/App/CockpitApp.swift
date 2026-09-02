@@ -4,12 +4,13 @@ import SwiftUI
 struct CockpitApp: App {
 
     @State private var access = Access()
+    @State private var financeLock = FinanceLock()
     /// Fuer den Start im Hintergrund: siehe AppDelegate.
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(lock: financeLock)
                 .environment(access)
                 // Muss laufen, bevor die erste WebView laedt - sonst schickt
                 // nginx den Kalorienzaehler-Tab auf die Startseite um.

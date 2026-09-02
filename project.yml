@@ -60,6 +60,9 @@ targets:
         # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
         # App beim ersten HealthKit-Aufruf.
         INFOPLIST_KEY_NSHealthShareUsageDescription: Damit dein Gewicht aus Health automatisch im Cockpit landet.
+        # Ohne diesen Schluessel beendet iOS die App, sobald sie Face ID
+        # anfordert - nicht mit einer Fehlermeldung, sondern hart.
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit deine Finanzen nicht offen daliegen, wenn jemand anders das Handy in der Hand hat.
         # Keine Schreib-Erklaerung, solange nicht geschrieben wird: mit ihr
         # sagt iOS im Dialog "zugreifen und sie aktualisieren" - und das waere
         # zu viel versprochen. Kommt der Rueckweg, kommt sie wieder.
