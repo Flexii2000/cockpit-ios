@@ -21,6 +21,20 @@ struct FoodChartView: View {
     /// Welche Gewichtskurven mitlaufen. Leer heisst: keine.
     let weightOverlay: Set<WeightSeries>
 
+    @State private var selectedDay: CalendarDate?
+
+    /// Wie im Gewicht-Tab im Debug-Build vorwaehlbar - eine Ziehgeste laesst
+    /// sich im Simulator nicht ausloesen.
+    private var effectiveSelection: CalendarDate? {
+        #if DEBUG
+        if selectedDay == nil,
+           let raw = ProcessInfo.processInfo.environment["COCKPIT_SELECT"] {
+            return CalendarDate(iso: raw)
+        }
+        #endif
+        return selectedDay
+    }
+
     var body: some View {
         Chart {
             if let kcalTarget {
@@ -53,6 +67,17 @@ struct FoodChartView: View {
                 // plausibel ist: nichts.
                     .interpolationMethod(.linear)
                 }
+            }
+
+            if let day = effectiveSelection, !entries(for: day).isEmpty {
+                RuleMark(x: .value("Tag", day.startOfDay(), unit: .day))
+                    .foregroundStyle(.secondary.opacity(0.4))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+                    .annotation(position: .top, spacing: 4,
+                                overflowResolution: .init(x: .fit(to: .chart),
+                                                          y: .fit(to: .chart))) {
+                        ChartCallout(title: day.short, entries: entries(for: day))
+                    }
             }
 
             // Was die Saeulenfarbe vorher trug: Tage deutlich ueber dem Ziel
@@ -114,7 +139,45 @@ struct FoodChartView: View {
                 }
             }
         }
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            guard let plot = proxy.plotFrame else { return }
+                            let x = value.location.x - geometry[plot].origin.x
+                            guard let date: Date = proxy.value(atX: x) else { return }
+                            // Der Verlauf hat nur an Tagen mit Eintrag Werte -
+                            // gesucht wird trotzdem im ganzen Fenster, sonst
+                            // springt die Markierung ueber Luecken.
+                            selectedDay = ChartSelection.nearestDay(
+                                to: date, in: history.map(\.date))
+                        }
+                        .onEnded { _ in selectedDay = nil })
+            }
+        }
         .frame(height: 220)
+    }
+
+    /// Alle sichtbaren Reihen fuer diesen Tag.
+    private func entries(for day: CalendarDate) -> [CalloutEntry] {
+        var result: [CalloutEntry] = []
+        if let total = history.first(where: { $0.date == day }) {
+            result.append(CalloutEntry(label: "kcal", value: total.consumed.kcal.whole,
+                                       color: Palette.kcal))
+        }
+        for series in [WeightSeries.avg7, .measured] where weightOverlay.contains(series) {
+            if let value = FoodChartData
+                .weightValues(weightPoints, series: series, from: day, to: day).first {
+                result.append(CalloutEntry(
+                    label: series == .avg7 ? "Gewicht ⌀" : "Gewicht",
+                    value: value.value.kg,
+                    color: series == .avg7 ? Palette.avg7 : Palette.measured))
+            }
+        }
+        return result
     }
 
     // MARK: - Skalen (Rechnerei in FoodChartData, damit sie testbar ist)

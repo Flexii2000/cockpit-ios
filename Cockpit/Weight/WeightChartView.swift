@@ -10,6 +10,21 @@ struct WeightChartView: View {
     let kcalTarget: Double?
     let visible: Set<WeightSeries>
 
+    @State private var selectedDay: CalendarDate?
+
+    /// Im Debug-Build vorwaehlbar: eine Ziehgeste laesst sich im Simulator
+    /// nicht ausloesen, und ohne Vorauswahl waere die Sprechblase nie im Bild
+    /// zu sehen.
+    private var effectiveSelection: CalendarDate? {
+        #if DEBUG
+        if selectedDay == nil,
+           let raw = ProcessInfo.processInfo.environment["COCKPIT_SELECT"] {
+            return CalendarDate(iso: raw)
+        }
+        #endif
+        return selectedDay
+    }
+
     var body: some View {
         Chart {
             // Urlaube ganz nach hinten: sie sind Hintergrund, keine Serie.
@@ -98,6 +113,20 @@ struct WeightChartView: View {
                 .interpolationMethod(.linear)
             }
 
+            if let day = effectiveSelection, let point = point(on: day) {
+                RuleMark(x: .value("Tag", day.startOfDay()))
+                    .foregroundStyle(.secondary.opacity(0.4))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+                    // `y: .fit(to: .chart)` haelt sie im Diagramm. Ohne das
+                    // ragt sie nach oben hinaus und verdeckt den
+                    // Zeitraum-Umschalter darueber.
+                    .annotation(position: .top, spacing: 4,
+                                overflowResolution: .init(x: .fit(to: .chart),
+                                                          y: .fit(to: .chart))) {
+                        ChartCallout(title: day.short, entries: entries(for: point))
+                    }
+            }
+
             if visible.contains(.target) {
                 ForEach(samples(\.target)) { sample in
                     LineMark(x: .value("Tag", sample.date),
@@ -147,7 +176,60 @@ struct WeightChartView: View {
                 }
             }
         }
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    // minimumDistance 0: ein Antippen soll schon reichen,
+                    // nicht erst eine Bewegung.
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            guard let plot = proxy.plotFrame else { return }
+                            let x = value.location.x - geometry[plot].origin.x
+                            guard let date: Date = proxy.value(atX: x) else { return }
+                            selectedDay = ChartSelection.nearestDay(
+                                to: date, in: points.map(\.date))
+                        }
+                        .onEnded { _ in selectedDay = nil })
+            }
+        }
         .frame(height: 260)
+    }
+
+    private func point(on day: CalendarDate) -> WeightPoint? {
+        points.first { $0.date == day }
+    }
+
+    /// Alle sichtbaren Serien fuer diesen Tag - dieselbe Auswahl wie im
+    /// Browser, wo Chart.js im Modus `index` alle Reihen der Stelle zeigt.
+    private func entries(for point: WeightPoint) -> [CalloutEntry] {
+        var result: [CalloutEntry] = []
+        if visible.contains(.measured), let value = point.measured {
+            result.append(CalloutEntry(label: "Messwert", value: value.kg,
+                                       color: Palette.measured))
+        }
+        if visible.contains(.avg7), let value = point.avg7 {
+            result.append(CalloutEntry(label: "7-Tage", value: value.kg, color: Palette.avg7))
+        }
+        if visible.contains(.avg14), let value = point.avg14 {
+            result.append(CalloutEntry(label: "14-Tage", value: value.kg, color: Palette.avg14))
+        }
+        if visible.contains(.avg30), let value = point.avg30 {
+            result.append(CalloutEntry(label: "30-Tage", value: value.kg, color: Palette.avg30))
+        }
+        if visible.contains(.target), let value = point.target {
+            result.append(CalloutEntry(label: "Ziel", value: value.kg, color: Palette.target))
+        }
+        // Der kcal-Wert kommt aus der unveraenderten Reihe, nicht aus der in
+        // die Gewichtsskala hineingerechneten - sonst staende dort eine Zahl,
+        // die nur fuer die Zeichnung existiert.
+        if visible.contains(.kcal),
+           let kcal = kcalByDay.first(where: { $0.date == point.date }) {
+            result.append(CalloutEntry(label: "kcal", value: kcal.value.whole,
+                                       color: Palette.kcal))
+        }
+        return result
     }
 
     // MARK: - kcal auf der Gewichtsskala

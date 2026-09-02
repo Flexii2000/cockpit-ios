@@ -134,6 +134,14 @@ Geprüft ist die Logik, nicht das Bild.
 
 ### Nachgereicht auf Zuruf
 
+* **Werte ablesen durch Antippen und Ziehen** — in beiden Diagrammen, wie im
+  Browser. Zeigt alle sichtbaren Reihen für den Tag unter dem Finger.
+  **Ohne den Schleier** über dem Mittelungsfenster, den die Weboberfläche hat:
+  dort führt ein Mauszeiger, hier verdeckt der Finger die Stelle ohnehin.
+  ⚠️ Die Geste selbst ist **nicht geprüft** — der Simulator kann nicht ziehen.
+  Geprüft sind die Zuordnung (`ChartSelection`, vier Tests) und das Aussehen
+  der Sprechblase über `COCKPIT_SELECT`.
+
 * **Der Essen-Tab geht in die Zukunft.** Der Vorwärtspfeil war an „heute"
   gesperrt — meine Annahme, nicht Felix'. Mahlzeiten vorplanen ist ein guter
   Grund, und das Backend nimmt Einträge mit beliebigem Datum an (`today()`
