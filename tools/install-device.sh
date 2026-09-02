@@ -75,6 +75,17 @@ if ! xcrun devicectl device install app --device "$DEVICE_ID" \
     exit 1
 fi
 
+# Kontrolle, dass die Erweiterung wirklich mitgekommen ist. Fehlt der
+# dependencies-Eintrag in project.yml, baut sie zwar, wird aber nicht
+# eingebettet: die Installation meldet Erfolg, die App startet, und in der
+# Widget-Galerie steht nichts.
+PLUGINS=build/device/Build/Products/Debug-iphoneos/Cockpit.app/PlugIns
+if [ -d "$PLUGINS" ]; then
+    echo "Erweiterungen: $(ls "$PLUGINS" | tr '\n' ' ')"
+else
+    echo "WARNUNG: keine PlugIns im Bundle - das Widget ist nicht eingebettet." >&2
+fi
+
 if $LAUNCH; then
     # Beim ersten Mal mit einem neuen Zertifikat verweigert iOS den Start, bis
     # das Entwicklerprofil am Geraet bestaetigt wurde:

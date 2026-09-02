@@ -1,9 +1,14 @@
 # Quelle des Xcode-Projekts. Die .xcodeproj wird daraus erzeugt und ist
 # NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
 #
-# Neue Swift-Datei hinzufuegen: Datei unter Cockpit/ anlegen und
-# tools/bootstrap.sh laufen lassen. Fertig - hier ist nichts zu pflegen,
-# weil ganze Ordner eingebunden sind, keine Einzeldateien.
+# Neue Swift-Datei hinzufuegen: Datei unter Cockpit/, Shared/ oder
+# CaloriesWidget/ anlegen und tools/bootstrap.sh laufen lassen. Fertig - hier
+# ist nichts zu pflegen, weil ganze Ordner eingebunden sind, keine
+# Einzeldateien.
+#
+# Shared/ ist das, was App UND Widget uebersetzen. Was dort liegt, darf nichts
+# benutzen, das es in einer App-Erweiterung nicht gibt - UIApplication.shared
+# etwa ist dort gesperrt (deshalb bleibt Notifications.swift in Cockpit/Core).
 name: Cockpit
 
 options:
@@ -29,6 +34,12 @@ settings:
     # eintragen - dann wird ein Jahr daraus.
     DEVELOPMENT_TEAM: ZWFV263P59
     CODE_SIGN_STYLE: Automatic
+    # Auf Projektebene, damit App und Erweiterung dieselbe Version tragen.
+    # Driften sie auseinander, weist iOS die Installation ab - mit einer
+    # Meldung ueber CFBundleShortVersionString, die die App nennt und nicht
+    # die Erweiterung.
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
     # Ohne das findet der Build den Asset-Katalog zwar, benutzt sein Icon aber
     # nicht - auf dem Homebildschirm bliebe ein weisses Feld.
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -39,6 +50,15 @@ targets:
     platform: iOS
     sources:
       - path: Cockpit
+      # Was auch das Widget uebersetzt. Ganzer Ordner, keine Einzeldateien -
+      # sonst faellt beim naechsten geteilten Typ genau eine Zeile aus.
+      - path: Shared
+    dependencies:
+      # embed: true legt die .appex nach Cockpit.app/PlugIns/. Ohne das baut
+      # die Erweiterung zwar, aber iOS findet sie nie - die App startet, und
+      # in der Widget-Galerie steht nichts.
+      - target: CaloriesWidget
+        embed: true
     entitlements:
       path: Cockpit/Cockpit.entitlements
       properties:
@@ -54,6 +74,11 @@ targets:
         # oder App Store muesste hier "production" stehen - und der Server
         # muesste auf den anderen Host zeigen.
         aps-environment: development
+        # Die Gruppe ist die VORGABEGRUPPE der App (<Team-Praefix>.<Bundle-ID>):
+        # die vorhandenen Token liegen bereits darin, es zieht nichts um. Ohne
+        # diesen Eintrag kaeme die Erweiterung - eigene Bundle-ID - nicht heran.
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.fherrmann.cockpit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit
@@ -66,8 +91,6 @@ targets:
         # Keine Schreib-Erklaerung, solange nicht geschrieben wird: mit ihr
         # sagt iOS im Dialog "zugreifen und sie aktualisieren" - und das waere
         # zu viel versprochen. Kommt der Rueckweg, kommt sie wieder.
-        MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_KEY_CFBundleDisplayName: Cockpit
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
@@ -85,3 +108,65 @@ targets:
       - path: Tests
     dependencies:
       - target: Cockpit
+
+  CaloriesWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: CaloriesWidget
+      - path: Shared
+    entitlements:
+      path: CaloriesWidget/CaloriesWidget.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.fherrmann.cockpit
+    info:
+      path: CaloriesWidget/Info.plist
+      properties:
+        # Der Bezeichner muss UNTER NSExtension stehen. Auf oberster Ebene
+        # baut und signiert alles, und die Installation bricht mit "Invalid
+        # placeholder attributes" ab - einer Meldung, die nichts ueber
+        # Erweiterungen sagt.
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        # XcodeGen schreibt sonst hart "1.0"/"1" hinein und ueberstimmt damit
+        # MARKETING_VERSION. Die Erweiterung traegt dann eine andere Version
+        # als die App, und iOS weist die Installation ab - mit einer Meldung
+        # ueber CFBundleShortVersionString, die die App nennt.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.widget
+        INFOPLIST_KEY_CFBundleDisplayName: Cockpit
+        # Die Erweiterung hat kein eigenes Symbol - sie erscheint unter dem
+        # der App.
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        SKIP_INSTALL: YES
+
+  CockpitUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Cockpit
+    settings:
+      base:
+        TEST_TARGET_NAME: Cockpit
+
+# Ohne expliziten Block erzeugt xcodebuild die Schemata selbst - und was ein
+# zweites Test-Bundle dabei erbt, entscheidet dann Xcode. Der Lauf ist gruen
+# und die Zahl der Tests aendert sich nicht.
+schemes:
+  Cockpit:
+    build:
+      targets:
+        Cockpit: all
+        CaloriesWidget: all
+    test:
+      targets:
+        - CockpitTests
+        - CockpitUITests
+    run:
+      config: Debug

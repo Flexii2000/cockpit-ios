@@ -22,8 +22,13 @@ if [ -z "$SIM" ]; then
 fi
 echo "Simulator: $SIM"
 
+# Bewusst NUR die Unit-Tests. Die UI-Tests dauern Minuten und koennen
+# flackern; dieses Tor traegt laut CLAUDE.md jede Behauptung "es baut" und
+# muss deshalb schnell und verlaesslich bleiben. Fuer die UI-Tests gibt es
+# tools/ui-tests.sh.
 xcodebuild test \
     -project Cockpit.xcodeproj \
     -scheme Cockpit \
+    -only-testing:CockpitTests \
     -destination "platform=iOS Simulator,name=$SIM" \
     | (command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat)

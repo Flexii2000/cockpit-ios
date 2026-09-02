@@ -14,6 +14,15 @@ final class FinanceLock {
     private(set) var isUnlocked = false
     private(set) var lastFailure: String?
 
+    /// Laeuft gerade eine Abfrage?
+    ///
+    /// Waehrend `evaluatePolicy` den Dialog zeigt, meldet iOS die App als
+    /// **inaktiv**. Wer darauf hin zusperrt, schliesst mitten in die eigene
+    /// Abfrage hinein - und wenn die Ansicht daraufhin erneut fragt, oeffnet
+    /// sich der Dialog sofort wieder. Der Tab wird dann nie sichtbar, und der
+    /// einzige Ausweg ist der App-Wechsler.
+    private var isAuthenticating = false
+
     /// Ob es ueberhaupt etwas zu sperren gibt.
     ///
     /// Ohne Code und ohne Biometrie kann sich niemand ausweisen - dann waere
@@ -44,6 +53,9 @@ final class FinanceLock {
             isUnlocked = true
             return
         }
+        isAuthenticating = true
+        defer { isAuthenticating = false }
+
         let context = LAContext()
         context.localizedCancelTitle = "Abbrechen"
         do {
@@ -68,7 +80,12 @@ final class FinanceLock {
 
     /// Beim Verlassen der App wieder zu. Sonst schuetzt die Sperre nur den
     /// ersten Blick und danach nie wieder.
+    ///
+    /// Nicht waehrend einer laufenden Abfrage: der Face-ID-Dialog selbst macht
+    /// die App inaktiv, und ein Zusperren an dieser Stelle laesst den Dialog
+    /// endlos wiederkommen.
     func lock() {
+        guard !isAuthenticating else { return }
         isUnlocked = false
     }
 }
