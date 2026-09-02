@@ -1,8 +1,9 @@
 # Cockpit
 
-Eine iOS-App, die Felix' drei Heimserver-Dienste unter einem Icon
-zusammenführt: **Essen** (Kalorienzähler), **Gewicht** (Weight Tracker) und
-**Finanzen** (Finance Cockpit). Bundle-ID `com.fherrmann.cockpit`.
+Eine iOS-App, die Felix' Heimserver-Dienste unter einem Icon zusammenführt:
+**Essen** (Kalorienzähler), **Gewicht** (Weight Tracker), **Finanzen**
+(Finance Cockpit) und **Noten** (Notenübersicht).
+Bundle-ID `com.fherrmann.cockpit`.
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier ist
 ein zweiter Client, kein Ersatz.
@@ -23,6 +24,12 @@ Gewicht und Schritte kommen **automatisch aus Apple Health**.
 
 **Finanzen** — das Cockpit als WebView, hinter **Face ID**. Beim Verlassen der
 App sperrt es wieder zu, und im App-Umschalter liegt eine Decke darüber.
+
+**Noten** — die Abschlussnote nach PO-I23, ECTS-gewichtet mit dreifacher
+Thesis, dazu best/average/worst case, alle Module mit ihren Noten und der
+Fortschritt. Für offene Module lässt sich eine Note **annehmen**, um zu sehen,
+was sie ausmacht. Ebenfalls hinter **Face ID** — und wenn eine neue Note
+eingetragen wird, meldet sich das Handy von selbst: „Neue Note 1,7".
 
 **Widget** — die heute noch übrigen Kalorien auf dem Homescreen, klein
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros).
@@ -50,6 +57,10 @@ tools/run-simulator.sh weight bild.png   # ein Tab, mit Zugang, als Screenshot
 tools/uitest.sh                          # tippt, wischt, scrollt; Bilder in build/screenshots/
 ```
 
+Der Noten-Tab braucht dafür ein Passwort und läuft deshalb gegen einen lokal
+gestarteten Notendienst statt gegen den Server — wie, steht im Kopf von
+`tools/run-simulator.sh`. Ohne diese Angaben überspringen sich seine Tests.
+
 Aufs iPhone gibt es zwei Wege. **Ohne Xcode-Fenster:**
 `tools/install-device.sh --launch` — sucht das gekoppelte Gerät selbst, baut
 signiert und installiert. **Mit Xcode:** Projekt öffnen, oben in der Leiste
@@ -73,13 +84,20 @@ Mac und iPhone im selben WLAN sind und der Bildschirm entsperrt ist.
 
 ## Erste Einrichtung auf einem Gerät
 
-Beim ersten Start fragt die App im Tab **Zugang** zwei Token ab. Sie landen im
+Beim ersten Start fragt die App im Tab **Zugang** nach den Token. Sie landen im
 Keychain und werden von da an als Cookies gesetzt:
 
 | Token | Wofür | Wo er steht (auf dem Server) |
 |---|---|---|
 | `fh_private` | Essen-Tab und das Widget (gilt für alles unter `.fherrmann.com`) | `/etc/nginx/conf.d/private-mode.conf` |
 | `weight_app_token` | Gewicht-Tab, Schritte | `/etc/health-viz.env` |
+| `grades_token` + Benutzer + Passwort | Noten-Tab | `~/services/grades/grades.env` |
+
+Die Noten haben als einziger Dienst **zwei** Schranken: den Geräte-Token und
+eine Anmeldung. Beide gibt man einmal ein. Der Token und der Benutzername
+liegen wie die übrigen im Keychain, das **Passwort hinter Face ID** — die
+Anmeldung selbst passiert danach unsichtbar, sobald die Sitzung nach sieben
+Tagen abläuft.
 
 Der Finanzen-Tab hat kein Token: dort meldet man sich im WebView mit Passwort
 und TOTP-Code an; das Session-Cookie hält sieben Tage und verlängert sich bei
@@ -87,4 +105,6 @@ Nutzung.
 
 **Health** fragt beim ersten Öffnen des Gewicht-Tabs nach Erlaubnis für
 Gewicht und Schritte. **Benachrichtigungen** fragt die erste Schnellerfassung
-ab. Beides lässt sich später in den iOS-Einstellungen ändern.
+ab. Beides lässt sich später in den iOS-Einstellungen ändern. Meldungen über
+neue Noten gibt es erst, **nachdem der Noten-Tab einmal offen war** — die
+Kennung des Geräts meldet die App dort erst an, wenn eine Sitzung steht.

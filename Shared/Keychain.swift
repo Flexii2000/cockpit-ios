@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 /// Duenne Huelle um die Keychain-C-API - genug fuer zwei Zeichenketten.
@@ -24,6 +25,15 @@ enum Keychain {
     /// Erweiterung.
     static let privateTokenKey = "fh_private"
     static let weightTokenKey = "weight_app_token"
+
+    /// Der Geraete-Token der Notenuebersicht. Anderer Dienst, anderes
+    /// Geheimnis - er gilt nur fuer `fherrmann.com/grades`.
+    static let gradesTokenKey = "grades_token"
+    static let gradesUserKey = "grades_user"
+
+    /// Das Passwort der Notenuebersicht. Als einziger Eintrag **hinter Face
+    /// ID** - siehe `saveProtected`.
+    static let gradesPasswordKey = "grades_password"
 
     static func save(_ value: String, for key: String) {
         // Erst loeschen: SecItemAdd scheitert an einem vorhandenen Eintrag,
@@ -60,6 +70,91 @@ enum Keychain {
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
               let data = item as? Data else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+
+    // MARK: - Hinter Face ID
+
+    /// Legt einen Eintrag ab, den nur der Geraetebesitzer wieder herausbekommt.
+    ///
+    /// Fuer das Noten-Passwort. Die uebrigen Geheimnisse sind Geraete-Token:
+    /// die braucht das Widget bei gesperrtem Bildschirm, eine Abfrage waere
+    /// dort gar nicht moeglich. Das Passwort dagegen wird nur gebraucht, wenn
+    /// Felix selbst vor dem Noten-Tab sitzt - und dann steht die Abfrage
+    /// ohnehin an.
+    ///
+    /// `userPresence` heisst Face ID **oder** Gerätecode: dieselbe Wahl wie
+    /// bei der Tab-Sperre. Nur Biometrie waere strenger, sperrte aber mit
+    /// Maske oder nach drei Fehlversuchen aus.
+    ///
+    /// - Returns: `false`, wenn das Geraet gar keinen Code hat - dann gibt es
+    ///   nichts, womit sich jemand ausweisen koennte.
+    @discardableResult
+    static func saveProtected(_ value: String, for key: String) -> Bool {
+        delete(key)
+        guard let data = value.data(using: .utf8),
+              let control = SecAccessControlCreateWithFlags(
+                nil,
+                // Verschwindet, wenn der Code entfernt wird - was richtig ist:
+                // ohne Code gibt es keine Huerde mehr, hinter der es liegen
+                // koennte.
+                kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
+                .userPresence,
+                nil)
+        else { return false }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecAttrAccessGroup as String: accessGroup,
+            kSecValueData as String: data,
+            // Statt kSecAttrAccessible - beides zusammen ist ein Widerspruch
+            // und wird mit errSecParam abgelehnt.
+            kSecAttrAccessControl as String: control,
+        ]
+        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    /// Holt einen geschuetzten Eintrag heraus.
+    ///
+    /// ⚠️ **Nur mit einem bereits ausgewiesenen `LAContext` aufrufen.** Ohne
+    /// ihn zeigt die Keychain die Abfrage selbst - und blockiert dabei den
+    /// aufrufenden Faden, was auf dem Hauptfaden die Oberflaeche einfriert.
+    /// Mit einem Kontext, der seine Pruefung hinter sich hat, faellt die
+    /// Abfrage weg und der Aufruf kehrt sofort zurueck.
+    static func readProtected(_ key: String, context: LAContext?) -> String? {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecAttrAccessGroup as String: accessGroup,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        if let context {
+            query[kSecUseAuthenticationContext as String] = context
+        }
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    /// Ob ueberhaupt etwas hinterlegt ist - ohne den Inhalt zu holen und
+    /// damit ohne Face-ID-Abfrage.
+    static func hasProtected(_ key: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecAttrAccessGroup as String: accessGroup,
+            // Ohne kSecReturnData bleibt der Inhalt verschlossen: die Keychain
+            // beantwortet die Frage nach der blossen Existenz ohne Abfrage.
+            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail,
+        ]
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        // errSecInteractionNotAllowed heisst: es gibt ihn, er wollte nur
+        // fragen. Fuer diese Frage ist das ein Ja.
+        return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
     static func delete(_ key: String) {

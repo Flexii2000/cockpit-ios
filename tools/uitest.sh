@@ -11,15 +11,34 @@
 #
 # Die Zugangstoken kommen wie beim Simulator-Skript aus dem Schluesselbund und
 # werden ueber launchEnvironment durchgereicht - im Repo steht keins.
+#
+# ⚠️ Sie muessen mit TEST_RUNNER_ davor exportiert werden. xcodebuild reicht
+# NUR so praefixierte Variablen an den Testlaeufer weiter und streicht das
+# Praefix dabei weg. Ohne das sieht der Test leere Token - und der Lauf ist
+# trotzdem gruen, solange im Simulator noch welche vom letzten
+# run-simulator.sh im Keychain liegen. Genau so lief der Harness eine Weile:
+# richtig aussehend, aber auf Resten.
+#
+# Fuer den Noten-Test zusaetzlich (siehe Kopf von run-simulator.sh):
+#   COCKPIT_URL_GRADES, COCKPIT_GRADES_TOKEN, COCKPIT_GRADES_USER,
+#   COCKPIT_GRADES_PASSWORD - fehlen sie, ueberspringt er sich.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 FILTER="${1:-}"
 DEVICE="${DEVICE:-iPhone 17}"
 
-COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
-COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
-export COCKPIT_FH_PRIVATE_TOKEN COCKPIT_WEIGHT_TOKEN
+export TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN
+export TEST_RUNNER_COCKPIT_WEIGHT_TOKEN
+TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
+TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
+
+# Der Noten-Zugang kommt aus der Umgebung, nicht aus dem Schluesselbund: das
+# Passwort ist Felix' Anmeldung und kein Dienstgeheimnis.
+export TEST_RUNNER_COCKPIT_URL_GRADES="${COCKPIT_URL_GRADES:-}"
+export TEST_RUNNER_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}"
+export TEST_RUNNER_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}"
+export TEST_RUNNER_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}"
 
 tools/bootstrap.sh > /dev/null
 rm -rf build/uitest.xcresult build/screenshots

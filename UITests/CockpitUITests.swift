@@ -49,6 +49,20 @@ final class CockpitUITests: XCTestCase {
         }
     }
 
+    /// Die Gegenrichtung - zurueck nach oben.
+    ///
+    /// Beginnt bei 0,30 und nicht weiter oben: darueber liegt die
+    /// Navigationsleiste, und eine Ziehgeste, die dort ansetzt, scrollt
+    /// nichts. Der Test sieht dann aus, als waere er unten haengengeblieben -
+    /// war er auch.
+    private func scrollUp(_ app: XCUIApplication, times: Int = 1) {
+        for _ in 0..<times {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.30))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+    }
+
     /// Legt einen Screenshot ab.
     ///
     /// `.keepAlways` ist der Punkt: die Vorgabe ist `.deleteOnSuccess`, und
@@ -63,6 +77,114 @@ final class CockpitUITests: XCTestCase {
     }
 
     // MARK: - Tests
+
+    /// Der Noten-Tab, von oben bis unten.
+    ///
+    /// Braucht einen erreichbaren Notendienst **und** ein Passwort. Beides
+    /// steht nicht im Schluesselbund - das Passwort ist Felix' Anmeldung, kein
+    /// Dienstgeheimnis. Der Test ueberspringt sich deshalb, wenn die
+    /// Umgebungsvariablen fehlen; wie man ihn laufen laesst, steht im Kopf von
+    /// `tools/run-simulator.sh`.
+    func testGradesTabFromTopToBottom() throws {
+        let environment = ProcessInfo.processInfo.environment
+        try XCTSkipIf((environment["COCKPIT_GRADES_TOKEN"] ?? "").isEmpty,
+                      "Kein Noten-Zugang in der Umgebung - siehe tools/run-simulator.sh")
+
+        let app = start(tab: "grades", extra: gradesEnvironment(environment))
+
+        let note = app.staticTexts["finalGrade"]
+        XCTAssertTrue(note.waitForExistence(timeout: 25), "Abschlussnote fehlt")
+        clearAssumptions(app)
+        shoot(app, "noten-oben")
+
+        // Bis zu den offenen Modulen und dem Fussteil. Begrenzt, nicht als
+        // while-Schleife: eine unbegrenzte lief schon einmal in die
+        // 600-Sekunden-Grenze des ganzen Laufs.
+        for _ in 0..<8 {
+            scrollDown(app)
+        }
+        shoot(app, "noten-unten")
+        XCTAssertTrue(app.staticTexts["Wie gerechnet wird"].exists
+                      || app.staticTexts["Fortschritt"].exists,
+                      "Weder Fortschritt noch Rechenregel im Bild")
+    }
+
+    /// Eine angenommene Note aendert die Abschlussnote - und nur sie.
+    ///
+    /// Der eine Weg, der nicht nur anzeigt, sondern etwas schickt: die
+    /// Annahme geht an den Server, der rechnet sie in die Szenarien ein.
+    func testAssumptionChangesTheFinalGrade() throws {
+        let environment = ProcessInfo.processInfo.environment
+        try XCTSkipIf((environment["COCKPIT_GRADES_TOKEN"] ?? "").isEmpty,
+                      "Kein Noten-Zugang in der Umgebung - siehe tools/run-simulator.sh")
+
+        let app = start(tab: "grades", extra: gradesEnvironment(environment))
+        let note = app.staticTexts["finalGrade"]
+        XCTAssertTrue(note.waitForExistence(timeout: 25))
+        clearAssumptions(app)
+        let vorher = note.label
+
+        // Bis zu den offenen Modulen - die stehen unten, sie haben noch keine
+        // Note.
+        for _ in 0..<8 {
+            scrollDown(app)
+        }
+        let auswahl = app.buttons["assumptionPicker"].firstMatch
+        XCTAssertTrue(auswahl.waitForExistence(timeout: 10), "Kein offenes Modul gefunden")
+        auswahl.tap()
+        let vierNull = app.buttons["4,0"].firstMatch
+        XCTAssertTrue(vierNull.waitForExistence(timeout: 5), "Notenauswahl kam nicht")
+        vierNull.tap()
+
+        scrollUp(app, times: 8)
+        // Erst aufnehmen, dann pruefen: schlaegt die Pruefung fehl, endet der
+        // Test sofort - und ohne Bild weiss man nur, DASS etwas nicht stimmt.
+        shoot(app, "noten-mit-annahme")
+        XCTAssertTrue(app.buttons["Verwerfen"].waitForExistence(timeout: 10),
+                      "Ohne Verwerfen-Knopf ist die Annahme nicht angekommen")
+        // Eine 4,0 kann die Abschlussnote nur verschlechtern - bliebe sie
+        // gleich, waere die Annahme nicht eingerechnet worden.
+        XCTAssertNotEqual(note.label, vorher, "Abschlussnote unveraendert")
+
+        app.buttons["Verwerfen"].tap()
+        XCTAssertTrue(waitFor(note, toReadAgain: vorher),
+                      "Nach dem Verwerfen muss wieder \(vorher) dastehen")
+    }
+
+    /// Wartet, bis eine Beschriftung wieder einen bestimmten Wert hat.
+    private func waitFor(_ element: XCUIElement, toReadAgain text: String) -> Bool {
+        let predicate = NSPredicate(format: "label == %@", text)
+        let erwartung = expectation(for: predicate, evaluatedWith: element)
+        return XCTWaiter.wait(for: [erwartung], timeout: 10) == .completed
+    }
+
+    /// Raeumt Annahmen aus einem frueheren Lauf weg.
+    ///
+    /// Sie ueberleben den Neustart der App (sie liegen in den UserDefaults) -
+    /// und ein Test, der gegen eine Abschlussnote misst, in der schon eine
+    /// Annahme steckt, misst gegen den falschen Wert. Genau daran ist der
+    /// Test beim zweiten Lauf gescheitert, nicht an der App.
+    private func clearAssumptions(_ app: XCUIApplication) {
+        let verwerfen = app.buttons["Verwerfen"]
+        guard verwerfen.exists else { return }
+        verwerfen.tap()
+        let weg = expectation(for: NSPredicate(format: "exists == false"),
+                              evaluatedWith: verwerfen)
+        _ = XCTWaiter.wait(for: [weg], timeout: 10)
+    }
+
+    /// Der Noten-Zugang aus der Umgebung, fuer beide Noten-Tests.
+    private func gradesEnvironment(_ environment: [String: String]) -> [String: String] {
+        [
+            "COCKPIT_URL_GRADES": environment["COCKPIT_URL_GRADES"] ?? "",
+            "COCKPIT_GRADES_TOKEN": environment["COCKPIT_GRADES_TOKEN"] ?? "",
+            "COCKPIT_GRADES_USER": environment["COCKPIT_GRADES_USER"] ?? "",
+            "COCKPIT_GRADES_PASSWORD": environment["COCKPIT_GRADES_PASSWORD"] ?? "",
+            // Im Simulator ist kein Gesicht hinterlegt; ohne das bliebe der
+            // Sperrbildschirm stehen und der Test saehe nie eine Note.
+            "COCKPIT_NO_LOCK": "1",
+        ]
+    }
 
     func testWeightTabShowsStepsCardBelowTheChart() {
         let app = start(tab: "weight")

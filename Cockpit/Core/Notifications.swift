@@ -54,6 +54,25 @@ enum Notifications {
         await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }
     }
 
+    // MARK: - Die Kennung dieses Geraets
+
+    /// Wo die zuletzt von Apple vergebene Push-Kennung liegt.
+    ///
+    /// Sie wird gemerkt, weil **zwei** Dienste sie brauchen und zu
+    /// verschiedenen Zeitpunkten: der Kalorienzaehler nimmt sie beim Start
+    /// entgegen, die Notenuebersicht erst, wenn eine Sitzung steht - ihr
+    /// Endpunkt liegt hinter der Anmeldung. Kein Keychain: das ist kein
+    /// Geheimnis, sondern eine Adresse, die Apple ohnehin kennt.
+    private static let deviceTokenKey = "push.deviceToken"
+
+    static var deviceToken: String? {
+        UserDefaults.standard.string(forKey: deviceTokenKey)
+    }
+
+    static func store(deviceToken: String) {
+        UserDefaults.standard.set(deviceToken, forKey: deviceTokenKey)
+    }
+
     static func post(title: String, body: String) async {
         let content = UNMutableNotificationContent()
         content.title = title

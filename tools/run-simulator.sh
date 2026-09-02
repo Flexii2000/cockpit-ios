@@ -2,7 +2,7 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh [food|weight|finance|setup|widget] [screenshot.png]
+#   tools/run-simulator.sh [food|weight|finance|grades|setup|widget] [screenshot.png]
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -13,6 +13,18 @@
 #
 # Uebergeben werden sie als Umgebungsvariablen; die App liest sie nur im
 # Debug-Build (siehe Access.seedFromEnvironment).
+#
+# Die NOTEN brauchen ausserdem ein Passwort, und das gehoert nicht in den
+# Schluesselbund dieses Rechners - es ist Felix' Anmeldung, nicht die eines
+# Dienstes. Fuer einen Blick auf den Tab deshalb den Dienst lokal starten und
+# umleiten (ATS laesst Schleifenadressen durch):
+#
+#   COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades \
+#   COCKPIT_GRADES_TOKEN=... COCKPIT_GRADES_USER=felix COCKPIT_GRADES_PASSWORD=... \
+#   COCKPIT_NO_LOCK=1 tools/run-simulator.sh grades bild.png
+#
+# COCKPIT_NO_LOCK=1 ist dabei noetig: im Simulator ist kein Gesicht hinterlegt,
+# sonst bleibt der Sperrbildschirm stehen.
 #
 # COCKPIT_NO_HEALTH=1 laesst die Health-Anbindung aus. Ohne das verdeckt der
 # Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken laesst
@@ -61,6 +73,12 @@ SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
 SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \
 SIMCTL_CHILD_COCKPIT_FORCE_LOCK="${COCKPIT_FORCE_LOCK:-}" \
+SIMCTL_CHILD_COCKPIT_NO_LOCK="${COCKPIT_NO_LOCK:-}" \
+SIMCTL_CHILD_COCKPIT_NO_PUSH="${COCKPIT_NO_PUSH:-}" \
+SIMCTL_CHILD_COCKPIT_URL_GRADES="${COCKPIT_URL_GRADES:-}" \
+SIMCTL_CHILD_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}" \
+SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
+SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \
     xcrun simctl launch booted "$BUNDLE" > /dev/null
 
 if [ -n "$SHOT" ]; then

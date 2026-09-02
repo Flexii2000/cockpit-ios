@@ -26,6 +26,7 @@ Phase 0   [Web]  [Web]  [Web]     <- benutzbar          erledigt
 M1        [Web]  [nativ][Web]     <- benutzbar          erledigt
 M2        [nativ][nativ][Web]     <- Zielbild Stufe 2   erledigt
 M3        + HealthKit, Widget, Shortcuts, Face-ID-Sperre
+danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
 ```
 
 ### Aufbau eines nativen Tabs
@@ -47,12 +48,13 @@ Dreiteilig, und in M2 genauso wie in M1:
 ```
 Cockpit/            das App-Target
   App/              Einstieg, Tab-Gerüst, AppDelegate
-  Core/             Zugang (Cookies), Benachrichtigungen, Palette, Bausteine
+  Core/             Zugang (Cookies), Sperre, Benachrichtigungen, Bausteine
   Web/              WKWebView-Einbettung für den Finanzen-Tab
   Weight/           Diagramm, Kacheln, Eingabe, Schritte-Leiste
   Food/             Tagesansicht, Tachos, Gerichte, Schnellerfassung
   Health/           Abgleich mit Apple Health (nur lesend)
-  Finance/          WebView plus Face-ID-Sperre
+  Finance/          WebView hinter der Sperre
+  Grades/           Noten: Modultabelle, Szenarien, Annahmen
 Shared/             was App UND Widget übersetzen
 CaloriesWidget/     die Home-Screen-Kachel (eigene Erweiterung)
 Tests/              Unit-Tests
@@ -70,7 +72,7 @@ Rest (mit der `WeightSeries`-Erweiterung) im App-Target.
 
 ## Zugang im Client
 
-Beide Token liegen im **Keychain**, eingegeben einmalig über den
+Die Token liegen im **Keychain**, eingegeben einmalig über den
 Einrichtungs-Bildschirm. Beim Start werden daraus Cookies gebaut und in
 **zwei** Speicher gelegt:
 
@@ -81,6 +83,18 @@ Das erspart das `\/setup?token=…`-Ritual pro Gerät und überlebt einen
 App-Neustart. Der Finanzen-Tab bleibt außen vor: dort meldet man sich im
 WebView mit Passwort + Einmalcode an, das Session-Cookie hält 7 Tage und
 verlängert sich bei Nutzung.
+
+⚠️ **Erst alle Cookies in den gemeinsamen Speicher, dann in den von WebKit.**
+Wer beides verschränkt (`setCookie` … `await` … `setCookie`), lässt zwischen
+dem ersten und dem letzten Cookie ein Fenster offen, in dem eine schon
+laufende Anfrage ohne ihres losgeht. Genau daran ist der Noten-Tab beim ersten
+Versuch gescheitert: er fragt beim Erscheinen, und das war früher als sein
+Cookie.
+
+**Die Noten brauchen zwei Schranken.** Hinter dem Geräte-Token steht eine
+Anmeldung. Die App hält Benutzer und Passwort im Keychain und meldet sich
+selbst an, wenn die Sitzung abgelaufen ist — sichtbar wird das nie, ein 401
+ist für sie kein Fehler, sondern ein Arbeitsschritt.
 
 ## Was ausserhalb der Oberfläche läuft
 
@@ -100,8 +114,32 @@ Cookies der App sieht sie nicht, sie hängt ihren eigenen an die Anfrage. Die
 App stößt nach jeder Änderung nur ein Neuzeichnen an; Daten reicht sie keine
 weiter.
 
-**Push.** Die Schnellerfassung läuft auf dem Server; der schickt eine
-Benachrichtigung, wenn sie fertig ist. Die App meldet ihre Kennung bei jedem
+**Push.** Zwei Dienste melden sich von selbst: der Kalorienzähler, wenn eine
+Schnellerfassung fertig ist, und die Notenübersicht, wenn eine neue Note
+eingetragen wurde. Beide schicken über **denselben APNs-Schlüssel an dieselbe
+Gerätekennung** — es ist eine App. Getrennt sind nur die Absender: jeder
+Dienst hält seine eigene Liste angemeldeter Geräte und verschickt selbst.
+
+Die Nutzlast trägt ein `kind`; daran entscheidet der `AppDelegate`, welcher Tab
+sich öffnet, wenn jemand die Meldung antippt. Ohne das landete man dort, wo man
+zuletzt war.
+
+⚠️ **Die Noten melden ihre Kennung erst an, wenn eine Sitzung steht** — ihr
+Endpunkt liegt hinter der Anmeldung. Der Kalorienzähler bekommt sie beim Start,
+die Noten beim ersten Öffnen des Tabs. Wer den Tab nie aufmacht, bekommt keine
+Meldung über Noten; das ist die Folge davon, dass diese Anmeldung etwas wert
+sein soll.
+
+**Zwei Sperren, nicht eine.** `BiometricLock` steht vor Finanzen **und** vor
+den Noten, aber als zwei Instanzen: wer die Kontostände aufgemacht hat, hat
+damit nicht auch die Noten offen. Beide sperren zu, sobald die App den
+Vordergrund verlässt.
+
+**Das Passwort der Noten liegt hinter Face ID.** Als einziges Geheimnis der
+App: die übrigen sind Geräte-Token, die das Widget bei gesperrtem Bildschirm
+lesen können muss. Beim Entsperren des Tabs bleibt der geprüfte `LAContext`
+stehen, und die Keychain gibt das Passwort damit **ohne zweite Abfrage**
+heraus. Sperrt der Tab wieder zu, wird er ungültig gemacht. Die App meldet ihre Kennung bei jedem
 Start neu an (`/api/food/devices`), weil iOS sie gelegentlich austauscht.
 Unabhängig davon fragt die App weiter selbst nach, solange sie läuft: die
 Benachrichtigung ist ein Zustellweg, keine Voraussetzung.

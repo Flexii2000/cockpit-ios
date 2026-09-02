@@ -1,20 +1,26 @@
 # Arbeitsregeln für `cockpit-ios`
 
-Eine iOS-App, die Felix' drei Heimserver-Dienste unter einem Icon
-zusammenführt: **Kalorienzähler** (`food.fherrmann.com`), **Weight Tracker**
-(`weight.fherrmann.com`) und **Finance Cockpit** (`finanzen.fherrmann.com`).
+Eine iOS-App, die Felix' Heimserver-Dienste unter einem Icon zusammenführt:
+**Kalorienzähler** (`food.fherrmann.com`), **Weight Tracker**
+(`weight.fherrmann.com`), **Finance Cockpit** (`finanzen.fherrmann.com`) und
+die **Notenübersicht** (`fherrmann.com/grades`).
 
-Die drei Backends bleiben, wie sie sind. Dieses Repo enthält **nur den
-Client**. Änderungen an den Diensten gehören in deren eigene Repos
-(`../food`, `../weight-app`, `../finance-cockpit`) — von hier aus wird an
-ihnen nichts geändert, auch nicht "mal eben".
+Dieses Repo enthält **nur den Client**. Änderungen an den Diensten gehören in
+deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
+`../grades`) — von hier aus wird an ihnen nichts geändert, auch nicht "mal
+eben".
+
+⚠️ Eine Ausnahme mit Ansage: die Noten haben für diese App eine
+**JSON-Schnittstelle bekommen** (`../grades/app/api/`). Gerechnet wird
+weiterhin nur dort — die Regel aus PO-I23 § 8 Abs. 2 in Swift nachzubauen
+wäre eine zweite Stelle, an der eine Prüfungsordnung stimmen muss.
 
 ## Vor dem ersten Handgriff
 
 1. `docs/STAND.md` lesen. Da steht, was fertig ist und was als Nächstes
    dran ist. Das ist der Einstieg, nicht dieses Dokument.
-2. `docs/BACKENDS.md` lesen, wenn du an einem der beiden nativen Tabs
-   arbeitest. Da stehen Endpunkte, Datentypen und die Fallstricke.
+2. `docs/BACKENDS.md` lesen, wenn du an einem der nativen Tabs arbeitest.
+   Da stehen Endpunkte, Datentypen und die Fallstricke.
 3. `../SERVER-CONTEXT.md` lesen, wenn es um Erreichbarkeit, Domains oder
    Zugang geht — das ist die Referenz für den Server, nicht dieses Repo.
 
@@ -32,11 +38,11 @@ keine — sie wird geglaubt.
 | `docs/ARCHITEKTUR.md` | Bei strukturellen Änderungen: neuer Ordner, neue Schicht, Tab wechselt von WebView auf nativ |
 | `README.md` | Nur wenn sich Einstieg oder Schnellstart ändert |
 
-⚠️ **Quelle der Wahrheit für `docs/BACKENDS.md` ist der Java-Code** in
-`../food/src/main/java/…` und `../weight-app/src/main/java/…`, nicht diese
-Datei. Bei Widerspruch gilt der Code — Doku korrigieren, nicht raten. Und
-nicht aus dem Gedächtnis dokumentieren: die Controller und Records wirklich
-aufmachen.
+⚠️ **Quelle der Wahrheit für `docs/BACKENDS.md` ist der Code der Dienste** —
+Java in `../food/src/main/java/…` und `../weight-app/src/main/java/…`, Python
+in `../grades/app/`. Bei Widerspruch gilt der Code — Doku korrigieren, nicht
+raten. Und nicht aus dem Gedächtnis dokumentieren: die Controller, Records und
+Routen wirklich aufmachen.
 
 ## Bauen und prüfen
 
@@ -50,7 +56,12 @@ tools/install-device.sh --launch         # aufs iPhone bauen und starten
 `run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
 auf Wunsch einen Screenshot ab — der einzige Weg, Layoutfehler zu sehen statt
 sie sich vorzustellen. Erstes Argument ist der Tab (`food`, `weight`,
-`finance`, `setup`), zweites der Pfad fürs Bild.
+`finance`, `grades`, `setup`), zweites der Pfad fürs Bild.
+
+Der **Noten-Tab** braucht dafür ein Passwort. Das gehört nicht in den
+Schlüsselbund dieses Rechners — es ist Felix' Anmeldung, kein Dienstgeheimnis.
+Für einen Blick darauf den Dienst lokal starten und die App umleiten (siehe
+Kopf von `run-simulator.sh`, Schalter `COCKPIT_URL_GRADES`).
 
 Die Token dafür stehen im **macOS-Schlüsselbund** unter dem Konto
 `cockpit-ios` (Dienste `fh_private` und `weight_app_token`) — nicht im Repo,
@@ -77,6 +88,14 @@ offensichtlich sind und je einen halben Anlauf gekostet haben:
   Ziehgeste liegt. Deshalb `scrollDown()` mit Koordinaten.
 * **Ein Accessibility-Container ist nie `isHittable`.** Auf ein Kind prüfen,
   nicht auf die Karte selbst.
+* **Die Token muessen mit `TEST_RUNNER_` davor exportiert werden.**
+  `xcodebuild` reicht nur solche Variablen an den Testlaeufer weiter und
+  streicht das Praefix dabei. Ohne das sieht der Test leere Token - und der
+  Lauf ist trotzdem gruen, solange im Simulator noch welche vom letzten
+  `run-simulator.sh` im Keychain liegen.
+* **Was die App sich merkt, ueberlebt den Testlauf.** Die angenommenen Noten
+  liegen in den UserDefaults; ein Test, der gegen eine Abschlussnote misst,
+  muss sie erst wegraeumen (`clearAssumptions`).
 
 Was der Harness **nicht** kann: Systemdialoge (Health, Face ID) bedienen —
 dafür sind die Debug-Schalter da.
@@ -87,13 +106,15 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `setup`) |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
 | `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |
 | `COCKPIT_FORCE_LOCK=1` | Sperrbildschirm erzwingen (im Simulator ist kein Gesicht hinterlegt) |
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
+| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`) - fuer den Noten-Tab gegen einen lokal gestarteten Dienst |
+| `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
 
 ⚠️ **`#if DEBUG` ist keine Schranke gegen sichtbare Oberfläche.** Auf dem

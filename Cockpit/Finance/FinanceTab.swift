@@ -9,7 +9,7 @@ import SwiftUI
 /// und verlaengert sich bei Nutzung.
 struct FinanceTab: View {
 
-    let lock: FinanceLock
+    let lock: BiometricLock
 
     var body: some View {
         ZStack {
@@ -17,33 +17,14 @@ struct FinanceTab: View {
                 WebView(url: Backend.finance.url)
                     .ignoresSafeArea(edges: .bottom)
             } else {
-                lockScreen
+                LockScreen(title: "Finanzen sind gesperrt",
+                           failure: lock.lastFailure) {
+                    await lock.unlock()
+                }
             }
         }
         // Beim Wechsel auf den Tab gleich fragen - ein zusaetzlicher Tipp auf
         // "Entsperren" waere ein Klick, der nichts entscheidet.
         .task { await lock.unlock() }
-    }
-
-    private var lockScreen: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(.secondary)
-            Text("Finanzen sind gesperrt")
-                .font(.headline)
-            if let failure = lock.lastFailure {
-                Text(failure)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-            Button("Entsperren") {
-                Task { await lock.unlock() }
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

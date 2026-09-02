@@ -3,6 +3,54 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-02 — Die Noten melden sich selbst, nicht über den Kalorienzähler
+**Warum:** Felix' Entscheidung. Der naheliegende Weg wäre gewesen, das
+food-Backend zur Push-Zentrale zu machen — dort liegen Schlüssel und
+Gerätekennungen schon. Dagegen sprach die Kopplung: der Notendienst wäre für
+seine eigene Meldung auf einen fremden Dienst angewiesen, und ein Ausfall des
+Kalorienzählers nähme ihm die Stimme.
+**Preis, bewusst bezahlt:** eine zweite APNs-Umsetzung (Python statt Java),
+eine zweite Geräteliste und eine **Kopie** des `.p8` als `/etc/apns-grades.p8`.
+Die Kopie statt einer Gruppenmitgliedschaft: die Dienste laufen unter
+verschiedenen Benutzern, und `flexii` in die Gruppe `food` zu stecken gäbe
+Zugriff auf alles, was dieser Gruppe gehört.
+**Nicht verhandelbar war der Wächter selbst:** der Notenchecker bemerkt neue
+Noten längst, liegt aber unter `/opt/notenchecker` und ist tabu. Wir lesen
+seine Datei und vergleichen selbst.
+
+## 2026-09-02 — Face ID ersetzt das Passwort, statt es zu ersparen
+**Warum:** die Weboberfläche hat zwei Schranken, Geräte-Token und Anmeldung.
+Die App spielt beide nach — der Endpunkt hätte sich auch mit dem Token allein
+öffnen lassen, aber dann läse jeder die Noten, der den Token hat.
+Benutzername und Passwort gibt Felix einmal ein; das Passwort liegt danach
+hinter `.userPresence` im Keychain.
+**Der Kniff:** der `LAContext`, mit dem der Tab entsperrt wurde, ist bereits
+ausgewiesen. Die Keychain gibt das Passwort damit **ohne zweite Abfrage**
+heraus - eine Sperre, zwei Zwecke.
+**Verworfen:** das Passwort ungeschützt neben die Token legen. Die sind
+Geräte-Token, die das Widget bei gesperrtem Bildschirm braucht; ein Passwort
+braucht das nie.
+
+## 2026-09-02 — Annahmen liegen in der App, nicht in der Sitzung
+**Warum:** im Web merkt sich der Server die angenommenen Noten in der Sitzung.
+Für die App wäre das derselbe Zustand für zwei Oberflächen: ein Tippen auf dem
+Handy schriebe den Browser-Tab um, der nebenbei offen ist. Die App schickt sie
+deshalb bei jeder Anfrage mit und merkt sie sich selbst.
+**Gerechnet wird trotzdem dort:** die Regel aus PO-I23 § 8 Abs. 2 steht in
+`berechnung.py` und nirgends sonst. Ein Nachbau in Swift wäre eine zweite
+Stelle, an der eine Prüfungsordnung richtig sein muss.
+
+## 2026-09-02 — Der UI-Harness bekommt seine Token über TEST_RUNNER_
+**Warum:** `xcodebuild` reicht **nur** so präfixierte Variablen an den
+Testläufer weiter und streicht das Präfix dabei. Vorher standen sie ohne
+Präfix im Skript — der Testläufer sah leere Token, und die Läufe waren
+trotzdem grün, weil im Simulator noch Token vom letzten `run-simulator.sh` im
+Keychain lagen. Ein Harness auf Resten sieht aus wie einer, der prüft.
+**Nebenbei entstanden:** `COCKPIT_URL_<DIENST>` biegt im Debug-Build die
+Adresse eines Dienstes um. Damit läuft der Noten-Tab gegen einen lokal
+gestarteten Dienst - der einzige Weg, ihn mit echten Daten zu sehen, ohne ein
+Passwort in den Schlüsselbund dieses Rechners zu legen.
+
 ## 2026-09-02 — Das Widget holt seine Daten selbst
 **Warum:** eine Widget-Erweiterung ist ein eigener Prozess mit eigenem
 Container; die Cookies der App sieht sie nicht. Sie liest das Token aus der

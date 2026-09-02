@@ -1,8 +1,9 @@
-# Die drei Backends
+# Die Backends
 
-Referenz für den Client. **Quelle ist der Java-Code** in `../food` und
-`../weight-app` — steht hier etwas anderes als dort, gilt dort.
-Stand: 2026-09-01, gelesen aus den Controllern und Records.
+Referenz für den Client. **Quelle ist der Code der Dienste** — Java in
+`../food` und `../weight-app`, Python in `../grades`. Steht hier etwas anderes
+als dort, gilt dort.
+Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 
 ## Überblick
 
@@ -11,8 +12,9 @@ Stand: 2026-09-01, gelesen aus den Controllern und Records.
 | Kalorienzähler | `https://food.fherrmann.com` | Cookie `fh_private` | **nativ** (Phase 2) |
 | Weight Tracker | `https://weight.fherrmann.com` | Cookie `weight_app_token` | **nativ** (Phase 1) |
 | Finance Cockpit | `https://finanzen.fherrmann.com` | Login: Passwort + TOTP → Session-Cookie | **WebView, dauerhaft** |
+| Noten | `https://fherrmann.com/grades` | Cookie `grades_token` **und** Anmeldung → Session-Cookie | **nativ** |
 
-Alle drei sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
+Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
 also keine ATS-Ausnahme nötig). Kein VPN, kein Heimnetz-Zwang.
 
 ## Auth-Modell
@@ -26,6 +28,14 @@ Zwei verschiedene Token, beide langlebig, beide als Cookie:
   (Keychain → Cookie-Store), sonst müsste das Token durch eine Weboberfläche.
 - **`weight_app_token`** — eigenes Token nur für den Weight Tracker,
   Gültigkeit 5 Jahre, im Browser über `/setup?token=…`.
+- **`grades_token`** — eigenes Token nur für `/grades`, Gültigkeit 5 Jahre,
+  im Browser über `/grades/setup?token=…`. Es gilt **nur für diesen Pfad**;
+  die App setzt es entsprechend eng (`Path=/grades`).
+
+Die Noten haben als einziger Dienst **zwei** Schranken hintereinander: hinter
+dem Geräte-Token steht noch eine Anmeldung mit Benutzer und Passwort. Die App
+spielt sie nach, statt sie zu umgehen — Benutzername und Passwort liegen im
+Keychain, das Passwort hinter Face ID (siehe `ARCHITEKTUR.md`).
 
 ⚠️ **Beide Domains verhalten sich ohne Cookie unhöflich:** nginx schickt bei
 `food` einen **302 auf `https://fherrmann.com/`**, die Apps selbst antworten
@@ -207,6 +217,57 @@ prüft das vorher, damit man den Fehler nicht erst nach dem Sichern sieht.
 ⚠️ **Fehlerantworten tragen ihre Begründung im Rumpf.** `APIClient` reicht sie
 durch (`APIError.http(Int, String?)`), weil „HTTP 400" die schlechtere von
 beiden Meldungen ist.
+
+## Noten — `/grades/api`
+
+Quelle: `../grades/app/api/routen.py` und `../grades/app/lib/berechnung.py`.
+
+| Methode | Pfad | Was |
+|---|---|---|
+| POST | `/grades/api/login` | `{username, password}` → `{ok: true}`, Sitzung 7 Tage |
+| GET | `/grades/api/overview` | der ganze Stand (siehe unten) |
+| POST | `/grades/api/overview` | derselbe Stand, gerechnet mit `{annahmen: {"Modulname": 2.3}}` |
+| POST | `/grades/api/devices` | `{token}` — Push-Kennung anmelden |
+
+⚠️ **Ohne Geräte-Token antwortet der Dienst mit 404**, nicht mit 403. Ohne
+Anmeldung mit **401**. Beide Fälle sehen im Client verschieden aus und haben
+verschiedene Auswege: 404 heißt „Token prüfen", 401 heißt „die App meldet
+sich einfach neu an" (`GradesAccessProblem`).
+
+⚠️ **Die Feldnamen der Antwort sind deutsch** — sie kommen aus der Rechnung
+des Dienstes (`module`, `szenarien`, `ects_erreicht`, `moegliche_noten`,
+`einfacher_schnitt`, `regel`). Übersetzt wird in `GradesModels.swift` über
+`CodingKeys`. Das ist Absicht: eine zweite Namensgebung auf dem Server wäre
+eine Zuordnung, die bei jeder neuen Zahl mitgepflegt werden müsste.
+
+```
+Modul       name, ects, bereich, semester, pruefung, benotet,
+            note (null = offen), quelle ("name" | "zuordnung"),
+            notenchecker_name (nur bei "zuordnung"), annahme
+Szenarien   aktuell, best_case, average_case, worst_case, angenommen
+Stand       stand (fertig formatiert), stand_iso (mit Zeitzone)
+```
+
+⚠️ **`benotet: false` gibt es** (Seminare, Transfermodule). Diese Module
+zählen in keiner Rechnung mit und gehören in keine Tabelle — die App filtert
+sie heraus, so wie es die Weboberfläche tut.
+
+⚠️ **Annahmen sind zustandslos.** Die Weboberfläche merkt sie sich in ihrer
+Sitzung, die App schickt sie bei jeder Anfrage mit. Beides beeinflusst sich
+nicht: Gedankenspiele auf dem Handy schreiben keinen offenen Browser-Tab um.
+Der Server nimmt nur Werte aus `moegliche_noten` an und wirft alles andere
+still weg.
+
+⚠️ **Gerechnet wird nur dort.** Die Regel aus PO-I23 § 8 Abs. 2 (Modulnoten
+ECTS-gewichtet, Bachelorthesis dreifach) steht in `berechnung.py` und darf
+**nicht** in Swift nachgebaut werden. Eine neue Zahl gehört in
+`auswerten()` — dann haben beide Oberflächen sie.
+
+**Push:** `../grades/app/bin/notenwache.py` vergleicht alle fünf Minuten den
+Notenchecker-Snapshot mit dem zuletzt gesehenen Stand und schickt neue Noten
+selbst über APNs (eigener Schlüssel, nicht über das food-Backend). Die
+Nutzlast trägt `"kind": "grade"` — daran erkennt der `AppDelegate`, welcher
+Tab sich öffnen soll.
 
 ## Finance Cockpit — kein API
 

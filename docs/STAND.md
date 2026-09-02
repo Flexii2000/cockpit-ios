@@ -1,8 +1,16 @@
 # Stand
 
-> **Nächster Schritt:** vom ursprünglichen Plan ist noch **ein** Punkt offen —
-> der **Siri-Kurzbefehl** für die Schnellerfassung. Alles andere aus M1 bis M3
-> läuft auf dem Gerät.
+> **Nächster Schritt:** der **Noten-Tab** ist gebaut und lokal geprüft, aber
+> noch **nicht ausgerollt**. Dafür in dieser Reihenfolge:
+>
+> 1. `git pull` im Notendienst auf dem Server, Dienst neu starten
+> 2. `ssh -t HeimServerRemote '~/services/grades/deploy/setup-notenwache.sh'`
+>    (Abhängigkeiten, APNs-Schlüssel, Timer — idempotent)
+> 3. `tools/install-device.sh --launch`, dann im Zugang-Tab den Geräte-Token,
+>    den Benutzernamen und das Passwort eintragen
+>
+> Vom ursprünglichen Plan ist außerdem noch **ein** Punkt offen: der
+> **Siri-Kurzbefehl** für die Schnellerfassung.
 >
 > Daneben zwei Dinge, die keine Features sind:
 >
@@ -19,6 +27,42 @@
 > das Profil gilt bis **01.09.2027**. Nächste Erneuerung: einmal
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
+
+## Noten — vierter Tab · **gebaut, nicht ausgerollt** (2026-09-02)
+
+Die Funktionalität von `fherrmann.com/grades`, nativ: Abschlussnote nach
+PO-I23 (ECTS-gewichtet, Thesis dreifach), best/average/worst case, alle Module
+mit ihren Noten, Fortschritt, die drei geratenen Zuordnungen mit ihrem
+Notenchecker-Namen, und für offene Module eine **angenommene** Note. Hinter
+Face ID wie die Finanzen — zwei Sperren, damit der eine Tab nicht den anderen
+mit aufmacht.
+
+**Gerechnet wird weiterhin nur auf dem Server.** Der Dienst hat dafür eine
+JSON-Schnittstelle bekommen (`/grades/api/…`, siehe `docs/BACKENDS.md`); die
+Zugangsprüfungen werden in den Blueprint hineingereicht, statt dort nachgebaut
+zu werden.
+
+**Push bei neuer Note:** ein Wächter im Notendienst vergleicht alle fünf
+Minuten den Notenchecker-Snapshot mit dem zuletzt gesehenen Stand und schickt
+„Neue Note 1,7" mit Fach und neuer Abschlussnote. Eigener APNs-Versand, nicht
+über das food-Backend — Felix' Entscheidung, Begründung in
+`docs/ENTSCHEIDUNGEN.md`.
+
+Anders als im Web steht die Abschlussnote **oben**: im Browser ist sie die
+Summenzeile unter der Tabelle, auf dem Handy wäre sie damit einen Bildschirm
+tief.
+
+### Was der Bau nebenbei aufgedeckt hat
+
+* **Der UI-Harness lief auf Resten.** Er reichte seine Token ohne
+  `TEST_RUNNER_`-Präfix weiter; `xcodebuild` streicht alles andere. Der
+  Testläufer sah leere Token, und grün war es nur, weil im Simulator noch
+  welche vom letzten `run-simulator.sh` im Keychain lagen.
+* **Ein Zeitfenster ohne Cookie.** `applyCookies()` verschränkte das Setzen im
+  gemeinsamen Speicher mit dem `await` für WebKit. Der Noten-Tab fragt beim
+  Erscheinen — und war schneller als sein eigenes Cookie.
+* **`scrollUp` in der Navigationsleiste zieht nichts.** Der Test sah aus, als
+  wäre er unten hängengeblieben; war er auch.
 
 ## Phase 0 — Gerüst · **fertig** (2026-09-01)
 
