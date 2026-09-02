@@ -8,6 +8,7 @@ struct WeightTab: View {
     @State private var store = WeightStore()
     @State private var showingEntry = false
     @State private var showingTarget = false
+    @State private var showingStepsGoal = false
 
     private let columns = [GridItem(.adaptive(minimum: 150), spacing: 12)]
 
@@ -22,6 +23,8 @@ struct WeightTab: View {
                     if let summary = store.summary {
                         tiles(summary)
                         chart
+                        StepsCard(steps: store.stepsToday,
+                                  goal: store.stepsGoal) { showingStepsGoal = true }
                     } else if store.isLoading {
                         LoadingPlaceholder()
                     }
@@ -65,6 +68,7 @@ struct WeightTab: View {
             }
             .refreshable {
                 await HealthSync.shared.syncNow()
+                await HealthSync.shared.syncSteps()
                 await store.load()
             }
             .task {
@@ -73,10 +77,12 @@ struct WeightTab: View {
                 // zeigt seine Nachfrage ohnehin nur einmal.
                 await HealthSync.shared.requestPermission()
                 await HealthSync.shared.syncNow()
+                await HealthSync.shared.syncSteps()
                 await store.load()
             }
             .sheet(isPresented: $showingEntry) { WeightEntrySheet(store: store) }
             .sheet(isPresented: $showingTarget) { WeightTargetSheet(store: store) }
+            .sheet(isPresented: $showingStepsGoal) { StepsGoalSheet(store: store) }
         }
     }
 

@@ -22,6 +22,11 @@ final class WeightStore {
     private(set) var kcalByDay: [DayValue] = []
     private(set) var kcalTarget: Double?
 
+    private(set) var stepsToday: Int?
+    /// Bis das Backend geantwortet hat. Ohne Vorgabe zeigte die Karte im
+    /// ersten Bild „von 0".
+    private(set) var stepsGoal = 10_000
+
     private(set) var isLoading = false
     private(set) var error: String?
     /// Zugangsproblem statt beliebigem Fehler: dann hilft ein Hinweis auf den
@@ -70,6 +75,33 @@ final class WeightStore {
             report(error)
         }
         await loadKcal()
+        await loadSteps()
+    }
+
+    /// Wie die kcal: faellt das hier aus, fehlt die Karte - den Gewicht-Tab
+    /// deshalb als kaputt zu melden waere falsch.
+    private func loadSteps() async {
+        if let goal = try? await api.stepsGoal() { stepsGoal = goal.stepsPerDay }
+        // Erst Health: das ist die laufende Zahl. Der Bestand auf dem Server
+        // ist hoechstens so aktuell wie der letzte Abgleich - er ist der
+        // Rueckfall, nicht die Quelle.
+        if let live = await HealthSync.shared.todaySteps() {
+            stepsToday = live
+        } else {
+            let heute = CalendarDate.today()
+            stepsToday = (try? await api.steps(from: heute, to: heute))?.first?.steps
+        }
+    }
+
+    func updateStepsGoal(_ stepsPerDay: Int) async -> Bool {
+        do {
+            stepsGoal = try await api.updateStepsGoal(stepsPerDay).stepsPerDay
+            clearError()
+            return true
+        } catch {
+            report(error)
+            return false
+        }
     }
 
     /// Die kcal sind Beiwerk: ist der Kalorienzaehler nicht erreichbar, fehlt

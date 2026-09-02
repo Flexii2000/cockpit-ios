@@ -35,6 +35,33 @@ struct WeightAPI: Sendable {
                                                      keepExisting: keepExisting))
     }
 
+    // MARK: - Schritte
+
+    func steps(from: CalendarDate, to: CalendarDate) async throws -> [StepDay] {
+        try await client.get("/api/steps", query: [
+            URLQueryItem(name: "from", value: from.iso),
+            URLQueryItem(name: "to", value: to.iso),
+        ])
+    }
+
+    /// Schickt ein ganzes Fenster auf einmal.
+    ///
+    /// - Returns: den **gespeicherten** Stand dieser Tage. Der kann hoeher
+    ///   sein als das Geschickte: der Server nimmt das Maximum, weil eine
+    ///   Schrittzahl innerhalb eines Tages nur wachsen kann.
+    @discardableResult
+    func sendSteps(_ days: [StepDay]) async throws -> [StepDay] {
+        try await client.send("POST", "/api/steps", body: StepsUpload(days: days, replace: nil))
+    }
+
+    func stepsGoal() async throws -> StepsGoal {
+        try await client.get("/api/steps/goal")
+    }
+
+    func updateStepsGoal(_ stepsPerDay: Int) async throws -> StepsGoal {
+        try await client.send("PUT", "/api/steps/goal", body: StepsGoal(stepsPerDay: stepsPerDay))
+    }
+
     func updateTarget(_ weightKg: Double) async throws -> WeightSummary {
         try await client.send("PUT", "/api/weight/target",
                               body: UpdateTargetRequest(targetWeightKg: weightKg))

@@ -26,6 +26,18 @@ final class HealthSync {
     private var observer: HKObserverQuery?
 
     private let bodyMass = HKQuantityType(.bodyMass)
+    private let stepCount = HKQuantityType(.stepCount)
+
+    /// Wie weit jeder Abgleich zuruecklieset.
+    ///
+    /// Nicht nur heute: fuer Schritte gibt es bewusst **keine**
+    /// Hintergrundzustellung (siehe unten), ohne dieses Fenster fehlte also
+    /// jeder Tag, an dem der Gewicht-Tab nicht geoeffnet wurde. Erst nach mehr
+    /// als dreissig ungeoeffneten Tagen entsteht eine echte Luecke.
+    private static let stepWindowDays = 30
+    /// Beim ersten Mal die ganze Historie - danach reicht das Fenster.
+    private static let stepBackfillDays = 3650
+    private let stepBackfillKey = "health.steps.backfilled"
 
     /// Huelle um HealthKits Fertig-Meldung. Sie ist nicht als `Sendable`
     /// deklariert, darf aber laut Vertrag von jedem Thread genau einmal
@@ -53,10 +65,97 @@ final class HealthSync {
     func requestPermission() async -> Bool {
         guard isAvailable else { return false }
         do {
-            try await store.requestAuthorization(toShare: [], read: [bodyMass])
+            try await store.requestAuthorization(toShare: [], read: [bodyMass, stepCount])
             return true
         } catch {
             return false
+        }
+    }
+
+    // MARK: - Schritte
+
+    /// Die Schrittzahl eines Tages, so wie die Health-App sie zeigt.
+    ///
+    /// `nil` heisst „Health weiss nichts ueber diesen Tag" - und ist etwas
+    /// anderes als null Schritte.
+    func todaySteps(_ day: CalendarDate = .today()) async -> Int? {
+        guard isAvailable else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let start = day.startOfDay()
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
+        let buckets = await stepBuckets(from: start, to: end)
+        return HealthSteps.dailyValues(buckets).first?.steps
+    }
+
+    /// Liest ein Fenster und schickt es gebuendelt zum Weight Tracker.
+    ///
+    /// **Keine Hintergrundzustellung fuer Schritte**, obwohl das Entitlement
+    /// da ist: iOS deckelt die Frequenz fuer diesen Typ auf stuendlich, und
+    /// die App stuendlich zu wecken, um eine Zahl hochzuladen, die eine Stunde
+    /// spaeter wieder falsch ist, kostet Funk und Akku fuer nichts. Die
+    /// einzige Zahl, die dauerhaft zaehlt, ist die Tagesendsumme - und die
+    /// steht am naechsten Morgen fest.
+    func syncSteps() async {
+        guard isAvailable else { return }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let now = Date()
+        let erstesMal = !UserDefaults.standard.bool(forKey: stepBackfillKey)
+        let tage = erstesMal ? Self.stepBackfillDays : Self.stepWindowDays
+        guard let from = calendar.date(byAdding: .day, value: -tage,
+                                       to: calendar.startOfDay(for: now)) else { return }
+
+        let values = HealthSteps.dailyValues(await stepBuckets(from: from, to: now))
+        guard !values.isEmpty else { return }
+        // Eine Anfrage, nicht eine je Tag: der Nachtrag waeren sonst tausende.
+        guard (try? await api.sendSteps(values)) != nil else { return }
+        // Merker erst nach erfolgreichem Senden, sonst faellt der Nachtrag
+        // aus, wenn der Server gerade nicht erreichbar war.
+        UserDefaults.standard.set(true, forKey: stepBackfillKey)
+    }
+
+    /// Tageskuebel zwischen zwei Zeitpunkten.
+    ///
+    /// Es gibt hier **keinen** Anker wie bei `HKAnchoredObjectQuery` - ein
+    /// „was ist seit dem letzten Mal dazugekommen" existiert fuer Statistiken
+    /// nicht. Deshalb wird jedes Mal ein Fenster neu gelesen; dass das nichts
+    /// kaputtmacht, sichert die max-Regel im Backend.
+    private func stepBuckets(from: Date, to: Date) async -> [StepBucket] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let anchor = calendar.startOfDay(for: from)
+        // `.strictStartDate`: ein Gang von 23:50 bis 00:10 zaehlt ganz zu dem
+        // Tag, an dem er begann - genau so rechnet die Health-App. Ohne die
+        // Option ginge dieselbe Messung in BEIDE Tage voll ein, und das ist
+        // die eigentliche Doppelzaehlungsfalle.
+        //
+        // KEIN Quellen-Praedikat: ueber eine Statistik-Abfrage fuehrt HealthKit
+        // iPhone und Uhr selbst zusammen. Das negative Praedikat aus
+        // `newSamples()` gehoert zum Gewicht (eigener Rueckweg) und wuerde hier
+        // im besten Fall nichts tun, im schlechteren Quellen wegfiltern.
+        let predicate = HKQuery.predicateForSamples(withStart: anchor, end: to,
+                                                    options: .strictStartDate)
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: stepCount,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum,
+                anchorDate: anchor,
+                // Ein Tag als DateComponents und nicht als 86400 Sekunden:
+                // sonst laufen die Kuebel nach jeder Zeitumstellung um eine
+                // Stunde aus dem Takt.
+                intervalComponents: DateComponents(day: 1))
+            query.initialResultsHandler = { _, collection, _ in
+                var buckets: [StepBucket] = []
+                collection?.enumerateStatistics(from: anchor, to: to) { statistics, _ in
+                    if let sum = statistics.sumQuantity()?.doubleValue(for: .count()) {
+                        buckets.append(StepBucket(dayStart: statistics.startDate, count: sum))
+                    }
+                }
+                continuation.resume(returning: buckets)
+            }
+            store.execute(query)
         }
     }
 

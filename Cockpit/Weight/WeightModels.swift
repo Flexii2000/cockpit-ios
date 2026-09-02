@@ -162,3 +162,15 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
 
     static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .kcal]
 }
+
+/// Was die App an /api/steps schickt.
+struct StepsUpload: Encodable, Sendable {
+    let days: [StepDay]
+    /// `true` laesst Werte auch sinken - fuer den Fall, dass jemand Messungen
+    /// in Health geloescht hat. Sonst gewinnt im Backend das Maximum.
+    let replace: Bool?
+}
+
+struct StepsGoal: Codable, Sendable {
+    let stepsPerDay: Int
+}

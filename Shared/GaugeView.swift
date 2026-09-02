@@ -17,7 +17,11 @@ struct GaugeView: View {
     /// Luft ueber dem Ziel. Ohne diesen Aufschlag saesse die Zielmarke am
     /// Bogenende und waere wertlos - man saehe nie, ob man knapp oder weit
     /// darueber liegt.
-    private let headroom = 1.25
+    ///
+    /// Oeffentlich, damit niemand daneben eine eigene 1,25 schreibt: wer den
+    /// Anteil fuer diesen Tacho ausrechnet, braucht denselben Wert.
+    static let headroom = 1.25
+    private let headroom = GaugeView.headroom
 
     var body: some View {
         ZStack {
