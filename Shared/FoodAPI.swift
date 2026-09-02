@@ -3,7 +3,17 @@ import Foundation
 /// Die Endpunkte des Kalorienzaehlers. Siehe docs/BACKENDS.md.
 struct FoodAPI: Sendable {
 
-    private let client = APIClient(backend: .food)
+    private let client: APIClient
+
+    /// - Parameters:
+    ///   - cookie: nur fuer die Widget-Erweiterung, die keinen gemeinsamen
+    ///     Cookie-Speicher hat.
+    ///   - timeout: in einer Erweiterung ist das Zeitbudget knapp - dort
+    ///     lieber zwoelf Sekunden als die zweihundert, die die
+    ///     Schnellerfassung braucht.
+    init(cookie: String? = nil, timeout: TimeInterval = 200) {
+        client = APIClient(backend: .food, cookie: cookie, timeout: timeout)
+    }
 
     func day(_ date: CalendarDate) async throws -> DaySummary {
         try await client.get("/api/food/day", query: [URLQueryItem(name: "date", value: date.iso)])

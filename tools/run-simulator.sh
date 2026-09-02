@@ -2,7 +2,7 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh [food|weight|finance|setup] [screenshot.png]
+#   tools/run-simulator.sh [food|weight|finance|setup|widget] [screenshot.png]
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #

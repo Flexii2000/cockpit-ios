@@ -5,6 +5,10 @@ import SwiftUI
 /// an jeder Verwendungsstelle eine Umstaendlichkeit.
 enum TabSelection: Hashable {
     case food, weight, finance, setup
+    #if DEBUG
+    /// Nur zum Ansehen der Kachel - siehe WidgetPreviewTab.
+    case widget
+    #endif
 
     /// Womit die App aufmacht. Im Debug-Build laesst sich das ueber
     /// `COCKPIT_TAB` vorgeben - so kann ein Skript jeden Tab einzeln
@@ -15,6 +19,7 @@ enum TabSelection: Hashable {
         case "weight":  return .weight
         case "finance": return .finance
         case "setup":   return .setup
+        case "widget":  return .widget
         default:        return .food
         }
         #else
@@ -53,6 +58,11 @@ struct RootView: View {
             Tab("Zugang", systemImage: "gearshape", value: TabSelection.setup) {
                 SetupView()
             }
+            #if DEBUG
+            Tab("Kachel", systemImage: "square.grid.2x2", value: TabSelection.widget) {
+                WidgetPreviewTab()
+            }
+            #endif
         }
         .onAppear {
             // Ohne Token zeigen die drei Dienst-Tabs nur Anmeldeseiten -

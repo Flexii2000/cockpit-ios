@@ -25,6 +25,12 @@ enum APIError: LocalizedError {
 struct APIClient: Sendable {
 
     let backend: Backend
+    /// Nur fuer Erweiterungen. Sie haben einen **eigenen**
+    /// `HTTPCookieStorage.shared` - was `Access.applyCookies()` beim App-Start
+    /// abgelegt hat, ist dort unsichtbar, und beide Schranken (nginx und der
+    /// Filter in der Anwendung) kennen ausschliesslich Cookie-Auth. Die App
+    /// laesst das Feld leer und bleibt beim gemeinsamen Speicher.
+    var cookie: String?
     /// Grosszuegig, weil die Schnellerfassung des Kalorienzaehlers eine
     /// Claude-Session auf dem Server startet: gemessen wurden bis zu 56 s,
     /// serverseitig darf sie 180 s dauern.
@@ -62,6 +68,12 @@ struct APIClient: Sendable {
         // Ohne gueltiges Cookie antworten beide Backends mit einer HTML-Seite
         // statt mit JSON. Das hier macht die Absicht wenigstens klar.
         req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let cookie {
+            // Ohne das Abschalten koennte der Cookie-Speicher der Erweiterung
+            // den selbst gesetzten Kopf noch ueberschreiben.
+            req.httpShouldHandleCookies = false
+            req.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
         return req
     }
 

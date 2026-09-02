@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import WidgetKit
 
 @MainActor
 @Observable
@@ -139,6 +140,11 @@ final class FoodStore {
                 .sorted { $0.name.localizedCompare($1.name) == .orderedAscending } }
             clearError()
             await loadHistory()
+            // Anstoss, keine Datenuebergabe: die Kachel holt sich selbst, was
+            // sie braucht. Ein Reload aus der laufenden App zaehlt nicht gegen
+            // das Aktualisierungsbudget von WidgetKit - das deckt den
+            // haeufigsten Fall zum Nulltarif ab.
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
             return true
         } catch {
             report(error)
@@ -151,6 +157,7 @@ final class FoodStore {
             day = try await api.deleteEntry(id: entry.id)
             clearError()
             await loadHistory()
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
         } catch {
             report(error)
         }
@@ -199,6 +206,7 @@ final class FoodStore {
             // werden, sonst zeigen die Tachos weiter die alten Marken.
             day = try await api.day(date)
             clearError()
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
             return true
         } catch {
             report(error)

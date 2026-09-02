@@ -97,6 +97,7 @@ targets:
         # Nur Hochkant, nur iPhone: die drei Weboberflaechen sind fuers Handy
         # gebaut, Querformat brachte nie etwas.
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+
         TARGETED_DEVICE_FAMILY: "1"
         # Keine ATS-Ausnahme noetig: alle drei Domains haben gueltige
         # Let's-Encrypt-Zertifikate und sprechen HTTPS.

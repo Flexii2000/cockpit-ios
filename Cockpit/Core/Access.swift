@@ -14,8 +14,12 @@ import WebKit
 @Observable
 final class Access {
 
-    static let privateTokenKey = "fh_private"
-    static let weightTokenKey = "weight_app_token"
+    /// Die Namen stehen in `Keychain` - das Widget braucht sie ebenfalls,
+    /// und diese Klasse darf nicht mit in die Erweiterung.
+    static let privateTokenKey = Keychain.privateTokenKey
+    static let weightTokenKey = Keychain.weightTokenKey
+
+    private static let migrationKey = "keychain.accessibility.afterFirstUnlock"
 
     private(set) var privateToken: String?
     private(set) var weightToken: String?
@@ -33,6 +37,22 @@ final class Access {
         // und das ist frueher.
         seedFromEnvironment()
         #endif
+        migrateAccessibility()
+    }
+
+    /// Schreibt die beiden Token einmal neu.
+    ///
+    /// `kSecAttrAccessible` gilt je Eintrag und wird beim Aendern der Konstante
+    /// **nicht** nachgezogen: ein Eintrag, der mit `WhenUnlocked` angelegt
+    /// wurde, bleibt so, bis ihn jemand ersetzt. Ohne diesen Durchlauf
+    /// scheitert das Widget bei gesperrtem Geraet weiter - obwohl die
+    /// Konstante in `Keychain` laengst geaendert ist.
+    private func migrateAccessibility() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.migrationKey) else { return }
+        if let privateToken { Keychain.save(privateToken, for: Self.privateTokenKey) }
+        if let weightToken { Keychain.save(weightToken, for: Self.weightTokenKey) }
+        defaults.set(true, forKey: Self.migrationKey)
     }
 
     func store(privateToken: String, weightToken: String) async {
