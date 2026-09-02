@@ -60,6 +60,12 @@ xcodebuild build -project Cockpit.xcodeproj -scheme Cockpit \
     -destination 'generic/platform=iOS' -allowProvisioningUpdates \
     -derivedDataPath build/device -quiet
 
+# Den Tunnel unmittelbar vorher wecken. Er faellt zwischen zwei Kommandos
+# wieder zu, und die Installation meldet dann "unable to locate a device" -
+# obwohl eine Abfrage Sekunden vorher noch durchging. Eine billige Abfrage
+# direkt davor ist der Unterschied zwischen "geht nicht" und "geht".
+xcrun devicectl device info details --device "$DEVICE_ID" > /dev/null 2>&1 || true
+
 if ! xcrun devicectl device install app --device "$DEVICE_ID" \
         build/device/Build/Products/Debug-iphoneos/Cockpit.app; then
     echo >&2
