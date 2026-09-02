@@ -15,7 +15,9 @@ final class WeightStore {
     private(set) var summary: WeightSummary?
     private(set) var points: [WeightPoint] = []
     private(set) var vacations: [Vacation] = []
-    private(set) var extraWidgets: [WeightWidget] = []
+    /// Die vollstaendige, geordnete Liste. Frueher standen hier nur die
+    /// Zusaetze und vier Kacheln waren fest verdrahtet.
+    private(set) var widgets: [WeightWidget] = []
     /// Die Tageskalorien zum sichtbaren Zeitraum - dieselbe Zusammenschau wie
     /// in der Weboberflaeche. Faellt der Kalorienzaehler aus, fehlt nur diese
     /// Kurve; das Gewicht steht davon unabhaengig da.
@@ -48,9 +50,6 @@ final class WeightStore {
     }
     var visibleSeries: Set<WeightSeries> = WeightSeries.defaultVisible
 
-    /// Alle Kacheln in der Reihenfolge, in der sie erscheinen.
-    var widgets: [WeightWidget] { WeightWidget.base + extraWidgets }
-
     /// Kacheln, die man noch dazunehmen kann.
     var addableWidgets: [WeightWidget] {
         WeightWidget.allCases.filter { !widgets.contains($0) }
@@ -69,7 +68,7 @@ final class WeightStore {
             self.summary = try await summary
             self.points = Self.trim(try await points, to: range)
             self.vacations = try await vacations
-            self.extraWidgets = Self.sanitize(try await dashboard.widgets)
+            self.widgets = Self.sanitize(try await dashboard.widgets)
             clearError()
         } catch {
             report(error)
@@ -159,25 +158,27 @@ final class WeightStore {
 
     func addWidget(_ widget: WeightWidget) async {
         guard !widgets.contains(widget) else { return }
-        await saveWidgets(extraWidgets + [widget])
+        await saveWidgets(widgets + [widget])
     }
 
+    /// Jede Kachel laesst sich entfernen, auch die vier frueher festen - und
+    /// auch alle auf einmal. Eine leere Anzeige ist ein gueltiger Zustand;
+    /// hinzufuegen geht ueber das Menue, das immer da ist.
     func removeWidget(_ widget: WeightWidget) async {
-        guard !WeightWidget.base.contains(widget) else { return }
-        await saveWidgets(extraWidgets.filter { $0 != widget })
+        await saveWidgets(widgets.filter { $0 != widget })
     }
 
     private func saveWidgets(_ next: [WeightWidget]) async {
         // Erst anzeigen, dann speichern: das Umsortieren soll sich sofort
         // anfuehlen, und schlaegt das Speichern fehl, sagt es die Meldung.
-        let previous = extraWidgets
-        extraWidgets = next
+        let previous = widgets
+        widgets = next
         do {
             let saved = try await api.saveDashboard(next.map(\.rawValue))
-            extraWidgets = Self.sanitize(saved.widgets)
+            widgets = Self.sanitize(saved.widgets)
             clearError()
         } catch {
-            extraWidgets = previous
+            widgets = previous
             report(error)
         }
     }
@@ -201,14 +202,13 @@ final class WeightStore {
         }
     }
 
-    /// Nimmt nur bekannte Zusatz-Kacheln an. So fallen Altlasten aus
+    /// Nimmt nur bekannte Kacheln an. So fallen Altlasten aus
     /// `dashboard.json` (umbenannt, entfernt, von Hand eingetragener Unsinn)
     /// beim naechsten Speichern von selbst raus.
     private static func sanitize(_ keys: [String]) -> [WeightWidget] {
         var seen = Set<WeightWidget>()
         return keys.compactMap { key in
             guard let widget = WeightWidget(rawValue: key),
-                  !WeightWidget.base.contains(widget),
                   seen.insert(widget).inserted else { return nil }
             return widget
         }

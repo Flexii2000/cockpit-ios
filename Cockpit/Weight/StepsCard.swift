@@ -2,70 +2,69 @@ import SwiftUI
 
 /// Die Schritte von heute, unter dem Diagramm.
 ///
-/// Derselbe Tacho wie im Essen-Tab: im Bogen steht, was noch fehlt, daneben
-/// die Tageszahl. Ein eigenes Kachel-Rechteck waere hier die fuenfte Kachel in
-/// einer anderen Groesse gewesen - der Tacho ist das Bauteil fuer „ein Wert
-/// gegen ein Tagesziel", samt Zielkerbe.
+/// Eine Leiste und keine Tachoscheibe: der Tacho im Essen-Tab beantwortet
+/// „drueber oder drunter", hier geht es um „wie weit" - und dafuer ist ein
+/// Balken die naheliegendere Form. Schritte sind ausserdem ein Mindestwert;
+/// eine Zielkerbe, an der man vorbeischiessen kann, waere hier sinnlos.
 struct StepsCard: View {
 
     let steps: Int?
     let goal: Int
-    let onEditGoal: () -> Void
 
-    private var remaining: Int? { steps.map { max(goal - $0, 0) } }
     private var reached: Bool { (steps ?? 0) >= goal }
 
-    var body: some View {
-        HStack(spacing: 16) {
-            GaugeView(
-                ratio: steps.map { Double($0) / (Double(goal) * GaugeView.headroom) } ?? 0,
-                // Schritte sind ein Mindestwert: mehr ist besser. Gruen ab dem
-                // Ziel, sonst neutral - kein Warnton, denn darunter zu liegen
-                // ist kein Fehler.
-                tone: reached ? .good : .neutral,
-                main: mainText,
-                sub: subText,
-                lineWidth: 8,
-                mainFont: .title2)
-            .frame(width: 118, height: 118)
+    /// Gedeckelt: ueber dem Ziel bleibt die Leiste voll, statt aus dem Rahmen
+    /// zu laufen. Dass es mehr war, sagt die Zahl daneben.
+    private var fraction: Double {
+        guard let steps, goal > 0 else { return 0 }
+        return min(Double(steps) / Double(goal), 1)
+    }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Schritte heute")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                // Ein Strich und keine Null: Health unterscheidet „nichts
-                // gemessen" nicht von „null Schritte" - eine 0 waere eine
-                // Behauptung ueber einen Tag, ueber den niemand etwas weiss.
-                Text(steps.map { Double($0).whole } ?? "–")
-                    .font(.title2.weight(.semibold).monospacedDigit())
-                Button {
-                    onEditGoal()
-                } label: {
-                    Text("Ziel: \(Double(goal).whole)")
-                        .font(.caption)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.tint)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text("👟")
+                    .font(.title3)
+                Text(zahlen)
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    // Anker fuer den UI-Test. Ueber die Zahl selbst zu suchen
+                    // geht nicht - die aendert sich mit jedem Schritt.
+                    .accessibilityIdentifier("stepsValue")
+                Spacer()
             }
-            Spacer()
+
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.primary.opacity(0.10))
+                    Capsule()
+                        .fill(LinearGradient(colors: tone.gradient,
+                                             startPoint: .leading,
+                                             endPoint: .trailing))
+                        .frame(width: geometry.size.width * fraction)
+                }
+            }
+            .frame(height: 10)
         }
         .padding(.vertical, 8)
-        // `.contain` macht die Karte als ein Element abfragbar. Nur eine
-        // Kennung an den HStack zu haengen reicht nicht - dann taucht sie in
-        // der Elementliste gar nicht auf, und ein Test sucht vergeblich.
-        .accessibilityElement(children: .contain)
+        // `.combine` fasst Symbol, Zahl und Leiste zu einer Ansage zusammen -
+        // sonst liest VoiceOver „Schuh" und dann zwei Zahlen ohne Zusammenhang.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Schritte heute")
+        .accessibilityValue(steps.map { "\($0) von \(goal)" } ?? "keine Daten")
         .accessibilityIdentifier("stepsCard")
     }
 
-    private var mainText: String {
-        guard let remaining else { return "–" }
-        return reached ? "geschafft" : Double(remaining).whole
+    /// Ein Strich und keine Null, wenn Health nichts weiss: eine 0 waere eine
+    /// Behauptung ueber einen Tag, an dem niemand gemessen hat.
+    private var zahlen: String {
+        let gelaufen = steps.map { Double($0).whole } ?? "–"
+        return "\(gelaufen)/\(Double(goal).whole)"
     }
 
-    private var subText: String {
-        guard steps != nil else { return "keine Daten" }
-        return reached ? "" : "Schritte fehlen"
-    }
+    /// Gruen ab dem Ziel, sonst neutral. Kein Warnton - darunter zu liegen ist
+    /// kein Fehler, nur noch nicht fertig.
+    private var tone: MacroTone { reached ? .good : .neutral }
 }
 
 /// Tagesziel aendern.

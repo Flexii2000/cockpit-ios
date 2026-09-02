@@ -58,7 +58,7 @@ Ein `JSONDecoder` mit `.iso8601` scheitert am reinen Datum. Deshalb die
 | GET | `/api/weight/summary` | `WeightSummary` |
 | PUT | `/api/weight/target` | Body `{targetWeightKg}` → `WeightSummary` |
 | POST | `/api/weight` | Body `{date, weightKg, keepExisting?}` → `WeightSummary` |
-| GET/PUT | `/api/dashboard` | `{widgets: [String]}` — welche Kacheln sichtbar sind |
+| GET/PUT | `/api/dashboard` | `{widgets: [String], version: 1}` — welche Kacheln sichtbar sind |
 | GET | `/setup?token=…` | setzt das Cookie (braucht die App nicht) |
 
 ```
@@ -69,6 +69,17 @@ WeightSummary  date, current?, avg7?, avg14?, avg30?, target?, targetDate?,
                corridorLower?, corridorUpper?, corridorReachedOn?
 Vacation       start, end, label
 ```
+⚠️ **`/api/dashboard` speichert seit Version 1 die *vollständige* Liste.**
+Vorher standen dort nur die Zusätze, und jede Oberfläche setzte vier
+Basis-Kacheln selbst davor — die ließen sich deshalb nicht entfernen. Jetzt ist
+jede Kachel entfernbar, auch alle auf einmal.
+
+Die beiden Bedeutungen sehen als JSON identisch aus, deshalb das
+`version`-Feld: **fehlt es, behandelt der Server die Liste als Zusätze** und
+ergänzt die vier. Ein Client, der die vollständige Liste schickt, muss
+`version: 1` mitsenden — sonst löscht ein alter, noch offener Browser-Tab die
+Basis-Kacheln. Eine alte Datei wird beim ersten Lesen einmalig umgeschrieben.
+
 ⚠️ **`keepExisting` ist die Regel für Importe.** Es gibt genau **einen** Wert
 pro Tag. Steht `keepExisting: true` im Body und der Tag ist schon belegt, bleibt
 der vorhandene Wert stehen und die Antwort enthält den unveränderten Stand.

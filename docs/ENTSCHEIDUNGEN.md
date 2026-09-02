@@ -3,6 +3,25 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-02 — Die Schritte bekommen eine Leiste, keinen Tacho
+**Warum:** der Tacho im Essen-Tab beantwortet „drüber oder drunter" und hat
+dafür eine Zielkerbe. Schritte sind ein Mindestwert — es geht um „wie weit",
+und dafür ist ein Balken die naheliegendere Form. Über dem Ziel bleibt er voll
+statt aus dem Rahmen zu laufen; dass es mehr war, sagt die Zahl daneben.
+
+## 2026-09-02 — Jede Kachel ist entfernbar, und die gespeicherte Liste ist vollständig
+**Warum:** vier fest verdrahtete Kacheln waren eine Annahme darüber, was
+jemand sehen will. „Komplett modular" heißt auch: alle weg ist ein gültiger
+Zustand.
+**Der Haken war die Umstellung.** Alte und neue Bedeutung sehen als JSON
+gleich aus — eine Liste von Schlüsseln. Ohne Unterscheidung hätte das erste
+Laden nach dem Deploy vier Kacheln stillschweigend gelöscht. Deshalb ein
+`version`-Feld: fehlt es, gilt die alte Bedeutung, und der Server ergänzt.
+Das schützt auch einen Browser-Tab, der die Umstellung noch nicht kennt.
+**Die vier früheren Basis-Schlüssel stehen jetzt im Backend** — bewusst als
+eingefrorener Schnappschuss für die Umstellung, nicht als zweite Registry:
+welche Kacheln es gibt, weiß weiterhin nur die Oberfläche.
+
 ## 2026-09-02 — Gerade Linien, keine geglätteten Kurven
 `.interpolationMethod(.linear)` in beiden Diagrammen.
 **Warum:** Catmull-Rom überschwingt zwischen weit auseinanderliegenden Punkten

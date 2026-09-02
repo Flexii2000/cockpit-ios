@@ -27,9 +27,12 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    /// Die vier stehen immer oben und lassen sich nicht entfernen - wie im Web.
-    /// Der Server speichert deshalb auch nur die Zusaetze.
-    static let base: [WeightWidget] = [.current, .goal, .diff, .bmi]
+    /// Womit eine frische Installation anfaengt - **keine** Sonderstellung:
+    /// diese vier lassen sich genauso entfernen wie alle anderen. Die Vorgabe
+    /// liefert ohnehin der Server, wenn noch nie etwas gespeichert wurde; hier
+    /// steht sie nur als Rueckfall, falls die Liste leer zurueckkommt, obwohl
+    /// noch nie jemand etwas entfernt hat.
+    static let defaults: [WeightWidget] = [.current, .goal, .diff, .bmi]
 
     /// Koerpergroesse fuer den BMI. Steht so auch in der Weboberflaeche
     /// (`HEIGHT_M`); eine weitere Personalisierung braucht diese App nicht.

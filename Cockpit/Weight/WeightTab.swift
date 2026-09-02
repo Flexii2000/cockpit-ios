@@ -23,8 +23,7 @@ struct WeightTab: View {
                     if let summary = store.summary {
                         tiles(summary)
                         chart
-                        StepsCard(steps: store.stepsToday,
-                                  goal: store.stepsGoal) { showingStepsGoal = true }
+                        StepsCard(steps: store.stepsToday, goal: store.stepsGoal)
                     } else if store.isLoading {
                         LoadingPlaceholder()
                     }
@@ -42,6 +41,7 @@ struct WeightTab: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Ziel anpassen …") { showingTarget = true }
+                        Button("Schrittziel …") { showingStepsGoal = true }
                         if HealthSync.shared.isAvailable {
                             Button("Aus Health holen") {
                                 Task {
@@ -107,13 +107,12 @@ struct WeightTab: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                // Jede Kachel laesst sich entfernen, auch die vier frueher
+                // festen - und auch alle auf einmal. Hinzufuegen geht ueber
+                // das Menue oben, das immer da ist.
                 .contextMenu {
-                    // Die vier Basis-Kacheln lassen sich nicht entfernen -
-                    // dann steht dort auch kein Menuepunkt.
-                    if !WeightWidget.base.contains(widget) {
-                        Button("Entfernen", role: .destructive) {
-                            Task { await store.removeWidget(widget) }
-                        }
+                    Button("Entfernen", role: .destructive) {
+                        Task { await store.removeWidget(widget) }
                     }
                 }
             }

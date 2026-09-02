@@ -63,8 +63,15 @@ struct Vacation: Decodable, Identifiable, Sendable {
     var id: String { "\(start.iso)/\(end.iso)" }
 }
 
+/// Welche Kacheln der Gewicht-Tab zeigt, in dieser Reihenfolge.
+///
+/// Die Liste ist **vollstaendig**: es gibt keine Kacheln mehr, die unabhaengig
+/// davon davorstehen. Die Version sagt dem Server genau das - ohne sie
+/// ergaenzt er die vier frueher fest verdrahteten, damit ein Client, der die
+/// Umstellung nicht kennt, sie nicht loeschen kann.
 struct DashboardConfig: Codable, Sendable {
     let widgets: [String]
+    var version: Int? = 1
 }
 
 struct NewWeightRequest: Encodable, Sendable {

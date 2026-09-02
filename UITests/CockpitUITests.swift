@@ -76,7 +76,7 @@ final class CockpitUITests: XCTestCase {
         // selbst: ein Accessibility-Container ist nie „hittable", egal ob er
         // im Bild steht. Danach zu fragen liefert immer falsch - und der Test
         // meldet einen Fehler, den es nicht gibt.
-        let karte = app.staticTexts["Schritte heute"]
+        let karte = app.staticTexts["stepsValue"]
         XCTAssertTrue(karte.waitForExistence(timeout: 20),
                       "Die Schritte-Karte muss unter dem Diagramm stehen")
 
