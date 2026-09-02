@@ -96,6 +96,12 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
 
+⚠️ **`#if DEBUG` ist keine Schranke gegen sichtbare Oberfläche.** Auf dem
+Gerät läuft ein Debug-Build (`install-device.sh` baut Debug) — ein Tab, ein
+Knopf oder eine Zeile hinter `#if DEBUG` steht damit auf Felix' Handy. Debug-
+Oberfläche gehört deshalb zusätzlich hinter einen Schalter, der sie nur auf
+ausdrückliche Anforderung zeigt (siehe `TabSelection.showsWidgetPreview`).
+
 Jeder dieser Schalter ist entstanden, weil ohne ihn ein Fehler unsichtbar
 geblieben wäre. Was weiterhin **nicht** prüfbar ist: Wischgesten, alles
 unterhalb des ersten Bildschirms, und ob nach erteilter Health-Erlaubnis

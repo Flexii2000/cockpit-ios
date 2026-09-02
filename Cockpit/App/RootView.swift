@@ -8,6 +8,16 @@ enum TabSelection: Hashable {
     #if DEBUG
     /// Nur zum Ansehen der Kachel - siehe WidgetPreviewTab.
     case widget
+
+    /// Ob der Vorschau-Tab ueberhaupt in der Leiste steht.
+    ///
+    /// Nur, wenn er ausdruecklich angefordert wurde. `#if DEBUG` allein
+    /// reicht als Schranke nicht: auf dem Geraet laeuft ein Debug-Build,
+    /// jeder Debug-Tab waere also ein Tab, den Felix sieht - und dieser
+    /// nuetzt ihm nichts.
+    static var showsWidgetPreview: Bool {
+        ProcessInfo.processInfo.environment["COCKPIT_TAB"] == "widget"
+    }
     #endif
 
     /// Womit die App aufmacht. Im Debug-Build laesst sich das ueber
@@ -59,8 +69,10 @@ struct RootView: View {
                 SetupView()
             }
             #if DEBUG
-            Tab("Kachel", systemImage: "square.grid.2x2", value: TabSelection.widget) {
-                WidgetPreviewTab()
+            if TabSelection.showsWidgetPreview {
+                Tab("Kachel", systemImage: "square.grid.2x2", value: TabSelection.widget) {
+                    WidgetPreviewTab()
+                }
             }
             #endif
         }
