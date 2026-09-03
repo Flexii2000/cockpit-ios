@@ -44,6 +44,7 @@ keine — sie wird geglaubt.
 | `docs/BACKENDS.md` | Sobald du merkst, dass ein Endpunkt, ein Feld oder ein Verhalten dort nicht (mehr) stimmt |
 | `docs/ARCHITEKTUR.md` | Bei strukturellen Änderungen: neuer Ordner, neue Schicht, Tab wechselt von WebView auf nativ |
 | `README.md` | Nur wenn sich Einstieg oder Schnellstart ändert |
+| `docs/PLAN-AUFTEILUNG.md` | Solange die Aufteilung in Healthy, Vault und Fokus läuft: Schritte abhaken, Abweichungen vom Plan **dort** festhalten, nicht nur im Code |
 
 ⚠️ **Quelle der Wahrheit für `docs/BACKENDS.md` ist der Code der Dienste** —
 Java in `../food/src/main/java/…` und `../weight-app/src/main/java/…`, Python

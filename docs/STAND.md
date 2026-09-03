@@ -1,8 +1,11 @@
 # Stand
 
-> **Nächster Schritt:** der **Siri-Kurzbefehl** für die Schnellerfassung —
-> der letzte offene Punkt aus dem ursprünglichen Plan. Alle fünf Tabs laufen
-> auf dem Gerät gegen den Server.
+> **Nächster Schritt:** die **Aufteilung in drei Apps** — Healthy, Vault,
+> Fokus. Der Plan steht in [`PLAN-AUFTEILUNG.md`](PLAN-AUFTEILUNG.md), noch
+> nicht begonnen; Schritt 1 (der reine Schnitt) ist die nächste lange
+> Sitzung. Danach die neuen Dienste (To-Do, Roadmap, Einkaufsliste) und der
+> **Siri-Kurzbefehl**. Alle fünf Tabs laufen heute auf dem Gerät gegen den
+> Server.
 >
 > Der Noten-Tab ist ausgerollt: Dienst und Timer laufen seit dem 02.09.2026 auf
 > dem Server, die App liegt auf dem Gerät. **Benachrichtigungen über neue Noten
