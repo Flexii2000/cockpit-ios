@@ -125,6 +125,10 @@ struct RootView: View {
             if phase != .active {
                 financeLock.lock()
                 gradesLock.lock()
+            } else {
+                // Zurueck im Vordergrund heisst oft: zurueck im Netz. Was
+                // wartet, darf jetzt raus.
+                Task { await Outbox.shared.replay() }
             }
         }
     }

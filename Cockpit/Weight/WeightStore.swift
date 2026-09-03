@@ -133,8 +133,13 @@ final class WeightStore {
 
     func add(date: CalendarDate, weightKg: Double) async -> Bool {
         do {
-            summary = try await api.add(date: date, weightKg: weightKg)
+            summary = try await api.add(date: date, weightKg: weightKg, queueWhenOffline: true)
             points = Self.trim(try await api.points(range), to: range)
+            clearError()
+            return true
+        } catch APIError.queued {
+            // Liegt im Postausgang - das Blatt darf zugehen. Die Kacheln
+            // zeigen den alten Stand weiter; die Leiste sagt, dass etwas wartet.
             clearError()
             return true
         } catch {

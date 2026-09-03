@@ -36,6 +36,10 @@ struct WeightTab: View {
                 // gefunden, nachdem drei Wischversuche wirkungslos blieben.
                 .padding(.bottom, 60)
             }
+            .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .weight) }
+            .onChange(of: OfflineStatus.shared.pending) { before, after in
+                if before > 0, after == 0 { Task { await store.load() } }
+            }
             .navigationTitle("Gewicht")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

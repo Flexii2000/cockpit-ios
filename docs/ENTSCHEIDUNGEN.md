@@ -3,6 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-03 — Offline: letzter Stand plus Postausgang, aber kein Nachrechnen
+**Warum:** Felix' Wunsch — ohne Netz wenigstens die aktuellen Werte sehen,
+im besten Fall auch Haken und Messwerte eintragen, die später nachgehen.
+**Wie:** `APIClient` legt jede erfolgreiche GET-Antwort als Datei ab und
+liefert sie bei einem Transportfehler zurück (nur dann — bei 403 oder 500 hat
+der Dienst geantwortet, und den alten Stand darüberzulegen hieße, ein Problem
+zu verstecken). Ausgewählte Änderungen gehen mit `queueWhenOffline: true` in
+den `Outbox` und werden beim nächsten Netz der Reihe nach nachgesendet; lehnt
+der Dienst eine ab (4xx), fliegt sie raus und der Grund steht in der Leiste.
+**Bewusst nicht:** lokal nachrechnen. Ein offline gesetzter Haken zeigt eine
+Uhr, keine neue Sträh­ne; ein offline eingetragenes Gewicht ändert die Kacheln
+erst nach dem Nachsenden. Sonst stünde die Rechenregel an zwei Stellen — genau
+das, was „Kein Offline-Cache" vom 01.09. vermeiden wollte. Die Entscheidung
+von damals bleibt im Kern: kein zweiter Datenstand, nur ein Zwischenspeicher.
+**Verworfen:** Anmeldung, Habit anlegen, Ziele ändern im Postausgang — dort
+braucht man die Antwort sofort (eine ID, eine Bestätigung), und ein Passwort
+hat in einer Warteschlange nichts verloren.
+
 ## 2026-09-02 — Zugang wird ein Blatt, weil fünf Tabs voll sind
 **Warum:** iOS zeigt höchstens fünf Tabs; der sechste wandert unter „Mehr",
 und dort landete ausgerechnet der Tab, den man braucht, wenn alles andere
@@ -349,7 +367,8 @@ App-Bundle und ist damit auslesbar).
 **Warum:** alle drei Dienste sind öffentlich über HTTPS erreichbar, die
 Datenmengen sind winzig. Ein Cache brächte einen zweiten Datenstand samt
 Konfliktauflösung für ein Problem, das es noch nicht gibt.
-**Neu zu bewerten,** sobald Einträge unterwegs ohne Netz erfasst werden sollen.
+**Neu bewertet am 03.09.2026** (siehe oben): ein Zwischenspeicher mit Datum
+und ein Postausgang — aber weiterhin kein zweiter Datenstand mit eigener Logik.
 
 ## 2026-09-01 — Bezeichner englisch, Kommentare deutsch
 **Warum:** deckt sich mit den Java-Backends (englische Typen, `WeightPoint`,

@@ -28,11 +28,17 @@ struct WeightAPI: Sendable {
     /// - Parameter keepExisting: `true` laesst einen vorhandenen Wert fuer
     ///   diesen Tag stehen - fuer den Health-Abgleich, der nichts
     ///   ueberschreiben soll.
+    /// - Parameter queueWhenOffline: nur fuer die Eingabe von Hand. Der
+    ///   Health-Abgleich laesst es aus - er merkt sich seinen Anker erst, wenn
+    ///   etwas angekommen ist, und kaeme sonst beim naechsten Lauf mit
+    ///   denselben Werten wieder.
     func add(date: CalendarDate, weightKg: Double,
-             keepExisting: Bool = false) async throws -> WeightSummary {
+             keepExisting: Bool = false,
+             queueWhenOffline: Bool = false) async throws -> WeightSummary {
         try await client.send("POST", "/api/weight",
                               body: NewWeightRequest(date: date, weightKg: weightKg,
-                                                     keepExisting: keepExisting))
+                                                     keepExisting: keepExisting),
+                              queueWhenOffline: queueWhenOffline)
     }
 
     // MARK: - Schritte

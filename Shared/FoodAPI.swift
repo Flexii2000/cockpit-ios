@@ -42,12 +42,14 @@ struct FoodAPI: Sendable {
         let _: APIClient.Empty = try await client.delete("/api/food/dishes/\(id)")
     }
 
+    /// Darf ohne Netz warten: der Eintrag traegt sein Datum, er gilt spaeter
+    /// genauso.
     func addEntry(_ request: NewEntryRequest) async throws -> DaySummary {
-        try await client.send("POST", "/api/food/entries", body: request)
+        try await client.send("POST", "/api/food/entries", body: request, queueWhenOffline: true)
     }
 
     func deleteEntry(id: String) async throws -> DaySummary {
-        try await client.delete("/api/food/entries/\(id)")
+        try await client.delete("/api/food/entries/\(id)", queueWhenOffline: true)
     }
 
     func targets() async throws -> Nutrients {

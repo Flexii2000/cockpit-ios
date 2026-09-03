@@ -160,6 +160,9 @@ final class Access {
         Keychain.delete(Self.weightTokenKey)
         privateToken = nil
         weightToken = nil
+        // Was ohne Zugang nicht mehr zu holen waere, soll auch nicht liegen
+        // bleiben.
+        OfflineCache.clear()
     }
 
     func resetGrades() {
@@ -169,6 +172,7 @@ final class Access {
         gradesToken = nil
         gradesUser = nil
         hasGradesPassword = false
+        OfflineCache.clear()
     }
 
     /// Muss laufen, BEVOR eine WebView laedt oder eine API-Anfrage rausgeht.

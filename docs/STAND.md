@@ -26,6 +26,14 @@
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
 
+## Offline · **fertig** (2026-09-03)
+
+Ohne Netz zeigt jeder native Tab den letzten Stand mit Datum in einer Leiste;
+Haken, Messwerte und Essenseinträge warten in einem Postausgang und gehen beim
+nächsten Netz raus. Nachgerechnet wird nichts — siehe `docs/ENTSCHEIDUNGEN.md`.
+Zwei Unit-Tests fahren beides gegen einen toten Port; im Simulator gegen einen
+lokal gestarteten und dann getöteten Dienst angesehen.
+
 ## Habits — fünfter Tab · **fertig** (2026-09-02)
 
 Ausgerollt am 02.09.2026 15:27: `habits.service` läuft, nginx reicht

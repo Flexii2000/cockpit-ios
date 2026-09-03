@@ -167,9 +167,14 @@ sag das dann auch so.
 
 ## Was hier bewusst fehlt
 
-- **Kein Offline-Cache.** Die Dienste sind aus dem Netz erreichbar; ein Cache
-  wäre ein zweiter Datenstand mit eigener Konfliktlogik. Die einzige Ausnahme
-  ist der letzte Stand im Widget — und der wird **mit Datum** gezeigt, nie als
-  heutiger Wert ausgegeben.
+- **Kein zweiter Datenstand.** Ohne Netz zeigt die App den **letzten
+  Stand** jeder Abfrage (`OfflineCache`, mit Datum in der Leiste) und legt
+  Haken, Messwerte und Essenseinträge in einen **Postausgang** (`Outbox`), der
+  beim nächsten Netz rausgeht. Was sie dabei **nicht** tut: nachrechnen.
+  Sträh­nen, Tagessummen, Kacheln bleiben Sache der Dienste — bis der Ausgang
+  leer ist, steht der alte Stand da und die Leiste sagt, dass etwas wartet.
+  Wer offline eine lokale Sträh­nen-Logik einbaut, baut die Regel ein zweites
+  Mal. Nur Änderungen, die später genauso gelten (mit Datum im Rumpf oder
+  Pfad), dürfen `queueWhenOffline: true` bekommen.
 - **Kein Multi-User, keine Registrierung.** Wie in den Backends: eine Person,
   ein Gerät, ein geteiltes Geheimnis.

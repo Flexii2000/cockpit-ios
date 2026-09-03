@@ -11,6 +11,10 @@ final class HabitsStore {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var isAccessProblem = false
+    /// Habits, deren Haken ohne Netz im Postausgang liegt. Die Zeile zeigt
+    /// dann eine Uhr statt des Hakens - was der Server daraus macht, weiss
+    /// erst der naechste Abruf.
+    private(set) var pendingIDs: Set<String> = []
 
     func load() async {
         isLoading = habits.isEmpty
@@ -19,6 +23,9 @@ final class HabitsStore {
             habits = try await api.list()
             errorMessage = nil
             isAccessProblem = false
+            // Eine frische Liste ist die Wahrheit - was bis eben wartete, ist
+            // entweder drin oder wird beim naechsten Nachsenden nochmal geholt.
+            if await Outbox.shared.count == 0 { pendingIDs.removeAll() }
         } catch {
             report(error)
         }
@@ -48,6 +55,9 @@ final class HabitsStore {
                 return
             }
             replace(updated)
+        } catch APIError.queued {
+            pendingIDs.insert(habit.id)
+            errorMessage = nil
         } catch {
             report(error)
         }

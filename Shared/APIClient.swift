@@ -4,6 +4,11 @@ enum APIError: LocalizedError {
     case notAuthorised
     case http(Int, String?)
     case decoding(Error)
+    /// Kein Netz, und nichts im Cache, was man stattdessen zeigen koennte.
+    case offline
+    /// Kein Netz - die Aenderung liegt im Postausgang und geht spaeter raus.
+    /// Fuer den Aufrufer ein Erfolg, kein Fehler.
+    case queued
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +18,10 @@ enum APIError: LocalizedError {
             message ?? "Der Dienst hat mit \(code) geantwortet."
         case .decoding:
             "Die Antwort war nicht zu lesen."
+        case .offline:
+            "Kein Netz – und noch nichts gespeichert, das sich zeigen ließe."
+        case .queued:
+            "Kein Netz – wird gesendet, sobald wieder Netz da ist."
         }
     }
 }
@@ -40,18 +49,23 @@ struct APIClient: Sendable {
         try await perform(request(method: "GET", path: path, query: query))
     }
 
+    /// - Parameter queueWhenOffline: ohne Netz in den Postausgang legen statt
+    ///   zu scheitern (wirft dann `APIError.queued`). Nur fuer Aenderungen,
+    ///   die spaeter genauso gelten - ein Haken, ein Messwert, ein Eintrag
+    ///   mit Datum. Nicht fuer Anmeldungen oder Anfragen, deren Antwort man
+    ///   jetzt braucht.
     func send<Body: Encodable, T: Decodable>(
-        _ method: String, _ path: String, body: Body
+        _ method: String, _ path: String, body: Body, queueWhenOffline: Bool = false
     ) async throws -> T {
         var req = request(method: method, path: path)
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONEncoder().encode(body)
-        return try await perform(req)
+        return try await perform(req, queueWhenOffline: queueWhenOffline)
     }
 
     @discardableResult
-    func delete<T: Decodable>(_ path: String) async throws -> T {
-        try await perform(request(method: "DELETE", path: path))
+    func delete<T: Decodable>(_ path: String, queueWhenOffline: Bool = false) async throws -> T {
+        try await perform(request(method: "DELETE", path: path), queueWhenOffline: queueWhenOffline)
     }
 
     // MARK: - Innereien
@@ -77,9 +91,33 @@ struct APIClient: Sendable {
         return req
     }
 
-    private func perform<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
+    private func perform<T: Decodable>(_ request: URLRequest,
+                                       queueWhenOffline: Bool = false) async throws -> T {
+        let isRead = request.httpMethod == "GET"
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch let error where OfflineCache.isOffline(error) {
+            // Kein Netz. Lesen: den letzten Stand zeigen, mit Datum. Schreiben:
+            // in den Postausgang, wenn der Aufrufer das erlaubt hat.
+            if isRead, let url = request.url, let cached = OfflineCache.load(for: url) {
+                await OfflineStatus.shared.servedFromCache(backend, fetchedAt: cached.fetchedAt)
+                return try decode(cached.data)
+            }
+            if queueWhenOffline {
+                await Outbox.shared.enqueue(request, backend: backend)
+                throw APIError.queued
+            }
+            throw APIError.offline
+        }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        // Der Dienst hat geantwortet - also ist Netz da. Was noch im
+        // Postausgang liegt, kann jetzt raus.
+        await OfflineStatus.shared.online(backend)
+        if await Outbox.shared.count > 0 {
+            Task { await Outbox.shared.replay() }
+        }
 
         // Fehlender Zugang sieht bei diesen Diensten nicht aus wie 401: der
         // Kalorienzaehler wird von nginx per 302 auf fherrmann.com geschickt,
@@ -94,6 +132,13 @@ struct APIClient: Sendable {
             // schlechtere Fehlermeldung von beiden.
             throw APIError.http(status, Self.shortMessage(from: data))
         }
+        if isRead, let url = request.url {
+            OfflineCache.store(data, for: url)
+        }
+        return try decode(data)
+    }
+
+    private func decode<T: Decodable>(_ data: Data) throws -> T {
         if T.self == Empty.self, let empty = Empty() as? T { return empty }
         do {
             return try Self.decoder().decode(T.self, from: data)

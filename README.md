@@ -39,6 +39,11 @@ Montag). Heute darf offen sein — die Sträh­ne reißt erst um Mitternacht.
 **Zugang** — kein Tab mehr, sondern ein Blatt hinter dem Zahnrad (oben links
 bei Noten und Habits, im „…"-Menü bei Essen und Gewicht).
 
+**Ohne Netz** zeigt jeder Tab den letzten Stand — mit Datum in einer Leiste,
+damit er nicht wie ein aktueller aussieht. Haken, Messwerte und Essenseinträge
+lassen sich trotzdem eintragen: sie warten in einem Postausgang und gehen beim
+nächsten Netz raus. Nachgerechnet wird bis dahin nichts.
+
 **Widget** — die heute noch übrigen Kalorien auf dem Homescreen, klein
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros).
 

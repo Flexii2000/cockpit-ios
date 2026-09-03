@@ -153,6 +153,30 @@ Start neu an (`/api/food/devices`), weil iOS sie gelegentlich austauscht.
 Unabhängig davon fragt die App weiter selbst nach, solange sie läuft: die
 Benachrichtigung ist ein Zustellweg, keine Voraussetzung.
 
+## Ohne Netz
+
+Zwei Dinge, beide in `Shared/Offline.swift`:
+
+**Lesen.** `APIClient` legt jede erfolgreiche GET-Antwort als Datei ab
+(`OfflineCache`, eine je Adresse samt Abfrageparametern, verschlüsselt bei
+gesperrtem Gerät). Scheitert eine Anfrage am **Transport** — kein Netz, kein
+Host, Timeout — kommt die Datei zurück, und `OfflineStatus` merkt sich je
+Dienst, von wann sie ist. Die Tabs zeigen das als Leiste: „Offline – Stand von
+02.09., 21:14". Bei 403 oder 500 gibt es keinen Rückgriff: der Dienst hat
+geantwortet.
+
+**Schreiben.** Änderungen, die später genauso gelten — Haken (mit Datum im
+Rumpf), Messwerte, Essenseinträge und deren Löschung — gehen mit
+`queueWhenOffline: true` in den `Outbox`; der Aufrufer bekommt
+`APIError.queued` und behandelt das als Erfolg. Nachgesendet wird der Reihe
+nach, sobald irgendeine Anfrage wieder durchkommt oder die App in den
+Vordergrund kehrt; wird der Ausgang leer, laden die Tabs neu. Bis dahin: alter
+Stand, Uhr statt Haken, „2 Änderungen warten auf Netz" in der Leiste.
+
+⚠️ **Die App rechnet offline nichts nach.** Keine lokale Sträh­ne, keine
+Tagessumme, keine Kachel. Das ist Absicht: die Regeln stehen in den Diensten,
+und ein zweiter Rechner im Client wäre ein zweiter Datenstand.
+
 ## Was die App bewusst nicht tut
 
 - **Keine eigene Datenhaltung.** Die Wahrheit steht in `food.json` und

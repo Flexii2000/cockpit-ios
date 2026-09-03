@@ -146,6 +146,11 @@ final class FoodStore {
             // haeufigsten Fall zum Nulltarif ab.
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
             return true
+        } catch APIError.queued {
+            // Liegt im Postausgang. Der Tag zeigt weiter den alten Stand -
+            // nachrechnen tut hier nichts, dafuer ist der Dienst da.
+            clearError()
+            return true
         } catch {
             report(error)
             return false
@@ -158,6 +163,8 @@ final class FoodStore {
             clearError()
             await loadHistory()
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
+        } catch APIError.queued {
+            clearError()
         } catch {
             report(error)
         }

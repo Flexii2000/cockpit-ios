@@ -22,12 +22,18 @@ struct HabitsAPI: Sendable {
     }
 
     /// Haken (Build) oder Rueckfall (Quit) fuer heute.
+    ///
+    /// Mit ausdruecklichem Datum, obwohl der Dienst „heute" auch ohne
+    /// versteht: liegt der Haken ohne Netz im Postausgang und geht erst morgen
+    /// raus, waere „heute" dann der falsche Tag.
     func mark(id: String) async throws -> HabitStatus {
-        try await client.send("POST", "/api/habits/\(id)/marks", body: MarkRequest(date: nil))
+        try await client.send("POST", "/api/habits/\(id)/marks",
+                              body: MarkRequest(date: CalendarDate.today().iso),
+                              queueWhenOffline: true)
     }
 
     func unmark(id: String, date: CalendarDate) async throws -> HabitStatus {
-        try await client.delete("/api/habits/\(id)/marks/\(date.iso)")
+        try await client.delete("/api/habits/\(id)/marks/\(date.iso)", queueWhenOffline: true)
     }
 
     private struct MarkRequest: Encodable {

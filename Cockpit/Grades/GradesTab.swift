@@ -28,6 +28,7 @@ struct GradesTab: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .grades) }
             .navigationTitle("Noten")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { AccessButton() }

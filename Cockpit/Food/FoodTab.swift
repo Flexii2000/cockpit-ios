@@ -48,10 +48,16 @@ struct FoodTab: View {
                     Section { LoadingPlaceholder() }
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .food) }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .refreshable { await store.load() }
+            // Ist der Postausgang leer geworden, kennt der Server Eintraege,
+            // die der Tag hier noch nicht zeigt.
+            .onChange(of: OfflineStatus.shared.pending) { before, after in
+                if before > 0, after == 0 { Task { await store.load() } }
+            }
             .task {
                 await store.load()
                 // Ein Auftrag, der beim letzten Beenden noch lief, rechnet auf

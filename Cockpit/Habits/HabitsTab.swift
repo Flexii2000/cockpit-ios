@@ -19,6 +19,7 @@ struct HabitsTab: View {
                     list
                 }
             }
+            .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .habits) }
             .navigationTitle("Habits")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -34,6 +35,11 @@ struct HabitsTab: View {
             }
             .refreshable { await store.load() }
             .task { await store.load() }
+            // Ist der Postausgang leer geworden, weiss der Server jetzt mehr
+            // als die Liste - also neu holen.
+            .onChange(of: OfflineStatus.shared.pending) { before, after in
+                if before > 0, after == 0 { Task { await store.load() } }
+            }
         }
     }
 
@@ -45,7 +51,7 @@ struct HabitsTab: View {
                     .listRowBackground(Color.clear)
             }
             ForEach(store.habits) { habit in
-                HabitRow(habit: habit) {
+                HabitRow(habit: habit, isPending: store.pendingIDs.contains(habit.id)) {
                     Task { await store.toggleToday(habit) }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -68,6 +74,8 @@ struct HabitsTab: View {
 struct HabitRow: View {
 
     let habit: HabitStatus
+    /// Der Haken liegt ohne Netz im Postausgang - eine Uhr statt des Hakens.
+    var isPending = false
     let toggle: () -> Void
 
     var body: some View {
@@ -136,6 +144,18 @@ struct HabitRow: View {
 
     @ViewBuilder
     private var trailing: some View {
+        if isPending {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.title2)
+                .foregroundStyle(.orange)
+                .accessibilityLabel("wartet auf Netz")
+        } else {
+            trailingByKind
+        }
+    }
+
+    @ViewBuilder
+    private var trailingByKind: some View {
         switch habit.kind {
         case .build:
             Button(action: toggle) {
