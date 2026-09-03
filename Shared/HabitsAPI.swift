@@ -7,7 +7,15 @@ import Foundation
 /// Neues einzutragen.
 struct HabitsAPI: Sendable {
 
-    private let client = APIClient(backend: .habits, timeout: 30)
+    private let client: APIClient
+
+    /// - Parameters:
+    ///   - cookie: nur fuer die Widget-Erweiterung, die keinen gemeinsamen
+    ///     Cookie-Speicher hat.
+    ///   - timeout: in einer Erweiterung ist das Zeitbudget knapp.
+    init(cookie: String? = nil, timeout: TimeInterval = 30) {
+        client = APIClient(backend: .habits, cookie: cookie, timeout: timeout)
+    }
 
     func list() async throws -> [HabitStatus] {
         try await client.get("/api/habits")

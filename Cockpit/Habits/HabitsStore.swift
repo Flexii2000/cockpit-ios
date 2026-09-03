@@ -1,4 +1,5 @@
 import Foundation
+import WidgetKit
 
 /// Haelt die Liste und schickt Haken und Rueckfaelle.
 @MainActor
@@ -70,6 +71,7 @@ final class HabitsStore {
                 name: name, kind: kind.rawValue, weeklyStepGoal: weeklyStepGoal))
             habits.append(created)
             errorMessage = nil
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.habits)
             return true
         } catch {
             report(error)
@@ -81,6 +83,7 @@ final class HabitsStore {
         do {
             try await api.delete(id: habit.id)
             habits.removeAll { $0.id == habit.id }
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.habits)
         } catch {
             report(error)
         }
@@ -91,6 +94,9 @@ final class HabitsStore {
             habits[index] = updated
         }
         errorMessage = nil
+        // Anstoss, keine Datenuebergabe - die Kachel holt sich selbst, was
+        // sie braucht (wie beim Kalorienzaehler).
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.habits)
     }
 
     private func report(_ error: Error) {

@@ -10,11 +10,22 @@ import WidgetKit
 struct WidgetPreviewTab: View {
 
     @State private var state: WidgetState = .unreachable(nil)
+    @State private var habits: HabitsWidgetState = .unreachable
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    beschriftet("Habits systemSmall") {
+                        HabitsWidgetView(family: .systemSmall, state: habits)
+                            .padding(14)
+                            .frame(width: 158, height: 158)
+                    }
+                    beschriftet("Habits systemMedium") {
+                        HabitsWidgetView(family: .systemMedium, state: habits)
+                            .padding(14)
+                            .frame(width: 338, height: 158)
+                    }
                     beschriftet("systemSmall – echte Daten") {
                         CaloriesWidgetView(family: .systemSmall, state: state)
                             .frame(width: 158, height: 158)
@@ -22,6 +33,15 @@ struct WidgetPreviewTab: View {
                     beschriftet("systemMedium – echte Daten") {
                         CaloriesWidgetView(family: .systemMedium, state: state)
                             .frame(width: 338, height: 158)
+                    }
+                    beschriftet("Sperrbildschirm – Ring und Rechteck") {
+                        HStack(spacing: 12) {
+                            CaloriesWidgetView(family: .accessoryCircular, state: state)
+                                .frame(width: 72, height: 72)
+                            CaloriesWidgetView(family: .accessoryRectangular, state: state)
+                                .frame(width: 172, height: 72)
+                        }
+                        .padding(8)
                     }
                     beschriftet("ohne Zugang") {
                         CaloriesWidgetView(family: .systemSmall, state: .noAccess)
@@ -53,6 +73,9 @@ struct WidgetPreviewTab: View {
         // Speicher, den `Access.applyCookies()` beim Start gefuellt hat.
         if let day = try? await FoodAPI().day(.today()) {
             state = .value(RemainingCalories(day: day))
+        }
+        if let list = try? await HabitsAPI().list() {
+            habits = .value(list, staleSince: OfflineStatus.shared.staleSince[.habits])
         }
     }
 }

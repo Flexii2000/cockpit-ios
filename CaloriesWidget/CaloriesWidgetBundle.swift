@@ -11,5 +11,6 @@ import WidgetKit
 struct CaloriesWidgetBundle: WidgetBundle {
     var body: some Widget {
         CaloriesWidget()
+        HabitsWidget()
     }
 }

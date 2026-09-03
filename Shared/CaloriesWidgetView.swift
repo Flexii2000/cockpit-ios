@@ -32,8 +32,69 @@ struct CaloriesWidgetView: View {
 
     var body: some View {
         switch family {
-        case .systemMedium: medium
-        default:            small
+        case .systemMedium:         medium
+        case .accessoryCircular:    circular
+        case .accessoryRectangular: rectangular
+        default:                    small
+        }
+    }
+
+    // MARK: - Sperrbildschirm
+
+    /// Ein Ring mit dem Rest in der Mitte. Der Sperrbildschirm faerbt selbst
+    /// (alles einfarbig), deshalb hier keine eigene Tonlage - „drueber" steht
+    /// als Plus davor, mehr Platz gibt es nicht.
+    private var circular: some View {
+        Group {
+            if let value {
+                Gauge(value: min(value.consumed.kcal, value.targets.kcal),
+                      in: 0...max(value.targets.kcal, 1)) {
+                    Image(systemName: "fork.knife")
+                } currentValueLabel: {
+                    Text(value.isOver ? "+\(abs(value.remaining.kcal).whole)" : abs(value.remaining.kcal).whole)
+                        .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                }
+                .gaugeStyle(.accessoryCircular)
+                .opacity(value.isStale() ? 0.5 : 1)
+            } else {
+                Image(systemName: state == .noAccess ? "lock" : "wifi.slash")
+                    .font(.title3)
+            }
+        }
+    }
+
+    /// Rest, Balken, Makros - drei Zeilen, so viel passt.
+    private var rectangular: some View {
+        Group {
+            if let value {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "fork.knife").font(.caption2)
+                        Text(value.isOver
+                             ? "\(abs(value.remaining.kcal).whole) kcal drüber"
+                             : "Noch \(abs(value.remaining.kcal).whole) kcal")
+                            .font(.headline.monospacedDigit())
+                        if value.isStale() {
+                            Text(value.date.short).font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    Gauge(value: min(value.consumed.kcal, value.targets.kcal),
+                          in: 0...max(value.targets.kcal, 1)) { EmptyView() }
+                        .gaugeStyle(.accessoryLinear)
+                    Text(Macro.allCases.map {
+                        "\($0.short) \($0.value(value.consumed).whole)"
+                    }.joined(separator: " · ") + " g")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .opacity(value.isStale() ? 0.6 : 1)
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: state == .noAccess ? "lock" : "wifi.slash")
+                    Text(state == .noAccess ? "Kein Zugang" : "Nicht erreichbar").font(.caption)
+                }
+            }
         }
     }
 

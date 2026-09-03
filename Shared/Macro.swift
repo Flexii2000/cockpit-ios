@@ -32,6 +32,15 @@ enum Macro: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
+    /// Fuer den Sperrbildschirm, wo eine Zeile drei Werte tragen muss.
+    var short: String {
+        switch self {
+        case .protein: "E"
+        case .fat:     "F"
+        case .carbs:   "KH"
+        }
+    }
+
     var label: String {
         switch self {
         case .protein: "Eiweiß"

@@ -106,6 +106,12 @@ struct RootView: View {
         .sheet(isPresented: $router.showsSetup) {
             SetupView()
         }
+        // Ein Tipp auf die Habits-Kachel (`.widgetURL`) - WidgetKit startet
+        // die App und reicht die Adresse durch, ein registriertes URL-Schema
+        // braucht es dafuer nicht.
+        .onOpenURL { url in
+            if url.host() == "habits" { router.show(.habits) }
+        }
         // Sichtschutz fuer den App-Umschalter. iOS macht die Vorschau in dem
         // Moment, in dem die App inaktiv wird - ohne diese Decke stuenden die
         // Kontostaende oder die Noten dort weiter offen, und die Sperre waere

@@ -58,7 +58,7 @@ Cockpit/            das App-Target
   Grades/           Noten: Modultabelle, Szenarien, Annahmen
   Habits/           Gewohnheiten: Flamme, Sträh­ne, Abhaken, Anlegen
 Shared/             was App UND Widget übersetzen
-CaloriesWidget/     die Home-Screen-Kachel (eigene Erweiterung)
+CaloriesWidget/     die Kacheln (eigene Erweiterung): Kalorien und Habits
 Tests/              Unit-Tests
 UITests/            XCUITest: tippen, wischen, scrollen, Screenshots
 project.yml         Quelle des Xcode-Projekts (XcodeGen)
@@ -109,7 +109,10 @@ App, wenn ein neuer Gewichtswert geschrieben wird. Ein Anker merkt sich, was
 schon geholt wurde, und wird erst **nach** erfolgreichem Senden gespeichert —
 sonst gingen Werte verloren, wenn der Server gerade nicht erreichbar war.
 
-**Das Widget.** Eine eigene Erweiterung, eigener Prozess, eigener Container.
+**Die Kacheln.** Eine Erweiterung mit zwei Widgets: Kalorien (Homebildschirm
+klein/mittel, Sperrbildschirm als Ring und Rechteck) und Habits (klein/mittel,
+ein Tipp öffnet über `widgetURL` den Habits-Tab). Eigener Prozess, eigener
+Container.
 Sie holt sich `/api/food/day` **selbst** und liest das Token aus der geteilten
 Keychain-Gruppe — die Vorgabegruppe der App, in der es ohnehin schon liegt.
 Cookies der App sieht sie nicht, sie hängt ihren eigenen an die Anfrage. Die

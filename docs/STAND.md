@@ -26,6 +26,16 @@
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
 
+## Vier neue Kacheln · **fertig** (2026-09-03)
+
+Kalorien auf dem Sperrbildschirm als Ring (`accessoryCircular`, Rest in der
+Mitte) und Rechteck (`accessoryRectangular`, Rest, Balken, Makros). Habits auf
+dem Homebildschirm klein (drei Zeilen) und mittel (vier): Flamme, Sträh­ne,
+Name, rechts Haken oder „30/70k". Ein Tipp führt über `widgetURL` in den
+Habits-Tab. Die Habits-Kachel holt ihre Liste selbst und bekommt ohne Netz die
+letzte Antwort aus dem Cache der Erweiterung — mit Datum. Angesehen im
+Vorschau-Tab (`COCKPIT_TAB=widget`).
+
 ## Absturz beim Antippen einer Benachrichtigung · **behoben** (2026-09-03)
 
 Felix' Fund: die Meldung der Schnellerfassung kam an, ein Tipp darauf

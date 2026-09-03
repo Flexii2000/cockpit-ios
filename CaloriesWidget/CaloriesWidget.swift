@@ -9,16 +9,15 @@ struct CaloriesWidget: Widget {
                 // die Kachel steht in der Galerie und bleibt auf dem
                 // Homebildschirm ein leeres Rechteck.
                 .containerBackground(.fill.tertiary, for: .widget)
-                // Bewusst ohne .widgetURL: die App macht ohnehin im Essen-Tab
-                // auf (TabSelection.initial). Ein eigenes URL-Schema braeuchte
-                // CFBundleURLTypes - eine Liste von Woerterbuechern, die sich
-                // nicht als INFOPLIST_KEY_ ausdruecken laesst, also eine
-                // vollstaendige Info.plist von Hand. Dafuer ist der Gewinn zu
-                // klein.
+                // Ohne .widgetURL: die App macht ohnehin im Essen-Tab auf
+                // (TabSelection.initial). Die Habits-Kachel hat eine - dort
+                // waere der Essen-Tab der falsche Ort.
         }
         .configurationDisplayName("Kalorien")
         .description("Wie viel du heute noch übrig hast.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        // Dazu die beiden Formen des Sperrbildschirms: der Ring neben der Uhr,
+        // das Rechteck darunter.
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular])
     }
 }
 

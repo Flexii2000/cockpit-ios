@@ -44,8 +44,11 @@ damit er nicht wie ein aktueller aussieht. Haken, Messwerte und Essenseinträge
 lassen sich trotzdem eintragen: sie warten in einem Postausgang und gehen beim
 nächsten Netz raus. Nachgerechnet wird bis dahin nichts.
 
-**Widget** — die heute noch übrigen Kalorien auf dem Homescreen, klein
-(Tacho und Zahl) oder mittel (zusätzlich die drei Makros).
+**Widgets** — die heute noch übrigen Kalorien auf dem Homescreen, klein
+(Tacho und Zahl) oder mittel (zusätzlich die drei Makros), und auf dem
+**Sperrbildschirm** als Ring neben der Uhr oder als Rechteck mit Balken und
+Makros. Dazu die **Habits** auf dem Homescreen, klein (drei) oder mittel
+(vier) mit Flamme, Sträh­ne und dem Stand von heute.
 
 | | |
 |---|---|
