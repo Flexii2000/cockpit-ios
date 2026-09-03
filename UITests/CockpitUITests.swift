@@ -224,6 +224,40 @@ final class CockpitUITests: XCTestCase {
         return XCTWaiter.wait(for: [erwartung], timeout: 10) == .completed
     }
 
+    /// Ein Tipp auf eine Benachrichtigung darf die App nicht umbringen.
+    ///
+    /// Die Benachrichtigung kommt von aussen (`xcrun simctl push`), nicht aus
+    /// dem Test - der wartet nur darauf. Deshalb nur mit COCKPIT_PUSH_TEST=1,
+    /// sonst ueberspringt er sich; wie man ihn faehrt, steht in
+    /// tools/pushtest.sh.
+    func testTappingAPushNotificationDoesNotCrashTheApp() throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["COCKPIT_PUSH_TEST"] != "1",
+                      "nur mit tools/pushtest.sh")
+        // Erlaubnis erfragen lassen und den Systemdialog wegtippen - ohne sie
+        // zeigt der Simulator keine Benachrichtigung.
+        let app = start(tab: "food", extra: ["COCKPIT_ASK_PUSH": "1"])
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons["Allow"].exists ? springboard.buttons["Allow"]
+                                                         : springboard.buttons["Erlauben"]
+        if allow.waitForExistence(timeout: 10) { allow.tap() }
+        XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 20))
+        XCUIDevice.shared.press(.home)
+
+        // Der Titel kommt aus der Nutzlast, die tools/pushtest.sh schickt.
+        let title = ProcessInfo.processInfo.environment["COCKPIT_PUSH_TITLE"] ?? "Vorschlag ist fertig"
+        let banner = springboard.staticTexts[title]
+        XCTAssertTrue(banner.waitForExistence(timeout: 90), "keine Benachrichtigung angekommen")
+        shoot(app, "push-banner")
+        banner.tap()
+
+        // Der Tipp bringt die App nach vorn - oder eben nicht.
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15),
+                      "App laeuft nach dem Tipp nicht im Vordergrund (Zustand \(app.state.rawValue))")
+        sleep(2)
+        XCTAssertEqual(app.state, .runningForeground, "App ist nach dem Tipp weg")
+        shoot(app, "push-getippt")
+    }
+
     func testWeightTabShowsStepsCardBelowTheChart() {
         let app = start(tab: "weight")
         XCTAssertTrue(app.staticTexts["Gewicht"].waitForExistence(timeout: 20))

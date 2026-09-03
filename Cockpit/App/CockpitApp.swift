@@ -24,6 +24,11 @@ struct CockpitApp: App {
                     // Die Kennung kann sich geaendert haben - deshalb bei
                     // jedem Start neu melden, aber ohne Nachfrage.
                     await Notifications.registerForPushIfAllowed()
+                    #if DEBUG
+                    if ProcessInfo.processInfo.environment["COCKPIT_ASK_PUSH"] == "1" {
+                        await Notifications.requestPermission()
+                    }
+                    #endif
                 }
         }
     }

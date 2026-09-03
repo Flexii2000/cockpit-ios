@@ -19,9 +19,19 @@ enum Notifications {
         switch settings.authorizationStatus {
         case .notDetermined:
             #if DEBUG
-            if ProcessInfo.processInfo.environment["COCKPIT_NO_PUSH"] == "1" { return false }
+            // COCKPIT_ASK_PUSH=1 fragt trotz COCKPIT_NO_PUSH nach der
+            // Erlaubnis - ohne sie zeigt der Simulator keine Benachrichtigung,
+            // und tools/pushtest.sh haette nichts anzutippen. Angemeldet wird
+            // deshalb noch lange nicht: die Kennung bliebe sonst wieder in
+            // data/devices.json des food-Backends liegen.
+            let environment = ProcessInfo.processInfo.environment
+            let noPush = environment["COCKPIT_NO_PUSH"] == "1"
+            if noPush, environment["COCKPIT_ASK_PUSH"] != "1" { return false }
             #endif
             let granted = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+            #if DEBUG
+            if noPush { return granted }
+            #endif
             if granted {
                 // Erst ab hier darf ueberhaupt etwas zugestellt werden - also
                 // auch erst ab hier beim Push-Dienst anmelden.

@@ -26,6 +26,16 @@
 > `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
 > bei Apple: 02.09.2027, 99 €/Jahr.
 
+## Absturz beim Antippen einer Benachrichtigung · **behoben** (2026-09-03)
+
+Felix' Fund: die Meldung der Schnellerfassung kam an, ein Tipp darauf
+beendete die App. Reproduziert mit `tools/pushtest.sh` (`simctl push` plus
+UI-Test, der die Meldung antippt): die `async`-Fassung von
+`userNotificationCenter(_:didReceive:)` lief als `nonisolated` auf einem
+Hintergrund-Executor, UIKit brach in der Fertig-Meldung mit einer Assertion
+ab. Jetzt Completion-Handler; beide Nutzlasten (Kalorienzähler, Noten)
+laufen durch, der Noten-Tipp landet auf dem Noten-Tab.
+
 ## Offline · **fertig** (2026-09-03)
 
 Ohne Netz zeigt jeder native Tab den letzten Stand mit Datum in einer Leiste;

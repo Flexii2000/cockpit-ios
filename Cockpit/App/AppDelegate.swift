@@ -45,32 +45,42 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
     // MARK: - Benachrichtigungen
 
-    /// Auch anzeigen, wenn die App gerade offen ist.
+    /// Beide Rueckrufe als Completion-Handler-Variante, NICHT als `async`.
     ///
-    /// Ohne das verschluckt iOS die Meldung im Vordergrund. Beim
-    /// Kalorienzaehler faellt das nicht auf - dort fragt die App ohnehin
-    /// nach. Eine neue Note dagegen kaeme nie an, waehrend man in der App
-    /// haengt.
-    ///
-    /// `nonisolated`, weil dieser Delegat - anders als der der App - nicht an
-    /// den Hauptfaden gebunden ist. Ohne das Schluesselwort verlangt Swift 6,
-    /// dass `UNNotification` versendbar waere; sie ist es nicht.
+    /// Der Grund ist ein Absturz, den der Simulator-Test gefunden hat: die
+    /// `async`-Fassung laeuft als `nonisolated` auf einem Hintergrund-Executor,
+    /// und die Fertig-Meldung, die Swift daraus fuer UIKit baut, kommt damit
+    /// vom falschen Thread. UIKit erledigt darin die Zustandssicherung der App
+    /// und bricht mit einer Assertion ab - jeder Tipp auf eine Meldung
+    /// beendete die App. Mit dem Completion-Handler wird er auf dem Thread
+    /// gerufen, auf dem der Rueckruf kam. `nonisolated`, weil die Klasse
+    /// ueber `UIApplicationDelegate` an den Hauptakteur gebunden ist und die
+    /// Meldung selbst nicht versendbar ist; der Hauptakteur kommt nur fuer das
+    /// Umschalten des Tabs ins Spiel.
+
+    /// Auch anzeigen, wenn die App gerade offen ist. Ohne das verschluckt iOS
+    /// die Meldung im Vordergrund - eine neue Note kaeme nie an, waehrend man
+    /// in der App haengt.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .sound]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
     /// Ein Tipp auf die Meldung fuehrt dorthin, wovon sie handelt.
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         // Die Art hier herausziehen und nur sie hinueberreichen: die Meldung
         // selbst ist nicht versendbar, eine Zeichenkette schon.
         let kind = response.notification.request.content.userInfo["kind"] as? String
-        guard kind == "grade" else { return }
-        await MainActor.run { Router.shared.show(.grades) }
+        if kind == "grade" {
+            Task { @MainActor in Router.shared.show(.grades) }
+        }
+        completionHandler()
     }
 }

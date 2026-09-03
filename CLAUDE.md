@@ -105,7 +105,20 @@ offensichtlich sind und je einen halben Anlauf gekostet haben:
   muss sie erst wegraeumen (`clearAssumptions`).
 
 Was der Harness **nicht** kann: Systemdialoge (Health, Face ID) bedienen —
-dafür sind die Debug-Schalter da.
+dafür sind die Debug-Schalter da. Den Benachrichtigungs-Dialog kann er
+(Springboard-Alert), und Benachrichtigungen selbst kommen von aussen:
+
+```bash
+tools/pushtest.sh                  # schickt eine Kalorienzaehler-Meldung, tippt sie an
+tools/pushtest.sh nutzlast.json    # dasselbe mit eigener Nutzlast (z. B. "kind":"grade")
+```
+
+`simctl push` stellt sie zu, der UI-Test tippt sie an und prueft, dass die
+App danach noch laeuft. So wurde der Absturz beim Antippen gefunden: die
+`async`-Fassung eines `UNUserNotificationCenterDelegate`-Rueckrufs laeuft als
+`nonisolated` auf einem Hintergrund-Executor, und UIKit bricht in der
+Fertig-Meldung mit einer Assertion ab. **Delegaten-Rueckrufe, die UIKit
+abschliesst, als Completion-Handler schreiben, nicht `async`.**
 
 Der Simulator allein kann **nicht tippen, wischen oder scrollen**. Alles, was
 hinter einer Geste liegt, ist ohne den Harness nicht zu sehen — dafür gibt es
@@ -120,6 +133,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |
 | `COCKPIT_FORCE_LOCK=1` | Sperrbildschirm erzwingen (im Simulator ist kein Gesicht hinterlegt) |
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
+| `COCKPIT_ASK_PUSH=1` | fragt trotzdem nach der Benachrichtigungs-Erlaubnis (ohne sie zeigt der Simulator nichts an), meldet aber weiterhin keine Kennung an — fuer `pushtest.sh` |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
