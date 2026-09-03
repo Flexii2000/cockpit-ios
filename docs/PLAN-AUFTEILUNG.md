@@ -163,6 +163,51 @@ Nicht Teil des Schnitts; hier nur, damit die Struktur sie schon vorsieht.
   Eigener Plan, wenn es so weit ist — mit Migration der bestehenden Gerichte,
   die heute nur Werte je 100 g haben.
 
+### Einkaufsliste: Zugang für eine zweite Person
+
+Felix' Freundin soll die Einkaufsliste bedienen können — **und sonst nichts.**
+Das verträgt sich nicht mit dem heutigen Modell (`SERVER-CONTEXT.md`: „ein
+Token, ein Cookie, alles-oder-nichts"): wer `fh_private` hat, hat den
+Kalorienzähler, den Statusboard-Privatteil, Habits. Deshalb:
+
+- **Eigener Dienst, eigene Token.** Die Einkaufsliste wird ein eigener
+  Spring-Dienst (`fherrmann.com/einkauf`, Bauart wie `habits`) und liegt
+  **nicht** hinter dem Privat-Gate. Er prüft seine eigenen Token — eine kleine
+  Liste in seiner Umgebung, je Token ein Name und ob es schreiben darf
+  (`EINKAUF_TOKENS=felix:…:edit,freundin:…:edit`). Gerichte und Zutaten liest
+  er serverseitig aus dem Kalorienzähler, mit Felix' Privat-Token aus seiner
+  eigenen Umgebung — genau wie `habits` die Schritte liest. Ihr Token öffnet
+  damit nur diesen einen Dienst, und der Dienst gibt vom Kalorienzähler nur
+  weiter, was die Liste braucht (Namen, Mengen), keine Tagebucheinträge.
+- **Die App zeigt, wofür ein Token da ist.** Kein Rollenmodell, kein
+  Anmelden: Healthy zeigt den Essen- und Gewicht-Tab, wenn `fh_private` und
+  `weight_app_token` im Keychain liegen, und den Einkaufs-Tab, wenn ein
+  Einkaufs-Token da ist. Felix trägt alle ein; sie trägt eines ein und sieht
+  eine App mit einem Tab. Das Zugang-Blatt bekommt dafür je Dienst einen
+  eigenen Abschnitt mit eigenem Speichern (heute hängen Privat- und
+  Gewichts-Token an einem Knopf). Die Kalorien-Kachel zeigt auf ihrem Gerät
+  „Kein Zugang" — richtig so, aber sie sollte sie gar nicht erst auflegen
+  müssen: Kacheln nur anbieten, wenn der Zugang dafür da ist, geht mit
+  WidgetKit nicht — also in der Beschreibung der Kachel sagen, wofür sie ist.
+- **Zwei Personen, eine Liste.** Der Dienst führt **eine** Liste, beide
+  Token schreiben in dieselbe; wer etwas abgehakt hat, steht am Eintrag
+  (Name des Tokens). Kein Konfliktmodell darüber hinaus — abhaken ist
+  idempotent, und der Postausgang der App reicht dafür aus.
+- **Wie die App auf ihr Handy kommt.** Ein Entwickler-Install wie heute
+  bräuchte ihr Gerät im Developer-Konto und den Mac in Reichweite - bei
+  jedem Update. **TestFlight** ist der Weg für eine zweite Person: einmal
+  eine App-Store-Connect-Eintragung für Healthy, dann Builds hochladen,
+  sie installiert über die TestFlight-App. ⚠️ TestFlight-Builds sprechen
+  den APNs-**Produktionshost**; `food.env` hat heute die Sandbox
+  (`SERVER-CONTEXT.md`). Sobald Healthy über TestFlight läuft — auch auf
+  Felix' Gerät — muss `APNS_HOST` dort umgestellt werden, sonst kommt nur
+  `BadDeviceToken`.
+
+**Offen, Felix entscheidet:** ob sie auch Gerichte anlegen/ändern darf
+(dann bräuchte ihr Token Schreibzugriff auf den Kalorienzähler, was das
+Modell wieder aufweicht) oder nur die Liste bedient — Vorschlag: nur die
+Liste; neue Gerichte pflegt Felix, sie ergänzt freie Einträge („Milch").
+
 ## Risiken und wie sie abgefangen sind
 
 | Risiko | Abfangen |
