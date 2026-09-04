@@ -266,9 +266,11 @@ ECTS-gewichtet, Bachelorthesis dreifach) steht in `berechnung.py` und darf
 
 **Push:** `../grades/app/bin/notenwache.py` vergleicht alle fünf Minuten den
 Notenchecker-Snapshot mit dem zuletzt gesehenen Stand und schickt neue Noten
-selbst über APNs (eigener Schlüssel, nicht über das food-Backend). Die
-Nutzlast trägt `"kind": "grade"` — daran erkennt der `AppDelegate`, welcher
-Tab sich öffnen soll.
+selbst über APNs (eigener Schlüssel, nicht über das food-Backend) — an
+**Vault** (`APNS_TOPIC=com.fherrmann.vault` in `grades.env`). Die Nutzlast
+trägt `"kind": "grade"`; Vaults `AppDelegate` schaltet daraufhin auf den
+Noten-Tab. Der Kalorienzähler schickt weiter an `com.fherrmann.cockpit`,
+also an Healthy.
 
 ## Habits — `/habits/api/habits`
 

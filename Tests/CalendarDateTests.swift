@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Die beiden Datumsformate sind der Stolperstein an der Schnittstelle
 /// (siehe docs/BACKENDS.md) - deshalb haben sie Tests und nichts anderes

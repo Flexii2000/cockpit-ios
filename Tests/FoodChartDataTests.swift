@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Genau die drei Fehler, die im Verlauf des Kalorienzaehlers steckten -
 /// alle drei mit derselben Ursache: der Zeitbereich kam aus den vorhandenen

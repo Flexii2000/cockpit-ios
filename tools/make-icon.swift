@@ -4,20 +4,32 @@
 // woraus das Icon besteht, und eine Farbaenderung ist eine Zeile statt einer
 // neuen Bilddatei aus einem Grafikprogramm.
 //
-//   swift tools/make-icon.swift Cockpit/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+//   swift tools/make-icon.swift <healthy|vault|fokus> <pfad/icon-1024.png>
 //
-// Motiv: ein Instrument, wie man es in einem Cockpit erwartet. Der Bogen ist
-// in drei Abschnitte geteilt - einer je Dienst, in den Farben, die der
-// Kalorienzaehler schon fuer seine Tachos benutzt. Bewusst grob: bei 60 px auf
-// dem Homebildschirm ueberlebt nur, was kraeftig ist.
+// Motiv: ein Instrument, wie man es in einem Cockpit erwartet - dasselbe fuer
+// alle drei Apps, damit man sie als Familie erkennt. Unterschieden werden sie
+// ueber den Hintergrund: Healthy gruen, Vault dunkelblau, Fokus orange.
+// Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
+// ist.
 
 import AppKit
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 
-let outputPath = CommandLine.arguments.count > 1
-    ? CommandLine.arguments[1] : "icon-1024.png"
+guard CommandLine.arguments.count > 2 else {
+    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus> <pfad/icon-1024.png>")
+}
+let variant = CommandLine.arguments[1]
+let outputPath = CommandLine.arguments[2]
+
+/// Der Hintergrund je App - alles andere ist gleich.
+let backgroundColors: (UInt32, UInt32) = switch variant {
+case "healthy": (0x1E4D33, 0x0B1F14)
+case "vault":   (0x1B2334, 0x0B0F19)
+case "fokus":   (0x8A4A12, 0x3A1E07)
+default: fatalError("Unbekannte App: \(variant)")
+}
 
 let size = 1024
 let space = CGColorSpaceCreateDeviceRGB()
@@ -40,7 +52,7 @@ let side = CGFloat(size)
 // Hintergrund: der Farbton, den die Weboberflaechen schon benutzen (#0f1420),
 // als leichter Verlauf, damit die Flaeche nicht tot wirkt.
 let background = CGGradient(colorsSpace: space,
-                            colors: [rgb(0x1B2334), rgb(0x0B0F19)] as CFArray,
+                            colors: [rgb(backgroundColors.0), rgb(backgroundColors.1)] as CFArray,
                             locations: [0, 1])!
 ctx.drawLinearGradient(background,
                        start: CGPoint(x: 0, y: side),

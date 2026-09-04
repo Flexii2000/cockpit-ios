@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Baut die App fuer den Simulator und laesst die Tests laufen.
+# Baut alle drei Apps fuer den Simulator und laesst die Unit-Tests laufen.
 # Das ist der einzige gueltige Beleg dafuer, dass etwas funktioniert -
 # "sieht richtig aus" zaehlt nicht (siehe CLAUDE.md).
+#
+#   tools/verify.sh            # alle drei
+#   tools/verify.sh Vault      # nur eine (schneller, wenn man an einer arbeitet)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -10,9 +13,6 @@ cd "$(dirname "$0")/.."
 # project.yml nie ankommt - und sucht den Fehler im Code.
 tools/bootstrap.sh >/dev/null
 
-# Simulator nicht fest verdrahten: die Namen aendern sich mit jeder
-# iOS-Version, und ein fest eingetragenes "iPhone 16" laesst das Skript
-# ein halbes Jahr spaeter grundlos scheitern.
 SIM=$(xcrun simctl list devices available \
       | grep -oE '^\s+iPhone [^(]+' | head -1 | xargs)
 if [ -z "$SIM" ]; then
@@ -21,14 +21,19 @@ if [ -z "$SIM" ]; then
     exit 1
 fi
 echo "Simulator: $SIM"
+DEST="platform=iOS Simulator,name=$SIM"
+pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-# Bewusst NUR die Unit-Tests. Die UI-Tests dauern Minuten und koennen
-# flackern; dieses Tor traegt laut CLAUDE.md jede Behauptung "es baut" und
-# muss deshalb schnell und verlaesslich bleiben. Fuer die UI-Tests gibt es
-# tools/ui-tests.sh.
-xcodebuild test \
-    -project Cockpit.xcodeproj \
-    -scheme Cockpit \
-    -only-testing:CockpitTests \
-    -destination "platform=iOS Simulator,name=$SIM" \
-    | (command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat)
+APPS="${1:-Healthy Vault Fokus}"
+for APP in $APPS; do
+    echo "== $APP =="
+    if [ "$APP" = "Healthy" ]; then
+        # Die Unit-Tests haengen an Healthy (sie pruefen Shared und Core).
+        # Bewusst NUR die: UI-Tests dauern Minuten - dafuer gibt es uitest.sh.
+        xcodebuild test -project Cockpit.xcodeproj -scheme Healthy \
+            -only-testing:CockpitTests -destination "$DEST" | pretty
+    else
+        xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
+            -destination "$DEST" | pretty
+    fi
+done

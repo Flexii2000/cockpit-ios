@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Die Rechnerei hinter der Kachel. Sie liegt neben der View, weil sie sonst
 /// nicht zu pruefen waere - und weil hier der Unterschied zwischen einer alten

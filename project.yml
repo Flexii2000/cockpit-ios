@@ -1,14 +1,18 @@
 # Quelle des Xcode-Projekts. Die .xcodeproj wird daraus erzeugt und ist
 # NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
 #
-# Neue Swift-Datei hinzufuegen: Datei unter Cockpit/, Shared/ oder
-# CaloriesWidget/ anlegen und tools/bootstrap.sh laufen lassen. Fertig - hier
-# ist nichts zu pflegen, weil ganze Ordner eingebunden sind, keine
-# Einzeldateien.
+# Drei Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
+#   Healthy  - Essen, Gewicht            com.fherrmann.cockpit (die alte ID, bleibt)
+#   Vault    - Noten, Finanzen           com.fherrmann.vault
+#   Fokus    - Habits                    com.fherrmann.fokus
 #
-# Shared/ ist das, was App UND Widget uebersetzen. Was dort liegt, darf nichts
-# benutzen, das es in einer App-Erweiterung nicht gibt - UIApplication.shared
-# etwa ist dort gesperrt (deshalb bleibt Notifications.swift in Cockpit/Core).
+# Neue Swift-Datei hinzufuegen: Datei in den passenden Ordner legen und
+# tools/bootstrap.sh laufen lassen. Ganze Ordner sind eingebunden, keine
+# Einzeldateien:
+#   Shared/   was Apps UND Erweiterungen uebersetzen - darf nichts benutzen,
+#             das es in einer App-Erweiterung nicht gibt (UIApplication.shared)
+#   Core/     was alle drei Apps brauchen, aber keine Erweiterung
+#   <App>/    nur diese App
 name: Cockpit
 
 options:
@@ -27,147 +31,255 @@ settings:
     # Signieren. Steht hier und nicht nur in der .xcodeproj, weil die
     # generiert wird - eine Einstellung, die man in Xcode anklickt, waere
     # beim naechsten bootstrap.sh wieder weg.
-    #
-    # Derzeit das kostenlose Personal Team: die App laeuft damit nur SIEBEN
-    # TAGE, danach neu installieren. Sobald die Aufnahme ins Apple Developer
-    # Program durch ist, hier die Team-ID der bezahlten Mitgliedschaft
-    # eintragen - dann wird ein Jahr daraus.
     DEVELOPMENT_TEAM: ZWFV263P59
     CODE_SIGN_STYLE: Automatic
     # Auf Projektebene, damit App und Erweiterung dieselbe Version tragen.
     # Driften sie auseinander, weist iOS die Installation ab - mit einer
     # Meldung ueber CFBundleShortVersionString, die die App nennt und nicht
     # die Erweiterung.
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "0.2.0"
     CURRENT_PROJECT_VERSION: "1"
     # Ohne das findet der Build den Asset-Katalog zwar, benutzt sein Icon aber
     # nicht - auf dem Homebildschirm bliebe ein weisses Feld.
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
+# Was alle drei Apps gemeinsam haben - einmal hier, dreimal eingehaengt.
+# XcodeGen versteht YAML-Anker; ohne sie stuende jeder Block dreimal da.
+_app_settings: &app_settings
+  INFOPLIST_KEY_UILaunchScreen_Generation: YES
+  INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+  # Nur Hochkant, nur iPhone.
+  INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+  TARGETED_DEVICE_FAMILY: "1"
+
+# Die geteilte Keychain-Gruppe: einmal Token eingeben, in allen drei Apps da.
+# Jede App traegt zusaetzlich ihre eigene Vorgabegruppe - Healthy braucht die
+# alte, um die vorhandenen Eintraege in die geteilte zu holen
+# (Access.migrateToSharedGroup).
+_shared_group: &shared_group $(AppIdentifierPrefix)com.fherrmann.shared
+
+_widget_info: &widget_info
+  # Der Bezeichner muss UNTER NSExtension stehen. Auf oberster Ebene baut
+  # und signiert alles, und die Installation bricht mit "Invalid placeholder
+  # attributes" ab - einer Meldung, die nichts ueber Erweiterungen sagt.
+  NSExtension:
+    NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  # XcodeGen schreibt sonst hart "1.0"/"1" hinein und ueberstimmt damit
+  # MARKETING_VERSION - die Erweiterung traegt dann eine andere Version als
+  # die App, und iOS weist die Installation ab.
+  CFBundleShortVersionString: $(MARKETING_VERSION)
+  CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+
 targets:
-  Cockpit:
+  # ---------------------------------------------------------------- Healthy
+  Healthy:
     type: application
     platform: iOS
     sources:
-      - path: Cockpit
-      # Was auch das Widget uebersetzt. Ganzer Ordner, keine Einzeldateien -
-      # sonst faellt beim naechsten geteilten Typ genau eine Zeile aus.
+      - path: Healthy
+      - path: Core
       - path: Shared
     dependencies:
-      # embed: true legt die .appex nach Cockpit.app/PlugIns/. Ohne das baut
-      # die Erweiterung zwar, aber iOS findet sie nie - die App startet, und
-      # in der Widget-Galerie steht nichts.
-      - target: CaloriesWidget
+      # embed: true legt die .appex nach Healthy.app/PlugIns/. Ohne das baut
+      # die Erweiterung zwar, aber iOS findet sie nie.
+      - target: HealthyWidget
         embed: true
     entitlements:
-      path: Cockpit/Cockpit.entitlements
+      path: Healthy/Healthy.entitlements
       properties:
-        # Lesen von Gesundheitsdaten. Braucht die bezahlte Mitgliedschaft -
-        # mit dem Personal Team laesst sich das nicht signieren.
+        # Lesen von Gesundheitsdaten. Braucht die bezahlte Mitgliedschaft.
         com.apple.developer.healthkit: true
-        # Eigener Schluessel, und genau der Teil, der zaehlt: damit weckt iOS
-        # die App, wenn ein neuer Gewichtswert geschrieben wird - auch wenn
-        # sie beendet ist.
+        # Damit weckt iOS die App, wenn ein neuer Gewichtswert geschrieben
+        # wird - auch wenn sie beendet ist.
         com.apple.developer.healthkit.background-delivery: true
-        # Push. "development" passt zu einer Entwicklungssignatur; die
-        # Geraetekennungen daraus kennt NUR die APNs-Sandbox. Fuer TestFlight
-        # oder App Store muesste hier "production" stehen - und der Server
-        # muesste auf den anderen Host zeigen.
+        # "development" passt zu einer Entwicklungssignatur; die Kennungen
+        # daraus kennt NUR die APNs-Sandbox.
         aps-environment: development
-        # Die Gruppe ist die VORGABEGRUPPE der App (<Team-Praefix>.<Bundle-ID>):
-        # die vorhandenen Token liegen bereits darin, es zieht nichts um. Ohne
-        # diesen Eintrag kaeme die Erweiterung - eigene Bundle-ID - nicht heran.
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.fherrmann.cockpit
+          - *shared_group
     settings:
       base:
+        <<: *app_settings
+        # Die alte ID: Health-Berechtigung, Push beim Kalorienzaehler und die
+        # vorhandenen Kalorien-Kacheln bleiben damit unangetastet.
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit
+        INFOPLIST_KEY_CFBundleDisplayName: Healthy
         # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
         # App beim ersten HealthKit-Aufruf.
-        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit dein Gewicht und deine Schritte aus Health automatisch im Cockpit landen.
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit dein Gewicht und deine Schritte aus Health automatisch in Healthy landen.
+
+  HealthyWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: HealthyWidget
+      - path: Shared
+    entitlements:
+      path: HealthyWidget/HealthyWidget.entitlements
+      properties:
+        keychain-access-groups:
+          - *shared_group
+    info:
+      path: HealthyWidget/Info.plist
+      properties: *widget_info
+    settings:
+      base:
+        # Bleibt: so behalten die Kacheln, die schon auf dem Homebildschirm
+        # liegen, ihre Erweiterung.
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.widget
+        INFOPLIST_KEY_CFBundleDisplayName: Healthy
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        SKIP_INSTALL: YES
+
+  # ------------------------------------------------------------------ Vault
+  Vault:
+    type: application
+    platform: iOS
+    sources:
+      - path: Vault
+      - path: Core
+      - path: Shared
+    entitlements:
+      path: Vault/Vault.entitlements
+      properties:
+        aps-environment: development
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.fherrmann.vault
+          - *shared_group
+    settings:
+      base:
+        <<: *app_settings
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.vault
+        INFOPLIST_KEY_CFBundleDisplayName: Vault
         # Ohne diesen Schluessel beendet iOS die App, sobald sie Face ID
         # anfordert - nicht mit einer Fehlermeldung, sondern hart.
-        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit deine Finanzen nicht offen daliegen, wenn jemand anders das Handy in der Hand hat.
-        # Keine Schreib-Erklaerung, solange nicht geschrieben wird: mit ihr
-        # sagt iOS im Dialog "zugreifen und sie aktualisieren" - und das waere
-        # zu viel versprochen. Kommt der Rueckweg, kommt sie wieder.
-        INFOPLIST_KEY_CFBundleDisplayName: Cockpit
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        # Nur Hochkant, nur iPhone: die drei Weboberflaechen sind fuers Handy
-        # gebaut, Querformat brachte nie etwas.
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit Noten und Finanzen nicht offen daliegen, wenn jemand anders das Handy in der Hand hat.
 
-        TARGETED_DEVICE_FAMILY: "1"
-        # Keine ATS-Ausnahme noetig: alle drei Domains haben gueltige
-        # Let's-Encrypt-Zertifikate und sprechen HTTPS.
+  # ------------------------------------------------------------------ Fokus
+  Fokus:
+    type: application
+    platform: iOS
+    sources:
+      - path: Fokus
+      - path: Core
+      - path: Shared
+    dependencies:
+      - target: FokusWidget
+        embed: true
+    entitlements:
+      path: Fokus/Fokus.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.fherrmann.fokus
+          - *shared_group
+    settings:
+      base:
+        <<: *app_settings
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.fokus
+        INFOPLIST_KEY_CFBundleDisplayName: Fokus
 
+  FokusWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: FokusWidget
+      - path: Shared
+    entitlements:
+      path: FokusWidget/FokusWidget.entitlements
+      properties:
+        keychain-access-groups:
+          - *shared_group
+    info:
+      path: FokusWidget/Info.plist
+      properties: *widget_info
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.fokus.widget
+        INFOPLIST_KEY_CFBundleDisplayName: Fokus
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        SKIP_INSTALL: YES
+
+  # ------------------------------------------------------------------ Tests
+  # Ein Bundle fuer alle Unit-Tests: sie pruefen Shared und Core, und die
+  # liegen in jeder App. Healthy ist der Wirt, weil sie alles davon uebersetzt.
   CockpitTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: Tests
     dependencies:
-      - target: Cockpit
+      - target: Healthy
 
-  CaloriesWidget:
-    type: app-extension
-    platform: iOS
-    sources:
-      - path: CaloriesWidget
-      - path: Shared
-    entitlements:
-      path: CaloriesWidget/CaloriesWidget.entitlements
-      properties:
-        keychain-access-groups:
-          - $(AppIdentifierPrefix)com.fherrmann.cockpit
-    info:
-      path: CaloriesWidget/Info.plist
-      properties:
-        # Der Bezeichner muss UNTER NSExtension stehen. Auf oberster Ebene
-        # baut und signiert alles, und die Installation bricht mit "Invalid
-        # placeholder attributes" ab - einer Meldung, die nichts ueber
-        # Erweiterungen sagt.
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
-        # XcodeGen schreibt sonst hart "1.0"/"1" hinein und ueberstimmt damit
-        # MARKETING_VERSION. Die Erweiterung traegt dann eine andere Version
-        # als die App, und iOS weist die Installation ab - mit einer Meldung
-        # ueber CFBundleShortVersionString, die die App nennt.
-        CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.widget
-        INFOPLIST_KEY_CFBundleDisplayName: Cockpit
-        # Die Erweiterung hat kein eigenes Symbol - sie erscheint unter dem
-        # der App.
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
-        SKIP_INSTALL: YES
-
-  CockpitUITests:
+  # Je App ein UI-Test-Bundle - XCUIApplication() ist immer die App, an der
+  # das Bundle haengt. Der Harness (start, scrollDown, shoot ...) liegt in
+  # UITests/Harness.swift und wird in alle drei eingebunden.
+  HealthyUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
-      - path: UITests
+      - path: UITests/Harness.swift
+      - path: UITests/HealthyUITests.swift
     dependencies:
-      - target: Cockpit
+      - target: Healthy
     settings:
       base:
-        TEST_TARGET_NAME: Cockpit
+        TEST_TARGET_NAME: Healthy
 
-# Ohne expliziten Block erzeugt xcodebuild die Schemata selbst - und was ein
-# zweites Test-Bundle dabei erbt, entscheidet dann Xcode. Der Lauf ist gruen
-# und die Zahl der Tests aendert sich nicht.
+  VaultUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests/Harness.swift
+      - path: UITests/VaultUITests.swift
+    dependencies:
+      - target: Vault
+    settings:
+      base:
+        TEST_TARGET_NAME: Vault
+
+  FokusUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests/Harness.swift
+      - path: UITests/FokusUITests.swift
+    dependencies:
+      - target: Fokus
+    settings:
+      base:
+        TEST_TARGET_NAME: Fokus
+
+# Ein Schema je App. Ohne expliziten Block erzeugt xcodebuild die Schemata
+# selbst - und was ein Test-Bundle dabei erbt, entscheidet dann Xcode.
 schemes:
-  Cockpit:
+  Healthy:
     build:
       targets:
-        Cockpit: all
-        CaloriesWidget: all
+        Healthy: all
+        HealthyWidget: all
     test:
       targets:
         - CockpitTests
-        - CockpitUITests
+        - HealthyUITests
+    run:
+      config: Debug
+  Vault:
+    build:
+      targets:
+        Vault: all
+    test:
+      targets:
+        - VaultUITests
+    run:
+      config: Debug
+  Fokus:
+    build:
+      targets:
+        Fokus: all
+        FokusWidget: all
+    test:
+      targets:
+        - FokusUITests
     run:
       config: Debug

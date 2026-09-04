@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Baut die App signiert und installiert sie auf dem iPhone.
 #
-#   tools/install-device.sh            # bauen und installieren
-#   tools/install-device.sh --launch   # danach auch starten
+#   tools/install-device.sh <Healthy|Vault|Fokus>            # bauen und installieren
+#   tools/install-device.sh <Healthy|Vault|Fokus> --launch   # danach auch starten
+#   tools/install-device.sh all                              # alle drei
 #
 # Das Geraet wird selbst gesucht: es muss einmal mit Xcode gekoppelt worden
 # sein, danach reicht dasselbe WLAN - ein Kabel ist nur beim ersten Mal noetig.
@@ -11,9 +12,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BUNDLE="com.fherrmann.cockpit"
+APP="${1:-}"
 LAUNCH=false
-[ "${1:-}" = "--launch" ] && LAUNCH=true
+[ "${2:-}" = "--launch" ] && LAUNCH=true
+if [ "$APP" = "all" ]; then
+    for each in Healthy Vault Fokus; do "$0" "$each" ${2:-}; done
+    exit 0
+fi
+case "$APP" in
+    Healthy) BUNDLE="com.fherrmann.cockpit" ;;
+    Vault)   BUNDLE="com.fherrmann.vault" ;;
+    Fokus)   BUNDLE="com.fherrmann.fokus" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus oder all sein." >&2; exit 1 ;;
+esac
 
 JSON=$(mktemp)
 trap 'rm -f "$JSON"' EXIT
@@ -56,7 +67,7 @@ fi
 # aufgibt, weist ein Geraet ab, das gleich geantwortet haette.
 echo "Ziel: $DEVICE_NAME ($DEVICE_STATE)"
 tools/bootstrap.sh > /dev/null
-xcodebuild build -project Cockpit.xcodeproj -scheme Cockpit \
+xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
     -destination 'generic/platform=iOS' -allowProvisioningUpdates \
     -derivedDataPath build/device -quiet
 
@@ -67,7 +78,7 @@ xcodebuild build -project Cockpit.xcodeproj -scheme Cockpit \
 xcrun devicectl device info details --device "$DEVICE_ID" > /dev/null 2>&1 || true
 
 if ! xcrun devicectl device install app --device "$DEVICE_ID" \
-        build/device/Build/Products/Debug-iphoneos/Cockpit.app; then
+        "build/device/Build/Products/Debug-iphoneos/$APP.app"; then
     echo >&2
     echo "Installation fehlgeschlagen. Haeufigster Grund: $DEVICE_NAME ist" >&2
     echo "gesperrt oder nicht im selben WLAN. Entsperren und noch einmal -" >&2
@@ -79,10 +90,10 @@ fi
 # dependencies-Eintrag in project.yml, baut sie zwar, wird aber nicht
 # eingebettet: die Installation meldet Erfolg, die App startet, und in der
 # Widget-Galerie steht nichts.
-PLUGINS=build/device/Build/Products/Debug-iphoneos/Cockpit.app/PlugIns
+PLUGINS="build/device/Build/Products/Debug-iphoneos/$APP.app/PlugIns"
 if [ -d "$PLUGINS" ]; then
     echo "Erweiterungen: $(ls "$PLUGINS" | tr '\n' ' ')"
-else
+elif [ "$APP" != "Vault" ]; then
     echo "WARNUNG: keine PlugIns im Bundle - das Widget ist nicht eingebettet." >&2
 fi
 

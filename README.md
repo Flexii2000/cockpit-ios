@@ -1,14 +1,19 @@
-# Cockpit
+# Cockpit — Healthy, Vault, Fokus
 
-Eine iOS-App, die Felix' Heimserver-Dienste unter einem Icon zusammenführt:
-**Essen** (Kalorienzähler), **Gewicht** (Weight Tracker), **Finanzen**
-(Finance Cockpit) und **Noten** (Notenübersicht) und **Habits** (Gewohnheiten).
-Bundle-ID `com.fherrmann.cockpit`.
+Drei iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
+bedienen:
 
-Die Backends bleiben unverändert und laufen weiter im Browser — das hier ist
-ein zweiter Client, kein Ersatz.
+| App | Tabs | Bundle-ID | Sperre |
+|---|---|---|---|
+| **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker) | `com.fherrmann.cockpit` | – |
+| **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
+| **Fokus** | Habits | `com.fherrmann.fokus` | – |
 
-## Was die App kann
+Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
+Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
+eine geteilte Keychain-Gruppe in allen drei Apps.
+
+## Was die Apps können
 
 **Essen** — Tagesansicht nach Mahlzeiten mit Teilsumme gegen das jeweilige
 Mahlzeitenziel, vier Tachos (kcal plus die drei Makros), Gerichte-Merkliste,
@@ -22,8 +27,9 @@ Tasche liegt.
 Tages darüber. Darunter die **Schritte von heute** gegen ein Tagesziel.
 Gewicht und Schritte kommen **automatisch aus Apple Health**.
 
-**Finanzen** — das Cockpit als WebView, hinter **Face ID**. Beim Verlassen der
-App sperrt es wieder zu, und im App-Umschalter liegt eine Decke darüber.
+**Finanzen** — das Cockpit als WebView. In Vault steht die **ganze App**
+hinter Face ID: beim Verlassen sperrt sie zu, beim Zurückkommen fragt sie
+gleich wieder, und im App-Umschalter liegt eine Decke darüber.
 
 **Noten** — die Abschlussnote nach PO-I23, ECTS-gewichtet mit dreifacher
 Thesis, dazu best/average/worst case, alle Module mit ihren Noten und der
@@ -36,8 +42,9 @@ Lassen (zählt von selbst, ein Rückfall setzt zurück), Track food (aus dem
 Kalorienzähler) und Schritte pro Woche (aus Apple Health, „30/70k", Woche ab
 Montag). Heute darf offen sein — die Sträh­ne reißt erst um Mitternacht.
 
-**Zugang** — kein Tab mehr, sondern ein Blatt hinter dem Zahnrad (oben links
-bei Noten und Habits, im „…"-Menü bei Essen und Gewicht).
+**Zugang** — ein Blatt hinter dem Zahnrad (oben links bei Noten und Habits,
+im „…"-Menü bei Essen und Gewicht). Jede App zeigt nur die Abschnitte für
+ihre Dienste; gespeichert wird in der geteilten Keychain-Gruppe.
 
 **Ohne Netz** zeigt jeder Tab den letzten Stand — mit Datum in einer Leiste,
 damit er nicht wie ein aktueller aussieht. Haken, Messwerte und Essenseinträge
@@ -62,16 +69,18 @@ Makros. Dazu die **Habits** auf dem Homescreen, klein (drei) oder mittel
 ## Schnellstart
 
 ```bash
-tools/bootstrap.sh              # erzeugt Cockpit.xcodeproj aus project.yml
-tools/verify.sh                 # bauen + Unit-Tests, ohne Xcode-Fenster
-tools/install-device.sh --launch  # aufs iPhone bauen, installieren, starten
+tools/bootstrap.sh                        # erzeugt Cockpit.xcodeproj aus project.yml
+tools/verify.sh                           # alle drei bauen + Unit-Tests; tools/verify.sh Vault für eine
+tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle drei
 ```
 
-Zum Ansehen im Simulator und zum automatisierten Durchklicken:
+Zum Ansehen im Simulator und zum automatisierten Durchklicken — immer mit der
+App als erstem Argument:
 
 ```bash
-tools/run-simulator.sh weight bild.png   # ein Tab, mit Zugang, als Screenshot
-tools/uitest.sh                          # tippt, wischt, scrollt; Bilder in build/screenshots/
+tools/run-simulator.sh Healthy weight bild.png   # ein Tab, mit Zugang, als Screenshot
+tools/uitest.sh Fokus                            # tippt, wischt, scrollt; Bilder in build/screenshots/
+tools/pushtest.sh Vault                          # Benachrichtigung zustellen und antippen
 ```
 
 Der Noten-Tab braucht dafür ein Passwort und läuft deshalb gegen einen lokal
@@ -79,8 +88,8 @@ gestarteten Notendienst statt gegen den Server — wie, steht im Kopf von
 `tools/run-simulator.sh`. Ohne diese Angaben überspringen sich seine Tests.
 
 Aufs iPhone gibt es zwei Wege. **Ohne Xcode-Fenster:**
-`tools/install-device.sh --launch` — sucht das gekoppelte Gerät selbst, baut
-signiert und installiert. **Mit Xcode:** Projekt öffnen, oben in der Leiste
+`tools/install-device.sh all --launch` — sucht das gekoppelte Gerät selbst,
+baut signiert und installiert alle drei. **Mit Xcode:** Projekt öffnen, oben in der Leiste
 das iPhone als Ziel wählen, ⌘R.
 
 Gekoppelt wird einmalig per Kabel; hakt man in Xcode unter *Window → Devices

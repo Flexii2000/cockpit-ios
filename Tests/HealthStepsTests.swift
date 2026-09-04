@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Die Zuordnung von Statistik-Kuebeln zu Kalendertagen. Die Abfrage selbst
 /// laesst sich nicht pruefen - ohne echtes Health gibt es nichts zu lesen.

@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Das Zerlegen der Mittelwert-Linie ist die einzige Stelle im Diagramm mit
 /// echter Logik - und die, an der ein Fehler am schwersten auffaellt: eine

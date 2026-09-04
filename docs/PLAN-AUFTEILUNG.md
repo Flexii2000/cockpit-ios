@@ -1,8 +1,20 @@
 # Plan: Aufteilung in Healthy, Vault und Fokus
 
-Stand 2026-09-03. **Noch nicht begonnen.** Dieses Dokument ist die Vorlage
-für die Umsetzung — wer sie beginnt, arbeitet die Schritte in dieser
-Reihenfolge ab und trägt in `STAND.md` ein, wo er steht.
+Stand 2026-09-04. **Schritt 1 gebaut** (Punkte 1–10 erledigt), die Abnahme
+auf dem Gerät steht aus. Wer weitermacht, liest `STAND.md` und arbeitet ab
+Schritt 2 weiter.
+
+Abweichungen bei der Umsetzung, festgehalten statt nur im Code:
+
+- `ChartCallout`, `DaySeries`, `SeriesChip`, `Palette` liegen in
+  `Healthy/Charts/`, nicht in `Core/` — sie brauchen Typen, die nur Healthy
+  hat.
+- Der Zustand des Zugang-Blatts liegt in `Core/SetupPresenter`, nicht im
+  Router: die Knöpfe, die es öffnen, stehen in geteilten Tabs, und die
+  kennen die Tabs der App nicht.
+- Das Zugang-Blatt hat schon jetzt je Dienst einen eigenen Speichern-Knopf
+  (war für Schritt 3 vorgesehen) — Fokus brauchte einen Abschnitt, der nur
+  den Privat-Token speichert.
 
 ## Warum
 

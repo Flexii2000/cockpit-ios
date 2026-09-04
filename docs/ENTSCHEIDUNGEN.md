@@ -3,6 +3,37 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-04 — Drei Apps aus einem Repo: Healthy, Vault, Fokus
+**Warum:** fünf Tabs waren voll, drei Dienste kommen dazu (To-Do, Roadmap,
+Einkaufsliste), und die drei Gruppen haben verschiedene Nutzungen: täglich
+eintragen, geschützt nachlesen, planen. Die Logik liegt in den Backends, die
+Querverbindungen laufen serverseitig - der Schnitt kostet Struktur, keine
+Funktion (`PLAN-AUFTEILUNG.md`).
+**Ein Repo, drei Targets**, nicht drei Repos: Zugang, Cookies, Cache,
+Postausgang, Sperre, Tools und Harness würden sonst dreifach gepflegt.
+**Verworfen:** `Core/` als Swift-Package. Ordner, die in mehrere Targets
+eingebunden werden, tun dasselbe ohne Paketverwaltung - und `Shared/` lief
+so schon seit dem Widget.
+**Healthy behält die alte Bundle-ID:** HealthKit-Berechtigung, Push-Anmeldung
+beim Kalorienzähler und die vorhandenen Kalorien-Kacheln bleiben damit
+unangetastet. Vault und Fokus sind neue Apps mit allem, was das heißt.
+
+## 2026-09-04 — Eine geteilte Keychain-Gruppe, die Token wandern einmal
+**Warum:** die Token sollen einmal eingegeben werden, nicht dreimal. Alle
+fünf Targets tragen `com.fherrmann.shared` in den Entitlements; Healthy holt
+die vorhandenen Einträge beim ersten Start aus der alten Vorgabegruppe
+hinüber. Die alte Gruppe wird **nicht** geleert - fällt die Wanderung aus,
+liest Healthy weiter von dort, und Vault/Fokus sagen sichtbar „Kein Zugang".
+**Nicht gewandert:** das Noten-Passwort. Es liegt hinter Face ID; Vault fragt
+es einmal neu ab, statt dass Healthy beim Start eine Abfrage zeigt, deren
+Ergebnis sie selbst nie braucht.
+
+## 2026-09-04 — Vault sperrt die ganze App, nicht zwei Tabs
+**Warum:** in Vault liegt hinter jedem Tab etwas Schützenswertes. Eine Sperre
+um alles ist weniger Code und ein klareres Versprechen: beim Verlassen zu,
+beim Zurückkommen gleich wieder fragen, Sichtschutz im App-Umschalter immer.
+Der `LAContext` dieser einen Sperre holt auch das Noten-Passwort heraus.
+
 ## 2026-09-03 — Offline: letzter Stand plus Postausgang, aber kein Nachrechnen
 **Warum:** Felix' Wunsch — ohne Netz wenigstens die aktuellen Werte sehen,
 im besten Fall auch Haken und Messwerte eintragen, die später nachgehen.

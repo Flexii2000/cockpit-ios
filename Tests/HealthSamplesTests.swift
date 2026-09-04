@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Health kennt beliebig viele Messungen pro Tag, der Weight Tracker genau
 /// eine. Welche gewinnt, ist die einzige Entscheidung in diesem Teil - und

@@ -47,24 +47,34 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Cockpit/            das App-Target
-  App/              Einstieg, Tab-Gerüst, AppDelegate
-  Core/             Zugang (Cookies), Sperre, Benachrichtigungen, Bausteine
-  Web/              WKWebView-Einbettung für den Finanzen-Tab
-  Weight/           Diagramm, Kacheln, Eingabe, Schritte-Leiste
-  Food/             Tagesansicht, Tachos, Gerichte, Schnellerfassung
-  Health/           Abgleich mit Apple Health (nur lesend)
-  Finance/          WebView hinter der Sperre
-  Grades/           Noten: Modultabelle, Szenarien, Annahmen
-  Habits/           Gewohnheiten: Flamme, Sträh­ne, Abhaken, Anlegen
-Shared/             was App UND Widget übersetzen
-CaloriesWidget/     die Kacheln (eigene Erweiterung): Kalorien und Habits
-Tests/              Unit-Tests
-UITests/            XCUITest: tippen, wischen, scrollen, Screenshots
-project.yml         Quelle des Xcode-Projekts (XcodeGen)
-tools/              bootstrap · verify · run-simulator · uitest · install-device · make-icon
+Healthy/            App: Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine
+  App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung)
+  Charts/           Callout, DaySeries, SeriesChip, Palette
+  Food/ Weight/ Health/
+Vault/              App: Noten, Finanzen - eine Sperre vor allem
+  App/ Grades/ Finance/ Web/
+Fokus/              App: Habits
+  App/ Habits/
+Core/               was alle drei Apps brauchen, aber keine Erweiterung:
+                    Zugang (Cookies, Keychain-Wanderung), Sperre, Benachrichtigungen,
+                    Zugang-Blatt, Fehler-/Offline-Leisten
+Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
+                    Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
+HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
+FokusWidget/        Habits-Kachel
+Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
+UITests/            Harness.swift (gemeinsam) + je App eine Datei, drei Bundles
+project.yml         Quelle des Xcode-Projekts - drei App-Targets, YAML-Anker für Gemeinsames
+tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · make-icon
 docs/               diese Doku
 ```
+
+⚠️ **Drei Apps, ein Repo.** Nicht drei Repos: Zugang, Cookies, Cache,
+Postausgang, Sperre, Tools und Harness würden sonst dreifach gepflegt. Was
+in `Core/` liegt, muss in allen drei Apps übersetzen — wer dort etwas
+einbaut, das nur eine App kennt (Diagramm-Typen, Tab-Namen), bricht die
+anderen beiden. `TabSelection` und `Router` sind deshalb **je App** klein
+neu geschrieben statt geteilt.
 
 ⚠️ **Was in `Shared/` liegt, darf nichts benutzen, das es in einer
 App-Erweiterung nicht gibt.** `UIApplication.shared` etwa ist dort gesperrt —
@@ -119,11 +129,12 @@ Cookies der App sieht sie nicht, sie hängt ihren eigenen an die Anfrage. Die
 App stößt nach jeder Änderung nur ein Neuzeichnen an; Daten reicht sie keine
 weiter.
 
-**Push.** Zwei Dienste melden sich von selbst: der Kalorienzähler, wenn eine
-Schnellerfassung fertig ist, und die Notenübersicht, wenn eine neue Note
-eingetragen wurde. Beide schicken über **denselben APNs-Schlüssel an dieselbe
-Gerätekennung** — es ist eine App. Getrennt sind nur die Absender: jeder
-Dienst hält seine eigene Liste angemeldeter Geräte und verschickt selbst.
+**Push.** Zwei Dienste melden sich von selbst: der Kalorienzähler an
+**Healthy** (Topic `com.fherrmann.cockpit`), die Notenübersicht an **Vault**
+(Topic `com.fherrmann.vault`). Derselbe APNs-Schlüssel, aber zwei Apps und
+damit zwei Gerätekennungen; jeder Dienst hält seine eigene Liste und
+verschickt selbst. `NotificationDelegate` in `Core` zeigt an und meldet
+`kind` an die App, die daraus ihren Tab wählt.
 
 Die Nutzlast trägt ein `kind`; daran entscheidet der `AppDelegate`, welcher Tab
 sich öffnet, wenn jemand die Meldung antippt. Ohne das landete man dort, wo man
@@ -135,6 +146,14 @@ die Noten beim ersten Öffnen des Tabs. Wer den Tab nie aufmacht, bekommt keine
 Meldung über Noten; das ist die Folge davon, dass diese Anmeldung etwas wert
 sein soll.
 
+**Die Token gelten in allen drei Apps.** Keychain-Zugriffsgruppe
+`com.fherrmann.shared` in jedem Target. Healthy - dieselbe Bundle-ID wie die
+frühere eine App - holt beim ersten Start die vorhandenen Einträge aus der
+alten Vorgabegruppe in die geteilte (`Access.migrateToSharedGroup`); Vault
+und Fokus finden sie danach ohne Eingabe. Nur das Noten-Passwort wandert
+nicht: es liegt hinter Face ID, und eine Abfrage beim Start einer App, die
+es gar nicht braucht, wäre Unsinn.
+
 **Zugang ist ein Blatt, kein Tab.** Mit Habits gibt es fünf Dienste — und
 iOS zeigt höchstens fünf Tabs, alles darüber landet unter „Mehr". Zugang wird
 selten gebraucht: ein Zahnrad in der Leiste der nativen Tabs (bei Essen und
@@ -142,10 +161,10 @@ Gewicht im „…"-Menü, weil dort die Leiste voll ist) öffnet dasselbe Blatt.
 `Router.showsSetup` hält den Zustand; ohne Token geht es beim Start von
 selbst auf.
 
-**Zwei Sperren, nicht eine.** `BiometricLock` steht vor Finanzen **und** vor
-den Noten, aber als zwei Instanzen: wer die Kontostände aufgemacht hat, hat
-damit nicht auch die Noten offen. Beide sperren zu, sobald die App den
-Vordergrund verlässt.
+**Vault: eine Sperre vor der ganzen App.** In der einen App standen zwei
+Sperren vor zwei Tabs; in Vault liegt hinter jedem Tab etwas, das nicht
+offen herumstehen soll - also `BiometricLock` um alles, Sichtschutz im
+App-Umschalter immer, und beim Zurückkommen fragt sie gleich wieder.
 
 **Das Passwort der Noten liegt hinter Face ID.** Als einziges Geheimnis der
 App: die übrigen sind Geräte-Token, die das Widget bei gesperrtem Bildschirm

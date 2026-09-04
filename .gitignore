@@ -22,4 +22,5 @@ secrets.plist
 # Ebenfalls von XcodeGen erzeugt - die Quelle sind die entitlements in
 # project.yml.
 *.entitlements
-CaloriesWidget/Info.plist
+HealthyWidget/Info.plist
+FokusWidget/Info.plist

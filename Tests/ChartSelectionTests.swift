@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Welcher Tag beim Ziehen getroffen wird. Die Geste selbst laesst sich im
 /// Simulator nicht ausloesen - die Zuordnung dahinter schon.

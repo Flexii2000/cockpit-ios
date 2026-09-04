@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Faehrt die Oberflaeche automatisiert durch und legt Screenshots ab.
 #
-#   tools/uitest.sh            # alle UI-Tests
-#   tools/uitest.sh testSwipe  # nur Tests, deren Name das enthaelt
+#   tools/uitest.sh <Healthy|Vault|Fokus>             # alle UI-Tests der App
+#   tools/uitest.sh <Healthy|Vault|Fokus> testSwipe   # nur einer
 #
 # Der Grund: simctl kann weder tippen noch wischen noch scrollen. Alles, was
 # hinter einer Geste oder unterhalb des ersten Bildschirms liegt, ist nur von
@@ -25,8 +25,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-FILTER="${1:-}"
+APP="${1:-}"
+FILTER="${2:-}"
 DEVICE="${DEVICE:-iPhone 17}"
+case "$APP" in Healthy|Vault|Fokus) ;; *) echo "Erste Angabe muss Healthy, Vault oder Fokus sein." >&2; exit 1 ;; esac
+BUNDLE_NAME="${APP}UITests"
 
 export TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN
 export TEST_RUNNER_COCKPIT_WEIGHT_TOKEN
@@ -44,13 +47,13 @@ export TEST_RUNNER_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}"
 tools/bootstrap.sh > /dev/null
 rm -rf build/uitest.xcresult build/screenshots
 
-ARGS=(-project Cockpit.xcodeproj -scheme Cockpit
+ARGS=(-project Cockpit.xcodeproj -scheme "$APP"
       -destination "platform=iOS Simulator,name=$DEVICE"
       -resultBundlePath build/uitest.xcresult)
 if [ -n "$FILTER" ]; then
-    ARGS+=(-only-testing:"CockpitUITests/CockpitUITests/$FILTER")
+    ARGS+=(-only-testing:"$BUNDLE_NAME/$BUNDLE_NAME/$FILTER")
 else
-    ARGS+=(-only-testing:CockpitUITests)
+    ARGS+=(-only-testing:"$BUNDLE_NAME")
 fi
 
 set +e

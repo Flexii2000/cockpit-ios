@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Die Auszuege stammen aus den Java-Records in `../food/src/main/java/…`.
 final class FoodModelTests: XCTestCase {

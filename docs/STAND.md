@@ -1,33 +1,34 @@
 # Stand
 
-> **Nächster Schritt:** die **Aufteilung in drei Apps** — Healthy, Vault,
-> Fokus. Der Plan steht in [`PLAN-AUFTEILUNG.md`](PLAN-AUFTEILUNG.md), noch
-> nicht begonnen; Schritt 1 (der reine Schnitt) ist die nächste lange
-> Sitzung. Danach die neuen Dienste (To-Do, Roadmap, Einkaufsliste) und der
-> **Siri-Kurzbefehl**. Alle fünf Tabs laufen heute auf dem Gerät gegen den
-> Server.
+> **Nächster Schritt:** Schritt 1 der Aufteilung ist gebaut — drei Apps,
+> alle drei bauen und laufen im Simulator, Unit-Tests grün. Es fehlt die
+> **Abnahme auf dem Gerät** (`tools/install-device.sh all --launch`, Kabel):
+> Token in Healthy einmal da, Vault und Fokus finden sie; Noten-Passwort in
+> Vault neu eingeben; Habits-Kachel in Fokus neu auflegen; Noten-Push kommt
+> in Vault an (`APNS_TOPIC` auf dem Server ist schon umgestellt). Danach
+> Schritt 2 aus `PLAN-AUFTEILUNG.md` (aufräumen), dann die neuen Dienste.
 >
-> Der Noten-Tab ist ausgerollt: Dienst und Timer laufen seit dem 02.09.2026 auf
-> dem Server, die App liegt auf dem Gerät. **Benachrichtigungen über neue Noten
-> gibt es erst, nachdem der Tab einmal offen war** — die Push-Kennung meldet
-> die App dort erst an, wenn eine Sitzung steht. Ob es geklappt hat, steht in
-> `~/services/grades/data/devices.json` auf dem Server.
->
-> Daneben zwei Dinge, die keine Features sind:
->
-> * Eine Übersicht der **doppelt gepflegten Anzeigeregeln** (Toleranzen,
->   BMI-Größe, Tacho-Geometrie) mit ihrer Gegenstelle im Web-Quelltext.
->   Inzwischen dringlicher als am Anfang: die Schritte gibt es **nur** in der
->   App, die Weboberfläche kennt sie nicht.
-> * Ein `@JsonIgnore` an `DashboardConfig.isLegacy()` im weight-app: Jackson
->   schreibt sonst ein überflüssiges `"legacy": false` in `dashboard.json`.
->   Harmlos, aber es steht dauerhaft in der Datei — beim nächsten ohnehin
->   fälligen Deploy mitnehmen.
->
-> **Signatur: erledigt.** Die Mitgliedschaft ist seit dem 01.09.2026 aktiv,
-> das Profil gilt bis **01.09.2027**. Nächste Erneuerung: einmal
-> `tools/install-device.sh` vor diesem Datum. Verlängerung der Mitgliedschaft
-> bei Apple: 02.09.2027, 99 €/Jahr.
+> Daneben weiterhin offen: der **Siri-Kurzbefehl** für die Schnellerfassung
+> und die Übersicht der doppelt gepflegten Anzeigeregeln.
+
+## Aufteilung in drei Apps · **Schritt 1 gebaut, Gerät steht aus** (2026-09-04)
+
+`Healthy` (Essen, Gewicht; behält `com.fherrmann.cockpit`), `Vault` (Noten,
+Finanzen; eine Sperre vor der ganzen App), `Fokus` (Habits). Ein Repo, drei
+App-Targets, zwei Widget-Erweiterungen, drei UI-Test-Bundles mit gemeinsamem
+Harness; `Core/` für das, was alle Apps brauchen. Die Token liegen in einer
+geteilten Keychain-Gruppe; Healthy holt die vorhandenen beim ersten Start
+hinüber. Jedes Skript nimmt die App als erstes Argument.
+
+Geprüft: `verify.sh` baut alle drei, Unit-Tests grün; alle drei im Simulator
+angesehen (Fokus mit echten Daten über die geteilte Gruppe, Vault öffnet ohne
+Noten-Zugang das Blatt mit nur dem Noten-Abschnitt). Auf dem Server:
+`grades.env` schickt an `com.fherrmann.vault`; die alte Kennung in
+`devices.json` räumt die Notenwache beim ersten Versand selbst weg.
+
+Abweichung vom Plan: die Diagramm-Bausteine (`ChartCallout`, `DaySeries`,
+`SeriesChip`, `Palette`) liegen in `Healthy/Charts/`, nicht in `Core/` — sie
+kennen Typen, die nur Healthy hat, und Vault brach daran.
 
 ## Vier neue Kacheln · **fertig** (2026-09-03)
 

@@ -2,7 +2,10 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh [food|weight|finance|grades|habits|setup|widget] [screenshot.png]
+#   tools/run-simulator.sh <Healthy|Vault|Fokus> [tab] [screenshot.png]
+#
+# Tabs: Healthy food|weight|widget, Vault grades|finance, Fokus habits|widget;
+# `setup` oeffnet in jeder App das Zugang-Blatt.
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -47,9 +50,15 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DEVICE="${DEVICE:-iPhone 17}"
-TAB="${1:-food}"
-SHOT="${2:-}"
-BUNDLE="com.fherrmann.cockpit"
+APP="${1:-Healthy}"
+TAB="${2:-}"
+SHOT="${3:-}"
+case "$APP" in
+    Healthy) BUNDLE="com.fherrmann.cockpit" ;;
+    Vault)   BUNDLE="com.fherrmann.vault" ;;
+    Fokus)   BUNDLE="com.fherrmann.fokus" ;;
+    *) echo "Erste Angabe muss Healthy, Vault oder Fokus sein." >&2; exit 1 ;;
+esac
 
 PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
     echo "Kein fh_private im Schluesselbund - siehe Kopf dieses Skripts." >&2
@@ -61,12 +70,12 @@ WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) |
 }
 
 tools/bootstrap.sh > /dev/null
-xcodebuild build -project Cockpit.xcodeproj -scheme Cockpit \
+xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
     -destination "platform=iOS Simulator,name=$DEVICE" \
     -derivedDataPath build/sim -quiet
 
 xcrun simctl boot "$DEVICE" 2>/dev/null || true
-xcrun simctl install booted build/sim/Build/Products/Debug-iphonesimulator/Cockpit.app
+xcrun simctl install booted "build/sim/Build/Products/Debug-iphonesimulator/$APP.app"
 xcrun simctl terminate booted "$BUNDLE" 2>/dev/null || true
 
 SIMCTL_CHILD_COCKPIT_FH_PRIVATE_TOKEN="$PRIVATE" \

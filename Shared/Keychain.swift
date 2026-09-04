@@ -12,13 +12,18 @@ enum Keychain {
     /// Alles unter einem Dienst ablegen, damit `delete` gezielt raeumen kann.
     private static let service = "com.fherrmann.cockpit"
 
-    /// Die geteilte Zugriffsgruppe.
+    /// Die Zugriffsgruppe, die alle drei Apps und ihre Erweiterungen teilen.
     ///
-    /// Sie ist die **Vorgabegruppe der App** (Team-Praefix + Bundle-ID) - die
-    /// vorhandenen Eintraege liegen also bereits darin, es zieht nichts um.
-    /// Die Widget-Erweiterung hat eine andere Bundle-ID und kaeme ohne das
-    /// Entitlement nicht heran.
-    private static let accessGroup = "ZWFV263P59.com.fherrmann.cockpit"
+    /// Seit der Aufteilung in Healthy, Vault und Fokus eine eigene Gruppe:
+    /// die Token werden einmal eingegeben und sind in allen Apps da. Jedes
+    /// Target traegt sie in seinen Entitlements (project.yml).
+    private static let accessGroup = "ZWFV263P59.com.fherrmann.shared"
+
+    /// Die Gruppe von vorher - die Vorgabegruppe der einen App. Nur Healthy
+    /// (dieselbe Bundle-ID) und ihre Kachel kommen noch heran; von dort
+    /// wandern die Eintraege einmalig in die geteilte Gruppe
+    /// (`Access.migrateToSharedGroup`).
+    static let legacyAccessGroup = "ZWFV263P59.com.fherrmann.cockpit"
 
     /// Die Schluesselnamen stehen hier und nicht in `Access`: das Widget
     /// braucht sie, `Access` (WebKit, @MainActor) darf aber nicht mit in die
@@ -57,12 +62,12 @@ enum Keychain {
         SecItemAdd(query as CFDictionary, nil)
     }
 
-    static func read(_ key: String) -> String? {
+    static func read(_ key: String, group: String? = nil) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
-            kSecAttrAccessGroup as String: accessGroup,
+            kSecAttrAccessGroup as String: group ?? accessGroup,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]

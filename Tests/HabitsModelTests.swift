@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// Die Antwort des Habits-Dienstes, so wie sie wirklich aussieht.
 ///

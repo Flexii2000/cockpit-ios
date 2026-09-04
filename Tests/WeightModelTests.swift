@@ -1,5 +1,5 @@
 import XCTest
-@testable import Cockpit
+@testable import Healthy
 
 /// `String.init` ist fuer `Double?` mehrdeutig - in einer Interpolation
 /// kapituliert der Typpruefer daran. Deshalb explizit.

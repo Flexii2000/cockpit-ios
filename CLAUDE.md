@@ -1,26 +1,28 @@
 # Arbeitsregeln für `cockpit-ios`
 
-Eine iOS-App, die Felix' Heimserver-Dienste unter einem Icon zusammenführt:
-**Kalorienzähler** (`food.fherrmann.com`), **Weight Tracker**
-(`weight.fherrmann.com`), **Finance Cockpit** (`finanzen.fherrmann.com`), die
-**Notenübersicht** (`fherrmann.com/grades`) und **Habits**
-(`fherrmann.com/habits`).
+Drei iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
+**Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
+`weight.fherrmann.com`), **Vault** (Notenübersicht `fherrmann.com/grades`,
+Finance Cockpit `finanzen.fherrmann.com`) und **Fokus** (Habits
+`fherrmann.com/habits`).
 
-Dieses Repo enthält **nur den Client**. Änderungen an den Diensten gehören in
+Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
 `../grades`, `../habits`) — von hier aus wird an ihnen nichts geändert, auch
-nicht "mal eben". Habits hat **kein Web-UI**: die App ist sein einziger
-Client, und der Dienst liefert alles fertig gerechnet — hier wird keine
-Sträh­ne nachgezählt.
+nicht "mal eben". Gerechnet wird in den Diensten (Sträh­nen, Abschlussnote,
+Tagessummen); die Apps zeigen.
 
-⚠️ **Fünf Tabs sind das Maximum.** iOS schiebt den sechsten unter „Mehr".
-Deshalb ist Zugang ein Blatt hinter dem Zahnrad (`Router.showsSetup`) und
-kein Tab mehr. Ein weiterer Dienst braucht einen Platz, nicht einen Tab.
+⚠️ **Wohin eine Datei gehört, entscheidet, wer sie übersetzt:**
 
-⚠️ Eine Ausnahme mit Ansage: die Noten haben für diese App eine
-**JSON-Schnittstelle bekommen** (`../grades/app/api/`). Gerechnet wird
-weiterhin nur dort — die Regel aus PO-I23 § 8 Abs. 2 in Swift nachzubauen
-wäre eine zweite Stelle, an der eine Prüfungsordnung stimmen muss.
+| Ordner | übersetzt von | darf |
+|---|---|---|
+| `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
+| `Core/` | alle drei Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
+| `Healthy/`, `Vault/`, `Fokus/` | genau diese App | alles |
+
+Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
+`tools/verify.sh` immer alle drei. `TabSelection` und `Router` gibt es je App;
+sie werden nicht geteilt.
 
 ## Vor dem ersten Handgriff
 
@@ -55,11 +57,16 @@ Routen wirklich aufmachen.
 ## Bauen und prüfen
 
 ```bash
-tools/bootstrap.sh   # einmalig + nach Änderungen an project.yml
-tools/verify.sh      # baut fuer den Simulator und laesst die Tests laufen
-tools/run-simulator.sh weight bild.png   # mit Zugang starten und aufnehmen
-tools/install-device.sh --launch         # aufs iPhone bauen und starten
+tools/bootstrap.sh                 # einmalig + nach Änderungen an project.yml
+tools/verify.sh                    # baut alle drei fuer den Simulator, Unit-Tests in Healthy
+tools/verify.sh Vault              # nur eine
+tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
+tools/install-device.sh all --launch             # alle drei aufs iPhone (oder eine)
 ```
+
+Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
+`Fokus`). Tabs: Healthy `food|weight|widget`, Vault `grades|finance`, Fokus
+`habits|widget`; `setup` öffnet das Zugang-Blatt.
 
 `run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
 auf Wunsch einen Screenshot ab — der einzige Weg, Layoutfehler zu sehen statt
@@ -80,9 +87,14 @@ Erscheinungsbild umschalten: `xcrun simctl ui booted appearance dark|light`.
 **Beide anschauen**, bevor etwas als fertig gilt.
 
 ```bash
-tools/uitest.sh                 # alle UI-Tests, Bilder nach build/screenshots/
-tools/uitest.sh testSwipeOnAn…  # nur ein Test
+tools/uitest.sh Healthy                 # alle UI-Tests einer App, Bilder nach build/screenshots/
+tools/uitest.sh Healthy testSwipeOnAn…  # nur ein Test
 ```
+
+Der Harness (`start`, `scrollDown`, `shoot`, …) liegt in `UITests/Harness.swift`
+und ist in allen drei Bundles eingebunden; je App eine Testdatei.
+`start()` setzt `COCKPIT_NO_LOCK=1` immer - Vault sperrt die ganze App, und
+XCUITest kann kein Gesicht vorzeigen.
 
 `uitest.sh` kann, was `simctl` nicht kann: **tippen, wischen, scrollen** — und
 legt von jedem Schritt einen Screenshot ab. Drei Dinge, die dabei nicht
@@ -110,8 +122,9 @@ dafür sind die Debug-Schalter da. Den Benachrichtigungs-Dialog kann er
 (Springboard-Alert), und Benachrichtigungen selbst kommen von aussen:
 
 ```bash
-tools/pushtest.sh                  # schickt eine Kalorienzaehler-Meldung, tippt sie an
-tools/pushtest.sh nutzlast.json    # dasselbe mit eigener Nutzlast (z. B. "kind":"grade")
+tools/pushtest.sh Healthy                  # Kalorienzaehler-Meldung zustellen und antippen
+tools/pushtest.sh Vault                    # "Neue Note" - muss auf dem Noten-Tab landen
+tools/pushtest.sh Vault nutzlast.json      # eigene Nutzlast
 ```
 
 `simctl push` stellt sie zu, der UI-Test tippt sie an und prueft, dass die
@@ -164,11 +177,16 @@ sag das dann auch so.
 - **Xcode-Projekt niemals von Hand.** Die `.xcodeproj` ist erzeugt und steht
   in `.gitignore`; die Quelle ist `project.yml`. Neue Datei = Datei anlegen
   und `tools/bootstrap.sh`, kein Gefummel in einer `pbxproj`. Dasselbe gilt
-  für die `.entitlements` und die `Info.plist` der Erweiterung — auch die
-  erzeugt XcodeGen.
-- **Wohin eine neue Datei gehört.** `Shared/` nur, wenn das **Widget** sie
-  braucht — dort ist `UIApplication.shared` gesperrt, und ein Verstoß fällt
-  erst beim Bauen der Erweiterung auf. Sonst `Cockpit/<Bereich>/`.
+  für die `.entitlements` und die `Info.plist` der Erweiterungen — auch die
+  erzeugt XcodeGen. Was alle Apps gemeinsam haben, steht dort **einmal** als
+  YAML-Anker (`&app_settings`, `&shared_group`, `&widget_info`).
+- **Wohin eine neue Datei gehört:** siehe Tabelle oben. Im Zweifel in die
+  App, nicht nach `Core/` — nach `Core/` zieht man, was die zweite App
+  wirklich braucht.
+- **Healthy behält die Bundle-ID `com.fherrmann.cockpit`.** Nicht
+  "aufräumen": daran hängen HealthKit-Berechtigung, Push beim
+  Kalorienzähler und die Kalorien-Kacheln, die schon auf dem Homebildschirm
+  liegen.
 - **Bezeichner englisch, Kommentare deutsch.** Wie im Rest von Felix'
   Projekten. Kommentare erklären das **Warum**, nicht das Was — was der Code
   tut, steht im Code.
