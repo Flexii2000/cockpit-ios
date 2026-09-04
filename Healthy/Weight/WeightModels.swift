@@ -184,9 +184,10 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Die langen Mittel sind in der Weboberflaeche seit laengerem
-    /// ausgeblendet (`SHOW_LONG_AVERAGES = false`); hier gar nicht erst
-    /// anbieten, statt einen Umschalter zu zeigen, den niemand benutzt.
+    /// Das Angebot der kurzen Zeitraeume - dieselbe Aufteilung wie in der
+    /// Weboberflaeche (`offeredSeries` in app.js): die langen Mittel dort
+    /// nicht anbieten, statt einen Umschalter zu zeigen, den niemand
+    /// benutzt. „Alles" hat sein eigenes Angebot, siehe `WeightRange`.
     static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal]
 
     static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .kcal]
