@@ -203,13 +203,9 @@ struct WeightChartView: View {
                     // zu gerader hielt die Liste fest. Mit dem kurzen Halten
                     // ist die Absicht eindeutig: wer wischt, scrollt; wer
                     // haelt, liest ab - danach zaehlt jede Richtung.
-                    .gesture(LongPressGesture(minimumDuration: 0.2)
-                        .sequenced(before: DragGesture(minimumDistance: 0))
-                        .onChanged { value in
-                            guard case .second(true, let drag) = value, let drag else { return }
-                            select(at: drag.location.x, in: proxy, geometry)
-                        }
-                        .onEnded { _ in selectedDay = nil })
+                    .gesture(HoldAndScrubGesture(
+                        onChange: { location in select(at: location.x, in: proxy, geometry) },
+                        onEnd: { selectedDay = nil }))
                     .simultaneousGesture(SpatialTapGesture()
                         .onEnded { tap in
                             // Antippen zeigt den Wert und laesst ihn stehen,
@@ -386,5 +382,36 @@ struct WeightChartView: View {
 
     private var averageSegments: [ChartSegment] {
         WeightChartData.averageSegments(points, visible: visible)
+    }
+}
+
+/// Gedrueckt halten und ziehen - mit Fingerposition schon beim Erkennen.
+///
+/// SwiftUIs `LongPressGesture` kennt keine Position. In der Kette mit einer
+/// Ziehgeste kam die erst mit der ersten Bewegung an, und der Wert erschien
+/// erst, wenn der Finger schon wanderte. Der UIKit-Erkenner meldet beim
+/// Erkennen, wo der Finger liegt, und danach jede Bewegung. Wer innerhalb
+/// der Wartezeit weiterwischt, scrollt weiter die Liste - das regelt UIKit
+/// ueber die erlaubte Bewegung des Erkenners.
+private struct HoldAndScrubGesture: UIGestureRecognizerRepresentable {
+
+    let onChange: (CGPoint) -> Void
+    let onEnd: () -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+        let recognizer = UILongPressGestureRecognizer()
+        recognizer.minimumPressDuration = 0.2
+        return recognizer
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+        switch recognizer.state {
+        case .began, .changed:
+            onChange(context.converter.localLocation)
+        case .ended, .cancelled, .failed:
+            onEnd()
+        default:
+            break
+        }
     }
 }

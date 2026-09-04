@@ -16,6 +16,13 @@ Apple-Konto in Xcode angemeldet ist, legt `xcodebuild` die App-ID mit Push
 selbst an. Die Stunde davor mit Vault war also die Anmeldung, nicht die
 Kommandozeile.
 
+## Gewicht: Ablesen beim Halten · **gebaut** (2026-09-04, abends)
+
+Der Wert erscheint jetzt, sobald das Halten erkannt ist — nicht erst mit
+der ersten Bewegung. SwiftUIs Long-Press kennt keine Position; deshalb
+sitzt darunter ein `UILongPressGestureRecognizer` (über
+`UIGestureRecognizerRepresentable`), der sie beim Erkennen mitliefert.
+
 ## Essen: Einträge berichtigen · **gebaut** (2026-09-04, abends)
 
 Tipp auf einen Eintrag → Blatt mit Menge, Mahlzeit, Tag. Das Gericht bleibt
