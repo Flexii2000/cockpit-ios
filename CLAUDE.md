@@ -164,6 +164,10 @@ geblieben wäre. Was weiterhin **nicht** prüfbar ist: Wischgesten, alles
 unterhalb des ersten Bildschirms, und ob nach erteilter Health-Erlaubnis
 wirklich Werte ankommen.
 
+⚠️ **Was der Simulator nicht zeigt, muss Felix auf dem Gerät prüfen** —
+Tastaturverhalten, Gesten im Diagramm, Kontextmenüs. Drei Nachbesserungen
+kamen genau daher (04.09.).
+
 `install-device.sh` sucht das iPhone selbst. Es muss einmal per Kabel mit
 Xcode gekoppelt worden sein (`Window > Devices`, „Connect via network"),
 danach reicht dasselbe WLAN. Ist es gesperrt oder nicht im Netz, bricht das

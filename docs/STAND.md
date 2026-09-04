@@ -20,6 +20,20 @@
 > Daneben weiterhin offen: der **Siri-Kurzbefehl** für die Schnellerfassung
 > und die Übersicht der doppelt gepflegten Anzeigeregeln.
 
+## Nachgebessert auf Zuruf (2026-09-04, abends)
+
+* **To-Do:** Tastatur schließt nach dem Eintragen; Unteraufgaben jetzt an drei
+  Stellen (Wischen nach rechts, langes Drücken, und im Blatt hinter der
+  Zeile); der Pfeil rechts an jeder Zeile führt zu Fälligkeit, Erinnerungen
+  und Unteraufgaben — vorher fand das niemand.
+* **Gewicht:** Diagramm 340 statt 260 Punkte hoch; keine senkrechten
+  Gitterlinien mehr, waagerechte nur angedeutet; Urlaubsbänder leiser, die
+  Beschriftung als kleine Pille im Band statt frei darüber.
+* **Ablesen im Diagramm:** gedrückt halten (0,2 s), dann ziehen — jede
+  Richtung. Vorher las nur eine waagerechte Ziehgeste ab, und die war
+  launisch: schräg wurde ignoriert, zu gerade hielt die Liste fest. Ein
+  leises Ticken je Tag bestätigt das Lesen; Tippen lässt den Wert stehen.
+
 ## To-Do: Fälligkeit und Erinnerungen · **gebaut** (2026-09-04)
 
 Je Aufgabe eine Fälligkeit (rot, wenn überfällig) und beliebig viele

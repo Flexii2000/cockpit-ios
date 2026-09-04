@@ -32,16 +32,27 @@ struct WeightChartView: View {
                 RectangleMark(
                     xStart: .value("von", band.start),
                     xEnd: .value("bis", band.end))
-                .foregroundStyle(Palette.vacation.opacity(0.16))
-                .annotation(position: .top, alignment: .leading, spacing: 2) {
-                    // In langen Ansichten sind die Baender nur ein paar Pixel
-                    // breit; ihre Beschriftungen liegen dann uebereinander und
-                    // ergeben Buchstabensalat. Erst ab einer lesbaren Breite.
+                // Leise: ein Hauch Farbe, keine Kante. Das Band ist Kontext,
+                // die Kurve ist die Hauptsache.
+                .foregroundStyle(Palette.vacation.opacity(0.09))
+                .annotation(position: .overlay, alignment: .topLeading, spacing: 0) {
+                    // Die Beschriftung sitzt IM Band, oben links, als kleine
+                    // Pille - nicht frei ueber dem Diagramm, wo sie mit der
+                    // Achse und der Sprechblase um Platz kaempft. In langen
+                    // Ansichten sind die Baender nur ein paar Pixel breit;
+                    // dann keine Beschriftung, sonst Buchstabensalat.
                     if let label = band.label, !label.isEmpty, isWide(band) {
                         Text(label)
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                            .padding(.leading, 3)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Palette.vacation)
+                            // Nicht umbrechen, auch wenn das Band schmaler ist
+                            // als das Wort - lieber ragt die Pille heraus, als
+                            // dass "Urlaub" zu drei Zeilen wird.
+                            .fixedSize()
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Palette.vacation.opacity(0.14)))
+                            .padding(4)
                     }
                 }
             }
@@ -144,8 +155,9 @@ struct WeightChartView: View {
         .chartXAxis {
             // `.aligned` haelt die aeusseren Beschriftungen im Bild - ohne das
             // wird die letzte am rechten Rand abgeschnitten ("1....").
+            // Keine senkrechten Gitterlinien: sie zerschneiden die Kurve in
+            // Kaestchen, ohne etwas zu sagen, das die Beschriftung nicht sagt.
             AxisMarks(preset: .aligned, values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine()
                 if let date = value.as(Date.self) {
                     AxisValueLabel { Text(date, format: xLabelFormat) }
                 }
@@ -156,7 +168,10 @@ struct WeightChartView: View {
             // nicht - die kcal sind in den Gewichtsbereich hineingerechnet,
             // und diese Achse sagt, welche Werte dahinterstehen.
             AxisMarks(position: .leading) { value in
-                AxisGridLine()
+                // Waagerecht nur angedeutet - man soll die Hoehe ablesen
+                // koennen, nicht ein Raster sehen.
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5))
+                    .foregroundStyle(Color.primary.opacity(0.07))
                 if let weight = value.as(Double.self) {
                     AxisValueLabel {
                         Text(String(format: "%.0f", weight)).font(.caption2)
@@ -181,41 +196,43 @@ struct WeightChartView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    // minimumDistance 0: ein Antippen soll schon reichen,
-                    // nicht erst eine Bewegung.
-                    // `simultaneousGesture` und eine Mindeststrecke, nicht
-                    // `gesture(minimumDistance: 0)`: sonst nimmt das Diagramm
-                    // jede Beruehrung fuer sich und die Seite laesst sich nicht
-                    // mehr scrollen, sobald der Finger darauf landet. Der
-                    // UI-Test hat genau das gefunden - zweimal nach oben
-                    // gewischt, und die Karte darunter blieb angeschnitten.
-                    .simultaneousGesture(DragGesture(minimumDistance: 8)
+                    // Gedrueckt halten, dann ziehen. Vorher las eine
+                    // Ziehgeste ab, die nur waagerechte Bewegungen nahm, damit
+                    // die Liste scrollbar bleibt - und war damit launisch:
+                    // ein leicht schraeger Finger wurde ignoriert, ein wenig
+                    // zu gerader hielt die Liste fest. Mit dem kurzen Halten
+                    // ist die Absicht eindeutig: wer wischt, scrollt; wer
+                    // haelt, liest ab - danach zaehlt jede Richtung.
+                    .gesture(LongPressGesture(minimumDuration: 0.2)
+                        .sequenced(before: DragGesture(minimumDistance: 0))
                         .onChanged { value in
-                            // Nur waagerechte Bewegungen lesen Werte ab.
-                            // Senkrechte gehoeren der Liste.
-                            guard abs(value.translation.width)
-                                    > abs(value.translation.height) else { return }
-                            guard let plot = proxy.plotFrame else { return }
-                            let x = value.location.x - geometry[plot].origin.x
-                            guard let date: Date = proxy.value(atX: x) else { return }
-                            selectedDay = ChartSelection.nearestDay(
-                                to: date, in: tageImDiagramm)
+                            guard case .second(true, let drag) = value, let drag else { return }
+                            select(at: drag.location.x, in: proxy, geometry)
                         }
                         .onEnded { _ in selectedDay = nil })
                     .simultaneousGesture(SpatialTapGesture()
                         .onEnded { tap in
-                            // Antippen soll auch ohne Bewegung einen Wert
-                            // zeigen - eine Ziehgeste mit Mindeststrecke tut
-                            // das nicht mehr.
-                            guard let plot = proxy.plotFrame else { return }
-                            let x = tap.location.x - geometry[plot].origin.x
-                            guard let date: Date = proxy.value(atX: x) else { return }
-                            selectedDay = ChartSelection.nearestDay(
-                                to: date, in: tageImDiagramm)
+                            // Antippen zeigt den Wert und laesst ihn stehen,
+                            // bis man woanders tippt.
+                            select(at: tap.location.x, in: proxy, geometry)
                         })
             }
         }
-        .frame(height: 260)
+        // Hoeher als vorher (260): die Kurve schwankt um wenige Kilogramm,
+        // und in 260 Punkten war der Verlauf ein flacher Strich.
+        .frame(height: 340)
+    }
+
+    private func select(at x: CGFloat, in proxy: ChartProxy, _ geometry: GeometryProxy) {
+        guard let plot = proxy.plotFrame else { return }
+        let inPlot = x - geometry[plot].origin.x
+        guard let date: Date = proxy.value(atX: inPlot) else { return }
+        let day = ChartSelection.nearestDay(to: date, in: tageImDiagramm)
+        if day != selectedDay {
+            selectedDay = day
+            // Ein leises Ticken je Tag - so merkt der Finger, dass er liest.
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
     }
 
     /// Die Tage, auf die sich eine Beruehrung zuordnen laesst.

@@ -133,6 +133,7 @@ private struct AreaPage: View {
     @State private var subParent: TodoItem?
     @State private var subTitle = ""
     @State private var detail: TodoItem?
+    @FocusState private var typing: Bool
 
     var body: some View {
         List {
@@ -161,6 +162,8 @@ private struct AreaPage: View {
             Section {
                 HStack {
                     TextField("Neue Aufgabe", text: $newTitle)
+                        .focused($typing)
+                        .submitLabel(.done)
                         .onSubmit { submit() }
                         .accessibilityIdentifier("newTodo")
                     Button { submit() } label: { Image(systemName: "plus.circle.fill") }
@@ -170,7 +173,8 @@ private struct AreaPage: View {
             }
         }
         .sheet(item: $detail) { todo in
-            TodoDetailSheet(todo: todo, store: store)
+            TodoDetailSheet(todo: todo, store: store, area: area,
+                            isTopLevel: area.todos.contains { $0.id == todo.id })
         }
         .alert("Unteraufgabe", isPresented: Binding(
             get: { subParent != nil },
@@ -194,6 +198,9 @@ private struct AreaPage: View {
         let title = newTitle.trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty else { return }
         newTitle = ""
+        // Die Tastatur geht mit dem Eintrag zu - sonst steht sie vor der
+        // Liste, und die neue Aufgabe ist nicht zu sehen.
+        typing = false
         Task { await store.add(title: title, to: area) }
     }
 
@@ -237,8 +244,31 @@ private struct AreaPage: View {
             .contentShape(Rectangle())
             .onTapGesture { detail = todo }
             Spacer(minLength: 0)
+            // Der Pfeil sagt, dass hinter der Zeile mehr ist: Faelligkeit,
+            // Erinnerungen, Unteraufgaben. Ohne ihn fand das niemand.
+            Button { detail = todo } label: {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.leading, indent ? 28 : 0)
+        .contextMenu {
+            Button { detail = todo } label: {
+                Label("Fälligkeit und Erinnerungen …", systemImage: "calendar.badge.clock")
+            }
+            if !indent, !todo.isDone {
+                Button { subParent = todo; subTitle = "" } label: {
+                    Label("Unteraufgabe hinzufügen …", systemImage: "arrow.turn.down.right")
+                }
+            }
+            Button(role: .destructive) {
+                Task { await store.delete(todo) }
+            } label: {
+                Label("Löschen", systemImage: "trash")
+            }
+        }
         .swipeActions(edge: .leading) {
             if !indent, !todo.isDone {
                 Button { subParent = todo; subTitle = "" } label: {
@@ -263,16 +293,22 @@ struct TodoDetailSheet: View {
 
     let todo: TodoItem
     let store: TodoStore
+    let area: TodoArea
+    /// Nur Hauptaufgaben bekommen Unteraufgaben - eine Ebene, nicht mehr.
+    let isTopLevel: Bool
     @Environment(\.dismiss) private var dismiss
 
     @State private var title: String
     @State private var hasDue: Bool
     @State private var due: Date
     @State private var reminderAt = Date().addingTimeInterval(3600)
+    @State private var newSub = ""
 
-    init(todo: TodoItem, store: TodoStore) {
+    init(todo: TodoItem, store: TodoStore, area: TodoArea, isTopLevel: Bool) {
         self.todo = todo
         self.store = store
+        self.area = area
+        self.isTopLevel = isTopLevel
         _title = State(initialValue: todo.title)
         _hasDue = State(initialValue: todo.dueAt != nil)
         _due = State(initialValue: todo.dueAt?.startOfDay() ?? Date())
@@ -281,6 +317,13 @@ struct TodoDetailSheet: View {
     /// Der Stand aus dem Brett, nicht die Kopie vom Oeffnen: nach einer neuen
     /// Erinnerung soll sie hier auch stehen.
     private var live: TodoItem { store.current(todo) ?? todo }
+
+    private func addSub() {
+        let text = newSub.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        newSub = ""
+        Task { await store.add(title: text, to: area, under: live) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -293,6 +336,22 @@ struct TodoDetailSheet: View {
                     }
                 } footer: {
                     Text("Überfällig wird rot - mehr passiert nicht.")
+                }
+                if isTopLevel {
+                    Section("Unteraufgaben") {
+                        ForEach(live.children) { child in
+                            Text(child.title)
+                                .strikethrough(child.isDone)
+                                .foregroundStyle(child.isDone ? .secondary : .primary)
+                        }
+                        HStack {
+                            TextField("Neue Unteraufgabe", text: $newSub)
+                                .submitLabel(.done)
+                                .onSubmit { addSub() }
+                            Button { addSub() } label: { Image(systemName: "plus.circle.fill") }
+                                .disabled(newSub.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
+                    }
                 }
                 Section {
                     ForEach(live.reminders) { reminder in
