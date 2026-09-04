@@ -381,8 +381,9 @@ Privat-Gate. **Jede Antwort ist das ganze Brett.**
 | GET | `/setup?token=…` | Cookie setzen, Weiterleitung auf die Oberfläche |
 
 ```
-Board     me, categories[] {key, label, emoji, symbol}, items[], dishes[], recurring[]
-Item      id, name, quantity?, note?, addedAt, addedBy, checkedAt?, checkedBy?,
+Board     me, categories[] {key, label, emoji, symbol, color (#RRGGBB)}, items[], dishes[], recurring[]
+Item      id, name, quantity? (Text: „500 g", „2 Stk" - siehe ShoppingQuantity), note?,
+          addedAt, addedBy, checkedAt?, checkedBy?,
           dishId?, ruleId?, category (Schlüssel, nie leer)
 Dish      id, name, ingredients[] {name, quantity?}, createdAt
 Rule      id, name, quantity?, everyDays, nextAt (ISO-Datum), createdAt

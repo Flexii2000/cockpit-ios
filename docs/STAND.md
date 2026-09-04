@@ -16,6 +16,9 @@ automatischer Sortierung nach Kategorien (Wörterbuch, Wortregeln, Gelerntes).
 In der App: `Shopping/` als Tab in Healthy (nur mit Token) und als vierte App
 **Einkauf** — Liste mit Symbol je Kategorie, Bearbeiten samt Kategorie,
 Gerichte, Regeln, Ohne-Netz-Verhalten mit sofort sichtbaren Änderungen.
+Mengen sind Zahl plus Einheit (Stk, g, kg, ml, l, Pck; `ShoppingQuantity`,
+getestet), der Dienst speichert weiter Text. Kategorien haben eine Farbe vom
+Dienst (`color`), in der App als Kreis hinter dem Symbol.
 Offen: Deploy (sudo), Token eintragen, Felix' QA; der Name „Einkauf" ist ein
 Vorschlag.
 
