@@ -74,7 +74,9 @@ WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) |
 }
 # Der Einkaufs-Token ist freiwillig: ohne ihn fehlt in Healthy der Tab, und
 # Einkauf zeigt das Zugang-Blatt - beides ein gueltiger Zustand.
-SHOPPING=$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)
+# Aus der Umgebung vor dem Schluesselbund: gegen einen lokal gestarteten
+# Dienst (COCKPIT_URL_SHOPPING) gilt dessen Token, nicht der vom Server.
+SHOPPING="${COCKPIT_SHOPPING_TOKEN:-$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)}"
 
 tools/bootstrap.sh > /dev/null
 xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \

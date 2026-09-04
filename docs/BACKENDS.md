@@ -376,7 +376,7 @@ Privat-Gate. **Jede Antwort ist das ganze Brett.**
 | POST | `/api/items/clear-checked` | alle abgehakten sofort weg |
 | DELETE | `/api/items/{id}` | löschen |
 | POST/PUT/DELETE | `/api/dishes[/{id}]` | `{name, ingredients:[{name, quantity?}]}` |
-| POST | `/api/dishes/{id}/add` | alle Zutaten auf die Liste (`dishId`, `note` = Gerichtname) |
+| POST | `/api/dishes/{id}/add` | alle Zutaten auf die Liste (`dishId`, `note` = Gerichtname); antwortet **201**, 400 bei einem Gericht ohne Zutaten |
 | POST/PUT/DELETE | `/api/recurring[/{id}]` | `{name, quantity?, everyDays, nextAt?}` (`yyyy-MM-dd`) |
 | GET | `/setup?token=…` | Cookie setzen, Weiterleitung auf die Oberfläche |
 
@@ -387,6 +387,10 @@ Item      id, name, quantity?, note?, addedAt, addedBy, checkedAt?, checkedBy?,
 Dish      id, name, ingredients[] {name, quantity?}, createdAt
 Rule      id, name, quantity?, everyDays, nextAt (ISO-Datum), createdAt
 ```
+
+Null-Felder kommen als `null`, nicht weggelassen; Zeitpunkte tragen
+Mikrosekunden (`2026-09-04T22:29:08.516444Z`) — `APIClient.parseInstant`
+streicht den Bruchteil, bevor `ISO8601DateFormatter` ihn sieht.
 
 Regeln, die der Dienst durchsetzt: offene Einträge stehen in
 Kategorie-Reihenfolge (Supermarkt-Rundgang), darin nach `addedAt`; abgehakte

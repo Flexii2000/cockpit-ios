@@ -37,7 +37,8 @@ TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit
 TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
 # Freiwillig: ohne Einkaufs-Token ueberspringt sich der Einkaufs-Test.
 export TEST_RUNNER_COCKPIT_SHOPPING_TOKEN
-TEST_RUNNER_COCKPIT_SHOPPING_TOKEN=$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)
+TEST_RUNNER_COCKPIT_SHOPPING_TOKEN="${COCKPIT_SHOPPING_TOKEN:-$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)}"
+export TEST_RUNNER_COCKPIT_URL_SHOPPING="${COCKPIT_URL_SHOPPING:-}"
 
 # Der Noten-Zugang kommt aus der Umgebung, nicht aus dem Schluesselbund: das
 # Passwort ist Felix' Anmeldung und kein Dienstgeheimnis.
