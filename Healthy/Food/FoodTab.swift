@@ -5,6 +5,7 @@ struct FoodTab: View {
 
     @State private var store = FoodStore()
     @State private var addTarget: AddTarget?
+    @State private var editing: FoodEntry?
     @State private var showingTargets = false
     @State private var showingDatePicker = false
 
@@ -52,6 +53,9 @@ struct FoodTab: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
+            .sheet(item: $editing) { entry in
+                EditEntrySheet(store: store, entry: entry)
+            }
             .refreshable { await store.load() }
             // Ist der Postausgang leer geworden, kennt der Server Eintraege,
             // die der Tag hier noch nicht zeigt.
@@ -241,7 +245,15 @@ struct FoodTab: View {
                     Text("\(entry.total.kcal.whole) kcal")
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
                 }
+                .contentShape(Rectangle())
+                // Antippen berichtigt: Menge, Mahlzeit, Tag. Das Gericht
+                // bleibt - wer etwas anderes gegessen hat, loescht und traegt
+                // neu ein.
+                .onTapGesture { editing = entry }
                 // Stabiler Griff fuer den UI-Test. Ueber die Beschriftung zu
                 // suchen bricht, sobald ein anderes Gericht oben steht.
                 .accessibilityIdentifier("foodEntry")

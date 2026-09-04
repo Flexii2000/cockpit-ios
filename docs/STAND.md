@@ -16,6 +16,13 @@ Apple-Konto in Xcode angemeldet ist, legt `xcodebuild` die App-ID mit Push
 selbst an. Die Stunde davor mit Vault war also die Anmeldung, nicht die
 Kommandozeile.
 
+## Essen: Einträge berichtigen · **gebaut** (2026-09-04, abends)
+
+Tipp auf einen Eintrag → Blatt mit Menge, Mahlzeit, Tag. Das Gericht bleibt
+bewusst fest; dafür `PUT /api/food/entries/{id}` im Kalorienzähler (Deploy:
+`update-food.sh`, braucht ein TTY). Wandert der Eintrag auf einen anderen
+Tag, bleibt die Ansicht auf dem aktuellen. Berichtigen darf offline warten.
+
 ## Nachgebessert auf Zuruf (2026-09-04, abends)
 
 * **To-Do:** Tastatur schließt nach dem Eintragen; Unteraufgaben jetzt an drei

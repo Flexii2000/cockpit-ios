@@ -48,6 +48,14 @@ struct FoodAPI: Sendable {
         try await client.send("POST", "/api/food/entries", body: request, queueWhenOffline: true)
     }
 
+    /// Menge, Mahlzeit oder Tag berichtigen - das Gericht bleibt. Antwort ist
+    /// der Tag, auf dem der Eintrag danach liegt.
+    func updateEntry(id: String, grams: Double, meal: Meal?, date: CalendarDate?) async throws -> DaySummary {
+        try await client.send("PUT", "/api/food/entries/\(id)",
+                              body: UpdateEntryRequest(grams: grams, meal: meal, date: date),
+                              queueWhenOffline: true)
+    }
+
     func deleteEntry(id: String) async throws -> DaySummary {
         try await client.delete("/api/food/entries/\(id)", queueWhenOffline: true)
     }
@@ -79,4 +87,11 @@ struct FoodAPI: Sendable {
     func quickCaptureStatus(id: String) async throws -> QuickCaptureJob {
         try await client.get("/api/food/quick-capture/\(id)")
     }
+}
+
+/// Was beim Berichtigen eines Eintrags geht: Menge, Mahlzeit, Tag.
+struct UpdateEntryRequest: Encodable, Sendable {
+    let grams: Double
+    let meal: Meal?
+    let date: CalendarDate?
 }

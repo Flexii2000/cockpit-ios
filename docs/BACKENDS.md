@@ -166,6 +166,7 @@ erst ab dem Tag gezeichnet, an dem seine Oberkante erstmals unterschritten war.
 | DELETE | `/api/food/dishes/{id}` | 204 |
 | POST | `/api/food/entries` | Body `NewEntryRequest` → `DaySummary` |
 | DELETE | `/api/food/entries/{id}` | `DaySummary` |
+| PUT | `/api/food/entries/{id}` | `{grams, meal?, date?}` — Menge, Mahlzeit, Tag berichtigen; das Gericht bleibt. Antwort: der Tag, auf dem der Eintrag danach liegt — bei einem Tagwechsel also **nicht** der angezeigte |
 | GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest` |
 | GET | `/api/food/features` | `{quickCapture: Bool}` |
 | POST | `/api/food/quick-capture` | Body `{date, text, meal}` → `QuickCaptureJob` |

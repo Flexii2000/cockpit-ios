@@ -157,6 +157,29 @@ final class FoodStore {
         }
     }
 
+    /// Berichtigt einen Eintrag. Wandert er auf einen anderen Tag, bleibt die
+    /// Ansicht auf dem aktuellen - sonst spraenge sie dem Eintrag hinterher.
+    func updateEntry(_ entry: FoodEntry, grams: Double, meal: Meal?, date: CalendarDate?) async -> Bool {
+        do {
+            let updatedDay = try await api.updateEntry(id: entry.id, grams: grams, meal: meal, date: date)
+            if updatedDay.date == self.date {
+                day = updatedDay
+            } else {
+                day = try await api.day(self.date)
+            }
+            clearError()
+            await loadHistory()
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
+            return true
+        } catch APIError.queued {
+            clearError()
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
     func deleteEntry(_ entry: FoodEntry) async {
         do {
             day = try await api.deleteEntry(id: entry.id)
