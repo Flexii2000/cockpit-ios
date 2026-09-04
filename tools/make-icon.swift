@@ -8,9 +8,9 @@
 //
 // Drei Motive, drei Farbwelten - jede App soll auf dem Homebildschirm sofort
 // als sie selbst zu erkennen sein:
-//   healthy  ein Herz mit Pulslinie, gruen        (Gesundheit)
-//   vault    ein Vorhaengeschloss, dunkelblau      (Sicherheit)
-//   fokus    eine Zielscheibe mit Treffer, orange  (Fokus)
+//   healthy  ein Herz, gruen                          (Gesundheit)
+//   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
+//   fokus    ein Haken im orangenen Kreis auf Weiss  (erledigt, im Fokus)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
 
@@ -68,43 +68,33 @@ switch variant {
 
 case "healthy":
     background(0x2E8B57, 0x0F3D24)
-    // Herz: zwei Boegen oben, Spitze unten. Kein Klischee-Symbol aus einer
-    // Schriftart, sondern selbst gezeichnet - so sitzt es mittig und grob.
-    let cx = side / 2, cy = side * 0.56, w = side * 0.60, h = side * 0.54
+    // Herz: zwei Boegen oben, Spitze unten. Selbst gezeichnet, damit es
+    // mittig sitzt und grob genug bleibt. Ohne Pulslinie - die ragte aus dem
+    // Herz heraus und machte es unruhig; ein Herz allein sagt "Gesundheit"
+    // deutlich genug.
+    let w = side * 0.70, h = side * 0.62
+    let cx = side / 2
+    // Optische Mitte: die Boegen oben wiegen schwerer als die Spitze, deshalb
+    // sitzt der Bezugspunkt ein wenig unter der Bildmitte.
+    let cy = side * 0.50
     let heart = CGMutablePath()
-    heart.move(to: CGPoint(x: cx, y: cy - h * 0.45))
-    heart.addCurve(to: CGPoint(x: cx - w / 2, y: cy + h * 0.18),
-                   control1: CGPoint(x: cx - w * 0.10, y: cy - h * 0.25),
-                   control2: CGPoint(x: cx - w / 2, y: cy - h * 0.10))
-    heart.addArc(center: CGPoint(x: cx - w / 4, y: cy + h * 0.18), radius: w / 4,
+    heart.move(to: CGPoint(x: cx, y: cy - h * 0.48))
+    heart.addCurve(to: CGPoint(x: cx - w / 2, y: cy + h * 0.16),
+                   control1: CGPoint(x: cx - w * 0.10, y: cy - h * 0.28),
+                   control2: CGPoint(x: cx - w / 2, y: cy - h * 0.12))
+    heart.addArc(center: CGPoint(x: cx - w / 4, y: cy + h * 0.16), radius: w / 4,
                  startAngle: .pi, endAngle: 0, clockwise: true)
-    heart.addArc(center: CGPoint(x: cx + w / 4, y: cy + h * 0.18), radius: w / 4,
+    heart.addArc(center: CGPoint(x: cx + w / 4, y: cy + h * 0.16), radius: w / 4,
                  startAngle: .pi, endAngle: 0, clockwise: true)
-    heart.addCurve(to: CGPoint(x: cx, y: cy - h * 0.45),
-                   control1: CGPoint(x: cx + w / 2, y: cy - h * 0.10),
-                   control2: CGPoint(x: cx + w * 0.10, y: cy - h * 0.25))
+    heart.addCurve(to: CGPoint(x: cx, y: cy - h * 0.48),
+                   control1: CGPoint(x: cx + w / 2, y: cy - h * 0.12),
+                   control2: CGPoint(x: cx + w * 0.10, y: cy - h * 0.28))
     heart.closeSubpath()
     withShadow {
         ctx.addPath(heart)
         ctx.setFillColor(ink)
         ctx.fillPath()
     }
-    // Pulslinie quer durch das Herz, in der Hintergrundfarbe: der Schlag,
-    // der aus einem Herz Gesundheit macht.
-    let y = cy + h * 0.10
-    let pulse = CGMutablePath()
-    pulse.move(to: CGPoint(x: cx - w * 0.36, y: y))
-    pulse.addLine(to: CGPoint(x: cx - w * 0.14, y: y))
-    pulse.addLine(to: CGPoint(x: cx - w * 0.06, y: y + h * 0.22))
-    pulse.addLine(to: CGPoint(x: cx + w * 0.04, y: y - h * 0.22))
-    pulse.addLine(to: CGPoint(x: cx + w * 0.12, y: y))
-    pulse.addLine(to: CGPoint(x: cx + w * 0.36, y: y))
-    ctx.addPath(pulse)
-    ctx.setStrokeColor(rgb(0x1F6B3F))
-    ctx.setLineWidth(side * 0.045)
-    ctx.setLineCap(.round)
-    ctx.setLineJoin(.round)
-    ctx.strokePath()
 
 case "vault":
     background(0x2B3A5C, 0x0B1020)
@@ -112,8 +102,11 @@ case "vault":
     // Schluesselloch in der Hintergrundfarbe.
     let cx = side / 2
     let bodyW = side * 0.50, bodyH = side * 0.40
-    let bodyRect = CGRect(x: cx - bodyW / 2, y: side * 0.16, width: bodyW, height: bodyH)
     let shackleR = side * 0.17, shackleW = side * 0.075
+    // Gesamthoehe des Schlosses (Koerper + Buegel) mittig ins Bild legen,
+    // statt den Koerper an einer festen Kante abzusetzen.
+    let total = bodyH + side * 0.02 + shackleR + shackleW / 2
+    let bodyRect = CGRect(x: cx - bodyW / 2, y: (side - total) / 2, width: bodyW, height: bodyH)
     let shackleY = bodyRect.maxY + side * 0.02
     withShadow {
         let shackle = CGMutablePath()
@@ -150,21 +143,36 @@ case "vault":
     ctx.fillPath()
 
 case "fokus":
-    background(0xE8862A, 0x7A3A08)
-    // Zielscheibe: drei Ringe, Treffer in der Mitte. Ringe als Striche,
-    // damit der Hintergrund dazwischen durchscheint.
+    // Weisser Grund - Felix' Wunsch. Darauf ein orangener Kreis mit einem
+    // kraeftigen Haken: erledigt, abgehakt, im Fokus. Orange ist die Farbe
+    // der Flamme in der App, so gehoert das Icon erkennbar dazu.
+    ctx.setFillColor(rgb(0xFFFFFF))
+    ctx.fill(CGRect(x: 0, y: 0, width: side, height: side))
     let c = CGPoint(x: side / 2, y: side / 2)
+    let r = side * 0.36
     withShadow {
-        ctx.setStrokeColor(ink)
-        for (radius, width) in [(side * 0.36, side * 0.055), (side * 0.235, side * 0.05)] {
-            ctx.setLineWidth(width)
-            ctx.strokeEllipse(in: CGRect(x: c.x - radius, y: c.y - radius,
-                                         width: radius * 2, height: radius * 2))
-        }
-        let dot = side * 0.10
-        ctx.setFillColor(ink)
-        ctx.fillEllipse(in: CGRect(x: c.x - dot, y: c.y - dot, width: dot * 2, height: dot * 2))
+        let circle = CGGradient(colorsSpace: space,
+                                colors: [rgb(0xFF9F3C), rgb(0xE5701A)] as CFArray,
+                                locations: [0, 1])!
+        ctx.saveGState()
+        ctx.addEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
+        ctx.clip()
+        ctx.drawLinearGradient(circle,
+                               start: CGPoint(x: c.x - r, y: c.y + r),
+                               end: CGPoint(x: c.x + r, y: c.y - r),
+                               options: [])
+        ctx.restoreGState()
     }
+    let check = CGMutablePath()
+    check.move(to: CGPoint(x: c.x - r * 0.46, y: c.y + r * 0.02))
+    check.addLine(to: CGPoint(x: c.x - r * 0.12, y: c.y - r * 0.32))
+    check.addLine(to: CGPoint(x: c.x + r * 0.50, y: c.y + r * 0.34))
+    ctx.addPath(check)
+    ctx.setStrokeColor(rgb(0xFFFFFF))
+    ctx.setLineWidth(side * 0.085)
+    ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
+    ctx.strokePath()
 
 default:
     fatalError("Unbekannte App: \(variant)")
