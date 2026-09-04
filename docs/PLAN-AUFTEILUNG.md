@@ -129,8 +129,9 @@ heute tut, kommt etwas Neues dazu. Reihenfolge innerhalb des Schritts:
 
 8. **Tools.** `run-simulator.sh <app> <tab> [bild]`, `install-device.sh <app>
    [--launch]`, `uitest.sh <app> [filter]`, `pushtest.sh <app> [nutzlast]`,
-   `verify.sh` (alle drei). `make-icon.swift` mit Farbe je App: Healthy grün,
-   Vault dunkelblau, Fokus orange — Vorschlag, Felix entscheidet.
+   `verify.sh` (alle drei). `make-icon.swift` mit eigenem Motiv je App (Felix' Wunsch, 04.09.):
+   Healthy ein Herz mit Pulslinie auf Grün, Vault ein Vorhängeschloss auf
+   Dunkelblau, Fokus eine Zielscheibe auf Orange.
    `COCKPIT_TAB` behält seine Werte, jede App kennt nur ihre.
 
 9. **Tests.** Unit-Tests bleiben ein Bundle (sie prüfen `Shared` und `Core`).

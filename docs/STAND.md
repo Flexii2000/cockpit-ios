@@ -30,6 +30,10 @@ Noten-Zugang das Blatt mit nur dem Noten-Abschnitt). Auf dem Server:
 `grades.env` schickt an `com.fherrmann.vault`; die alte Kennung in
 `devices.json` räumt die Notenwache beim ersten Versand selbst weg.
 
+Icons: drei Motive statt drei Farben — Herz mit Pulslinie (Healthy),
+Vorhängeschloss (Vault), Zielscheibe (Fokus); `tools/make-icon.swift
+<app> <pfad>` zeichnet sie.
+
 Abweichung vom Plan: die Diagramm-Bausteine (`ChartCallout`, `DaySeries`,
 `SeriesChip`, `Palette`) liegen in `Healthy/Charts/`, nicht in `Core/` — sie
 kennen Typen, die nur Healthy hat, und Vault brach daran.
