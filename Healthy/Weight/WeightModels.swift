@@ -93,7 +93,7 @@ struct UpdateTargetRequest: Encodable, Sendable {
 /// auf dem Handy ist ein Diagramm mit Umschalter die bessere Form - vier
 /// Diagramme hintereinander bedeuten dort nur viel Scrollen.
 enum WeightRange: String, CaseIterable, Identifiable, Sendable {
-    case month, last90, year, threeYears
+    case month, last90, year, threeYears, allTime
 
     var id: String { rawValue }
 
@@ -107,6 +107,7 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
         // ein Endpunkt je Zeitraum waere Backend-Arbeit fuer eine reine
         // Anzeigefrage.
         case .threeYears: "/api/weight/all-time"
+        case .allTime:    "/api/weight/all-time"
         }
     }
 
@@ -129,6 +130,27 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
         case .last90:     "90 Tage"
         case .year:       "1 Jahr"
         case .threeYears: "3 Jahre"
+        case .allTime:    "Alles"
+        }
+    }
+
+    /// Was die Umschalter unter dem Diagramm anbieten. „Alles" tauscht das
+    /// 7-Tage-Mittel gegen das 30-Tage-Mittel: ueber acht Jahre ist das
+    /// 7er fast so unruhig wie die Messwerte, das 30er zeigt den Verlauf.
+    /// Ein fuenfter Umschalter passte nicht in die Reihe.
+    var offeredSeries: [WeightSeries] {
+        switch self {
+        case .allTime: [.measured, .avg30, .target, .kcal]
+        default:       WeightSeries.offered
+        }
+    }
+
+    /// Womit der Zeitraum aufmacht. „Alles" ohne kcal: acht Jahre Tageswerte
+    /// waeren nur Rauschen ueber der Kurve, die man sehen will.
+    var defaultVisible: Set<WeightSeries> {
+        switch self {
+        case .allTime: [.avg30, .target]
+        default:       WeightSeries.defaultVisible
         }
     }
 

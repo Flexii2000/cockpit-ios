@@ -23,7 +23,7 @@ meldet sich, wenn er fertig ist — per Push auch dann, wenn das Handy in der
 Tasche liegt.
 
 **Gewicht** — Kacheln, ein Diagramm mit Zeitraum-Umschalter (30 Tage bis
-3 Jahre), Zielkurve, Zielkorridor, Urlaubs-Bänder und die kcal des jeweiligen
+„Alles“, dort mit dem 30-Tage-Mittel), Zielkurve, Zielkorridor, Urlaubs-Bänder und die kcal des jeweiligen
 Tages darüber. Darunter die **Schritte von heute** gegen ein Tagesziel.
 Gewicht und Schritte kommen **automatisch aus Apple Health**.
 

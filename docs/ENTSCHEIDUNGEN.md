@@ -3,6 +3,16 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-04 — „Alles“ ist zurück, mit dem 30-Tage-Mittel als Vorgabe
+**Warum:** Felix will die ganze Historie wieder sehen — als ruhige Kurve.
+Über acht Jahre ist das 7-Tage-Mittel fast so unruhig wie die Messwerte; das
+30-Tage-Mittel zeigt den Verlauf. Darum hat „Alles“ ein eigenes Angebot an
+Umschaltern (30-Tage- statt 7-Tage-Mittel, ohne kcal als Vorgabe) und eine
+eigene, gemerkte Auswahl — ein Wechsel zwischen den Zeiträumen tauscht keine
+Haken aus. „3 Jahre“ bleibt daneben bestehen (siehe 2026-09-02).
+**Verworfen:** fünf Umschalter in einer Reihe (zu breit fürs iPhone) und
+geglättete Interpolation (überschwingt in Lücken, siehe 2026-09-02).
+
 ## 2026-09-04 — Drei Apps aus einem Repo: Healthy, Vault, Fokus
 **Warum:** fünf Tabs waren voll, drei Dienste kommen dazu (To-Do, Roadmap,
 Einkaufsliste), und die drei Gruppen haben verschiedene Nutzungen: täglich

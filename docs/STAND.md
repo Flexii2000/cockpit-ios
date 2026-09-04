@@ -25,6 +25,13 @@ Tagen („morgen“, „in 3 Tagen“, „seit gestern“), weiter weg als Datum
 (`TodoItem.dueLabel`, getestet). Das Web unter `fherrmann.com/todo` macht
 beides genauso.
 
+## Gewicht: „Alles“ wieder da · **gebaut** (2026-09-04, abends)
+
+Fünfter Zeitraum neben „3 Jahre“: die ganze Reihe (`/api/weight/all-time`,
+ungeschnitten). Eigenes Angebot an Umschaltern — Messwert, **30-Tage-Mittel**,
+Zielkurve, kcal — mit eigener gemerkter Auswahl, Vorgabe 30-Tage-Mittel +
+Zielkurve. Debug: `COCKPIT_RANGE=allTime`.
+
 ## Gewicht: Ablesen beim Halten · **gebaut** (2026-09-04, abends)
 
 Der Wert steht, sobald der Finger aufliegt — ohne Halten. Ein eigener

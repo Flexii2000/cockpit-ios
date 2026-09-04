@@ -146,7 +146,7 @@ struct WeightTab: View {
             // Die Umschalter sind zugleich die Legende - eine zweite Liste
             // mit denselben Farben waere Wiederholung.
             HStack(spacing: 8) {
-                ForEach(WeightSeries.offered) { series in
+                ForEach(store.range.offeredSeries) { series in
                     if store.range.availableSeries.contains(series) {
                         SeriesChip(title: series.title,
                                    color: series.color,

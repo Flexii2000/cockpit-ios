@@ -141,7 +141,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | Schalter | Wofür |
 |---|---|
 | `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `habits`); `setup` öffnet das Zugang-Blatt |
-| `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`) |
+| `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
 | `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |

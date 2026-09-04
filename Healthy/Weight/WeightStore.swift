@@ -48,7 +48,18 @@ final class WeightStore {
         #endif
         return .last90
     }
-    var visibleSeries: Set<WeightSeries> = WeightSeries.defaultVisible
+    /// Die sichtbaren Serien, je Sichtweise gemerkt: „Alles" hat ein eigenes
+    /// Angebot (30-Tage- statt 7-Tage-Mittel) und darum eine eigene Auswahl -
+    /// sonst tauschte jeder Wechsel des Zeitraums die Haken aus.
+    private var windowVisible: Set<WeightSeries> = WeightSeries.defaultVisible
+    private var allTimeVisible: Set<WeightSeries> = WeightRange.allTime.defaultVisible
+
+    var visibleSeries: Set<WeightSeries> {
+        get { range == .allTime ? allTimeVisible : windowVisible }
+        set {
+            if range == .allTime { allTimeVisible = newValue } else { windowVisible = newValue }
+        }
+    }
 
     /// Kacheln, die man noch dazunehmen kann.
     var addableWidgets: [WeightWidget] {
