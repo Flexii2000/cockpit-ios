@@ -132,6 +132,7 @@ private struct AreaPage: View {
     @State private var newTitle = ""
     @State private var subParent: TodoItem?
     @State private var subTitle = ""
+    @State private var detail: TodoItem?
 
     var body: some View {
         List {
@@ -167,6 +168,9 @@ private struct AreaPage: View {
                         .accessibilityIdentifier("addTodo")
                 }
             }
+        }
+        .sheet(item: $detail) { todo in
+            TodoDetailSheet(todo: todo, store: store)
         }
         .alert("Unteraufgabe", isPresented: Binding(
             get: { subParent != nil },
@@ -210,14 +214,23 @@ private struct AreaPage: View {
                 Text(todo.title)
                     .strikethrough(todo.isDone)
                     .foregroundStyle(todo.isDone ? .secondary : .primary)
-                if todo.isDone, let until = todo.visibleUntil {
-                    // Sagen, wann sie verschwindet - sonst wundert man sich
-                    // am vierten Tag.
-                    Text("verschwindet am \(until.formatted(.dateTime.day().month()))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                if todo.dueAt != nil || !todo.reminders.isEmpty {
+                    HStack(spacing: 8) {
+                        if let dueAt = todo.dueAt {
+                            Text("bis \(dueAt.short)")
+                                .foregroundStyle(todo.isOverdue ? Color.red : Color.secondary)
+                                .fontWeight(todo.isOverdue ? .semibold : .regular)
+                        }
+                        if !todo.reminders.isEmpty {
+                            Label("\(todo.reminders.count)", systemImage: "bell")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .font(.caption2)
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { detail = todo }
             Spacer(minLength: 0)
         }
         .padding(.leading, indent ? 28 : 0)
@@ -234,6 +247,92 @@ private struct AreaPage: View {
                 Task { await store.delete(todo) }
             } label: {
                 Label("Löschen", systemImage: "trash")
+            }
+        }
+    }
+}
+
+
+/// Faelligkeit und Erinnerungen einer Aufgabe.
+struct TodoDetailSheet: View {
+
+    let todo: TodoItem
+    let store: TodoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title: String
+    @State private var hasDue: Bool
+    @State private var due: Date
+    @State private var reminderAt = Date().addingTimeInterval(3600)
+
+    init(todo: TodoItem, store: TodoStore) {
+        self.todo = todo
+        self.store = store
+        _title = State(initialValue: todo.title)
+        _hasDue = State(initialValue: todo.dueAt != nil)
+        _due = State(initialValue: todo.dueAt?.startOfDay() ?? Date())
+    }
+
+    /// Der Stand aus dem Brett, nicht die Kopie vom Oeffnen: nach einer neuen
+    /// Erinnerung soll sie hier auch stehen.
+    private var live: TodoItem { store.current(todo) ?? todo }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Aufgabe", text: $title)
+                    Toggle("Fällig am", isOn: $hasDue)
+                    if hasDue {
+                        DatePicker("Datum", selection: $due, displayedComponents: .date)
+                    }
+                } footer: {
+                    Text("Überfällig wird rot - mehr passiert nicht.")
+                }
+                Section {
+                    ForEach(live.reminders) { reminder in
+                        HStack {
+                            Text(reminder.at.formatted(date: .abbreviated, time: .shortened))
+                            Spacer()
+                            if reminder.sentAt != nil {
+                                Text("geschickt").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                Task { await store.deleteReminder(reminder, from: live) }
+                            } label: { Label("Löschen", systemImage: "trash") }
+                        }
+                    }
+                    DatePicker("Neu", selection: $reminderAt, in: Date()...)
+                    Button("Erinnerung anlegen") {
+                        Task { await store.addReminder(to: live, at: reminderAt) }
+                    }
+                } header: {
+                    Text("Erinnerungen")
+                } footer: {
+                    Text("Beliebig viele. Der Dienst schickt sie als Benachrichtigung - "
+                         + "auch wenn die App zu ist, und nur solange die Aufgabe offen ist.")
+                }
+            }
+            .navigationTitle("Aufgabe")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Abbrechen") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Sichern") {
+                        Task {
+                            let day = hasDue ? CalendarDate(date: due) : nil
+                            if await store.update(live, title: title.trimmingCharacters(in: .whitespaces),
+                                                  dueAt: day) {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
             }
         }
     }

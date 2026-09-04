@@ -327,7 +327,10 @@ setzt nichts zusammen.
 | GET | `/api/board?all=false` | Bereiche mit sichtbaren Aufgaben; `all=true` auch ältere erledigte |
 | POST/PUT/DELETE | `/api/areas[/{id}]` | Bereich anlegen `{name}`, umbenennen, löschen (samt Aufgaben) |
 | POST | `/api/todos` | `{areaId, parentId?, title}` — `parentId` macht eine Unteraufgabe (eine Ebene) |
-| PUT | `/api/todos/{id}` | `{title}` |
+| PUT | `/api/todos/{id}` | `{title, dueAt?}` — ohne `dueAt` gibt es keine Fälligkeit mehr |
+| POST | `/api/todos/{id}/reminders` | `{at}` als Zeitpunkt **mit Zone** (`ReminderDraft` schreibt ISO mit `Z`), nur Zukunft |
+| DELETE | `/api/todos/{id}/reminders/{rid}` | Erinnerung weg |
+| POST | `/api/devices` | `{token}` — Push-Kennung von Fokus, für die Erinnerungen |
 | POST | `/api/todos/{id}/done` | abhaken — idempotent, der erste Zeitpunkt bleibt |
 | DELETE | `/api/todos/{id}/done` | Haken zurück, auch nach dem Verschwinden |
 | DELETE | `/api/todos/{id}` | wirklich löschen, samt Unteraufgaben |
@@ -335,8 +338,15 @@ setzt nichts zusammen.
 ```
 Board     areas[], includesHidden, hiddenDoneCount, now
 AreaView  id, name, position, openCount, hiddenDoneCount, todos[]
-TodoView  id, title, createdAt, doneAt | null, visibleUntil | null, children[]
+TodoView  id, title, createdAt, doneAt | null, visibleUntil | null,
+          dueAt | null (ISO-Datum), reminders[] {id, at, sentAt | null}, children[]
 ```
+
+⚠️ **Erinnerungen schickt der Dienst**, jede Minute geprüft, als Push an
+Fokus (Topic `com.fherrmann.fokus`, Nutzlast `"kind": "todo"`). Die App
+meldet ihre Kennung nach dem ersten erfolgreichen Laden des Bretts an. Eine
+erledigte Aufgabe erinnert an nichts mehr; eine um mehr als eine Stunde
+verpasste Erinnerung ist verpasst.
 
 ⚠️ **Erledigtes verschwindet nach drei Tagen, wird aber nicht gelöscht.**
 `visibleUntil` sagt, wann; danach fehlt die Aufgabe im Brett, bis `all=true`

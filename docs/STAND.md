@@ -5,9 +5,10 @@
 > `Flexii2000/todo` (Felix legt es an), dann
 > `ssh HeimServerRemote 'git clone … ~/services/todo'` und
 > `ssh -t HeimServerRemote '~/services/todo/deploy/setup-todo.sh'`, dazu
-> `~/scripts/update-fherrmann.sh` für die Karte auf der Landing Page. Danach
-> Fokus aufs Gerät (`tools/install-device.sh Fokus --launch`) — bis dahin
-> zeigt der To-Do-Tab dort einen Fehler. Offen bleibt Felix' Abnahme der
+> (die Karte auf der Landing Page ist schon live). Fokus liegt mit dem
+> To-Do-Tab auf dem Gerät, zeigt aber bis dahin einen Fehler; für die
+> Erinnerungen muss Fokus **einmal aus Xcode** aufs Gerät (Push-Profil), dann
+> `tools/install-device.sh Fokus`. Offen bleibt Felix' Abnahme der
 > drei Apps im Gebrauch (siehe unten) und Schritt 2 aus `PLAN-AUFTEILUNG.md`.
 >
 > ⚠️ **Eine neue Bundle-ID mit Push braucht einmal Xcode.** `xcodebuild` kann
@@ -18,6 +19,16 @@
 >
 > Daneben weiterhin offen: der **Siri-Kurzbefehl** für die Schnellerfassung
 > und die Übersicht der doppelt gepflegten Anzeigeregeln.
+
+## To-Do: Fälligkeit und Erinnerungen · **gebaut** (2026-09-04)
+
+Je Aufgabe eine Fälligkeit (rot, wenn überfällig) und beliebig viele
+Erinnerungen — im Browser im Detailfeld unter der Aufgabe (Klick auf den
+Text), in der App im Blatt hinter der Zeile. **Die Erinnerungen schickt der
+Dienst** als Push an Fokus, damit sie auch kommen, wenn sie im Browser
+angelegt wurden und die App zu ist. Dafür hat Fokus jetzt Push: wie bei Vault
+braucht die neue Bundle-ID **einmal Xcode** (Schema Fokus, ⌘R), sonst fehlt
+dem Profil `aps-environment`. Der Hinweis „verschwindet am …" ist raus.
 
 ## To-Do in Fokus · **gebaut, Dienst nicht ausgerollt** (2026-09-04)
 

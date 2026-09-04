@@ -30,6 +30,14 @@ struct CalendarDate: Hashable, Comparable, Codable, Sendable {
         String(format: "%04d-%02d-%02d", year, month, day)
     }
 
+    /// Der Kalendertag, in den ein Zeitpunkt faellt - in der Zone des Geraets.
+    init(date: Date, in timeZone: TimeZone = .current) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        self.init(year: parts.year ?? 1970, month: parts.month ?? 1, day: parts.day ?? 1)
+    }
+
     static func today(in timeZone: TimeZone = .current) -> CalendarDate {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone

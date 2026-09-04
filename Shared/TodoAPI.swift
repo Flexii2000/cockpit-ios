@@ -45,5 +45,26 @@ struct TodoAPI: Sendable {
         try await client.delete("/api/todos/\(id)")
     }
 
+    func update(id: String, title: String, dueAt: CalendarDate?) async throws -> TodoBoard {
+        try await client.send("PUT", "/api/todos/\(id)", body: TodoUpdate(title: title, dueAt: dueAt?.iso))
+    }
+
+    func addReminder(id: String, at: Date) async throws -> TodoBoard {
+        try await client.send("POST", "/api/todos/\(id)/reminders", body: ReminderDraft(at: at))
+    }
+
+    func deleteReminder(id: String, reminderId: String) async throws -> TodoBoard {
+        try await client.delete("/api/todos/\(id)/reminders/\(reminderId)")
+    }
+
+    /// Meldet die Push-Kennung fuer Erinnerungen an.
+    func registerDevice(token: String) async throws {
+        let _: APIClient.Empty = try await client.send("POST", "/api/devices", body: DeviceRegistration(token: token))
+    }
+
+    private struct DeviceRegistration: Encodable {
+        let token: String
+    }
+
     private struct Empty: Encodable {}
 }

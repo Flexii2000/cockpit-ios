@@ -170,6 +170,10 @@ targets:
     entitlements:
       path: Fokus/Fokus.entitlements
       properties:
+        # Erinnerungen des To-Do-Dienstes. Wie bei Vault: eine neue Bundle-ID
+        # mit Push braucht einmal Xcode (Schema Fokus, ⌘R), danach greift
+        # install-device.sh.
+        aps-environment: development
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.fherrmann.fokus
           - *shared_group

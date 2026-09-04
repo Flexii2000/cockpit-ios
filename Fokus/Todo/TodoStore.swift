@@ -18,11 +18,58 @@ final class TodoStore {
 
     var areas: [TodoArea] { board?.areas ?? [] }
 
+    private static let registeredTokenKey = "todo.registeredPushToken"
+
     func load() async {
         isLoading = board == nil
         defer { isLoading = false }
-        await perform { try await api.board(includeHidden: showsHidden) }
+        if await perform({ try await api.board(includeHidden: showsHidden) }) {
+            await registerForPushIfNeeded()
+        }
         if await Outbox.shared.count == 0 { pendingIDs.removeAll() }
+    }
+
+    /// Meldet die Push-Kennung an, sobald der Dienst erreichbar war - einmal je
+    /// Kennung, nicht bei jedem Laden.
+    private func registerForPushIfNeeded() async {
+        guard let token = Notifications.deviceToken else { return }
+        let defaults = UserDefaults.standard
+        guard defaults.string(forKey: Self.registeredTokenKey) != token else { return }
+        do {
+            try await api.registerDevice(token: token)
+            defaults.set(token, forKey: Self.registeredTokenKey)
+        } catch {
+            print("To-Do-Push nicht angemeldet: \(error.localizedDescription)")
+        }
+    }
+
+    @discardableResult
+    func update(_ todo: TodoItem, title: String, dueAt: CalendarDate?) async -> Bool {
+        await perform { try await api.update(id: todo.id, title: title, dueAt: dueAt) }
+    }
+
+    @discardableResult
+    func addReminder(to todo: TodoItem, at: Date) async -> Bool {
+        // Ohne Erlaubnis kommt keine Erinnerung an - also jetzt fragen, wo
+        // der Zusammenhang klar ist.
+        await Notifications.requestPermission()
+        return await perform { try await api.addReminder(id: todo.id, at: at) }
+    }
+
+    func deleteReminder(_ reminder: TodoReminder, from todo: TodoItem) async {
+        await perform { try await api.deleteReminder(id: todo.id, reminderId: reminder.id) }
+    }
+
+    /// Der aktuelle Stand einer Aufgabe nach einem Neuladen - fuer ein Blatt,
+    /// das offen bleibt, waehrend sich das Brett darunter aendert.
+    func current(_ todo: TodoItem) -> TodoItem? {
+        for area in areas {
+            for item in area.todos {
+                if item.id == todo.id { return item }
+                if let child = item.children.first(where: { $0.id == todo.id }) { return child }
+            }
+        }
+        return nil
     }
 
     func toggle(_ todo: TodoItem) async {
@@ -41,7 +88,7 @@ final class TodoStore {
 
     @discardableResult
     func add(title: String, to area: TodoArea, under parent: TodoItem? = nil) async -> Bool {
-        await perform { try await api.create(TodoDraft(areaId: area.id, parentId: parent?.id, title: title)) }
+        await perform { try await api.create(TodoDraft(areaId: area.id, parentId: parent?.id, title: title, dueAt: nil)) }
     }
 
     func delete(_ todo: TodoItem) async {

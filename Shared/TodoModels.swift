@@ -30,16 +30,48 @@ struct TodoItem: Decodable, Identifiable, Sendable, Equatable {
     let doneAt: Date?
     /// Bei erledigten: bis wann sie noch zu sehen ist.
     let visibleUntil: Date?
+    /// Faelligkeit - eine Anzeige, ueberfaellig heisst rot.
+    let dueAt: CalendarDate?
+    /// Zeitpunkte, zu denen der Dienst eine Push-Nachricht schickt.
+    let reminders: [TodoReminder]
     let children: [TodoItem]
 
     var isDone: Bool { doneAt != nil }
+
+    var isOverdue: Bool {
+        guard let dueAt, !isDone else { return false }
+        return dueAt.daysFromToday() < 0
+    }
 }
 
-/// Was die App beim Anlegen schickt.
+struct TodoReminder: Decodable, Identifiable, Sendable, Equatable {
+    let id: String
+    let at: Date
+    let sentAt: Date?
+}
+
+/// Was die App beim Anlegen schickt. `dueAt` als ISO-Datum, wie der Dienst
+/// es liest.
 struct TodoDraft: Encodable, Sendable {
     let areaId: String
     let parentId: String?
     let title: String
+    let dueAt: String?
+}
+
+/// Text und Faelligkeit aendern - ohne `dueAt` gibt es keine mehr.
+struct TodoUpdate: Encodable, Sendable {
+    let title: String
+    let dueAt: String?
+}
+
+/// Ein Zeitpunkt mit Zone - der Dienst liest ein `Instant`, kein Datum ohne.
+struct ReminderDraft: Encodable, Sendable {
+    let at: String
+
+    init(at: Date) {
+        self.at = ISO8601DateFormatter().string(from: at)
+    }
 }
 
 struct AreaDraft: Encodable, Sendable {
