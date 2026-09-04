@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum TabSelection: Hashable {
-    case habits
+    case habits, todo
     #if DEBUG
     case widget
 
@@ -12,7 +12,11 @@ enum TabSelection: Hashable {
 
     static var initial: TabSelection {
         #if DEBUG
-        if ProcessInfo.processInfo.environment["COCKPIT_TAB"] == "widget" { return .widget }
+        switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
+        case "widget": return .widget
+        case "todo":   return .todo
+        default:       break
+        }
         #endif
         return .habits
     }
@@ -41,6 +45,9 @@ struct RootView: View {
         TabView(selection: $router.selection) {
             Tab(Backend.habits.title, systemImage: Backend.habits.systemImage, value: TabSelection.habits) {
                 HabitsTab()
+            }
+            Tab(Backend.todo.title, systemImage: Backend.todo.systemImage, value: TabSelection.todo) {
+                TodoTab()
             }
             #if DEBUG
             if TabSelection.showsWidgetPreview {

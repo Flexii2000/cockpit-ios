@@ -11,6 +11,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
     case finance
     case grades
     case habits
+    case todo
 
     var id: String { rawValue }
 
@@ -37,6 +38,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .finance: URL(string: "https://finanzen.fherrmann.com")!
         case .grades:  URL(string: "https://fherrmann.com/grades")!
         case .habits:  URL(string: "https://fherrmann.com/habits")!
+        case .todo:    URL(string: "https://fherrmann.com/todo")!
         }
     }
 
@@ -47,6 +49,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .finance: "Finanzen"
         case .grades:  "Noten"
         case .habits:  "Habits"
+        case .todo:    "To-Do"
         }
     }
 
@@ -57,6 +60,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .finance: "eurosign.circle"
         case .grades:  "graduationcap"
         case .habits:  "flame"
+        case .todo:    "checklist"
         }
     }
 }

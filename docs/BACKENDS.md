@@ -14,6 +14,7 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | Finance Cockpit | `https://finanzen.fherrmann.com` | Login: Passwort + TOTP → Session-Cookie | **WebView, dauerhaft** |
 | Noten | `https://fherrmann.com/grades` | Cookie `grades_token` **und** Anmeldung → Session-Cookie | **nativ** |
 | Habits | `https://fherrmann.com/habits` | Cookie `fh_private` (wie der Kalorienzähler) | **nativ**, einziger Client |
+| To-Do | `https://fherrmann.com/todo` | Cookie `fh_private` | **nativ** (Fokus) — daneben eine Weboberfläche |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
 also keine ATS-Ausnahme nötig). Kein VPN, kein Heimnetz-Zwang.
@@ -313,6 +314,35 @@ nicht zu gebrauchen.
 
 ⚠️ **Fehler kommen als Klartext** (`Ein Habit braucht einen Namen.`), nicht
 als JSON-Fehlerseite — `APIClient.shortMessage` reicht sie so durch.
+
+## To-Do — `/todo/api`
+
+Quelle: `../todo/src/main/java/com/fherrmann/todo/`. Anders als Habits hat der
+Dienst eine Weboberfläche (Kacheln nebeneinander); die App ist der zweite
+Client. **Jede Antwort ist das ganze Brett** — die App ersetzt ihren Stand und
+setzt nichts zusammen.
+
+| Methode | Pfad | Was |
+|---|---|---|
+| GET | `/api/board?all=false` | Bereiche mit sichtbaren Aufgaben; `all=true` auch ältere erledigte |
+| POST/PUT/DELETE | `/api/areas[/{id}]` | Bereich anlegen `{name}`, umbenennen, löschen (samt Aufgaben) |
+| POST | `/api/todos` | `{areaId, parentId?, title}` — `parentId` macht eine Unteraufgabe (eine Ebene) |
+| PUT | `/api/todos/{id}` | `{title}` |
+| POST | `/api/todos/{id}/done` | abhaken — idempotent, der erste Zeitpunkt bleibt |
+| DELETE | `/api/todos/{id}/done` | Haken zurück, auch nach dem Verschwinden |
+| DELETE | `/api/todos/{id}` | wirklich löschen, samt Unteraufgaben |
+
+```
+Board     areas[], includesHidden, hiddenDoneCount, now
+AreaView  id, name, position, openCount, hiddenDoneCount, todos[]
+TodoView  id, title, createdAt, doneAt | null, visibleUntil | null, children[]
+```
+
+⚠️ **Erledigtes verschwindet nach drei Tagen, wird aber nicht gelöscht.**
+`visibleUntil` sagt, wann; danach fehlt die Aufgabe im Brett, bis `all=true`
+oder ein Zurücknehmen des Hakens sie holt. Eine Unteraufgabe hängt am
+Schicksal ihrer Aufgabe. Abhaken und Zurücknehmen dürfen offline warten
+(`queueWhenOffline`); Anlegen nicht — dafür braucht man die Antwort.
 
 ## Finance Cockpit — kein API
 

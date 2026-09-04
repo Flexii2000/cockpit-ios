@@ -1,10 +1,14 @@
 # Stand
 
-> **Nächster Schritt:** alle drei Apps liegen auf dem iPhone. Offen ist
-> Felix' **Abnahme im Gebrauch**: Token in Healthy einmal da und in Vault/Fokus
-> ohne Eingabe; Noten-Passwort in Vault neu eingeben; Habits-Kachel in Fokus
-> neu auflegen; die nächste echte Note landet in Vault. Danach Schritt 2 aus
-> `PLAN-AUFTEILUNG.md` (aufräumen), dann die neuen Dienste.
+> **Nächster Schritt:** den **To-Do-Dienst ausrollen** — Repo `../todo` ist
+> fertig (14 Tests grün), braucht aber noch das GitHub-Repo
+> `Flexii2000/todo` (Felix legt es an), dann
+> `ssh HeimServerRemote 'git clone … ~/services/todo'` und
+> `ssh -t HeimServerRemote '~/services/todo/deploy/setup-todo.sh'`, dazu
+> `~/scripts/update-fherrmann.sh` für die Karte auf der Landing Page. Danach
+> Fokus aufs Gerät (`tools/install-device.sh Fokus --launch`) — bis dahin
+> zeigt der To-Do-Tab dort einen Fehler. Offen bleibt Felix' Abnahme der
+> drei Apps im Gebrauch (siehe unten) und Schritt 2 aus `PLAN-AUFTEILUNG.md`.
 >
 > ⚠️ **Eine neue Bundle-ID mit Push braucht einmal Xcode.** `xcodebuild` kann
 > ohne Xcode-Konto keine App-ID mit Push anlegen („No Accounts", Profil ohne
@@ -14,6 +18,21 @@
 >
 > Daneben weiterhin offen: der **Siri-Kurzbefehl** für die Schnellerfassung
 > und die Übersicht der doppelt gepflegten Anzeigeregeln.
+
+## To-Do in Fokus · **gebaut, Dienst nicht ausgerollt** (2026-09-04)
+
+Zweiter Tab in Fokus: die Bereiche als **Seiten zum Wischen** (Punkte unten),
+je Seite die Aufgaben mit Unteraufgaben (eine Ebene, eingerückt), Eingabe am
+Ende, Unteraufgabe per Wischen nach rechts, Löschen nach links. Erledigtes
+durchgestrichen mit „verschwindet am …"; Abhaken darf offline warten. Bereiche
+anlegen, umbenennen, löschen und „ältere erledigte zeigen" im „…"-Menü.
+Der Dienst (`../todo`, Spring wie Habits) hat daneben eine Weboberfläche mit
+Kacheln nebeneinander — geprüft im Simulator gegen einen lokal gestarteten
+Dienst und im Browser (Cookie-Trick: ein Cookie gilt je Host, nicht je Port,
+eine Hilfsseite auf 48211 setzt ihn für 48210).
+
+Entscheidung „Seiten statt Segmente": drei kurze Namen passen in ein
+Segment, der vierte nicht mehr — und Bereiche sollen sich anlegen lassen.
 
 ## Aufteilung in drei Apps · **Schritt 1 fertig, auf dem Gerät** (2026-09-04)
 

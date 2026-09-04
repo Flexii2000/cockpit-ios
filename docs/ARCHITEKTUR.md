@@ -28,6 +28,7 @@ M2        [nativ][nativ][Web]     <- Zielbild Stufe 2   erledigt
 M3        + HealthKit, Widget, Shortcuts, Face-ID-Sperre
 danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
           + Habits (nativ; der Dienst hat kein Web-UI, die App ist sein einziger Client)
+          + To-Do in Fokus (Bereiche als Seiten im Tab; der Dienst hat daneben Kacheln im Browser)
 ```
 
 ### Aufbau eines nativen Tabs
@@ -53,8 +54,8 @@ Healthy/            App: Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine
   Food/ Weight/ Health/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
-Fokus/              App: Habits
-  App/ Habits/
+Fokus/              App: Habits, To-Do
+  App/ Habits/ Todo/
 Core/               was alle drei Apps brauchen, aber keine Erweiterung:
                     Zugang (Cookies, Keychain-Wanderung), Sperre, Benachrichtigungen,
                     Zugang-Blatt, Fehler-/Offline-Leisten

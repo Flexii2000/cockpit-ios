@@ -252,16 +252,18 @@ final class Access {
             cookies.append(c)
         }
         #if DEBUG
-        // Ist der Habits-Dienst auf eine andere Adresse umgeleitet
-        // (COCKPIT_URL_HABITS, lokal gestarteter Dienst), gilt das Cookie fuer
-        // .fherrmann.com dort nicht. Dann dasselbe Token noch einmal fuer
-        // diesen Rechner - ohne das antwortet der lokale Dienst nur mit 403.
-        let habitsURL = Backend.habits.url
-        if let privateToken, let host = habitsURL.host(), !host.hasSuffix("fherrmann.com"),
-           let c = Self.cookie(name: Self.privateTokenKey, value: privateToken,
-                               domain: host, path: habitsURL.path(),
-                               secure: habitsURL.scheme == "https") {
-            cookies.append(c)
+        // Ist ein Dienst auf eine andere Adresse umgeleitet (COCKPIT_URL_*,
+        // lokal gestarteter Dienst), gilt das Cookie fuer .fherrmann.com dort
+        // nicht. Dann dasselbe Token noch einmal fuer diesen Rechner - ohne
+        // das antwortet der lokale Dienst nur mit 403.
+        for backend in [Backend.habits, .todo, .food] {
+            let url = backend.url
+            if let privateToken, let host = url.host(), !host.hasSuffix("fherrmann.com"),
+               let c = Self.cookie(name: Self.privateTokenKey, value: privateToken,
+                                   domain: host, path: url.path().isEmpty ? "/" : url.path(),
+                                   secure: url.scheme == "https") {
+                cookies.append(c)
+            }
         }
         #endif
         // Erst alle in den gemeinsamen Speicher - der geht ohne Warten. Wer

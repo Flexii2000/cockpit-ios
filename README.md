@@ -7,7 +7,7 @@ bedienen:
 |---|---|---|---|
 | **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker) | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
-| **Fokus** | Habits | `com.fherrmann.fokus` | – |
+| **Fokus** | Habits, To-Do | `com.fherrmann.fokus` | – |
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
 Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
@@ -41,6 +41,12 @@ eingetragen wird, meldet sich das Handy von selbst: „Neue Note 1,7".
 Lassen (zählt von selbst, ein Rückfall setzt zurück), Track food (aus dem
 Kalorienzähler) und Schritte pro Woche (aus Apple Health, „30/70k", Woche ab
 Montag). Heute darf offen sein — die Sträh­ne reißt erst um Mitternacht.
+
+**To-Do** — Aufgaben in Bereichen (Privat, Uni, Server, beliebig mehr), jeder
+Bereich eine Seite zum Wischen. Unteraufgaben eine Ebene tief; Erledigtes
+bleibt drei Tage durchgestrichen und verschwindet dann, ohne gelöscht zu
+werden. Dieselben Listen stehen im Browser unter `fherrmann.com/todo` als
+Kacheln nebeneinander.
 
 **Zugang** — ein Blatt hinter dem Zahnrad (oben links bei Noten und Habits,
 im „…"-Menü bei Essen und Gewicht). Jede App zeigt nur die Abschnitte für

@@ -4,7 +4,7 @@
 #
 #   tools/run-simulator.sh <Healthy|Vault|Fokus> [tab] [screenshot.png]
 #
-# Tabs: Healthy food|weight|widget, Vault grades|finance, Fokus habits|widget;
+# Tabs: Healthy food|weight|widget, Vault grades|finance, Fokus habits|todo|widget;
 # `setup` oeffnet in jeder App das Zugang-Blatt.
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
@@ -90,6 +90,8 @@ SIMCTL_CHILD_COCKPIT_NO_LOCK="${COCKPIT_NO_LOCK:-}" \
 SIMCTL_CHILD_COCKPIT_NO_PUSH="${COCKPIT_NO_PUSH:-}" \
 SIMCTL_CHILD_COCKPIT_URL_GRADES="${COCKPIT_URL_GRADES:-}" \
 SIMCTL_CHILD_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}" \
+SIMCTL_CHILD_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}" \
+SIMCTL_CHILD_COCKPIT_TODO_AREA="${COCKPIT_TODO_AREA:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \
