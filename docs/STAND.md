@@ -1,17 +1,21 @@
 # Stand
 
-> **Nächster Schritt:** Schritt 1 der Aufteilung ist gebaut — drei Apps,
-> alle drei bauen und laufen im Simulator, Unit-Tests grün. Es fehlt die
-> **Abnahme auf dem Gerät** (`tools/install-device.sh all --launch`, Kabel):
-> Token in Healthy einmal da, Vault und Fokus finden sie; Noten-Passwort in
-> Vault neu eingeben; Habits-Kachel in Fokus neu auflegen; Noten-Push kommt
-> in Vault an (`APNS_TOPIC` auf dem Server ist schon umgestellt). Danach
-> Schritt 2 aus `PLAN-AUFTEILUNG.md` (aufräumen), dann die neuen Dienste.
+> **Nächster Schritt:** alle drei Apps liegen auf dem iPhone. Offen ist
+> Felix' **Abnahme im Gebrauch**: Token in Healthy einmal da und in Vault/Fokus
+> ohne Eingabe; Noten-Passwort in Vault neu eingeben; Habits-Kachel in Fokus
+> neu auflegen; die nächste echte Note landet in Vault. Danach Schritt 2 aus
+> `PLAN-AUFTEILUNG.md` (aufräumen), dann die neuen Dienste.
+>
+> ⚠️ **Eine neue Bundle-ID mit Push braucht einmal Xcode.** `xcodebuild` kann
+> ohne Xcode-Konto keine App-ID mit Push anlegen („No Accounts", Profil ohne
+> `aps-environment`). Vault musste deshalb einmal aus Xcode heraus aufs Gerät
+> (Schema wählen, ⌘R); seitdem geht `tools/install-device.sh Vault`. Fokus
+> ohne Push lief mit dem Wildcard-Profil sofort.
 >
 > Daneben weiterhin offen: der **Siri-Kurzbefehl** für die Schnellerfassung
 > und die Übersicht der doppelt gepflegten Anzeigeregeln.
 
-## Aufteilung in drei Apps · **Schritt 1 gebaut, Gerät steht aus** (2026-09-04)
+## Aufteilung in drei Apps · **Schritt 1 fertig, auf dem Gerät** (2026-09-04)
 
 `Healthy` (Essen, Gewicht; behält `com.fherrmann.cockpit`), `Vault` (Noten,
 Finanzen; eine Sperre vor der ganzen App), `Fokus` (Habits). Ein Repo, drei
