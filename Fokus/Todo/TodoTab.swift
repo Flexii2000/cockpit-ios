@@ -222,8 +222,13 @@ private struct AreaPage: View {
                                 .fontWeight(todo.isOverdue ? .semibold : .regular)
                         }
                         if !todo.reminders.isEmpty {
-                            Label("\(todo.reminders.count)", systemImage: "bell")
-                                .foregroundStyle(.secondary)
+                            // Kein Label: das setzt Symbol und Zahl weit
+                            // auseinander, als gehoerten sie nicht zusammen.
+                            HStack(spacing: 3) {
+                                Image(systemName: "bell")
+                                Text("\(todo.reminders.count)")
+                            }
+                            .foregroundStyle(.secondary)
                         }
                     }
                     .font(.caption2)
