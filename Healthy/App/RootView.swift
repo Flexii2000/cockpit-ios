@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Was in der Leiste unten steht.
 enum TabSelection: Hashable {
-    case food, weight
+    case food, weight, shopping
     #if DEBUG
     /// Nur zum Ansehen der Kacheln - siehe WidgetPreviewTab.
     case widget
@@ -19,9 +19,10 @@ enum TabSelection: Hashable {
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
-        case "weight": return .weight
-        case "widget": return .widget
-        default:       return .food
+        case "weight":   return .weight
+        case "shopping": return .shopping
+        case "widget":   return .widget
+        default:         return .food
         }
         #else
         return .food
@@ -57,6 +58,15 @@ struct RootView: View {
             Tab(Backend.weight.title, systemImage: Backend.weight.systemImage, value: TabSelection.weight) {
                 WeightTab()
             }
+            // Nur mit Einkaufs-Token: die App zeigt, wofuer ein Zugang da ist
+            // (docs/PLAN-AUFTEILUNG.md). Ohne Token bleibt die Leiste, wie sie
+            // war - kein leerer Tab mit Fehlermeldung.
+            if access.shoppingToken != nil {
+                Tab(Backend.shopping.title, systemImage: Backend.shopping.systemImage,
+                    value: TabSelection.shopping) {
+                    ShoppingTab()
+                }
+            }
             #if DEBUG
             if TabSelection.showsWidgetPreview {
                 Tab("Kachel", systemImage: "square.grid.2x2", value: TabSelection.widget) {
@@ -71,7 +81,7 @@ struct RootView: View {
             if access.privateToken == nil || access.weightToken == nil { setup.isPresented = true }
         }
         .sheet(isPresented: $setup.isPresented) {
-            SetupView(sections: [.privateToken, .weightToken])
+            SetupView(sections: [.privateToken, .weightToken, .shoppingToken])
         }
         .onChange(of: scenePhase) { _, phase in
             // Zurueck im Vordergrund heisst oft: zurueck im Netz. Was im

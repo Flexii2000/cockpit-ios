@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Faehrt die Oberflaeche automatisiert durch und legt Screenshots ab.
 #
-#   tools/uitest.sh <Healthy|Vault|Fokus>             # alle UI-Tests der App
-#   tools/uitest.sh <Healthy|Vault|Fokus> testSwipe   # nur einer
+#   tools/uitest.sh <Healthy|Vault|Fokus|Einkauf>             # alle UI-Tests der App
+#   tools/uitest.sh <Healthy|Vault|Fokus|Einkauf> testSwipe   # nur einer
 #
 # Der Grund: simctl kann weder tippen noch wischen noch scrollen. Alles, was
 # hinter einer Geste oder unterhalb des ersten Bildschirms liegt, ist nur von
@@ -28,13 +28,16 @@ cd "$(dirname "$0")/.."
 APP="${1:-}"
 FILTER="${2:-}"
 DEVICE="${DEVICE:-iPhone 17}"
-case "$APP" in Healthy|Vault|Fokus) ;; *) echo "Erste Angabe muss Healthy, Vault oder Fokus sein." >&2; exit 1 ;; esac
+case "$APP" in Healthy|Vault|Fokus|Einkauf) ;; *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkauf sein." >&2; exit 1 ;; esac
 BUNDLE_NAME="${APP}UITests"
 
 export TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN
 export TEST_RUNNER_COCKPIT_WEIGHT_TOKEN
 TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
 TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
+# Freiwillig: ohne Einkaufs-Token ueberspringt sich der Einkaufs-Test.
+export TEST_RUNNER_COCKPIT_SHOPPING_TOKEN
+TEST_RUNNER_COCKPIT_SHOPPING_TOKEN=$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)
 
 # Der Noten-Zugang kommt aus der Umgebung, nicht aus dem Schluesselbund: das
 # Passwort ist Felix' Anmeldung und kein Dienstgeheimnis.

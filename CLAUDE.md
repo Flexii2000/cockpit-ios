@@ -1,15 +1,17 @@
 # Arbeitsregeln für `cockpit-ios`
 
-Drei iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
+Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
-`weight.fherrmann.com`), **Vault** (Notenübersicht `fherrmann.com/grades`,
-Finance Cockpit `finanzen.fherrmann.com`) und **Fokus** (Habits
-`fherrmann.com/habits`, To-Do `fherrmann.com/todo`).
+`weight.fherrmann.com`, Einkaufsliste `fherrmann.com/shopping-list`),
+**Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
+`finanzen.fherrmann.com`), **Fokus** (Habits `fherrmann.com/habits`, To-Do
+`fherrmann.com/todo`) und **Einkauf** (nur die Einkaufsliste — für das Handy
+von Felix' Freundin, deren Token nur diesen einen Dienst öffnet).
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
-`../grades`, `../habits`, `../todo`) — von hier aus wird an ihnen nichts geändert, auch
-nicht "mal eben". Gerechnet wird in den Diensten (Sträh­nen, Abschlussnote,
+`../grades`, `../habits`, `../todo`, `../shopping`) — von hier aus wird an
+ihnen nichts geändert, auch nicht "mal eben". Gerechnet wird in den Diensten (Sträh­nen, Abschlussnote,
 Tagessummen); die Apps zeigen.
 
 ⚠️ **Wohin eine Datei gehört, entscheidet, wer sie übersetzt:**
@@ -17,11 +19,12 @@ Tagessummen); die Apps zeigen.
 | Ordner | übersetzt von | darf |
 |---|---|---|
 | `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
-| `Core/` | alle drei Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
-| `Healthy/`, `Vault/`, `Fokus/` | genau diese App | alles |
+| `Core/` | alle vier Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
+| `Shopping/` | Healthy **und** Einkauf | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
+| `Healthy/`, `Vault/`, `Fokus/`, `Einkauf/` | genau diese App | alles |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
-`tools/verify.sh` immer alle drei. `TabSelection` und `Router` gibt es je App;
+`tools/verify.sh` immer alle vier. `TabSelection` und `Router` gibt es je App;
 sie werden nicht geteilt.
 
 ## Vor dem ersten Handgriff
@@ -58,15 +61,17 @@ Routen wirklich aufmachen.
 
 ```bash
 tools/bootstrap.sh                 # einmalig + nach Änderungen an project.yml
-tools/verify.sh                    # baut alle drei fuer den Simulator, Unit-Tests in Healthy
+tools/verify.sh                    # baut alle vier fuer den Simulator, Unit-Tests in Healthy
 tools/verify.sh Vault              # nur eine
 tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
-tools/install-device.sh all --launch             # alle drei aufs iPhone (oder eine)
+tools/install-device.sh all --launch             # alle vier aufs iPhone (oder eine)
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`). Tabs: Healthy `food|weight|widget`, Vault `grades|finance`, Fokus
-`habits|todo|widget`; `setup` öffnet das Zugang-Blatt.
+`Fokus`, `Einkauf`). Tabs: Healthy `food|weight|shopping|widget`, Vault
+`grades|finance`, Fokus `habits|todo|widget`, Einkauf hat nur die eine Seite;
+`setup` öffnet das Zugang-Blatt. Der Einkaufs-Token kommt wie die anderen aus
+dem Schlüsselbund (`shopping_token`, freiwillig — ohne ihn fehlt der Tab).
 
 `run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
 auf Wunsch einen Screenshot ab — der einzige Weg, Layoutfehler zu sehen statt

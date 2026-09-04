@@ -1,11 +1,23 @@
 # Stand
 
-> **Nächster Schritt:** Felix' Abnahme im Gebrauch — To-Do in Fokus und im
-> Browser, Erinnerungen (die erste in der App angelegte holt die
-> Push-Erlaubnis und meldet das Gerät beim Dienst an; vorher gibt es kein
-> `devices.json`), die drei Apps insgesamt. Dann Schritt 2 aus
-> `PLAN-AUFTEILUNG.md` (aufräumen) und die Roadmap als Projektliste im
-> To-Do-Dienst.
+> **Nächster Schritt:** Felix' QA der Einkaufsliste — Dienst per
+> `setup-shopping.sh` ausrollen (druckt beide Setup-Links), Token in Healthy
+> und Einkauf eintragen, Liste/Gerichte/Regeln/Kategorien im Gebrauch, im
+> Browser dasselbe. Dann das zweite Handy (Einkauf per Kabel oder später
+> TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
+> (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
+
+## Einkaufsliste · **gebaut, noch nicht ausgerollt** (2026-09-05)
+
+Neuer Dienst `shopping` (`../shopping`, `fherrmann.com/shopping-list`, Port
+48220) mit eigenen Token je Person, Web-Oberfläche, Gerichten (Zutatenlisten
+„als Ganzes" auf die Liste), Regeln („Klopapier alle 14 Tage") und
+automatischer Sortierung nach Kategorien (Wörterbuch, Wortregeln, Gelerntes).
+In der App: `Shopping/` als Tab in Healthy (nur mit Token) und als vierte App
+**Einkauf** — Liste mit Symbol je Kategorie, Bearbeiten samt Kategorie,
+Gerichte, Regeln, Ohne-Netz-Verhalten mit sofort sichtbaren Änderungen.
+Offen: Deploy (sudo), Token eintragen, Felix' QA; der Name „Einkauf" ist ein
+Vorschlag.
 
 ## To-Do · **ausgerollt** (2026-09-04, abends)
 

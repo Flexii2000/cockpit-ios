@@ -4,13 +4,14 @@
 // woraus ein Icon besteht, und eine Aenderung ist eine Zeile statt einer
 // neuen Bilddatei aus einem Grafikprogramm.
 //
-//   swift tools/make-icon.swift <healthy|vault|fokus> <pfad/icon-1024.png>
+//   swift tools/make-icon.swift <healthy|vault|fokus|einkauf> <pfad/icon-1024.png>
 //
-// Drei Motive, drei Farbwelten - jede App soll auf dem Homebildschirm sofort
+// Vier Motive, vier Farbwelten - jede App soll auf dem Homebildschirm sofort
 // als sie selbst zu erkennen sein:
 //   healthy  ein Herz, gruen                          (Gesundheit)
 //   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
 //   fokus    ein Haken im orangenen Kreis auf Weiss  (erledigt, im Fokus)
+//   einkauf  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
 
@@ -20,7 +21,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 guard CommandLine.arguments.count > 2 else {
-    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus> <pfad/icon-1024.png>")
+    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkauf> <pfad/icon-1024.png>")
 }
 let variant = CommandLine.arguments[1]
 let outputPath = CommandLine.arguments[2]
@@ -170,6 +171,47 @@ case "fokus":
     ctx.addPath(check)
     ctx.setStrokeColor(rgb(0xFFFFFF))
     ctx.setLineWidth(side * 0.085)
+    ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
+    ctx.strokePath()
+
+case "einkauf":
+    // Eine Einkaufstasche auf Petrol - eine Farbe, die keine der anderen
+    // drei hat, damit sie auch neben Healthy auf demselben Homebildschirm
+    // fuer sich steht. Auf der Tasche ein Haken: die Liste, abgehakt.
+    background(0x1C9C9C, 0x0B4F55)
+    let cx = side / 2
+    let bodyW = side * 0.56, bodyH = side * 0.44
+    let handleR = side * 0.16, handleW = side * 0.07
+    // Henkel laeuft ein Stueck in die Tasche hinein; die Gesamthoehe aus
+    // Koerper und sichtbarem Henkel liegt mittig im Bild.
+    let overlap = side * 0.05
+    let total = bodyH + handleR + handleW / 2 - overlap
+    let bodyRect = CGRect(x: cx - bodyW / 2, y: (side - total) / 2, width: bodyW, height: bodyH)
+    let handleY = bodyRect.maxY - overlap
+    withShadow {
+        let handle = CGMutablePath()
+        handle.addArc(center: CGPoint(x: cx, y: handleY), radius: handleR,
+                      startAngle: 0, endAngle: .pi, clockwise: false)
+        ctx.addPath(handle)
+        ctx.setStrokeColor(ink)
+        ctx.setLineWidth(handleW)
+        ctx.setLineCap(.round)
+        ctx.strokePath()
+        ctx.addPath(CGPath(roundedRect: bodyRect, cornerWidth: side * 0.07,
+                           cornerHeight: side * 0.07, transform: nil))
+        ctx.setFillColor(ink)
+        ctx.fillPath()
+    }
+    let c = CGPoint(x: bodyRect.midX, y: bodyRect.midY - side * 0.01)
+    let r = bodyW * 0.40
+    let check = CGMutablePath()
+    check.move(to: CGPoint(x: c.x - r * 0.46, y: c.y + r * 0.02))
+    check.addLine(to: CGPoint(x: c.x - r * 0.12, y: c.y - r * 0.32))
+    check.addLine(to: CGPoint(x: c.x + r * 0.50, y: c.y + r * 0.34))
+    ctx.addPath(check)
+    ctx.setStrokeColor(rgb(0x0B4F55))
+    ctx.setLineWidth(side * 0.065)
     ctx.setLineCap(.round)
     ctx.setLineJoin(.round)
     ctx.strokePath()

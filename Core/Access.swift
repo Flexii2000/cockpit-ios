@@ -20,12 +20,16 @@ final class Access {
     static let privateTokenKey = Keychain.privateTokenKey
     static let weightTokenKey = Keychain.weightTokenKey
     static let gradesTokenKey = Keychain.gradesTokenKey
+    static let shoppingTokenKey = Keychain.shoppingTokenKey
 
     private static let migrationKey = "keychain.accessibility.afterFirstUnlock"
     private static let sharedGroupKey = "keychain.sharedGroup.migrated"
 
     private(set) var privateToken: String?
     private(set) var weightToken: String?
+    /// Der Einkaufs-Token. Je Person einer, und er oeffnet nur die
+    /// Einkaufsliste - deshalb eigener Eintrag statt Teil des Privat-Tokens.
+    private(set) var shoppingToken: String?
 
     /// Die Notenuebersicht hat einen eigenen Geraete-Token und dahinter eine
     /// Anmeldung mit Benutzer und Passwort. Der Token und der Benutzername
@@ -54,6 +58,7 @@ final class Access {
         weightToken = Keychain.read(Self.weightTokenKey)
         gradesToken = Keychain.read(Self.gradesTokenKey)
         gradesUser = Keychain.read(Keychain.gradesUserKey)
+        shoppingToken = Keychain.read(Self.shoppingTokenKey)
         hasGradesPassword = Keychain.hasProtected(Keychain.gradesPasswordKey)
         #if DEBUG
         // Muss hier passieren und nicht erst in einer `.task`: `RootView`
@@ -122,6 +127,13 @@ final class Access {
         await applyCookies()
     }
 
+    func store(shoppingToken: String) async {
+        let s = shoppingToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        Keychain.save(s, for: Self.shoppingTokenKey)
+        self.shoppingToken = s
+        await applyCookies()
+    }
+
 #if DEBUG
     /// Nimmt die Token aus der Prozessumgebung, falls welche da sind.
     ///
@@ -143,6 +155,10 @@ final class Access {
         if let value = environment["COCKPIT_GRADES_TOKEN"], !value.isEmpty {
             Keychain.save(value, for: Self.gradesTokenKey)
             gradesToken = value
+        }
+        if let value = environment["COCKPIT_SHOPPING_TOKEN"], !value.isEmpty {
+            Keychain.save(value, for: Self.shoppingTokenKey)
+            shoppingToken = value
         }
         if let value = environment["COCKPIT_GRADES_USER"], !value.isEmpty {
             Keychain.save(value, for: Keychain.gradesUserKey)
@@ -206,6 +222,12 @@ final class Access {
         OfflineCache.clear()
     }
 
+    func resetShoppingToken() {
+        Keychain.delete(Self.shoppingTokenKey)
+        shoppingToken = nil
+        OfflineCache.clear()
+    }
+
     func resetGrades() {
         Keychain.delete(Self.gradesTokenKey)
         Keychain.delete(Keychain.gradesUserKey)
@@ -249,6 +271,19 @@ final class Access {
                                domain: host,
                                path: gradesURL.path(),
                                secure: gradesURL.scheme == "https") {
+            cookies.append(c)
+        }
+        // Der Einkaufs-Token ist je Person und gilt nur fuer den einen Pfad -
+        // so stellt ihn auch `/shopping-list/setup` im Browser aus. Rechner
+        // und Pfad aus `Backend.shopping.url`, aus demselben Grund wie bei
+        // den Noten.
+        let shoppingURL = Backend.shopping.url
+        if let shoppingToken, let host = shoppingURL.host(),
+           let c = Self.cookie(name: Self.shoppingTokenKey,
+                               value: shoppingToken,
+                               domain: host,
+                               path: shoppingURL.path().isEmpty ? "/" : shoppingURL.path(),
+                               secure: shoppingURL.scheme == "https") {
             cookies.append(c)
         }
         #if DEBUG

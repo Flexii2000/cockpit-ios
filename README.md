@@ -1,17 +1,18 @@
-# Cockpit — Healthy, Vault, Fokus
+# Cockpit — Healthy, Vault, Fokus, Einkauf
 
-Drei iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
+Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
 bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker) | `com.fherrmann.cockpit` | – |
+| **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker), Einkaufsliste | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | Habits, To-Do | `com.fherrmann.fokus` | – |
+| **Einkauf** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
 Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
-eine geteilte Keychain-Gruppe in allen drei Apps.
+eine geteilte Keychain-Gruppe in allen Apps.
 
 ## Was die Apps können
 
@@ -48,14 +49,30 @@ bleibt drei Tage durchgestrichen und verschwindet dann, ohne gelöscht zu
 werden. Dieselben Listen stehen im Browser unter `fherrmann.com/todo` als
 Kacheln nebeneinander.
 
-**Zugang** — ein Blatt hinter dem Zahnrad (oben links bei Noten und Habits,
-im „…"-Menü bei Essen und Gewicht). Jede App zeigt nur die Abschnitte für
-ihre Dienste; gespeichert wird in der geteilten Keychain-Gruppe.
+**Einkaufsliste** — eine Liste für zwei: Felix und seine Freundin haben je
+einen eigenen Token, und ihrer öffnet **nur** diesen Dienst. Der Dienst
+sortiert die Liste von selbst nach dem Supermarkt-Rundgang (Obst & Gemüse
+zuerst, Drogerie und Haushalt zuletzt) und zeigt je Eintrag ein Symbol; wer
+eine Kategorie von Hand ändert, bringt sie ihm für den Namen bei.
+**Gerichte** sind Zutatenlisten, die mit einem Tipp komplett auf die Liste
+gehen; **Regelmäßig** setzt Dinge von selbst wieder darauf („Klopapier alle
+14 Tage", ab dem Abhaken neu gerechnet). Abgehaktes steht durchgestrichen
+unten, mit dem Namen dessen, der es in den Wagen gelegt hat, und verschwindet
+am nächsten Tag. Dieselbe Liste im Browser unter `fherrmann.com/shopping-list`
+(Zugang über `…/setup?token=…`). In Healthy erscheint der Tab, sobald ein
+Einkaufs-Token da ist; **Einkauf** ist dieselbe Liste als eigene App.
+
+**Zugang** — ein Blatt hinter dem Zahnrad (oben links bei Noten, Habits und
+Einkaufsliste, im „…"-Menü bei Essen und Gewicht). Jede App zeigt nur die
+Abschnitte für ihre Dienste; gespeichert wird in der geteilten Keychain-Gruppe.
 
 **Ohne Netz** zeigt jeder Tab den letzten Stand — mit Datum in einer Leiste,
 damit er nicht wie ein aktueller aussieht. Haken, Messwerte und Essenseinträge
 lassen sich trotzdem eintragen: sie warten in einem Postausgang und gehen beim
-nächsten Netz raus. Nachgerechnet wird bis dahin nichts.
+nächsten Netz raus. Nachgerechnet wird bis dahin nichts. Die Einkaufsliste
+geht einen Schritt weiter, weil im Supermarkt am häufigsten das Netz fehlt:
+Haken, neue Einträge und Gerichte erscheinen sofort so, als wären sie durch,
+und der nächste Empfang holt den Stand des Dienstes.
 
 **Widgets** — die heute noch übrigen Kalorien auf dem Homescreen, klein
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros), und auf dem

@@ -2,9 +2,10 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh <Healthy|Vault|Fokus> [tab] [screenshot.png]
+#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkauf> [tab] [screenshot.png]
 #
-# Tabs: Healthy food|weight|widget, Vault grades|finance, Fokus habits|todo|widget;
+# Tabs: Healthy food|weight|shopping|widget, Vault grades|finance,
+# Fokus habits|todo|widget, Einkauf (hat nur die eine Seite);
 # `setup` oeffnet in jeder App das Zugang-Blatt.
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
@@ -13,6 +14,8 @@
 #       -w '<token>' -T /usr/bin/security -U
 #   security add-generic-password -a cockpit-ios -s weight_app_token \
 #       -w '<token>' -T /usr/bin/security -U
+#   security add-generic-password -a cockpit-ios -s shopping_token \
+#       -w '<token>' -T /usr/bin/security -U     # optional, fuer den Einkaufs-Tab
 #
 # Uebergeben werden sie als Umgebungsvariablen; die App liest sie nur im
 # Debug-Build (siehe Access.seedFromEnvironment).
@@ -57,7 +60,8 @@ case "$APP" in
     Healthy) BUNDLE="com.fherrmann.cockpit" ;;
     Vault)   BUNDLE="com.fherrmann.vault" ;;
     Fokus)   BUNDLE="com.fherrmann.fokus" ;;
-    *) echo "Erste Angabe muss Healthy, Vault oder Fokus sein." >&2; exit 1 ;;
+    Einkauf) BUNDLE="com.fherrmann.einkauf" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkauf sein." >&2; exit 1 ;;
 esac
 
 PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
@@ -68,6 +72,9 @@ WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) |
     echo "Kein weight_app_token im Schluesselbund - siehe Kopf dieses Skripts." >&2
     exit 1
 }
+# Der Einkaufs-Token ist freiwillig: ohne ihn fehlt in Healthy der Tab, und
+# Einkauf zeigt das Zugang-Blatt - beides ein gueltiger Zustand.
+SHOPPING=$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)
 
 tools/bootstrap.sh > /dev/null
 xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
@@ -80,6 +87,8 @@ xcrun simctl terminate booted "$BUNDLE" 2>/dev/null || true
 
 SIMCTL_CHILD_COCKPIT_FH_PRIVATE_TOKEN="$PRIVATE" \
 SIMCTL_CHILD_COCKPIT_WEIGHT_TOKEN="$WEIGHT" \
+SIMCTL_CHILD_COCKPIT_SHOPPING_TOKEN="$SHOPPING" \
+SIMCTL_CHILD_COCKPIT_URL_SHOPPING="${COCKPIT_URL_SHOPPING:-}" \
 SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
 SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \

@@ -3,6 +3,28 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-05 — Einkaufsliste: eigener Dienst, eigener Token, vierte App
+**Warum:** Felix' Freundin soll die Liste bedienen und sonst nichts sehen.
+Der Privat-Token öffnet alles — also ein eigener Dienst (`fherrmann.com/
+shopping-list`) mit eigenen Token je Person (`SHOPPING_TOKENS`), außerhalb des
+Privat-Gates. Die App setzt den Token als Cookie nur für diesen Pfad; Healthy
+zeigt den Tab, sobald er da ist, und **Einkauf** ist derselbe Tab als eigene
+App (`Shopping/` in beiden Targets). Der Name „Einkauf" ist meine Wahl —
+kurz, deutsch, passt neben Healthy/Vault/Fokus; leicht zu ändern, solange die
+App noch auf keinem zweiten Handy liegt.
+**Gerichte liegen im Einkaufs-Dienst, nicht im Kalorienzähler.** Der Plan sah
+Zutaten an den Gerichten des Kalorienzählers vor (mit Migration). Felix wollte
+„Gerichte speichern, die man als Ganzes auf die Liste packt" — das ist eine
+Zutatenliste, keine Nährwertfrage. So kann sie auch seine Freundin pflegen,
+ohne Schreibrecht auf den Kalorienzähler.
+**Ohne Netz sofort sichtbar.** Der Store ändert seinen Stand selbst, wenn ein
+Aufruf im Postausgang liegt (siehe `ARCHITEKTUR.md`) — im Laden fehlt das Netz
+am häufigsten.
+**Verworfen:** TestFlight für das zweite Handy (später, siehe Plan); Bearer-
+Header statt Cookie in der App (der Dienst nimmt beides, das Cookie spart
+einen zweiten Auth-Pfad im `APIClient`); Abschnitte je Kategorie in der Liste
+(Felix: eine Liste, nur sortiert, mit Icons).
+
 ## 2026-09-04 — „Alles“ ist zurück, mit dem 30-Tage-Mittel als Vorgabe
 **Warum:** Felix will die ganze Historie wieder sehen — als ruhige Kurve.
 Über acht Jahre ist das 7-Tage-Mittel fast so unruhig wie die Messwerte; das

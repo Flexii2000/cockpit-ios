@@ -12,6 +12,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
     case grades
     case habits
     case todo
+    case shopping
 
     var id: String { rawValue }
 
@@ -39,6 +40,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .grades:  URL(string: "https://fherrmann.com/grades")!
         case .habits:  URL(string: "https://fherrmann.com/habits")!
         case .todo:    URL(string: "https://fherrmann.com/todo")!
+        case .shopping: URL(string: "https://fherrmann.com/shopping-list")!
         }
     }
 
@@ -50,6 +52,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .grades:  "Noten"
         case .habits:  "Habits"
         case .todo:    "To-Do"
+        case .shopping: "Einkaufsliste"
         }
     }
 
@@ -61,6 +64,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .grades:  "graduationcap"
         case .habits:  "flame"
         case .todo:    "checklist"
+        case .shopping: "cart"
         }
     }
 }

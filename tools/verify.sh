@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Baut alle drei Apps fuer den Simulator und laesst die Unit-Tests laufen.
+# Baut alle vier Apps fuer den Simulator und laesst die Unit-Tests laufen.
 # Das ist der einzige gueltige Beleg dafuer, dass etwas funktioniert -
 # "sieht richtig aus" zaehlt nicht (siehe CLAUDE.md).
 #
-#   tools/verify.sh            # alle drei
+#   tools/verify.sh            # alle vier
 #   tools/verify.sh Vault      # nur eine (schneller, wenn man an einer arbeitet)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -24,7 +24,7 @@ echo "Simulator: $SIM"
 DEST="platform=iOS Simulator,name=$SIM"
 pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-APPS="${1:-Healthy Vault Fokus}"
+APPS="${1:-Healthy Vault Fokus Einkauf}"
 for APP in $APPS; do
     echo "== $APP =="
     if [ "$APP" = "Healthy" ]; then

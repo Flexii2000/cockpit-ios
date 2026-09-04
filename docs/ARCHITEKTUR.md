@@ -56,7 +56,10 @@ Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
 Fokus/              App: Habits, To-Do
   App/ Habits/ Todo/
-Core/               was alle drei Apps brauchen, aber keine Erweiterung:
+Einkauf/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
+  App/
+Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkauf
+Core/               was alle vier Apps brauchen, aber keine Erweiterung:
                     Zugang (Cookies, Keychain-Wanderung), Sperre, Benachrichtigungen,
                     Zugang-Blatt, Fehler-/Offline-Leisten
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
@@ -64,17 +67,18 @@ Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
 FokusWidget/        Habits-Kachel
 Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
-UITests/            Harness.swift (gemeinsam) + je App eine Datei, drei Bundles
-project.yml         Quelle des Xcode-Projekts - drei App-Targets, YAML-Anker für Gemeinsames
+UITests/            Harness.swift (gemeinsam) + je App eine Datei, vier Bundles
+project.yml         Quelle des Xcode-Projekts - vier App-Targets, YAML-Anker für Gemeinsames
 tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · make-icon
 docs/               diese Doku
 ```
 
-⚠️ **Drei Apps, ein Repo.** Nicht drei Repos: Zugang, Cookies, Cache,
-Postausgang, Sperre, Tools und Harness würden sonst dreifach gepflegt. Was
-in `Core/` liegt, muss in allen drei Apps übersetzen — wer dort etwas
+⚠️ **Vier Apps, ein Repo.** Nicht vier Repos: Zugang, Cookies, Cache,
+Postausgang, Sperre, Tools und Harness würden sonst vierfach gepflegt. Was
+in `Core/` liegt, muss in allen vier Apps übersetzen — wer dort etwas
 einbaut, das nur eine App kennt (Diagramm-Typen, Tab-Namen), bricht die
-anderen beiden. `TabSelection` und `Router` sind deshalb **je App** klein
+anderen. `Shopping/` ist der eine Ordner, den genau zwei Apps teilen: der
+Einkaufs-Tab in Healthy und die ganze App Einkauf sind derselbe Code. `TabSelection` und `Router` sind deshalb **je App** klein
 neu geschrieben statt geteilt.
 
 ⚠️ **Was in `Shared/` liegt, darf nichts benutzen, das es in einer
@@ -108,6 +112,13 @@ Cookie.
 Anmeldung. Die App hält Benutzer und Passwort im Keychain und meldet sich
 selbst an, wenn die Sitzung abgelaufen ist — sichtbar wird das nie, ein 401
 ist für sie kein Fehler, sondern ein Arbeitsschritt.
+
+**Die Einkaufsliste hat ihren eigenen Token je Person.** Er liegt als
+`shopping_token` im Keychain und wird als Cookie nur für den Pfad
+`/shopping-list` gesetzt — der Dienst nimmt denselben Cookie wie der Browser
+nach `/shopping-list/setup?token=…`. Healthy zeigt den Tab nur, wenn der
+Token da ist; Einkauf besteht aus nichts anderem. So sieht Felix' Freundin
+mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
 
 ## Was ausserhalb der Oberfläche läuft
 
@@ -199,6 +210,15 @@ Stand, Uhr statt Haken, „2 Änderungen warten auf Netz" in der Leiste.
 ⚠️ **Die App rechnet offline nichts nach.** Keine lokale Sträh­ne, keine
 Tagessumme, keine Kachel. Das ist Absicht: die Regeln stehen in den Diensten,
 und ein zweiter Rechner im Client wäre ein zweiter Datenstand.
+
+**Die Einkaufsliste geht einen Schritt weiter.** Im Supermarkt fehlt das
+Netz am häufigsten, und ein Haken, der erst beim nächsten Empfang zu sehen
+ist, ist dort nichts wert. `ShoppingStore` ändert deshalb seinen Stand selbst,
+sobald ein Aufruf im Postausgang liegt: Haken sofort gesetzt, neuer Eintrag
+sofort in der Liste (mit erfundener Kennung `local-…`, bis der Dienst die
+echte schickt), Gericht sofort als Zutaten da. Auf einem solchen Eintrag sind
+Haken und Löschen gesperrt — die Kennung kennt der Dienst noch nicht. Der
+nächste Empfang holt das Brett und ersetzt alles.
 
 ## Was die App bewusst nicht tut
 

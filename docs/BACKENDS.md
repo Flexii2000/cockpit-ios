@@ -33,6 +33,12 @@ Zwei verschiedene Token, beide langlebig, beide als Cookie:
 - **`grades_token`** — eigenes Token nur für `/grades`, Gültigkeit 5 Jahre,
   im Browser über `/grades/setup?token=…`. Es gilt **nur für diesen Pfad**;
   die App setzt es entsprechend eng (`Path=/grades`).
+- **`shopping_token`** — eigenes Token **je Person** nur für
+  `/shopping-list`, im Browser über `/shopping-list/setup?token=…`. Der
+  Dienst liegt **nicht** hinter dem Privat-Gate und nimmt den Token als
+  Cookie oder als `Authorization: Bearer`; die App setzt das Cookie mit
+  `Path=/shopping-list`. Der Name zum Token steht an jedem Eintrag
+  (`addedBy`, `checkedBy`).
 
 Die Noten haben als einziger Dienst **zwei** Schranken hintereinander: hinter
 dem Geräte-Token steht noch eine Anmeldung mit Benutzer und Passwort. Die App
@@ -354,6 +360,42 @@ verpasste Erinnerung ist verpasst.
 oder ein Zurücknehmen des Hakens sie holt. Eine Unteraufgabe hängt am
 Schicksal ihrer Aufgabe. Abhaken und Zurücknehmen dürfen offline warten
 (`queueWhenOffline`); Anlegen nicht — dafür braucht man die Antwort.
+
+## Einkaufsliste — `/shopping-list/api`
+
+Quelle: `../shopping/src/main/java/com/fherrmann/shopping/`. Eigene Token je
+Person (`SHOPPING_TOKENS=felix:…,freundin:…` in `/etc/shopping.env`), kein
+Privat-Gate. **Jede Antwort ist das ganze Brett.**
+
+| Methode | Pfad | Was |
+|---|---|---|
+| GET | `/api/board` | `me`, `categories[]` (Reihenfolge = Sortierung), `items[]`, `dishes[]`, `recurring[]` |
+| POST | `/api/items` | `{name, quantity?, note?, category?}` — ohne `category` ordnet der Dienst zu |
+| PUT | `/api/items/{id}` | dasselbe; mit `category` **lernt** der Dienst den Namen |
+| POST / DELETE | `/api/items/{id}/check` | abhaken (idempotent, `checkedBy` = Name zum Token) / wieder öffnen |
+| POST | `/api/items/clear-checked` | alle abgehakten sofort weg |
+| DELETE | `/api/items/{id}` | löschen |
+| POST/PUT/DELETE | `/api/dishes[/{id}]` | `{name, ingredients:[{name, quantity?}]}` |
+| POST | `/api/dishes/{id}/add` | alle Zutaten auf die Liste (`dishId`, `note` = Gerichtname) |
+| POST/PUT/DELETE | `/api/recurring[/{id}]` | `{name, quantity?, everyDays, nextAt?}` (`yyyy-MM-dd`) |
+| GET | `/setup?token=…` | Cookie setzen, Weiterleitung auf die Oberfläche |
+
+```
+Board     me, categories[] {key, label, emoji, symbol}, items[], dishes[], recurring[]
+Item      id, name, quantity?, note?, addedAt, addedBy, checkedAt?, checkedBy?,
+          dishId?, ruleId?, category (Schlüssel, nie leer)
+Dish      id, name, ingredients[] {name, quantity?}, createdAt
+Rule      id, name, quantity?, everyDays, nextAt (ISO-Datum), createdAt
+```
+
+Regeln, die der Dienst durchsetzt: offene Einträge stehen in
+Kategorie-Reihenfolge (Supermarkt-Rundgang), darin nach `addedAt`; abgehakte
+bleiben bis zum Tageswechsel (Europe/Berlin) sichtbar und liegen danach noch
+90 Tage in der Datei. Abhaken eines Regel-Eintrags setzt `nextAt` der Regel
+auf heute + `everyDays`; der Regel-Lauf (stündlich, beim Start, nach dem
+Anlegen) fügt nichts doppelt hinzu, solange ein offener Eintrag der Regel da
+ist. Haken, Einträge, Gerichte-auf-die-Liste dürfen offline warten
+(`queueWhenOffline`); Gerichte und Regeln pflegen nicht.
 
 ## Finance Cockpit — kein API
 

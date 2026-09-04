@@ -1,18 +1,20 @@
 # Quelle des Xcode-Projekts. Die .xcodeproj wird daraus erzeugt und ist
 # NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
 #
-# Drei Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
-#   Healthy  - Essen, Gewicht            com.fherrmann.cockpit (die alte ID, bleibt)
+# Vier Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
+#   Healthy  - Essen, Gewicht, Einkauf   com.fherrmann.cockpit (die alte ID, bleibt)
 #   Vault    - Noten, Finanzen           com.fherrmann.vault
-#   Fokus    - Habits                    com.fherrmann.fokus
+#   Fokus    - Habits, To-Do             com.fherrmann.fokus
+#   Einkauf  - nur die Einkaufsliste     com.fherrmann.einkauf (fuer ein zweites Handy)
 #
 # Neue Swift-Datei hinzufuegen: Datei in den passenden Ordner legen und
 # tools/bootstrap.sh laufen lassen. Ganze Ordner sind eingebunden, keine
 # Einzeldateien:
-#   Shared/   was Apps UND Erweiterungen uebersetzen - darf nichts benutzen,
-#             das es in einer App-Erweiterung nicht gibt (UIApplication.shared)
-#   Core/     was alle drei Apps brauchen, aber keine Erweiterung
-#   <App>/    nur diese App
+#   Shared/    was Apps UND Erweiterungen uebersetzen - darf nichts benutzen,
+#              das es in einer App-Erweiterung nicht gibt (UIApplication.shared)
+#   Core/      was alle Apps brauchen, aber keine Erweiterung
+#   Shopping/  der Einkaufs-Tab - in Healthy UND in Einkauf, sonst nirgends
+#   <App>/     nur diese App
 name: Cockpit
 
 options:
@@ -79,6 +81,7 @@ targets:
       - path: Healthy
       - path: Core
       - path: Shared
+      - path: Shopping
     dependencies:
       # embed: true legt die .appex nach Healthy.app/PlugIns/. Ohne das baut
       # die Erweiterung zwar, aber iOS findet sie nie.
@@ -204,6 +207,31 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         SKIP_INSTALL: YES
 
+  # ---------------------------------------------------------------- Einkauf
+  # Die Einkaufsliste allein - fuer das Handy von Felix' Freundin, das sonst
+  # nichts von diesem Server sehen soll. Ihr Token oeffnet nur diesen einen
+  # Dienst. Kein Push, kein Health, keine Kachel - und deshalb auch keine
+  # Xcode-Runde beim Signieren.
+  Einkauf:
+    type: application
+    platform: iOS
+    sources:
+      - path: Einkauf
+      - path: Core
+      - path: Shared
+      - path: Shopping
+    entitlements:
+      path: Einkauf/Einkauf.entitlements
+      properties:
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.fherrmann.einkauf
+          - *shared_group
+    settings:
+      base:
+        <<: *app_settings
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.einkauf
+        INFOPLIST_KEY_CFBundleDisplayName: Einkauf
+
   # ------------------------------------------------------------------ Tests
   # Ein Bundle fuer alle Unit-Tests: sie pruefen Shared und Core, und die
   # liegen in jeder App. Healthy ist der Wirt, weil sie alles davon uebersetzt.
@@ -217,7 +245,7 @@ targets:
 
   # Je App ein UI-Test-Bundle - XCUIApplication() ist immer die App, an der
   # das Bundle haengt. Der Harness (start, scrollDown, shoot ...) liegt in
-  # UITests/Harness.swift und wird in alle drei eingebunden.
+  # UITests/Harness.swift und wird in alle vier eingebunden.
   HealthyUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -254,6 +282,18 @@ targets:
       base:
         TEST_TARGET_NAME: Fokus
 
+  EinkaufUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests/Harness.swift
+      - path: UITests/EinkaufUITests.swift
+    dependencies:
+      - target: Einkauf
+    settings:
+      base:
+        TEST_TARGET_NAME: Einkauf
+
 # Ein Schema je App. Ohne expliziten Block erzeugt xcodebuild die Schemata
 # selbst - und was ein Test-Bundle dabei erbt, entscheidet dann Xcode.
 schemes:
@@ -285,5 +325,14 @@ schemes:
     test:
       targets:
         - FokusUITests
+    run:
+      config: Debug
+  Einkauf:
+    build:
+      targets:
+        Einkauf: all
+    test:
+      targets:
+        - EinkaufUITests
     run:
       config: Debug

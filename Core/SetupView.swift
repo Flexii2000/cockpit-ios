@@ -3,7 +3,7 @@ import SwiftUI
 /// Welche Abschnitte das Zugang-Blatt zeigt - jede App nur die, deren
 /// Dienste sie benutzt.
 enum SetupSection: Hashable {
-    case privateToken, weightToken, grades
+    case privateToken, weightToken, grades, shoppingToken
 }
 
 /// Einmalige Eingabe der Zugangstoken.
@@ -31,15 +31,19 @@ struct SetupView: View {
     @State private var gradesSaved = false
     @State private var gradesFailure: String?
 
+    @State private var shoppingToken = ""
+    @State private var shoppingSaved = false
+
     var body: some View {
         NavigationStack {
             Form {
                 if sections.contains(.privateToken) { privateSection }
                 if sections.contains(.weightToken) { weightSection }
                 if sections.contains(.grades) { gradesSection }
+                if sections.contains(.shoppingToken) { shoppingSection }
                 Section {
                     Text("Die Token liegen im Keychain des Geräts, geteilt zwischen "
-                         + "Healthy, Vault und Fokus - einmal eingegeben, überall da.")
+                         + "Healthy, Vault, Fokus und Einkauf - einmal eingegeben, überall da.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -111,6 +115,39 @@ struct SetupView: View {
         } footer: {
             Text(weightSaved ? "Gespeichert."
                  : "Nur für weight.fherrmann.com. Auf dem Server: /etc/health-viz.env")
+        }
+    }
+
+    // MARK: - Einkaufsliste
+
+    private var shoppingSection: some View {
+        Section {
+            SecureField("shopping_token", text: $shoppingToken)
+                .textContentType(.password)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .accessibilityIdentifier("shoppingToken")
+            Button("Speichern") {
+                Task {
+                    await access.store(shoppingToken: shoppingToken)
+                    shoppingSaved = true
+                    shoppingToken = ""
+                }
+            }
+            .disabled(shoppingToken.isEmpty)
+            if access.shoppingToken != nil {
+                Button("Löschen", role: .destructive) {
+                    access.resetShoppingToken()
+                    shoppingSaved = false
+                }
+            }
+        } header: {
+            Text("Einkaufsliste" + (access.shoppingToken != nil ? " ✓" : ""))
+        } footer: {
+            Text(shoppingSaved ? "Gespeichert."
+                 : "Ein eigener Token je Person - der Setup-Link "
+                   + "fherrmann.com/shopping-list/setup?token=… enthält ihn. "
+                   + "Auf dem Server: /etc/shopping.env")
         }
     }
 

@@ -178,6 +178,14 @@ Nicht Teil des Schnitts; hier nur, damit die Struktur sie schon vorsieht.
 
 ### Einkaufsliste: Zugang für eine zweite Person
 
+> **Umgesetzt am 2026-09-05** — mit drei Abweichungen: der Pfad heißt
+> `fherrmann.com/shopping-list` (Felix' Wortlaut), die Gerichte liegen als
+> Zutatenlisten **im Einkaufs-Dienst** statt im Kalorienzähler (siehe
+> `ENTSCHEIDUNGEN.md`), und statt TestFlight gibt es erst einmal eine eigene
+> App **Einkauf** (`com.fherrmann.einkauf`), die wie die anderen per Kabel
+> installiert wird. Die Frage am Ende des Abschnitts ist damit entschieden:
+> Gerichte darf jeder pflegen, weil sie nicht am Kalorienzähler hängen.
+
 Felix' Freundin soll die Einkaufsliste bedienen können — **und sonst nichts.**
 Das verträgt sich nicht mit dem heutigen Modell (`SERVER-CONTEXT.md`: „ein
 Token, ein Cookie, alles-oder-nichts"): wer `fh_private` hat, hat den

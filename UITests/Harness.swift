@@ -2,8 +2,8 @@ import XCTest
 
 /// Was der Simulator allein nicht kann: tippen, wischen, scrollen.
 ///
-/// Gemeinsam fuer die drei UI-Test-Bundles (Healthy, Vault, Fokus) - die Datei
-/// ist in allen dreien eingebunden. `XCUIApplication()` ist dabei immer die
+/// Gemeinsam fuer die vier UI-Test-Bundles (Healthy, Vault, Fokus, Einkauf) -
+/// die Datei ist in allen vieren eingebunden. `XCUIApplication()` ist dabei immer die
 /// App, an der das jeweilige Bundle haengt.
 extension XCTestCase {
 
@@ -19,6 +19,7 @@ extension XCTestCase {
         app.launchEnvironment = [
             "COCKPIT_FH_PRIVATE_TOKEN": environment["COCKPIT_FH_PRIVATE_TOKEN"] ?? "",
             "COCKPIT_WEIGHT_TOKEN": environment["COCKPIT_WEIGHT_TOKEN"] ?? "",
+            "COCKPIT_SHOPPING_TOKEN": environment["COCKPIT_SHOPPING_TOKEN"] ?? "",
             "COCKPIT_TAB": tab,
             "COCKPIT_NO_HEALTH": "1",
             "COCKPIT_NO_PUSH": "1",

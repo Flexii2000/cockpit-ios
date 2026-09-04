@@ -34,6 +34,9 @@ enum Keychain {
     /// Der Geraete-Token der Notenuebersicht. Anderer Dienst, anderes
     /// Geheimnis - er gilt nur fuer `fherrmann.com/grades`.
     static let gradesTokenKey = "grades_token"
+    /// Der Einkaufs-Token ist je Person - Felix' Freundin hat ihren eigenen,
+    /// und der oeffnet nur die Einkaufsliste (docs/PLAN-AUFTEILUNG.md).
+    static let shoppingTokenKey = "shopping_token"
     static let gradesUserKey = "grades_user"
 
     /// Das Passwort der Notenuebersicht. Als einziger Eintrag **hinter Face
