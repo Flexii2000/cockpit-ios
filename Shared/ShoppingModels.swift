@@ -27,8 +27,17 @@ struct ShoppingCategory: Decodable, Identifiable, Equatable, Sendable {
     var label: String
     var emoji: String
     var symbol: String
+    /// Als `#RRGGBB` - dieselbe Farbe im Web und in der App.
+    var color: String?
 
     var id: String { key }
+
+    /// Die Farbe als Zahl fuer `Color(hex:)`; `nil`, wenn der Dienst keine
+    /// schickt oder sie nicht wie `#RRGGBB` aussieht.
+    var colorValue: UInt32? {
+        guard let color, color.hasPrefix("#"), color.count == 7 else { return nil }
+        return UInt32(color.dropFirst(), radix: 16)
+    }
 }
 
 /// Ein Eintrag auf der Liste. `var`, nicht `let`: ohne Netz aendert die App

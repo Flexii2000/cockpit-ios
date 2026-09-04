@@ -113,15 +113,25 @@ struct ShoppingDishEditSheet: View {
     struct IngredientRow: Identifiable {
         let id = UUID()
         var name: String
-        var quantity: String
+        var amount: String
+        var unit: ShoppingQuantity.Unit
+
+        init(name: String, quantity: String?) {
+            self.name = name
+            let parsed = ShoppingQuantity.parse(quantity)
+            amount = parsed?.amount ?? quantity ?? ""
+            unit = parsed?.unit ?? .piece
+        }
     }
+
+    @State private var newUnit: ShoppingQuantity.Unit = .piece
 
     init(store: ShoppingStore, dish: ShoppingDish?) {
         self.store = store
         self.dish = dish
         _name = State(initialValue: dish?.name ?? "")
         _rows = State(initialValue: (dish?.ingredients ?? []).map {
-            IngredientRow(name: $0.name, quantity: $0.quantity ?? "")
+            IngredientRow(name: $0.name, quantity: $0.quantity)
         })
     }
 
@@ -136,9 +146,7 @@ struct ShoppingDishEditSheet: View {
                     ForEach($rows) { $row in
                         HStack {
                             TextField("Zutat", text: $row.name)
-                            TextField("Menge", text: $row.quantity)
-                                .frame(width: 90)
-                                .multilineTextAlignment(.trailing)
+                            QuantityField(amount: $row.amount, unit: $row.unit)
                         }
                     }
                     .onDelete { rows.remove(atOffsets: $0) }
@@ -150,11 +158,7 @@ struct ShoppingDishEditSheet: View {
                             .submitLabel(.next)
                             .onSubmit { addRow() }
                             .accessibilityIdentifier("newIngredient")
-                        TextField("Menge", text: $newQuantity)
-                            .frame(width: 90)
-                            .multilineTextAlignment(.trailing)
-                            .submitLabel(.done)
-                            .onSubmit { addRow() }
+                        QuantityField(amount: $newQuantity, unit: $newUnit, onSubmit: addRow)
                     }
                 }
             }
@@ -176,9 +180,10 @@ struct ShoppingDishEditSheet: View {
     private func addRow() {
         let n = newIngredient.trimmingCharacters(in: .whitespaces)
         guard !n.isEmpty else { return }
-        rows.append(IngredientRow(name: n, quantity: newQuantity.trimmingCharacters(in: .whitespaces)))
+        rows.append(IngredientRow(name: n, quantity: ShoppingQuantity.compose(newQuantity, unit: newUnit)))
         newIngredient = ""
         newQuantity = ""
+        newUnit = .piece
         typingNew = true
     }
 
@@ -189,8 +194,7 @@ struct ShoppingDishEditSheet: View {
         let ingredients = rows.compactMap { row -> ShoppingIngredient? in
             let n = row.name.trimmingCharacters(in: .whitespaces)
             guard !n.isEmpty else { return nil }
-            let q = row.quantity.trimmingCharacters(in: .whitespaces)
-            return ShoppingIngredient(name: n, quantity: q.isEmpty ? nil : q)
+            return ShoppingIngredient(name: n, quantity: ShoppingQuantity.compose(row.amount, unit: row.unit))
         }
         let title = name.trimmingCharacters(in: .whitespaces)
         isSaving = true

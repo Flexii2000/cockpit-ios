@@ -8,6 +8,7 @@ struct ShoppingTab: View {
     @State private var store = ShoppingStore()
     @State private var newName = ""
     @State private var newQuantity = ""
+    @State private var newUnit: ShoppingQuantity.Unit = .piece
     @State private var editing: ShoppingItem?
     @FocusState private var typing: Bool
 
@@ -80,12 +81,7 @@ struct ShoppingTab: View {
                         .submitLabel(.done)
                         .onSubmit { submit() }
                         .accessibilityIdentifier("newItem")
-                    TextField("Menge", text: $newQuantity)
-                        .frame(width: 76)
-                        .multilineTextAlignment(.trailing)
-                        .submitLabel(.done)
-                        .onSubmit { submit() }
-                        .accessibilityIdentifier("newQuantity")
+                    QuantityField(amount: $newQuantity, unit: $newUnit, onSubmit: submit)
                     Button { submit() } label: { Image(systemName: "plus.circle.fill") }
                         .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
                         .accessibilityIdentifier("addItem")
@@ -109,7 +105,7 @@ struct ShoppingTab: View {
     }
 
     private func row(_ item: ShoppingItem) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button {
                 Task { await store.toggle(item) }
             } label: {
@@ -122,17 +118,15 @@ struct ShoppingTab: View {
             .disabled(item.isLocal)
             .accessibilityIdentifier("toggle-\(item.id)")
 
+            // Das Symbol der Kategorie auf ihrer Farbe: die Liste ist danach
+            // sortiert, und Farbe plus Symbol sagen auf einen Blick, wo im
+            // Laden man steht - ein blaues Symbol allein tat das nicht.
+            if let category = category(of: item) {
+                CategoryBadge(category: category, dimmed: item.isChecked)
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    // Das Symbol der Kategorie: die Liste ist danach
-                    // sortiert, und das Symbol sagt, wo im Laden man steht.
-                    if let category = category(of: item) {
-                        Image(systemName: category.symbol)
-                            .font(.footnote)
-                            .foregroundStyle(item.isChecked ? Color.secondary : Color.accentColor)
-                            .frame(width: 18)
-                            .accessibilityLabel(category.label)
-                    }
                     Text(item.name)
                         .strikethrough(item.isChecked)
                         .foregroundStyle(item.isChecked ? .secondary : .primary)
@@ -182,12 +176,72 @@ struct ShoppingTab: View {
     private func submit() {
         let name = newName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        let quantity = newQuantity.trimmingCharacters(in: .whitespaces)
+        let quantity = ShoppingQuantity.compose(newQuantity, unit: newUnit)
         newName = ""
         newQuantity = ""
+        newUnit = .piece
         // Die Tastatur geht mit dem Eintrag zu - wie beim To-Do.
         typing = false
-        Task { await store.add(name: name, quantity: quantity.isEmpty ? nil : quantity) }
+        Task { await store.add(name: name, quantity: quantity) }
+    }
+}
+
+/// Das Symbol einer Kategorie auf einem Kreis in ihrer Farbe.
+struct CategoryBadge: View {
+    let category: ShoppingCategory
+    var dimmed = false
+
+    var body: some View {
+        Image(systemName: category.symbol)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.white)
+            .frame(width: 26, height: 26)
+            .background(tint.opacity(dimmed ? 0.4 : 1), in: Circle())
+            .accessibilityLabel(category.label)
+    }
+
+    private var tint: Color {
+        category.colorValue.map { Color(hex: $0) } ?? .accentColor
+    }
+}
+
+/// Zahl und Einheit nebeneinander: ein schmales Feld fuer die Zahl, daneben
+/// die Einheit als Menue. Wer „500g" ins Feld tippt, bekommt trotzdem Gramm -
+/// die Einheit im Text schlaegt die gewaehlte.
+struct QuantityField: View {
+    @Binding var amount: String
+    @Binding var unit: ShoppingQuantity.Unit
+    var onSubmit: () -> Void = {}
+
+    var body: some View {
+        HStack(spacing: 4) {
+            TextField("Menge", text: $amount)
+                .keyboardType(.decimalPad)
+                .frame(width: 56)
+                .multilineTextAlignment(.trailing)
+                .submitLabel(.done)
+                .onSubmit(onSubmit)
+                .accessibilityIdentifier("quantity")
+            Menu {
+                ForEach(ShoppingQuantity.Unit.allCases) { candidate in
+                    Button {
+                        unit = candidate
+                    } label: {
+                        if candidate == unit {
+                            Label(candidate.label, systemImage: "checkmark")
+                        } else {
+                            Text(candidate.label)
+                        }
+                    }
+                }
+            } label: {
+                Text(unit.rawValue)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 30)
+            }
+            .accessibilityLabel("Einheit")
+        }
     }
 }
 
@@ -200,6 +254,7 @@ struct ShoppingItemEditSheet: View {
 
     @State private var name: String
     @State private var quantity: String
+    @State private var unit: ShoppingQuantity.Unit
     @State private var note: String
     @State private var category: String
 
@@ -207,7 +262,10 @@ struct ShoppingItemEditSheet: View {
         self.store = store
         self.item = item
         _name = State(initialValue: item.name)
-        _quantity = State(initialValue: item.quantity ?? "")
+        // Lesbare Mengen in Zahl und Einheit; freier Text bleibt im Feld.
+        let parsed = ShoppingQuantity.parse(item.quantity)
+        _quantity = State(initialValue: parsed?.amount ?? item.quantity ?? "")
+        _unit = State(initialValue: parsed?.unit ?? .piece)
         _note = State(initialValue: item.note ?? "")
         _category = State(initialValue: item.category ?? "other")
     }
@@ -216,13 +274,15 @@ struct ShoppingItemEditSheet: View {
         NavigationStack {
             Form {
                 TextField("Name", text: $name)
-                TextField("Menge", text: $quantity)
+                LabeledContent("Menge") {
+                    QuantityField(amount: $quantity, unit: $unit)
+                }
                 TextField("Notiz", text: $note)
                 // Die Kategorie kommt vom Dienst; wer sie hier aendert,
                 // bringt ihm den Namen bei - beim naechsten Mal sitzt sie.
                 Picker("Kategorie", selection: $category) {
                     ForEach(store.board?.categories ?? []) { category in
-                        Label(category.label, systemImage: category.symbol).tag(category.key)
+                        Text("\(category.emoji) \(category.label)").tag(category.key)
                     }
                 }
             }
@@ -235,14 +295,14 @@ struct ShoppingItemEditSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Sichern") {
                         let n = name.trimmingCharacters(in: .whitespaces)
-                        let q = quantity.trimmingCharacters(in: .whitespaces)
+                        let q = ShoppingQuantity.compose(quantity, unit: unit)
                         let t = note.trimmingCharacters(in: .whitespaces)
                         // Nur eine bewusst geaenderte Kategorie schicken -
                         // sonst lernte der Dienst seine eigene Vermutung
                         // als Wahrheit.
                         let chosen = category == (item.category ?? "other") ? nil : category
                         Task {
-                            if await store.update(item, name: n, quantity: q.isEmpty ? nil : q,
+                            if await store.update(item, name: n, quantity: q,
                                                   note: t.isEmpty ? nil : t, category: chosen) {
                                 dismiss()
                             }

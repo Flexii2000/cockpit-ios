@@ -95,6 +95,7 @@ struct ShoppingRuleEditSheet: View {
 
     @State private var name: String
     @State private var quantity: String
+    @State private var unit: ShoppingQuantity.Unit
     @State private var everyDays: Int
     @State private var nextAt: Date
     @State private var isSaving = false
@@ -103,7 +104,9 @@ struct ShoppingRuleEditSheet: View {
         self.store = store
         self.rule = rule
         _name = State(initialValue: rule?.name ?? "")
-        _quantity = State(initialValue: rule?.quantity ?? "")
+        let parsed = ShoppingQuantity.parse(rule?.quantity)
+        _quantity = State(initialValue: parsed?.amount ?? rule?.quantity ?? "")
+        _unit = State(initialValue: parsed?.unit ?? .piece)
         _everyDays = State(initialValue: rule?.everyDays ?? 14)
         _nextAt = State(initialValue: rule?.nextAt.startOfDay() ?? CalendarDate.today().startOfDay())
     }
@@ -114,7 +117,9 @@ struct ShoppingRuleEditSheet: View {
                 Section {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("ruleName")
-                    TextField("Menge", text: $quantity)
+                    LabeledContent("Menge") {
+                        QuantityField(amount: $quantity, unit: $unit)
+                    }
                 }
                 Section {
                     Stepper(value: $everyDays, in: 1...365) {
@@ -143,16 +148,16 @@ struct ShoppingRuleEditSheet: View {
 
     private func save() async {
         let n = name.trimmingCharacters(in: .whitespaces)
-        let q = quantity.trimmingCharacters(in: .whitespaces)
+        let q = ShoppingQuantity.compose(quantity, unit: unit)
         let day = CalendarDate(date: nextAt)
         isSaving = true
         defer { isSaving = false }
         let ok: Bool
         if let rule {
-            ok = await store.updateRule(rule, name: n, quantity: q.isEmpty ? nil : q,
+            ok = await store.updateRule(rule, name: n, quantity: q,
                                         everyDays: everyDays, nextAt: day)
         } else {
-            ok = await store.createRule(name: n, quantity: q.isEmpty ? nil : q,
+            ok = await store.createRule(name: n, quantity: q,
                                         everyDays: everyDays, nextAt: day)
         }
         if ok { dismiss() }
