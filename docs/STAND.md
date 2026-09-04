@@ -27,10 +27,12 @@ beides genauso.
 
 ## Gewicht: Ablesen beim Halten · **gebaut** (2026-09-04, abends)
 
-Der Wert erscheint jetzt, sobald das Halten erkannt ist — nicht erst mit
-der ersten Bewegung. SwiftUIs Long-Press kennt keine Position; deshalb
-sitzt darunter ein `UILongPressGestureRecognizer` (über
-`UIGestureRecognizerRepresentable`), der sie beim Erkennen mitliefert.
+Der Wert steht, sobald der Finger aufliegt — ohne Halten. Ein eigener
+UIKit-Erkenner (`ScrubRecognizer` über `UIGestureRecognizerRepresentable`)
+meldet beim Auflegen und entscheidet an der ersten Bewegung über 8 pt: eher
+seitwärts = ablesen (Liste steht), eher senkrecht = scrollen (Wert weg).
+Ein Tipp ohne Bewegung lässt den Wert stehen. Zweiter Anlauf: der
+Long-Press mit 0,2 s davor kam als Verzögerung an.
 
 ## Essen: Einträge berichtigen · **gebaut** (2026-09-04, abends)
 

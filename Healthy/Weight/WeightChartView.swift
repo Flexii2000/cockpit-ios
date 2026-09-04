@@ -1,5 +1,6 @@
 import Charts
 import SwiftUI
+import UIKit.UIGestureRecognizerSubclass
 
 struct WeightChartView: View {
 
@@ -196,22 +197,17 @@ struct WeightChartView: View {
                 Rectangle()
                     .fill(.clear)
                     .contentShape(Rectangle())
-                    // Gedrueckt halten, dann ziehen. Vorher las eine
-                    // Ziehgeste ab, die nur waagerechte Bewegungen nahm, damit
-                    // die Liste scrollbar bleibt - und war damit launisch:
-                    // ein leicht schraeger Finger wurde ignoriert, ein wenig
-                    // zu gerader hielt die Liste fest. Mit dem kurzen Halten
-                    // ist die Absicht eindeutig: wer wischt, scrollt; wer
-                    // haelt, liest ab - danach zaehlt jede Richtung.
-                    .gesture(HoldAndScrubGesture(
+                    // Der Wert steht, sobald der Finger aufliegt. Wem die
+                    // Beruehrung gehoert, entscheidet die erste deutliche
+                    // Bewegung: eher seitwaerts heisst ablesen, und die
+                    // Liste bleibt stehen; eher hoch oder runter heisst
+                    // scrollen, und der Wert verschwindet wieder. Ein Tipp
+                    // ohne Bewegung laesst den Wert stehen, bis man woanders
+                    // tippt. Vorher musste man erst kurz halten - das kam
+                    // als Verzoegerung an.
+                    .gesture(ScrubGesture(
                         onChange: { location in select(at: location.x, in: proxy, geometry) },
-                        onEnd: { selectedDay = nil }))
-                    .simultaneousGesture(SpatialTapGesture()
-                        .onEnded { tap in
-                            // Antippen zeigt den Wert und laesst ihn stehen,
-                            // bis man woanders tippt.
-                            select(at: tap.location.x, in: proxy, geometry)
-                        })
+                        onEnd: { wasTap in if !wasTap { selectedDay = nil } }))
             }
         }
         // Hoeher als vorher (260): die Kurve schwankt um wenige Kilogramm,
@@ -385,33 +381,109 @@ struct WeightChartView: View {
     }
 }
 
-/// Gedrueckt halten und ziehen - mit Fingerposition schon beim Erkennen.
+/// Ablesen ab dem Auflegen des Fingers.
 ///
-/// SwiftUIs `LongPressGesture` kennt keine Position. In der Kette mit einer
-/// Ziehgeste kam die erst mit der ersten Bewegung an, und der Wert erschien
-/// erst, wenn der Finger schon wanderte. Der UIKit-Erkenner meldet beim
-/// Erkennen, wo der Finger liegt, und danach jede Bewegung. Wer innerhalb
-/// der Wartezeit weiterwischt, scrollt weiter die Liste - das regelt UIKit
-/// ueber die erlaubte Bewegung des Erkenners.
-private struct HoldAndScrubGesture: UIGestureRecognizerRepresentable {
+/// SwiftUIs Gesten kommen hier nicht hin: `LongPressGesture` kennt keine
+/// Position und wartet, `DragGesture` streitet sich mit der Liste ums
+/// Scrollen. Darunter sitzt deshalb ein eigener UIKit-Erkenner (siehe
+/// `ScrubRecognizer`), der beim Auflegen sofort meldet und erst an der
+/// ersten deutlichen Bewegung entscheidet, wem die Beruehrung gehoert.
+private struct ScrubGesture: UIGestureRecognizerRepresentable {
 
     let onChange: (CGPoint) -> Void
-    let onEnd: () -> Void
+    /// `wasTap`: der Finger hat sich nicht bewegt - der Wert bleibt stehen.
+    let onEnd: (_ wasTap: Bool) -> Void
 
-    func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
-        let recognizer = UILongPressGestureRecognizer()
-        recognizer.minimumPressDuration = 0.2
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    func makeUIGestureRecognizer(context: Context) -> ScrubRecognizer {
+        let recognizer = ScrubRecognizer()
+        recognizer.delegate = context.coordinator
         return recognizer
     }
 
-    func handleUIGestureRecognizerAction(_ recognizer: UILongPressGestureRecognizer, context: Context) {
+    func handleUIGestureRecognizerAction(_ recognizer: ScrubRecognizer, context: Context) {
         switch recognizer.state {
         case .began, .changed:
             onChange(context.converter.localLocation)
-        case .ended, .cancelled, .failed:
-            onEnd()
+        case .ended:
+            onEnd(!recognizer.isScrubbing)
+        case .cancelled, .failed:
+            onEnd(false)
         default:
             break
         }
     }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        /// Solange nicht entschieden ist, darf die Liste mit zuhoeren - sonst
+        /// waere das Scrollen schon beim Auflegen verloren. Sobald abgelesen
+        /// wird, bleibt sie stehen.
+        func gestureRecognizer(_ recognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            !((recognizer as? ScrubRecognizer)?.isScrubbing ?? false)
+        }
+    }
+}
+
+/// Meldet beim Auflegen sofort (`began`), folgt dem Finger (`changed`) und
+/// entscheidet an der ersten Bewegung ueber `decisionDistance` hinaus: geht
+/// sie eher seitwaerts, ist es Ablesen, und der Erkenner haelt fortan das
+/// Scrollen ab; geht sie eher hoch oder runter, gibt er auf, und die Liste
+/// scrollt wie gewohnt.
+final class ScrubRecognizer: UIGestureRecognizer {
+
+    /// Ab dieser Bewegung ist entschieden. Kleiner als die Hysterese der
+    /// Liste, damit die Entscheidung hier faellt und nicht dort.
+    private let decisionDistance: CGFloat = 8
+
+    private var start: CGPoint = .zero
+    /// Entschieden fuer Ablesen - ab jetzt bleibt die Liste stehen.
+    private(set) var isScrubbing = false
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        cancelsTouchesInView = false
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard state == .possible, let touch = touches.first else { return }
+        start = touch.location(in: view)
+        isScrubbing = false
+        state = .began
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard let touch = touches.first, state == .began || state == .changed else { return }
+        let point = touch.location(in: view)
+        if !isScrubbing {
+            let dx = abs(point.x - start.x), dy = abs(point.y - start.y)
+            guard max(dx, dy) >= decisionDistance else { return }
+            if dy > dx {
+                state = .cancelled
+                return
+            }
+            isScrubbing = true
+        }
+        state = .changed
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        state = .ended
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) {
+        state = .cancelled
+    }
+
+    override func reset() {
+        super.reset()
+        isScrubbing = false
+    }
+
+    /// Andere (die Liste) erst abhalten, wenn abgelesen wird.
+    override func canPrevent(_ other: UIGestureRecognizer) -> Bool { isScrubbing }
+    /// Und sich von niemandem abhalten lassen - ob die Liste scrollt,
+    /// entscheidet dieser Erkenner selbst.
+    override func canBePrevented(by other: UIGestureRecognizer) -> Bool { false }
 }
