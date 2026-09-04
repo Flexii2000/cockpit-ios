@@ -42,6 +42,28 @@ struct TodoItem: Decodable, Identifiable, Sendable, Equatable {
         guard let dueAt, !isDone else { return false }
         return dueAt.daysFromToday() < 0
     }
+
+    /// Die Faelligkeit, wie sie in der Zeile steht - eine Woche um heute
+    /// herum in Tagen, weiter weg als Datum.
+    var dueLabel: String? {
+        dueAt.map { TodoItem.dueLabel(for: $0, daysFromToday: $0.daysFromToday()) }
+    }
+
+    /// "heute", "morgen", "in 3 Tagen" bis eine Woche voraus; "seit gestern",
+    /// "seit 3 Tagen" bis eine Woche zurueck; sonst "bis 12.09." bzw.
+    /// "seit 12.08.". Eine Woche ist die Spanne, in der man in Tagen denkt -
+    /// "in 5 Tagen" sagt mehr als der 9., bei "in 23 Tagen" rechnet man
+    /// doch wieder ins Datum um.
+    static func dueLabel(for date: CalendarDate, daysFromToday days: Int) -> String {
+        switch days {
+        case 0: "heute"
+        case 1: "morgen"
+        case -1: "seit gestern"
+        case 2...7: "in \(days) Tagen"
+        case -7 ... -2: "seit \(-days) Tagen"
+        default: days < 0 ? "seit \(date.short)" : "bis \(date.short)"
+        }
+    }
 }
 
 struct TodoReminder: Decodable, Identifiable, Sendable, Equatable {

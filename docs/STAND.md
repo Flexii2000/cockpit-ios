@@ -16,6 +16,15 @@ Apple-Konto in Xcode angemeldet ist, legt `xcodebuild` die App-ID mit Push
 selbst an. Die Stunde davor mit Vault war also die Anmeldung, nicht die
 Kommandozeile.
 
+## To-Do: leere Unteraufgabe, Fälligkeit in Tagen · **gebaut** (2026-09-04, abends)
+
+Unter jeder offenen Hauptaufgabe steht eine leere Zeile (gestrichelter
+Kreis + Feld); tippen, schreiben, fertig — das Anlegen über Menü und
+Wischaktion ist raus. Fälligkeiten stehen eine Woche um heute herum in
+Tagen („morgen“, „in 3 Tagen“, „seit gestern“), weiter weg als Datum
+(`TodoItem.dueLabel`, getestet). Das Web unter `fherrmann.com/todo` macht
+beides genauso.
+
 ## Gewicht: Ablesen beim Halten · **gebaut** (2026-09-04, abends)
 
 Der Wert erscheint jetzt, sobald das Halten erkannt ist — nicht erst mit

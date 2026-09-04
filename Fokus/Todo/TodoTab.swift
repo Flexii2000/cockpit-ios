@@ -130,10 +130,12 @@ private struct AreaPage: View {
     let store: TodoStore
 
     @State private var newTitle = ""
-    @State private var subParent: TodoItem?
-    @State private var subTitle = ""
+    /// Angefangene Unteraufgaben, je Hauptaufgabe - die Zeile unter der
+    /// Liste ist ein leeres Feld, das man einfach befuellt.
+    @State private var subDrafts: [String: String] = [:]
     @State private var detail: TodoItem?
     @FocusState private var typing: Bool
+    @FocusState private var subFocus: String?
 
     var body: some View {
         List {
@@ -147,6 +149,9 @@ private struct AreaPage: View {
                     row(todo, indent: false)
                     ForEach(todo.children) { child in
                         row(child, indent: true)
+                    }
+                    if !todo.isDone {
+                        ghostRow(under: todo)
                     }
                 }
                 if area.todos.isEmpty {
@@ -176,22 +181,35 @@ private struct AreaPage: View {
             TodoDetailSheet(todo: todo, store: store, area: area,
                             isTopLevel: area.todos.contains { $0.id == todo.id })
         }
-        .alert("Unteraufgabe", isPresented: Binding(
-            get: { subParent != nil },
-            set: { if !$0 { subParent = nil } })) {
-            TextField("Text", text: $subTitle)
-            Button("Anlegen") {
-                if let parent = subParent {
-                    let title = subTitle
-                    subTitle = ""
-                    Task { await store.add(title: title, to: area, under: parent) }
-                }
-                subParent = nil
-            }
-            Button("Abbrechen", role: .cancel) { subParent = nil; subTitle = "" }
-        } message: {
-            if let parent = subParent { Text("zu „\(parent.title)“") }
+    }
+
+    /// Die leere Zeile unter den Unteraufgaben: ein gestrichelter Kreis und
+    /// ein Feld. Vorher steckte das Anlegen in einem Menue und in einer
+    /// Wischaktion - und war damit fuer niemanden zu finden.
+    private func ghostRow(under parent: TodoItem) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "circle.dashed")
+                .font(.title3)
+                .foregroundStyle(.tertiary)
+            TextField("Unteraufgabe", text: Binding(
+                get: { subDrafts[parent.id] ?? "" },
+                set: { subDrafts[parent.id] = $0 }))
+                .focused($subFocus, equals: parent.id)
+                .submitLabel(.done)
+                .onSubmit { submitSub(under: parent) }
+                .accessibilityIdentifier("newSub-\(parent.id)")
         }
+        .padding(.leading, 28)
+        .contentShape(Rectangle())
+        .onTapGesture { subFocus = parent.id }
+    }
+
+    private func submitSub(under parent: TodoItem) {
+        let title = (subDrafts[parent.id] ?? "").trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return }
+        subDrafts[parent.id] = nil
+        subFocus = nil
+        Task { await store.add(title: title, to: area, under: parent) }
     }
 
     private func submit() {
@@ -223,8 +241,8 @@ private struct AreaPage: View {
                     .foregroundStyle(todo.isDone ? .secondary : .primary)
                 if todo.dueAt != nil || !todo.reminders.isEmpty {
                     HStack(spacing: 8) {
-                        if let dueAt = todo.dueAt {
-                            Text("bis \(dueAt.short)")
+                        if let dueLabel = todo.dueLabel {
+                            Text(dueLabel)
                                 .foregroundStyle(todo.isOverdue ? Color.red : Color.secondary)
                                 .fontWeight(todo.isOverdue ? .semibold : .regular)
                         }
@@ -244,8 +262,8 @@ private struct AreaPage: View {
             .contentShape(Rectangle())
             .onTapGesture { detail = todo }
             Spacer(minLength: 0)
-            // Der Pfeil sagt, dass hinter der Zeile mehr ist: Faelligkeit,
-            // Erinnerungen, Unteraufgaben. Ohne ihn fand das niemand.
+            // Der Pfeil sagt, dass hinter der Zeile mehr ist: Faelligkeit
+            // und Erinnerungen. Ohne ihn fand das niemand.
             Button { detail = todo } label: {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
@@ -258,23 +276,10 @@ private struct AreaPage: View {
             Button { detail = todo } label: {
                 Label("Fälligkeit und Erinnerungen …", systemImage: "calendar.badge.clock")
             }
-            if !indent, !todo.isDone {
-                Button { subParent = todo; subTitle = "" } label: {
-                    Label("Unteraufgabe hinzufügen …", systemImage: "arrow.turn.down.right")
-                }
-            }
             Button(role: .destructive) {
                 Task { await store.delete(todo) }
             } label: {
                 Label("Löschen", systemImage: "trash")
-            }
-        }
-        .swipeActions(edge: .leading) {
-            if !indent, !todo.isDone {
-                Button { subParent = todo; subTitle = "" } label: {
-                    Label("Unteraufgabe", systemImage: "arrow.turn.down.right")
-                }
-                .tint(.orange)
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
