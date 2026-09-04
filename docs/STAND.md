@@ -1,24 +1,20 @@
 # Stand
 
-> **Nächster Schritt:** den **To-Do-Dienst ausrollen** — Repo `../todo` ist
-> fertig (14 Tests grün), braucht aber noch das GitHub-Repo
-> `Flexii2000/todo` (Felix legt es an), dann
-> `ssh HeimServerRemote 'git clone … ~/services/todo'` und
-> `ssh -t HeimServerRemote '~/services/todo/deploy/setup-todo.sh'`, dazu
-> (die Karte auf der Landing Page ist schon live). Fokus liegt mit dem
-> To-Do-Tab auf dem Gerät, zeigt aber bis dahin einen Fehler; für die
-> Erinnerungen muss Fokus **einmal aus Xcode** aufs Gerät (Push-Profil), dann
-> `tools/install-device.sh Fokus`. Offen bleibt Felix' Abnahme der
-> drei Apps im Gebrauch (siehe unten) und Schritt 2 aus `PLAN-AUFTEILUNG.md`.
->
-> ⚠️ **Eine neue Bundle-ID mit Push braucht einmal Xcode.** `xcodebuild` kann
-> ohne Xcode-Konto keine App-ID mit Push anlegen („No Accounts", Profil ohne
-> `aps-environment`). Vault musste deshalb einmal aus Xcode heraus aufs Gerät
-> (Schema wählen, ⌘R); seitdem geht `tools/install-device.sh Vault`. Fokus
-> ohne Push lief mit dem Wildcard-Profil sofort.
->
-> Daneben weiterhin offen: der **Siri-Kurzbefehl** für die Schnellerfassung
-> und die Übersicht der doppelt gepflegten Anzeigeregeln.
+> **Nächster Schritt:** Felix' Abnahme im Gebrauch — To-Do in Fokus und im
+> Browser, Erinnerungen (die erste in der App angelegte holt die
+> Push-Erlaubnis und meldet das Gerät beim Dienst an; vorher gibt es kein
+> `devices.json`), die drei Apps insgesamt. Dann Schritt 2 aus
+> `PLAN-AUFTEILUNG.md` (aufräumen) und die Roadmap als Projektliste im
+> To-Do-Dienst.
+
+## To-Do · **ausgerollt** (2026-09-04, abends)
+
+`todo.service` läuft, `fherrmann.com/todo` antwortet mit Cookie (ohne: 302),
+die Karte auf der Landing Page steht. Fokus liegt mit dem To-Do-Tab und
+Push-Berechtigung auf dem Gerät — diesmal **ohne** Xcode-Umweg: seit das
+Apple-Konto in Xcode angemeldet ist, legt `xcodebuild` die App-ID mit Push
+selbst an. Die Stunde davor mit Vault war also die Anmeldung, nicht die
+Kommandozeile.
 
 ## Nachgebessert auf Zuruf (2026-09-04, abends)
 

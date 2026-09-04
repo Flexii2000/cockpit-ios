@@ -225,7 +225,7 @@ Liste; neue Gerichte pflegt Felix, sie ergänzt freie Einträge („Milch").
 
 | Risiko | Abfangen |
 |---|---|
-| Signieren dreier neuer Bundle-IDs | Automatisch mit Team `ZWFV263P59` — **aber:** eine neue ID mit Push-Berechtigung kann `xcodebuild` nicht anlegen („No Accounts"). Vault musste einmal aus Xcode heraus aufs Gerät (Schema Vault, ⌘R), danach ging das Skript. Fokus ohne Push lief sofort (eingetreten am 04.09.) |
+| Signieren dreier neuer Bundle-IDs | Automatisch mit Team `ZWFV263P59` — sobald das Apple-Konto **in Xcode angemeldet** ist. Vorher meldete `xcodebuild` „No Accounts" und konnte keine App-ID mit Push anlegen (Vault musste einmal aus Xcode heraus); nach der Anmeldung legte es die ID für Fokus mit Push von der Kommandozeile an (04.09.) |
 | Keychain-Wanderung geht schief | Alte Gruppe wird **nicht** gelöscht; Healthy liest im Zweifel weiter aus ihr. Vault/Fokus zeigen dann „Kein Zugang" — sichtbar, nicht still |
 | Noten-Push kommt nicht in Vault an | `devices.json` auf dem Server prüfen (wie am 02.09.), `APNS_TOPIC` prüfen, `journalctl -u grades-notenwache` |
 | Habits-Kachel verschwindet vom Homebildschirm | Erwartet — sie zieht in die Fokus-Erweiterung um und muss neu aufgelegt werden. In `STAND.md` ankündigen |
