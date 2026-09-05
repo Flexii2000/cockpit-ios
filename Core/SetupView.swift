@@ -43,7 +43,7 @@ struct SetupView: View {
                 if sections.contains(.shoppingToken) { shoppingSection }
                 Section {
                     Text("Die Token liegen im Keychain des Geräts, geteilt zwischen "
-                         + "Healthy, Vault, Fokus und Einkauf - einmal eingegeben, überall da.")
+                         + "Healthy, Vault, Fokus und Einkaufsliste - einmal eingegeben, überall da.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

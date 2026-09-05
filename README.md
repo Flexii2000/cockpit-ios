@@ -1,4 +1,4 @@
-# Cockpit — Healthy, Vault, Fokus, Einkauf
+# Cockpit — Healthy, Vault, Fokus, Einkaufsliste
 
 Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
 bedienen:
@@ -8,7 +8,7 @@ bedienen:
 | **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker), Einkaufsliste | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | Habits, To-Do | `com.fherrmann.fokus` | – |
-| **Einkauf** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
+| **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
 Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
@@ -60,7 +60,7 @@ gehen; **Regelmäßig** setzt Dinge von selbst wieder darauf („Klopapier alle
 unten, mit dem Namen dessen, der es in den Wagen gelegt hat, und verschwindet
 am nächsten Tag. Dieselbe Liste im Browser unter `fherrmann.com/shopping-list`
 (Zugang über `…/setup?token=…`). In Healthy erscheint der Tab, sobald ein
-Einkaufs-Token da ist; **Einkauf** ist dieselbe Liste als eigene App.
+Einkaufs-Token da ist; **Einkaufsliste** ist dieselbe Liste als eigene App.
 
 **Zugang** — ein Blatt hinter dem Zahnrad (oben links bei Noten, Habits und
 Einkaufsliste, im „…"-Menü bei Essen und Gewicht). Jede App zeigt nur die

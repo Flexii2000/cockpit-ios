@@ -24,7 +24,7 @@ echo "Simulator: $SIM"
 DEST="platform=iOS Simulator,name=$SIM"
 pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-APPS="${1:-Healthy Vault Fokus Einkauf}"
+APPS="${1:-Healthy Vault Fokus Einkaufsliste}"
 for APP in $APPS; do
     echo "== $APP =="
     if [ "$APP" = "Healthy" ]; then

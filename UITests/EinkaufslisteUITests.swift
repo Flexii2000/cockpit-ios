@@ -4,7 +4,7 @@ import XCTest
 /// echten Dienst (oder mit COCKPIT_URL_SHOPPING gegen einen lokalen), und
 /// hinterher so, wie es war. Die Liste ist geteilt: was der Test anlegt,
 /// raeumt er weg.
-final class EinkaufUITests: XCTestCase {
+final class EinkaufslisteUITests: XCTestCase {
 
     override func setUp() {
         continueAfterFailure = false

@@ -2,7 +2,7 @@ import XCTest
 
 /// Was der Simulator allein nicht kann: tippen, wischen, scrollen.
 ///
-/// Gemeinsam fuer die vier UI-Test-Bundles (Healthy, Vault, Fokus, Einkauf) -
+/// Gemeinsam fuer die vier UI-Test-Bundles (Healthy, Vault, Fokus, Einkaufsliste) -
 /// die Datei ist in allen vieren eingebunden. `XCUIApplication()` ist dabei immer die
 /// App, an der das jeweilige Bundle haengt.
 extension XCTestCase {

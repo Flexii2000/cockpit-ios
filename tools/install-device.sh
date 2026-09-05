@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Baut die App signiert und installiert sie auf dem iPhone.
 #
-#   tools/install-device.sh <Healthy|Vault|Fokus|Einkauf>            # bauen und installieren
-#   tools/install-device.sh <Healthy|Vault|Fokus|Einkauf> --launch   # danach auch starten
+#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste>            # bauen und installieren
+#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste> --launch   # danach auch starten
 #   tools/install-device.sh all                                      # alle vier
 #
 # Das Geraet wird selbst gesucht: es muss einmal mit Xcode gekoppelt worden
@@ -16,15 +16,15 @@ APP="${1:-}"
 LAUNCH=false
 [ "${2:-}" = "--launch" ] && LAUNCH=true
 if [ "$APP" = "all" ]; then
-    for each in Healthy Vault Fokus Einkauf; do "$0" "$each" ${2:-}; done
+    for each in Healthy Vault Fokus Einkaufsliste; do "$0" "$each" ${2:-}; done
     exit 0
 fi
 case "$APP" in
     Healthy) BUNDLE="com.fherrmann.cockpit" ;;
     Vault)   BUNDLE="com.fherrmann.vault" ;;
     Fokus)   BUNDLE="com.fherrmann.fokus" ;;
-    Einkauf) BUNDLE="com.fherrmann.einkauf" ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkauf oder all sein." >&2; exit 1 ;;
+    Einkaufsliste) BUNDLE="com.fherrmann.einkauf" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder all sein." >&2; exit 1 ;;
 esac
 
 JSON=$(mktemp)
@@ -94,7 +94,7 @@ fi
 PLUGINS="build/device/Build/Products/Debug-iphoneos/$APP.app/PlugIns"
 if [ -d "$PLUGINS" ]; then
     echo "Erweiterungen: $(ls "$PLUGINS" | tr '\n' ' ')"
-elif [ "$APP" != "Vault" ] && [ "$APP" != "Einkauf" ]; then
+elif [ "$APP" != "Vault" ] && [ "$APP" != "Einkaufsliste" ]; then
     echo "WARNUNG: keine PlugIns im Bundle - das Widget ist nicht eingebettet." >&2
 fi
 

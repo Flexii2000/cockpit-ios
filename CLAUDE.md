@@ -5,7 +5,7 @@ Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 `weight.fherrmann.com`, Einkaufsliste `fherrmann.com/shopping-list`),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
 `finanzen.fherrmann.com`), **Fokus** (Habits `fherrmann.com/habits`, To-Do
-`fherrmann.com/todo`) und **Einkauf** (nur die Einkaufsliste — für das Handy
+`fherrmann.com/todo`) und **Einkaufsliste** (nur die Einkaufsliste — für das Handy
 von Felix' Freundin, deren Token nur diesen einen Dienst öffnet).
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
@@ -20,8 +20,8 @@ Tagessummen); die Apps zeigen.
 |---|---|---|
 | `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
 | `Core/` | alle vier Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
-| `Shopping/` | Healthy **und** Einkauf | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
-| `Healthy/`, `Vault/`, `Fokus/`, `Einkauf/` | genau diese App | alles |
+| `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
+| `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
 `tools/verify.sh` immer alle vier. `TabSelection` und `Router` gibt es je App;
@@ -68,8 +68,8 @@ tools/install-device.sh all --launch             # alle vier aufs iPhone (oder e
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkauf`). Tabs: Healthy `food|weight|shopping|widget`, Vault
-`grades|finance`, Fokus `habits|todo|widget`, Einkauf hat nur die eine Seite;
+`Fokus`, `Einkaufsliste`). Tabs: Healthy `food|weight|shopping|widget`, Vault
+`grades|finance`, Fokus `habits|todo|widget`, Einkaufsliste hat nur die eine Seite;
 `setup` öffnet das Zugang-Blatt. Der Einkaufs-Token kommt wie die anderen aus
 dem Schlüsselbund (`shopping_token`, freiwillig — ohne ihn fehlt der Tab).
 

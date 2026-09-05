@@ -8,8 +8,8 @@ sonst wird sie in drei Monaten neu diskutiert.
 Der Privat-Token öffnet alles — also ein eigener Dienst (`fherrmann.com/
 shopping-list`) mit eigenen Token je Person (`SHOPPING_TOKENS`), außerhalb des
 Privat-Gates. Die App setzt den Token als Cookie nur für diesen Pfad; Healthy
-zeigt den Tab, sobald er da ist, und **Einkauf** ist derselbe Tab als eigene
-App (`Shopping/` in beiden Targets). Der Name „Einkauf" ist meine Wahl —
+zeigt den Tab, sobald er da ist, und **Einkaufsliste** ist derselbe Tab als eigene
+App (`Shopping/` in beiden Targets). Der Name „Einkaufsliste" ist meine Wahl —
 kurz, deutsch, passt neben Healthy/Vault/Fokus; leicht zu ändern, solange die
 App noch auf keinem zweiten Handy liegt.
 **Gerichte liegen im Einkaufs-Dienst, nicht im Kalorienzähler.** Der Plan sah

@@ -56,9 +56,9 @@ Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
 Fokus/              App: Habits, To-Do
   App/ Habits/ Todo/
-Einkauf/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
+Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/
-Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkauf
+Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkaufsliste
 Core/               was alle vier Apps brauchen, aber keine Erweiterung:
                     Zugang (Cookies, Keychain-Wanderung), Sperre, Benachrichtigungen,
                     Zugang-Blatt, Fehler-/Offline-Leisten
@@ -78,7 +78,7 @@ Postausgang, Sperre, Tools und Harness würden sonst vierfach gepflegt. Was
 in `Core/` liegt, muss in allen vier Apps übersetzen — wer dort etwas
 einbaut, das nur eine App kennt (Diagramm-Typen, Tab-Namen), bricht die
 anderen. `Shopping/` ist der eine Ordner, den genau zwei Apps teilen: der
-Einkaufs-Tab in Healthy und die ganze App Einkauf sind derselbe Code. `TabSelection` und `Router` sind deshalb **je App** klein
+Einkaufs-Tab in Healthy und die ganze App Einkaufsliste sind derselbe Code. `TabSelection` und `Router` sind deshalb **je App** klein
 neu geschrieben statt geteilt.
 
 ⚠️ **Was in `Shared/` liegt, darf nichts benutzen, das es in einer
@@ -117,7 +117,7 @@ ist für sie kein Fehler, sondern ein Arbeitsschritt.
 `shopping_token` im Keychain und wird als Cookie nur für den Pfad
 `/shopping-list` gesetzt — der Dienst nimmt denselben Cookie wie der Browser
 nach `/shopping-list/setup?token=…`. Healthy zeigt den Tab nur, wenn der
-Token da ist; Einkauf besteht aus nichts anderem. So sieht Felix' Freundin
+Token da ist; Einkaufsliste besteht aus nichts anderem. So sieht Felix' Freundin
 mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
 
 ## Was ausserhalb der Oberfläche läuft

@@ -2,10 +2,10 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkauf> [tab] [screenshot.png]
+#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste> [tab] [screenshot.png]
 #
 # Tabs: Healthy food|weight|shopping|widget, Vault grades|finance,
-# Fokus habits|todo|widget, Einkauf (hat nur die eine Seite);
+# Fokus habits|todo|widget, Einkaufsliste (hat nur die eine Seite);
 # `setup` oeffnet in jeder App das Zugang-Blatt.
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
@@ -60,8 +60,8 @@ case "$APP" in
     Healthy) BUNDLE="com.fherrmann.cockpit" ;;
     Vault)   BUNDLE="com.fherrmann.vault" ;;
     Fokus)   BUNDLE="com.fherrmann.fokus" ;;
-    Einkauf) BUNDLE="com.fherrmann.einkauf" ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkauf sein." >&2; exit 1 ;;
+    Einkaufsliste) BUNDLE="com.fherrmann.einkauf" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkaufsliste sein." >&2; exit 1 ;;
 esac
 
 PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
@@ -73,7 +73,7 @@ WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) |
     exit 1
 }
 # Der Einkaufs-Token ist freiwillig: ohne ihn fehlt in Healthy der Tab, und
-# Einkauf zeigt das Zugang-Blatt - beides ein gueltiger Zustand.
+# Einkaufsliste zeigt das Zugang-Blatt - beides ein gueltiger Zustand.
 # Aus der Umgebung vor dem Schluesselbund: gegen einen lokal gestarteten
 # Dienst (COCKPIT_URL_SHOPPING) gilt dessen Token, nicht der vom Server.
 SHOPPING="${COCKPIT_SHOPPING_TOKEN:-$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)}"

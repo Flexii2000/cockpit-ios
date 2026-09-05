@@ -4,14 +4,14 @@
 // woraus ein Icon besteht, und eine Aenderung ist eine Zeile statt einer
 // neuen Bilddatei aus einem Grafikprogramm.
 //
-//   swift tools/make-icon.swift <healthy|vault|fokus|einkauf> <pfad/icon-1024.png>
+//   swift tools/make-icon.swift <healthy|vault|fokus|einkaufsliste> <pfad/icon-1024.png>
 //
 // Vier Motive, vier Farbwelten - jede App soll auf dem Homebildschirm sofort
 // als sie selbst zu erkennen sein:
 //   healthy  ein Herz, gruen                          (Gesundheit)
 //   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
 //   fokus    ein Haken im orangenen Kreis auf Weiss  (erledigt, im Fokus)
-//   einkauf  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
+//   einkaufsliste  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
 
@@ -21,7 +21,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 guard CommandLine.arguments.count > 2 else {
-    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkauf> <pfad/icon-1024.png>")
+    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkaufsliste> <pfad/icon-1024.png>")
 }
 let variant = CommandLine.arguments[1]
 let outputPath = CommandLine.arguments[2]
@@ -175,7 +175,7 @@ case "fokus":
     ctx.setLineJoin(.round)
     ctx.strokePath()
 
-case "einkauf":
+case "einkaufsliste":
     // Eine Einkaufstasche auf Petrol - eine Farbe, die keine der anderen
     // drei hat, damit sie auch neben Healthy auf demselben Homebildschirm
     // fuer sich steht. Auf der Tasche ein Haken: die Liste, abgehakt.

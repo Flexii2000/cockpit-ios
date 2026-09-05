@@ -4,7 +4,7 @@ import SwiftUI
 /// nichts von diesem Server sehen soll. Ein Token, eine Liste, kein Push,
 /// kein Health, keine Kachel.
 @main
-struct EinkaufApp: App {
+struct EinkaufslisteApp: App {
 
     @State private var access = Access()
 

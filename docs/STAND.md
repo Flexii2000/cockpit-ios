@@ -2,8 +2,8 @@
 
 > **Nächster Schritt:** Felix' QA der Einkaufsliste — Dienst per
 > `setup-shopping.sh` ausrollen (druckt beide Setup-Links), Token in Healthy
-> und Einkauf eintragen, Liste/Gerichte/Regeln/Kategorien im Gebrauch, im
-> Browser dasselbe. Dann das zweite Handy (Einkauf per Kabel oder später
+> und Einkaufsliste eintragen, Liste/Gerichte/Regeln/Kategorien im Gebrauch, im
+> Browser dasselbe. Dann das zweite Handy (Einkaufsliste per Kabel oder später
 > TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
 > (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
 
@@ -14,12 +14,12 @@ Neuer Dienst `shopping` (`../shopping`, `fherrmann.com/shopping-list`, Port
 „als Ganzes" auf die Liste), Regeln („Klopapier alle 14 Tage") und
 automatischer Sortierung nach Kategorien (Wörterbuch, Wortregeln, Gelerntes).
 In der App: `Shopping/` als Tab in Healthy (nur mit Token) und als vierte App
-**Einkauf** — Liste mit Symbol je Kategorie, Bearbeiten samt Kategorie,
+**Einkaufsliste** — Liste mit Symbol je Kategorie, Bearbeiten samt Kategorie,
 Gerichte, Regeln, Ohne-Netz-Verhalten mit sofort sichtbaren Änderungen.
 Mengen sind Zahl plus Einheit (Stk, g, kg, ml, l, Pck; `ShoppingQuantity`,
 getestet), der Dienst speichert weiter Text. Kategorien haben eine Farbe vom
 Dienst (`color`), in der App als Kreis hinter dem Symbol.
-Offen: Deploy (sudo), Token eintragen, Felix' QA; der Name „Einkauf" ist ein
+Offen: Deploy (sudo), Token eintragen, Felix' QA; der Name „Einkaufsliste" ist ein
 Vorschlag.
 
 ## To-Do · **ausgerollt** (2026-09-04, abends)

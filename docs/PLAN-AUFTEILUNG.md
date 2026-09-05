@@ -182,7 +182,7 @@ Nicht Teil des Schnitts; hier nur, damit die Struktur sie schon vorsieht.
 > `fherrmann.com/shopping-list` (Felix' Wortlaut), die Gerichte liegen als
 > Zutatenlisten **im Einkaufs-Dienst** statt im Kalorienzähler (siehe
 > `ENTSCHEIDUNGEN.md`), und statt TestFlight gibt es erst einmal eine eigene
-> App **Einkauf** (`com.fherrmann.einkauf`), die wie die anderen per Kabel
+> App **Einkaufsliste** (`com.fherrmann.einkauf`), die wie die anderen per Kabel
 > installiert wird. Die Frage am Ende des Abschnitts ist damit entschieden:
 > Gerichte darf jeder pflegen, weil sie nicht am Kalorienzähler hängen.
 
