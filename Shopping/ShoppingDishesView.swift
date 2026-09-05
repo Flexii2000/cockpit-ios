@@ -178,9 +178,15 @@ struct ShoppingDishEditSheet: View {
     }
 
     private func addRow() {
-        let n = newIngredient.trimmingCharacters(in: .whitespaces)
+        var n = newIngredient.trimmingCharacters(in: .whitespaces)
         guard !n.isEmpty else { return }
-        rows.append(IngredientRow(name: n, quantity: ShoppingQuantity.compose(newQuantity, unit: newUnit)))
+        var q = ShoppingQuantity.compose(newQuantity, unit: newUnit)
+        if q == nil {
+            let split = ShoppingQuantity.split(n)
+            n = split.name
+            q = split.quantity?.text
+        }
+        rows.append(IngredientRow(name: n, quantity: q))
         newIngredient = ""
         newQuantity = ""
         newUnit = .piece

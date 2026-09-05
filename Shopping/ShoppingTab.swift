@@ -174,9 +174,16 @@ struct ShoppingTab: View {
     }
 
     private func submit() {
-        let name = newName.trimmingCharacters(in: .whitespaces)
+        var name = newName.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        let quantity = ShoppingQuantity.compose(newQuantity, unit: newUnit)
+        var quantity = ShoppingQuantity.compose(newQuantity, unit: newUnit)
+        // „gemischtes Hack 200g" in einem Feld: die Menge steckt im Namen.
+        // Nur wenn das Mengenfeld leer ist - wer beides fuellt, meint beides.
+        if quantity == nil {
+            let split = ShoppingQuantity.split(name)
+            name = split.name
+            quantity = split.quantity?.text
+        }
         newName = ""
         newQuantity = ""
         newUnit = .piece

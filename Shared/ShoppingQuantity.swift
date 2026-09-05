@@ -63,6 +63,47 @@ struct ShoppingQuantity: Equatable, Sendable {
         return ShoppingQuantity(amount: String(match.1), unit: unit)
     }
 
+    /// Liest eine Menge aus dem Namen heraus, wie man sie tippt: „gemischtes
+    /// Hack 200g" wird zu „gemischtes Hack" und 200 g, „2 Zwiebeln" zu
+    /// „Zwiebeln" und 2 Stk, „Milch 1l" zu „Milch" und 1 l. Eine blosse Zahl
+    /// zaehlt nur als Stueckzahl, wenn sie ganz und klein ist - „Mehl Type
+    /// 405" hat keine 405 Stueck. Ohne Menge im Namen kommt der Name zurueck,
+    /// wie er war. Dieselben Regeln hat der Dienst (`QuantityParser`); hier
+    /// noch einmal, damit ein Eintrag ohne Netz schon richtig dasteht.
+    static func split(_ name: String) -> (name: String, quantity: ShoppingQuantity?) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        // Die Einheit steht als Aufzaehlung IM Muster, nicht als "irgendein
+        // Wort": sonst haelt „2 gemischte Brote" das Wort "gemischte" fuer
+        // die Einheit, und der Vergleich danach kann nichts mehr retten.
+        // Als Literale, nicht aus einem String gebaut: nur Literale haben
+        // nummerierte Gruppen mit Typ. Und lokal statt statisch, weil `Regex`
+        // nicht `Sendable` ist.
+        let trailing = /(.+?)\s+(\d+(?:[.,]\d+)?)\s*(stk|stück|stueck|stck|st|x|g|gr|gramm|kg|kilo|kilogramm|ml|milliliter|l|liter|ltr|pck|pk|pkg|pack|packung|packungen|päckchen|paeckchen)?/
+            .ignoresCase()
+        let leading = /(\d+(?:[.,]\d+)?)\s*(stk|stück|stueck|stck|st|x|g|gr|gramm|kg|kilo|kilogramm|ml|milliliter|l|liter|ltr|pck|pk|pkg|pack|packung|packungen|päckchen|paeckchen)?\s+(.+)/
+            .ignoresCase()
+        if let m = trimmed.wholeMatch(of: trailing),
+           let quantity = quantity(amount: String(m.2), unitText: m.3.map(String.init) ?? "") {
+            return (String(m.1), quantity)
+        }
+        if let m = trimmed.wholeMatch(of: leading),
+           let quantity = quantity(amount: String(m.1), unitText: m.2.map(String.init) ?? "") {
+            return (String(m.3), quantity)
+        }
+        return (trimmed, nil)
+    }
+
+    private static func quantity(amount: String, unitText: String) -> ShoppingQuantity? {
+        guard let unit = Unit.named(unitText) else { return nil }
+        if unitText.isEmpty {
+            // Eine blosse Zahl ist nur dann eine Stueckzahl, wenn sie ganz und
+            // klein ist: „Mehl Type 405" hat keine 405 Stueck, und „Milch 1,5"
+            // meint eher den Fettgehalt.
+            guard let whole = Int(amount), whole <= 99 else { return nil }
+        }
+        return ShoppingQuantity(amount: amount, unit: unit)
+    }
+
     /// Was aus einem Mengenfeld und einer gewaehlten Einheit wird: leer ist
     /// keine Menge; steht im Feld selbst eine Einheit („500g"), gilt die;
     /// eine blosse Zahl bekommt die gewaehlte Einheit; alles andere bleibt
