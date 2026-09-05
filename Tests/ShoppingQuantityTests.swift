@@ -65,6 +65,19 @@ struct ShoppingQuantityTests {
         #expect(ShoppingQuantity.split("2 gemischte Brote").name == "gemischte Brote")
     }
 
+    @Test func aUnitWordAloneMeansOne() {
+        #expect(ShoppingQuantity.split("Liter Cola").name == "Cola")
+        #expect(ShoppingQuantity.split("Liter Cola").quantity?.text == "1 l")
+        #expect(ShoppingQuantity.split("Packung Nudeln").quantity?.text == "1 Pck")
+        #expect(ShoppingQuantity.split("Dose Tomaten").quantity?.text == "1 Dose")
+        #expect(ShoppingQuantity.split("Cola Liter").quantity?.text == "1 l")
+        #expect(ShoppingQuantity.split("Kasten Bier").quantity?.text == "1 Kasten")
+        #expect(ShoppingQuantity.parse("Liter") == ShoppingQuantity(amount: "1", unit: .liter))
+        // Abkuerzungen ohne Zahl sind keine Menge, und ein Wort allein bleibt ein Name.
+        #expect(ShoppingQuantity.split("g Zucker").quantity == nil)
+        #expect(ShoppingQuantity.split("Glas").quantity == nil)
+    }
+
     @Test func leavesNamesWithoutAQuantityAlone() {
         #expect(ShoppingQuantity.split("Mehl Type 405").quantity == nil)
         #expect(ShoppingQuantity.split("Mehl Type 405").name == "Mehl Type 405")

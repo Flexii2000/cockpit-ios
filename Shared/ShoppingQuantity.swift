@@ -225,6 +225,12 @@ struct ShoppingQuantity: Equatable, Sendable {
            let unit = Unit.named(String(match.2)) {
             return (ShoppingQuantity(amount: String(match.1), unit: unit), 1)
         }
+        // Ein Einheitenwort ohne Zahl heisst eins: „Liter Cola", „Packung
+        // Nudeln", „Dose Tomaten". Nur ausgeschriebene Woerter - ein „l" oder
+        // „g" allein ist eher ein Tippfehler als eine Menge.
+        if first.count >= 3, first.allSatisfy(\.isLetter), let unit = Unit.named(first) {
+            return (ShoppingQuantity(amount: "1", unit: unit), 1)
+        }
         guard var amount = number(first) else { return nil }
         var index = tokens.startIndex + 1
         // „ein halbes Kilo": das Halbe gehoert zur Eins.
