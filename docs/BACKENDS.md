@@ -393,7 +393,12 @@ Null-Felder kommen als `null`, nicht weggelassen; Zeitpunkte tragen
 Mikrosekunden (`2026-09-04T22:29:08.516444Z`) — `APIClient.parseInstant`
 streicht den Bruchteil, bevor `ISO8601DateFormatter` ihn sieht.
 
-Regeln, die der Dienst durchsetzt: offene Einträge stehen in
+Regeln, die der Dienst durchsetzt: **derselbe Name wird ein Eintrag** —
+Groß-/Kleinschreibung und Leerraum zählen nicht; Mengen gleicher Einheit
+werden addiert („500 g“ + „500 g“ = „1000 g“), verschiedene stehen nebeneinander
+(„500 g + 1 Pck“); ein abgehakter Eintrag zählt nicht mehr als „steht schon
+drauf“. Gilt für Eingaben, Gerichte und Regeln (eine Regel hängt sich an einen
+vorhandenen Eintrag). Offene Einträge stehen in
 Kategorie-Reihenfolge (Supermarkt-Rundgang), darin nach `addedAt`; abgehakte
 bleiben bis zum Tageswechsel (Europe/Berlin) sichtbar und liegen danach noch
 90 Tage in der Datei. Abhaken eines Regel-Eintrags setzt `nextAt` der Regel
