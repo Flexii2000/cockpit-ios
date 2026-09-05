@@ -208,6 +208,24 @@ struct ShoppingQuantity: Equatable, Sendable {
         return trimmed
     }
 
+    /// Zwei Mengen zu einer: gleiche Einheit wird addiert („500 g" + „500 g"
+    /// = „1000 g", „1 Dose" + „2 Dosen" = „3 Dosen"), verschiedene stehen
+    /// nebeneinander („500 g + 1 Pck"). Fehlt eine, bleibt die andere.
+    static func merge(_ a: String?, _ b: String?) -> String? {
+        let x = a?.trimmingCharacters(in: .whitespaces) ?? ""
+        let y = b?.trimmingCharacters(in: .whitespaces) ?? ""
+        if x.isEmpty { return y.isEmpty ? nil : (parse(y)?.text ?? y) }
+        if y.isEmpty { return parse(x)?.text ?? x }
+        if let p = parse(x), let q = parse(y), p.unit == q.unit,
+           let da = Decimal(string: p.amount.replacingOccurrences(of: ",", with: ".")),
+           let db = Decimal(string: q.amount.replacingOccurrences(of: ",", with: ".")) {
+            let sum = "\(da + db)".replacingOccurrences(of: ".", with: ",")
+            return ShoppingQuantity(amount: sum, unit: p.unit).text
+        }
+        let nx = parse(x)?.text ?? x, ny = parse(y)?.text ?? y
+        return nx.lowercased() == ny.lowercased() ? nx : "\(nx) + \(ny)"
+    }
+
     // MARK: - Lesen
 
     private static func words(_ text: String) -> [String] {

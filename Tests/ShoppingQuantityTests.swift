@@ -88,6 +88,18 @@ struct ShoppingQuantityTests {
         #expect(ShoppingQuantity.split("Bananen").quantity == nil)
     }
 
+    @Test func mergesQuantitiesOfTheSameUnit() {
+        #expect(ShoppingQuantity.merge("500 g", "500 g") == "1000 g")
+        #expect(ShoppingQuantity.merge("2 Stk", "3 Stk") == "5 Stk")
+        #expect(ShoppingQuantity.merge("1,5 kg", "1 kg") == "2,5 kg")
+        #expect(ShoppingQuantity.merge("1 Dose", "2 Dosen") == "3 Dosen")
+        #expect(ShoppingQuantity.merge(nil, "2 Stk") == "2 Stk")
+        #expect(ShoppingQuantity.merge("500 g", "  ") == "500 g")
+        #expect(ShoppingQuantity.merge("500 g", "1 Pck") == "500 g + 1 Pck")
+        #expect(ShoppingQuantity.merge("eine Handvoll", "eine Handvoll") == "eine Handvoll")
+        #expect(ShoppingQuantity.merge(nil, nil) == nil)
+    }
+
     @Test func composeUsesTheChosenUnitOnlyForBareNumbers() {
         #expect(ShoppingQuantity.compose("500", unit: .gram) == "500 g")
         #expect(ShoppingQuantity.compose("500g", unit: .piece) == "500 g")

@@ -43,12 +43,25 @@ final class ShoppingStore {
         return await perform({ try await api.addItem(draft) }) {
             // Bis der Dienst antwortet, steht der Eintrag mit erfundener
             // Kennung in der Liste. Das naechste Brett bringt die echte.
+            // Derselbe Name (egal wie geschrieben) wird wie beim Dienst ein
+            // Eintrag mit zusammengefasster Menge.
+            if let i = openIndex(named: name) {
+                board?.items[i].quantity = ShoppingQuantity.merge(board?.items[i].quantity, quantity)
+                if let id = board?.items[i].id { pendingIDs.insert(id) }
+                return
+            }
             let local = ShoppingItem(id: Self.localID(), name: name, quantity: quantity, note: nil,
                                      addedAt: Date(), addedBy: me, checkedAt: nil, checkedBy: nil,
                                      dishId: nil, ruleId: nil, category: nil)
             board?.items.append(local)
             pendingIDs.insert(local.id)
         }
+    }
+
+    /// Der offene Eintrag mit diesem Namen - Gross-/Kleinschreibung zaehlt nicht.
+    private func openIndex(named name: String) -> Int? {
+        let key = name.trimmingCharacters(in: .whitespaces).lowercased()
+        return board?.items.firstIndex { !$0.isChecked && $0.name.trimmingCharacters(in: .whitespaces).lowercased() == key }
     }
 
     func toggle(_ item: ShoppingItem) async {
@@ -105,6 +118,12 @@ final class ShoppingStore {
     func addDish(_ dish: ShoppingDish) async -> Bool {
         await perform({ try await api.addDish(id: dish.id) }) {
             for ingredient in dish.ingredients {
+                if let i = openIndex(named: ingredient.name) {
+                    board?.items[i].quantity = ShoppingQuantity.merge(board?.items[i].quantity, ingredient.quantity)
+                    if board?.items[i].note == nil { board?.items[i].note = dish.name }
+                    if let id = board?.items[i].id { pendingIDs.insert(id) }
+                    continue
+                }
                 let local = ShoppingItem(id: Self.localID(), name: ingredient.name,
                                          quantity: ingredient.quantity, note: dish.name,
                                          addedAt: Date(), addedBy: me, checkedAt: nil, checkedBy: nil,
