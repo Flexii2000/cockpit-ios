@@ -2,7 +2,7 @@
 # NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
 #
 # Vier Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
-#   Healthy  - Essen, Gewicht, Einkauf   com.fherrmann.cockpit (die alte ID, bleibt)
+#   Healthy  - Essen, Gewicht, Einkaufsliste  com.fherrmann.cockpit (die alte ID, bleibt)
 #   Vault    - Noten, Finanzen           com.fherrmann.vault
 #   Fokus    - Habits, To-Do             com.fherrmann.fokus
 #   Einkaufsliste - nur die Liste       com.fherrmann.einkauf (fuer ein zweites Handy)
