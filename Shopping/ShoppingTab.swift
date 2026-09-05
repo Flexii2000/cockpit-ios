@@ -230,7 +230,9 @@ struct QuantityField: View {
                 .onSubmit(onSubmit)
                 .accessibilityIdentifier("quantity")
             Menu {
-                ForEach(ShoppingQuantity.Unit.allCases) { candidate in
+                // Die gaengigen Einheiten; eine getippte („Dosen") steht
+                // dazu, solange sie gewaehlt ist.
+                ForEach(ShoppingQuantity.Unit.common + (ShoppingQuantity.Unit.common.contains(unit) ? [] : [unit])) { candidate in
                     Button {
                         unit = candidate
                     } label: {
