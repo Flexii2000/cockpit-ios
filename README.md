@@ -83,6 +83,7 @@ Makros. Dazu die **Habits** auf dem Homescreen, klein (drei) oder mittel
 | | |
 |---|---|
 | **Aktueller Stand und was offen ist** | [`docs/STAND.md`](docs/STAND.md) |
+| **Aufs zweite Handy: TestFlight** | `tools/testflight.sh` — Kopf des Skripts: API-Schlüssel, App-Eintrag, Tester |
 | **Aufbau** | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) |
 | **Was als Nächstes kommt: drei Apps** | [`docs/PLAN-AUFTEILUNG.md`](docs/PLAN-AUFTEILUNG.md) |
 | **APIs der Backends** | [`docs/BACKENDS.md`](docs/BACKENDS.md) |

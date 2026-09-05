@@ -65,6 +65,8 @@ tools/verify.sh                    # baut alle vier fuer den Simulator, Unit-Tes
 tools/verify.sh Vault              # nur eine
 tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
 tools/install-device.sh all --launch             # alle vier aufs iPhone (oder eine)
+tools/testflight.sh Einkaufsliste                # archivieren + zu TestFlight hochladen (API-Schluessel noetig)
+tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
