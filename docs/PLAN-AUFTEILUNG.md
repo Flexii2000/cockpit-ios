@@ -186,7 +186,7 @@ Nicht Teil des Schnitts; hier nur, damit die Struktur sie schon vorsieht.
 > installiert wird. Die Frage am Ende des Abschnitts ist damit entschieden:
 > Gerichte darf jeder pflegen, weil sie nicht am Kalorienzähler hängen.
 
-Felix' Freundin soll die Einkaufsliste bedienen können — **und sonst nichts.**
+Joana soll die Einkaufsliste bedienen können — **und sonst nichts.**
 Das verträgt sich nicht mit dem heutigen Modell (`SERVER-CONTEXT.md`: „ein
 Token, ein Cookie, alles-oder-nichts"): wer `fh_private` hat, hat den
 Kalorienzähler, den Statusboard-Privatteil, Habits. Deshalb:
@@ -195,7 +195,7 @@ Kalorienzähler, den Statusboard-Privatteil, Habits. Deshalb:
   Spring-Dienst (`fherrmann.com/einkauf`, Bauart wie `habits`) und liegt
   **nicht** hinter dem Privat-Gate. Er prüft seine eigenen Token — eine kleine
   Liste in seiner Umgebung, je Token ein Name und ob es schreiben darf
-  (`EINKAUF_TOKENS=felix:…:edit,freundin:…:edit`). Gerichte und Zutaten liest
+  (`EINKAUF_TOKENS=felix:…:edit,joana:…:edit`). Gerichte und Zutaten liest
   er serverseitig aus dem Kalorienzähler, mit Felix' Privat-Token aus seiner
   eigenen Umgebung — genau wie `habits` die Schritte liest. Ihr Token öffnet
   damit nur diesen einen Dienst, und der Dienst gibt vom Kalorienzähler nur

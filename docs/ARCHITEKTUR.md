@@ -117,7 +117,7 @@ ist für sie kein Fehler, sondern ein Arbeitsschritt.
 `shopping_token` im Keychain und wird als Cookie nur für den Pfad
 `/shopping-list` gesetzt — der Dienst nimmt denselben Cookie wie der Browser
 nach `/shopping-list/setup?token=…`. Healthy zeigt den Tab nur, wenn der
-Token da ist; Einkaufsliste besteht aus nichts anderem. So sieht Felix' Freundin
+Token da ist; Einkaufsliste besteht aus nichts anderem. So sieht Joana
 mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
 
 ## Was ausserhalb der Oberfläche läuft

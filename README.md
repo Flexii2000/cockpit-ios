@@ -49,7 +49,7 @@ bleibt drei Tage durchgestrichen und verschwindet dann, ohne gelöscht zu
 werden. Dieselben Listen stehen im Browser unter `fherrmann.com/todo` als
 Kacheln nebeneinander.
 
-**Einkaufsliste** — eine Liste für zwei: Felix und seine Freundin haben je
+**Einkaufsliste** — eine Liste für zwei: Felix und Joana haben je
 einen eigenen Token, und ihrer öffnet **nur** diesen Dienst. Der Dienst
 sortiert die Liste von selbst nach dem Supermarkt-Rundgang (Obst & Gemüse
 zuerst, Drogerie und Haushalt zuletzt) und zeigt je Eintrag ein Symbol; wer

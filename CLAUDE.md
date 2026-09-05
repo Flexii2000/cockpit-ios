@@ -6,7 +6,7 @@ Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
 `finanzen.fherrmann.com`), **Fokus** (Habits `fherrmann.com/habits`, To-Do
 `fherrmann.com/todo`) und **Einkaufsliste** (nur die Einkaufsliste — für das Handy
-von Felix' Freundin, deren Token nur diesen einen Dienst öffnet).
+von Joana, deren Token nur diesen einen Dienst öffnet).
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,

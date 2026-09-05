@@ -364,7 +364,7 @@ Schicksal ihrer Aufgabe. Abhaken und Zurücknehmen dürfen offline warten
 ## Einkaufsliste — `/shopping-list/api`
 
 Quelle: `../shopping/src/main/java/com/fherrmann/shopping/`. Eigene Token je
-Person (`SHOPPING_TOKENS=felix:…,freundin:…` in `/etc/shopping.env`), kein
+Person (`SHOPPING_TOKENS=felix:…,joana:…` in `/etc/shopping.env`), kein
 Privat-Gate. **Jede Antwort ist das ganze Brett.**
 
 | Methode | Pfad | Was |

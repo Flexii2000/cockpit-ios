@@ -208,7 +208,7 @@ targets:
         SKIP_INSTALL: YES
 
   # ---------------------------------------------------------- Einkaufsliste
-  # Die Einkaufsliste allein - fuer das Handy von Felix' Freundin, das sonst
+  # Die Einkaufsliste allein - fuer das Handy von Joana, das sonst
   # nichts von diesem Server sehen soll. Ihr Token oeffnet nur diesen einen
   # Dienst. Kein Push, kein Health, keine Kachel - und deshalb auch keine
   # Xcode-Runde beim Signieren.

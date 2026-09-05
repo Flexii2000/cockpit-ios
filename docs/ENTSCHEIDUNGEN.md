@@ -4,7 +4,7 @@ Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
 ## 2026-09-05 — Einkaufsliste: eigener Dienst, eigener Token, vierte App
-**Warum:** Felix' Freundin soll die Liste bedienen und sonst nichts sehen.
+**Warum:** Joana soll die Liste bedienen und sonst nichts sehen.
 Der Privat-Token öffnet alles — also ein eigener Dienst (`fherrmann.com/
 shopping-list`) mit eigenen Token je Person (`SHOPPING_TOKENS`), außerhalb des
 Privat-Gates. Die App setzt den Token als Cookie nur für diesen Pfad; Healthy
