@@ -193,17 +193,20 @@ struct ShoppingTab: View {
     }
 }
 
-/// Das Symbol einer Kategorie auf einem Kreis in ihrer Farbe.
+/// Das Emoji einer Kategorie auf einem Kreis in ihrer Farbe - dasselbe
+/// Bild wie im Web. Emoji statt SF Symbol, weil es fuer Fleisch kein
+/// Systemsymbol gibt: der Fisch stand fuer Rinderhack, und das war falsch.
 struct CategoryBadge: View {
     let category: ShoppingCategory
     var dimmed = false
 
     var body: some View {
-        Image(systemName: category.symbol)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.white)
-            .frame(width: 26, height: 26)
-            .background(tint.opacity(dimmed ? 0.4 : 1), in: Circle())
+        Text(category.emoji)
+            .font(.system(size: 14))
+            .frame(width: 28, height: 28)
+            .background(tint.opacity(dimmed ? 0.12 : 0.22), in: Circle())
+            .overlay(Circle().strokeBorder(tint.opacity(dimmed ? 0.25 : 0.55), lineWidth: 1.5))
+            .opacity(dimmed ? 0.6 : 1)
             .accessibilityLabel(category.label)
     }
 
