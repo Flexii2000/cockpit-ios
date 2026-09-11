@@ -3,6 +3,20 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-11 — Linien und Zeiträume in einer Liste, Farbe als Hex-String
+Ein Typ `Highlight` mit `kind` (band | line) statt zwei Endpunkten und zwei
+Listen. **Warum:** dieselbe Verwaltung für beides — wer eine Linie anlegen
+kann, muss sie auch in derselben Liste wiederfinden und entfernen können; und
+der Dienst sortiert einmal nach `start`, egal was es ist. Die Farbe kommt
+als `#rrggbb` wie bei den Einkaufs-Kategorien, nicht als Name aus einer
+festen Palette: die acht Vorgabekreise sind Bequemlichkeit, der Farbwähler
+darf alles. Antwort von POST und DELETE ist die **ganze** Liste — die App
+ersetzt ihre Kopie, statt einen Eintrag in eine sortierte Liste einzufädeln.
+**Verworfen:** (a) ein `Vacation` mit `start == end` als Linie deuten — ein
+eintägiges Band ist etwas anderes als eine Linie, und die Deutung stünde
+in zwei Clients. (b) Nur Zeiträume verwaltbar, Linien nur in der Datei —
+dann stünde in der Liste etwas, das man nicht loswird.
+
 ## 2026-09-05 — Einkaufsliste: eigener Dienst, eigener Token, vierte App
 **Warum:** Joana soll die Liste bedienen und sonst nichts sehen.
 Der Privat-Token öffnet alles — also ein eigener Dienst (`fherrmann.com/

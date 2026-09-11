@@ -13,8 +13,18 @@ struct WeightAPI: Sendable {
         try await client.get(range.path)
     }
 
-    func vacations() async throws -> [Vacation] {
-        try await client.get("/api/weight/vacations")
+    func highlights() async throws -> [Highlight] {
+        try await client.get("/api/weight/highlights")
+    }
+
+    /// Antwort ist die ganze, sortierte Liste - der Dienst vergibt die Id
+    /// und sortiert; das hier nachzubauen waere eine zweite Wahrheit.
+    func addHighlight(_ request: NewHighlightRequest) async throws -> [Highlight] {
+        try await client.send("POST", "/api/weight/highlights", body: request)
+    }
+
+    func deleteHighlight(id: String) async throws -> [Highlight] {
+        try await client.delete("/api/weight/highlights/\(id)")
     }
 
     func dashboard() async throws -> DashboardConfig {

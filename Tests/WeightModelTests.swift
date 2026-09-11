@@ -53,11 +53,60 @@ final class WeightModelTests: XCTestCase {
         XCTAssertNil(summary.activeCorridor)
     }
 
-    func testDecodesVacation() throws {
-        let json = Data(#"[{"start":"2026-07-01","end":"2026-07-14","label":"Norwegen"}]"#.utf8)
-        let vacations = try APIClient.decoder().decode([Vacation].self, from: json)
-        XCTAssertEqual(vacations.first?.label, "Norwegen")
-        XCTAssertEqual(vacations.first?.end, CalendarDate(year: 2026, month: 7, day: 14))
+    func testDecodesHighlight() throws {
+        let json = Data(#"""
+        [{"id":"a1b2c3d4","kind":"line","start":"2026-07-27","end":"2026-07-27",
+          "label":"Beginn Uniblock","color":"#7c9cfa"},
+         {"id":"k1","kind":"band","start":"2026-09-06","end":"2026-09-13",
+          "label":null,"color":"#ef5350"}]
+        """#.utf8)
+        let highlights = try APIClient.decoder().decode([Highlight].self, from: json)
+        XCTAssertEqual(highlights.count, 2)
+        XCTAssertEqual(highlights[0].kind, .line)
+        XCTAssertEqual(highlights[0].label, "Beginn Uniblock")
+        XCTAssertEqual(highlights[0].colorValue, 0x7C9CFA)
+        XCTAssertEqual(highlights[1].kind, .band)
+        XCTAssertNil(highlights[1].label)
+        XCTAssertEqual(highlights[1].end, CalendarDate(year: 2026, month: 9, day: 13))
+    }
+
+    /// Eine Farbe, die nicht wie #rrggbb aussieht, darf die Anzeige nicht
+    /// kippen - dann gilt das alte Urlaubsblau.
+    func testOddHighlightColorHasNoValue() throws {
+        let json = Data(#"[{"id":"x","kind":"band","start":"2026-07-01","end":"2026-07-14","color":"red"}]"#.utf8)
+        let highlights = try APIClient.decoder().decode([Highlight].self, from: json)
+        XCTAssertNil(highlights.first?.colorValue)
+    }
+
+    /// Was der Dienst erwartet: `kind` klein, Daten als yyyy-MM-dd, `end`
+    /// bei einer Linie weggelassen.
+    func testEncodesNewHighlight() throws {
+        let band = NewHighlightRequest(kind: .band,
+                                       start: CalendarDate(year: 2026, month: 9, day: 6),
+                                       end: CalendarDate(year: 2026, month: 9, day: 13),
+                                       label: "krank", color: "#ef5350")
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(band)) as? [String: Any])
+        XCTAssertEqual(object["kind"] as? String, "band")
+        XCTAssertEqual(object["start"] as? String, "2026-09-06")
+        XCTAssertEqual(object["end"] as? String, "2026-09-13")
+        XCTAssertEqual(object["color"] as? String, "#ef5350")
+
+        let line = NewHighlightRequest(kind: .line,
+                                       start: CalendarDate(year: 2026, month: 7, day: 27),
+                                       end: nil, label: nil, color: "#7c9cfa")
+        let lineObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(line)) as? [String: Any])
+        XCTAssertEqual(lineObject["kind"] as? String, "line")
+        XCTAssertNil(lineObject["end"])
+    }
+
+    /// Farbwaehler -> Dienst -> Farbwaehler muss dieselbe Farbe ergeben,
+    /// sonst springt die Auswahl der Vorgabe-Kreise beim Antippen weg.
+    func testHexColorRoundTrips() {
+        for preset in HighlightPalette.presets {
+            XCTAssertEqual(preset.color.hexString, preset.hex, preset.name)
+        }
     }
 }
 

@@ -5,7 +5,7 @@ import UIKit.UIGestureRecognizerSubclass
 struct WeightChartView: View {
 
     let points: [WeightPoint]
-    let vacations: [Vacation]
+    let highlights: [Highlight]
     let corridor: (lower: Double, upper: Double)?
     let kcalByDay: [DayValue]
     let kcalTarget: Double?
@@ -28,14 +28,14 @@ struct WeightChartView: View {
 
     var body: some View {
         Chart {
-            // Urlaube ganz nach hinten: sie sind Hintergrund, keine Serie.
-            ForEach(clampedVacations) { band in
+            // Baender ganz nach hinten: sie sind Hintergrund, keine Serie.
+            ForEach(clampedBands) { band in
                 RectangleMark(
                     xStart: .value("von", band.start),
                     xEnd: .value("bis", band.end))
                 // Leise: ein Hauch Farbe, keine Kante. Das Band ist Kontext,
                 // die Kurve ist die Hauptsache.
-                .foregroundStyle(Palette.vacation.opacity(0.09))
+                .foregroundStyle(band.color.opacity(0.09))
                 .annotation(position: .overlay, alignment: .topLeading, spacing: 0) {
                     // Die Beschriftung sitzt IM Band, oben links, als kleine
                     // Pille - nicht frei ueber dem Diagramm, wo sie mit der
@@ -43,19 +43,25 @@ struct WeightChartView: View {
                     // Ansichten sind die Baender nur ein paar Pixel breit;
                     // dann keine Beschriftung, sonst Buchstabensalat.
                     if let label = band.label, !label.isEmpty, isWide(band) {
-                        Text(label)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(Palette.vacation)
-                            // Nicht umbrechen, auch wenn das Band schmaler ist
-                            // als das Wort - lieber ragt die Pille heraus, als
-                            // dass "Urlaub" zu drei Zeilen wird.
-                            .fixedSize()
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(Palette.vacation.opacity(0.14)))
-                            .padding(4)
+                        pill(label, color: band.color)
                     }
                 }
+            }
+
+            // Linien: ein Tag, senkrecht durchs Bild. Nach den Baendern und vor
+            // den Kurven - Kontext wie die Baender, nur schmaler. Die
+            // Beschriftung haengt oben rechts an der Linie.
+            ForEach(visibleLines) { line in
+                RuleMark(x: .value("Tag", line.start.startOfDay()))
+                    .foregroundStyle(line.swiftUIColor.opacity(0.7))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    .annotation(position: .trailing, alignment: .top, spacing: 2,
+                                overflowResolution: .init(x: .fit(to: .plot),
+                                                          y: .fit(to: .plot))) {
+                        if let label = line.label, !label.isEmpty {
+                            pill(label, color: line.swiftUIColor)
+                        }
+                    }
             }
 
             // Zielkorridor - nur wenn er schon gilt.
@@ -324,36 +330,59 @@ struct WeightChartView: View {
     }
 
     /// Ist das Band breit genug, um beschriftet zu werden?
-    private func isWide(_ band: VacationBand) -> Bool {
+    private func isWide(_ band: Band) -> Bool {
         guard spanDays > 0 else { return false }
         let days = Calendar(identifier: .gregorian)
             .dateComponents([.day], from: band.start, to: band.end).day ?? 0
         return Double(days) / Double(spanDays) > 0.08
     }
 
-    /// Ein Urlaubsband, zugeschnitten auf den Bereich, fuer den es Daten gibt.
-    struct VacationBand: Identifiable {
+    /// Die kleine Beschriftung an Band und Linie. Nicht umbrechen, auch wenn
+    /// das Band schmaler ist als das Wort - lieber ragt die Pille heraus, als
+    /// dass "Urlaub" zu drei Zeilen wird.
+    private func pill(_ label: String, color: Color) -> some View {
+        Text(label)
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(color)
+            .fixedSize()
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(color.opacity(0.14)))
+            .padding(4)
+    }
+
+    /// Ein Band, zugeschnitten auf den Bereich, fuer den es Daten gibt.
+    struct Band: Identifiable {
         let id: String
         let start: Date
         let end: Date
         let label: String?
+        let color: Color
     }
 
-    /// Urlaube auf den Datenbereich zuschneiden.
+    /// Baender auf den Datenbereich zuschneiden.
     ///
-    /// Ohne das dehnt ein Eintrag, der in die Zukunft reicht (ein Uniblock bis
-    /// Oktober etwa), die x-Achse bis dorthin - und rechts steht ein Fuenftel
-    /// des Diagramms leer, weil es dafuer keine Messwerte gibt. Die
+    /// Ohne das dehnt ein Eintrag, der in die Zukunft reicht (eine Krankheit
+    /// bis uebermorgen etwa), die x-Achse bis dorthin - und rechts steht ein
+    /// Stueck des Diagramms leer, weil es dafuer keine Messwerte gibt. Die
     /// Weboberflaeche macht dasselbe, nur ueber Indizes.
-    private var clampedVacations: [VacationBand] {
+    private var clampedBands: [Band] {
         guard let first = points.first?.date.startOfDay(),
               let last = points.last?.date.startOfDay() else { return [] }
-        return vacations.compactMap { vacation in
-            let start = max(vacation.start.startOfDay(), first)
-            let end = min(vacation.end.startOfDay(), last)
+        return highlights.filter { $0.kind == .band }.compactMap { highlight in
+            let start = max(highlight.start.startOfDay(), first)
+            let end = min(highlight.end.startOfDay(), last)
             guard start <= end else { return nil }
-            return VacationBand(id: vacation.id, start: start, end: end, label: vacation.label)
+            return Band(id: highlight.id, start: start, end: end,
+                        label: highlight.label, color: highlight.swiftUIColor)
         }
+    }
+
+    /// Linien, deren Tag in der Ansicht liegt. Ausserhalb gibt es nichts zu
+    /// zeichnen - und anders als beim Band auch nichts zuzuschneiden.
+    private var visibleLines: [Highlight] {
+        guard let first = points.first?.date, let last = points.last?.date else { return [] }
+        return highlights.filter { $0.kind == .line && $0.start >= first && $0.start <= last }
     }
 
     /// Der Wertebereich der y-Achse: alles, was gerade gezeichnet wird, plus

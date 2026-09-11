@@ -9,6 +9,7 @@ struct WeightTab: View {
     @State private var showingEntry = false
     @State private var showingTarget = false
     @State private var showingStepsGoal = false
+    @State private var showingHighlights = false
 
     private let columns = [GridItem(.adaptive(minimum: 150), spacing: 12)]
 
@@ -46,6 +47,7 @@ struct WeightTab: View {
                     Menu {
                         Button("Ziel anpassen …") { showingTarget = true }
                         Button("Schrittziel …") { showingStepsGoal = true }
+                        Button("Zeiträume …") { showingHighlights = true }
                         if HealthSync.shared.isAvailable {
                             Button("Aus Health holen") {
                                 Task {
@@ -95,6 +97,7 @@ struct WeightTab: View {
             .sheet(isPresented: $showingEntry) { WeightEntrySheet(store: store) }
             .sheet(isPresented: $showingTarget) { WeightTargetSheet(store: store) }
             .sheet(isPresented: $showingStepsGoal) { StepsGoalSheet(store: store) }
+            .sheet(isPresented: $showingHighlights) { HighlightsSheet(store: store) }
         }
     }
 
@@ -137,7 +140,7 @@ struct WeightTab: View {
             .pickerStyle(.segmented)
 
             WeightChartView(points: store.points,
-                            vacations: store.vacations,
+                            highlights: store.highlights,
                             corridor: store.summary?.activeCorridor,
                             kcalByDay: store.kcalByDay,
                             kcalTarget: store.kcalTarget,

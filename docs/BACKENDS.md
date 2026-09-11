@@ -72,7 +72,10 @@ Ein `JSONDecoder` mit `.iso8601` scheitert am reinen Datum. Deshalb die
 | GET | `/api/weight/year` | `[WeightPoint]` |
 | GET | `/api/weight/month` | `[WeightPoint]` |
 | GET | `/api/weight/all-time` | `[WeightPoint]` |
-| GET | `/api/weight/vacations` | `[Vacation]` |
+| GET | `/api/weight/highlights` | `[Highlight]` — Zeiträume (`band`) und Linien (`line`), nach `start` sortiert |
+| POST | `/api/weight/highlights` | Body `{kind, start, end?, label?, color?}` → die **ganze** Liste (201); die Id vergibt der Dienst |
+| DELETE | `/api/weight/highlights/{id}` | → die verbleibende Liste; 404 bei unbekannter Id |
+| GET | `/api/weight/vacations` | **veraltet**, Alias für `/highlights` — bleibt, bis jedes Gerät einen Build mit dem neuen Pfad hat |
 | GET | `/api/weight/summary` | `WeightSummary` |
 | PUT | `/api/weight/target` | Body `{targetWeightKg}` → `WeightSummary` |
 | POST | `/api/weight` | Body `{date, weightKg, keepExisting?}` → `WeightSummary` |
@@ -88,7 +91,8 @@ WeightPoint    date, measured?, avg7?, avg14?, avg30?,
 WeightSummary  date, current?, avg7?, avg14?, avg30?, target?, targetDate?,
                goalWeight?, startWeight?, recordingStart?,
                corridorLower?, corridorUpper?, corridorReachedOn?
-Vacation       start, end, label
+Highlight      id, kind ("band" | "line"), start, end, label?, color ("#rrggbb")
+               bei "line" ist end gleich start; color ist immer gesetzt (Vorgabe #7c9cfa)
 ```
 ```
 StepDay   date, steps        (beides Pflicht, `steps` >= 0)

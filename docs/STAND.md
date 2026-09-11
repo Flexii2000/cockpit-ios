@@ -7,6 +7,22 @@
 > TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
 > (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
 
+## Gewicht: Zeiträume & Linien · **gebaut** (2026-09-11)
+
+Aus den Urlaubsbändern wurden **Highlights**: ein Zeitraum als Band oder ein
+einzelner Tag als senkrechte Linie, jede mit eigener Farbe (`Highlight`,
+`kind: band|line`, `color: #rrggbb`). Der Weight Tracker liefert sie unter
+`/api/weight/highlights`, POST legt an, DELETE entfernt; `/vacations` bleibt
+als Alias, damit der alte Build auf dem Handy weiter lädt. In der App: Menü
+„Zeiträume …“ im Gewicht-Tab → Liste (Wischen entfernt), „+“ öffnet den
+Editor (Art, Datum, Beschriftung, acht Farbkreise plus Farbwähler). Die
+Weboberfläche hat dasselbe Panel („Zeiträume & Linien“ am Seitenende).
+Anlass: der Uniblock ist jetzt zwei Linien „Beginn/Ende Uniblock“ statt ein
+Band, dazu ein roter Zeitraum „krank“ (06.–13.09.). Linien mit Beschriftung
+hängen oben rechts an der Linie, Bänder behalten die Pille oben links.
+**Offen:** auf dem Gerät prüfen — Wischen in der Liste, Farbwähler, ob die
+Linien-Pille in „Alles“ nicht mit einer Band-Pille kollidiert.
+
 ## Einkaufsliste · **gebaut, noch nicht ausgerollt** (2026-09-05)
 
 Neuer Dienst `shopping` (`../shopping`, `fherrmann.com/shopping-list`, Port

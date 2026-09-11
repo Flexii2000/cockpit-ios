@@ -14,7 +14,8 @@ final class WeightStore {
 
     private(set) var summary: WeightSummary?
     private(set) var points: [WeightPoint] = []
-    private(set) var vacations: [Vacation] = []
+    /// Zeitraeume (Baender) und einzelne Tage (Linien) im Diagramm.
+    private(set) var highlights: [Highlight] = []
     /// Die vollstaendige, geordnete Liste. Frueher standen hier nur die
     /// Zusaetze und vier Kacheln waren fest verdrahtet.
     private(set) var widgets: [WeightWidget] = []
@@ -73,12 +74,12 @@ final class WeightStore {
             // Vier unabhaengige Abfragen - nacheinander waere hier nur langsamer.
             async let summary = api.summary()
             async let points = api.points(range)
-            async let vacations = api.vacations()
+            async let highlights = api.highlights()
             async let dashboard = api.dashboard()
 
             self.summary = try await summary
             self.points = Self.trim(try await points, to: range)
-            self.vacations = try await vacations
+            self.highlights = try await highlights
             self.widgets = Self.sanitize(try await dashboard.widgets)
             clearError()
         } catch {
@@ -169,6 +170,32 @@ final class WeightStore {
         } catch {
             report(error)
             return false
+        }
+    }
+
+    func addHighlight(_ request: NewHighlightRequest) async -> Bool {
+        do {
+            highlights = try await api.addHighlight(request)
+            clearError()
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
+    /// Erst aus der Liste nehmen, dann loeschen: das Wischen soll sich sofort
+    /// anfuehlen. Schlaegt es fehl, kommt der Eintrag zurueck, und die
+    /// Meldung sagt, warum.
+    func removeHighlight(_ highlight: Highlight) async {
+        let previous = highlights
+        highlights.removeAll { $0.id == highlight.id }
+        do {
+            highlights = try await api.deleteHighlight(id: highlight.id)
+            clearError()
+        } catch {
+            highlights = previous
+            report(error)
         }
     }
 

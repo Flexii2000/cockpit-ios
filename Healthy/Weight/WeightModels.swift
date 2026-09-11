@@ -55,12 +55,48 @@ struct WeightSummary: Decodable, Sendable {
     }
 }
 
-struct Vacation: Decodable, Identifiable, Sendable {
+/// Eine Markierung im Diagramm: ein Zeitraum als Band oder ein einzelner
+/// Tag als Linie, jeweils mit eigener Farbe. Hiess frueher `Vacation`, als
+/// es nur die blauen Urlaubsbaender gab.
+struct Highlight: Decodable, Identifiable, Equatable, Sendable {
+    let id: String
+    let kind: HighlightKind
     let start: CalendarDate
+    /// Bei einer Linie gleich `start`.
     let end: CalendarDate
     let label: String?
+    /// Als `#rrggbb`, vom Dienst kleingeschrieben.
+    let color: String
 
-    var id: String { "\(start.iso)/\(end.iso)" }
+    /// Die Farbe als Zahl fuer `Color(hex:)`; `nil`, wenn sie nicht wie
+    /// `#rrggbb` aussieht - dann zeichnet die App das alte Urlaubsblau.
+    var colorValue: UInt32? {
+        guard color.hasPrefix("#"), color.count == 7 else { return nil }
+        return UInt32(color.dropFirst(), radix: 16)
+    }
+}
+
+enum HighlightKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case band, line
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .band: "Zeitraum"
+        case .line: "Linie"
+        }
+    }
+}
+
+/// Was die App an `POST /api/weight/highlights` schickt. Die Id vergibt der
+/// Dienst; `end` ist bei einer Linie egal und bei einem Band Pflicht.
+struct NewHighlightRequest: Encodable, Sendable {
+    let kind: HighlightKind
+    let start: CalendarDate
+    let end: CalendarDate?
+    let label: String?
+    let color: String
 }
 
 /// Welche Kacheln der Gewicht-Tab zeigt, in dieser Reihenfolge.
