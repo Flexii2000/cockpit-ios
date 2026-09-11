@@ -19,9 +19,16 @@ Editor (Art, Datum, Beschriftung, acht Farbkreise plus Farbwähler). Die
 Weboberfläche hat dasselbe Panel („Zeiträume & Linien“ am Seitenende).
 Anlass: der Uniblock ist jetzt zwei Linien „Beginn/Ende Uniblock“ statt ein
 Band, dazu ein roter Zeitraum „krank“ (06.–13.09.). Linien mit Beschriftung
-hängen oben rechts an der Linie, Bänder behalten die Pille oben links.
-**Offen:** auf dem Gerät prüfen — Wischen in der Liste, Farbwähler, ob die
-Linien-Pille in „Alles“ nicht mit einer Band-Pille kollidiert.
+hängen oben rechts an der Linie; liegen zwei näher als 8 % der Spanne
+beieinander (die Uniblock-Linien in „Alles“), rückt die zweite Pille eine
+Zeile tiefer. Bänder behalten die Pille oben links, ab 6 % der Spanne (vorher
+8 %, damit eine Krankheitswoche in 90 Tagen beschriftet ist). Im Simulator
+geprüft: 90 Tage hell und dunkel, „Alles“ dunkel. Der Dienst ist ausgerollt,
+die Live-Daten sind umgestellt.
+**Offen:** auf dem Gerät prüfen — Wischen in der Liste, Farbwähler; und
+Healthy neu installieren (`tools/install-device.sh Healthy`), der alte Build
+läuft über den Alias `/vacations` zwar weiter, kennt aber weder Linien noch
+Farben.
 
 ## Einkaufsliste · **gebaut, noch nicht ausgerollt** (2026-09-05)
 
