@@ -52,14 +52,15 @@ struct WeightChartView: View {
             // den Kurven - Kontext wie die Baender, nur schmaler. Die
             // Beschriftung haengt oben rechts an der Linie.
             ForEach(visibleLines) { line in
-                RuleMark(x: .value("Tag", line.start.startOfDay()))
-                    .foregroundStyle(line.swiftUIColor.opacity(0.7))
+                RuleMark(x: .value("Tag", line.highlight.start.startOfDay()))
+                    .foregroundStyle(line.highlight.swiftUIColor.opacity(0.7))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     .annotation(position: .trailing, alignment: .top, spacing: 2,
                                 overflowResolution: .init(x: .fit(to: .plot),
                                                           y: .fit(to: .plot))) {
-                        if let label = line.label, !label.isEmpty {
-                            pill(label, color: line.swiftUIColor)
+                        if let label = line.highlight.label, !label.isEmpty {
+                            pill(label, color: line.highlight.swiftUIColor)
+                                .padding(.top, CGFloat(line.row) * 22)
                         }
                     }
             }
@@ -334,7 +335,7 @@ struct WeightChartView: View {
         guard spanDays > 0 else { return false }
         let days = Calendar(identifier: .gregorian)
             .dateComponents([.day], from: band.start, to: band.end).day ?? 0
-        return Double(days) / Double(spanDays) > 0.08
+        return Double(days) / Double(spanDays) > 0.06
     }
 
     /// Die kleine Beschriftung an Band und Linie. Nicht umbrechen, auch wenn
@@ -378,11 +379,39 @@ struct WeightChartView: View {
         }
     }
 
+    /// Eine Linie samt der Zeile, in der ihre Pille haengt.
+    struct Line: Identifiable {
+        let highlight: Highlight
+        /// 0 = oben an der Linie; jede weitere Zeile eine Pillenhoehe tiefer.
+        let row: Int
+        var id: String { highlight.id }
+    }
+
     /// Linien, deren Tag in der Ansicht liegt. Ausserhalb gibt es nichts zu
     /// zeichnen - und anders als beim Band auch nichts zuzuschneiden.
-    private var visibleLines: [Highlight] {
-        guard let first = points.first?.date, let last = points.last?.date else { return [] }
-        return highlights.filter { $0.kind == .line && $0.start >= first && $0.start <= last }
+    ///
+    /// Liegen zwei beschriftete Linien naeher als 8 % der Spanne beieinander
+    /// (in „Alles" sind Beginn und Ende des Uniblocks ein paar Punkte
+    /// auseinander), rueckt die zweite Pille eine Zeile tiefer, statt die
+    /// erste zu ueberdecken. Die Linien kommen vom Dienst nach Datum sortiert.
+    private var visibleLines: [Line] {
+        guard let first = points.first?.date, let last = points.last?.date,
+              spanDays > 0 else { return [] }
+        var result: [Line] = []
+        var previous: (day: Int, row: Int)?
+        for highlight in highlights
+        where highlight.kind == .line && highlight.start >= first && highlight.start <= last {
+            let day = highlight.start.daysFromToday()
+            var row = 0
+            if let previous, Double(day - previous.day) / Double(spanDays) < 0.08 {
+                row = previous.row + 1
+            }
+            result.append(Line(highlight: highlight, row: row))
+            if let label = highlight.label, !label.isEmpty {
+                previous = (day, row)
+            }
+        }
+        return result
     }
 
     /// Der Wertebereich der y-Achse: alles, was gerade gezeichnet wird, plus
