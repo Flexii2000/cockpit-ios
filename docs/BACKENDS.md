@@ -91,7 +91,7 @@ WeightPoint    date, measured?, avg7?, avg14?, avg30?,
 WeightSummary  date, current?, avg7?, avg14?, avg30?, target?, targetDate?,
                goalWeight?, startWeight?, recordingStart?,
                corridorLower?, corridorUpper?, corridorReachedOn?,
-               diff7?, diff7Days
+               residual7?, residual7Days
 Highlight      id, kind ("band" | "line"), start, end, label?, color ("#rrggbb")
                bei "line" ist end gleich start; color ist immer gesetzt (Vorgabe #7c9cfa)
 ```
@@ -99,12 +99,12 @@ Highlight      id, kind ("band" | "line"), start, end, label?, color ("#rrggbb")
 StepDay   date, steps        (beides Pflicht, `steps` >= 0)
 ```
 
-`diff7` ist das Mittel aus **Messwert minus Target je Tag** über die sieben
+`residual7` ist das Mittel aus **Messwert minus Target je Tag** über die sieben
 Kalendertage bis `date` — nicht `avg7` gegen das heutige Target, das hinkt am
-aktuellen Rand nach. `diff7Days` sagt, wie viele dieser Tage gemessen waren;
+aktuellen Rand nach. `residual7Days` sagt, wie viele dieser Tage gemessen waren;
 Tage ohne Messung und Tage vor `recordingStart` zählen nicht. Beides seit
 2026-09-17; ein älterer Dienst liefert die Felder nicht, deshalb decodiert die
-App sie optional (`WeightSummary.diff7`).
+App sie optional (`WeightSummary.residual7`).
 
 ⚠️ **Bei Schritten gewinnt das Maximum, nicht der letzte Wert.** Eine
 Schrittzahl kann innerhalb eines Tages nur wachsen; meldet das Handy weniger,

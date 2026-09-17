@@ -7,13 +7,13 @@
 > TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
 > (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
 
-## Gewicht: Kachel „7-Tage-Differenz" · **gebaut, ausgerollt** (2026-09-17)
+## Gewicht: Kachel „7-Tage-Residuum" · **gebaut, ausgerollt** (2026-09-17)
 
 Neue Kachel in App und Web: der Messwert **jedes** Tages gegen das Target
 desselben Tages, gemittelt über die letzten sieben Kalendertage bis zur
-letzten Messung. Gerechnet im Weight Tracker (`diff7`, `diff7Days` in der
+letzten Messung. Gerechnet im Weight Tracker (`residual7`, `residual7Days` in der
 Summary — dort ausgerollt, 99 Tests grün); die App zeigt nur
-(`WeightWidget.diff7`). Farbe wie „Differenz z. Target", beim Halten mit der
+(`WeightWidget.residual7`). Farbe wie „Differenz z. Target", beim Halten mit der
 halben Korridorbreite als Toleranz. Fehlen Tage, steht „6 von 7 Tagen" unter
 dem Wert — dafür hat jede Kachel jetzt einen optionalen `note`-Text
 (`caption2`, nur belegt, wenn es etwas einzuschränken gibt), und die Kacheln
@@ -21,7 +21,10 @@ einer Zeile sind gleich hoch (`maxHeight: .infinity`), sonst schwebte die
 Nachbarkachel kürzer in der Mitte. Beide Felder decodieren optional, damit
 ein älterer Dienst die Summary nicht kippt. Die Kachel liegt im
 Live-Dashboard hinter „Differenz z. Target"; im Web, im Simulator (hell und
-dunkel) und auf dem Gerät.
+dunkel) und auf dem Gerät. Hieß morgens „7-Tage-Differenz" (Felder `diff7`,
+`diff7Days`), nachmittags auf Felix' Wunsch durchgängig in „7-Tage-Residuum"
+umbenannt — Felder, Schlüssel, Enum, Doku; der Dashboard-Eintrag ist
+umgehängt, Dienst und App neu ausgerollt (Begründung in ENTSCHEIDUNGEN.md).
 Drei Stolpersteine unterwegs: **(1)** Xcode 27 wollte die Lizenz neu
 (`sudo xcodebuild -license accept`, kann nur Felix); bis dahin ging nur eine
 Typprüfung direkt mit dem Toolchain-`swiftc`. **(2)** `devicectl` führt seit
@@ -29,7 +32,7 @@ Xcode 27 auch die Simulatoren als gekoppelte Geräte mit stets verbundenem
 Tunnel — `install-device.sh` wählte deshalb den Simulator „iPhone 17" statt
 des Handys, installierte in dessen Container und meldete Erfolg; das Skript
 überspringt jetzt `transportType: sameMachine`. **(3)** Der alte Build auf
-dem Handy kannte `diff7` nicht und speicherte beim Hinzufügen/Entfernen einer
+dem Handy kannte `residual7` nicht und speicherte beim Hinzufügen/Entfernen einer
 Kachel die Liste ohne sie zurück — einmal passiert, Kachel neu eingehängt;
 mit dem neuen Build nicht mehr möglich.
 
@@ -53,7 +56,7 @@ geprüft: 90 Tage hell und dunkel, „Alles“ dunkel. Der Dienst ist ausgerollt
 die Live-Daten sind umgestellt.
 **Offen:** auf dem Gerät prüfen — Wischen in der Liste, Farbwähler. Healthy
 ist seit 2026-09-17 neu installiert (zusammen mit der Kachel
-„7-Tage-Differenz"); der Alias `/vacations` kann weg, sobald das sicher ist.
+„7-Tage-Residuum"); der Alias `/vacations` kann weg, sobald das sicher ist.
 
 ## Einkaufsliste · **gebaut, noch nicht ausgerollt** (2026-09-05)
 

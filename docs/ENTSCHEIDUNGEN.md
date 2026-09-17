@@ -3,17 +3,23 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
-## 2026-09-17 — 7-Tage-Differenz: Tagesmesswert gegen Tages-Target, gerechnet im Dienst
+## 2026-09-17 — 7-Tage-Residuum: Tagesmesswert gegen Tages-Target, gerechnet im Dienst
 Die Kachel mittelt `Messwert − Target` **je Tag** über die letzten sieben
 Kalendertage bis zur letzten Messung. **Warum:** Felix will einen fairen
 Vergleich auch für die letzten Tage. Das zentrierte 7-Tage-Mittel reicht am
 aktuellen Rand in noch ungemessene Tage und hinkt deshalb nach; der Abstand
 eines Tages zu seinem eigenen Target steht fest, sobald der Tag gemessen ist.
-Gerechnet wird im Weight Tracker (`diff7`, `diff7Days` in der Summary), nicht
+Gerechnet wird im Weight Tracker (`residual7`, `residual7Days` in der Summary), nicht
 in der App — sonst rechneten Web und App dieselbe Regel zweimal, und in der
 App hängt die geladene Reihe am Zeitraum-Umschalter. Fehlen Tage, steht es
 unter dem Wert („5 von 7 Tagen“, neuer `note`-Text an Kacheln); gefärbt wie
 „Differenz z. Target“, beim Halten mit der halben Korridorbreite als Toleranz.
+**Name:** „7-Tage-Residuum" — der statistische Begriff für genau diese
+Größe, Messwert minus Modell (die Zielkurve); hieß am ersten Tag
+„7-Tage-Differenz". Felix wollte einen fachlichen Namen und schlug
+„7-Tage-Delta" vor; verworfen, weil ein „Delta über 7 Tage" als Veränderung
+seit letzter Woche gelesen wird, nicht als Abstand zur Kurve.
+„Soll-Ist-Abweichung" und „Bias" standen ebenfalls zur Wahl.
 **Verworfen:** (a) `avg7 − target` aus der bestehenden Summary — genau das
 Nachhinken, das die Kachel vermeiden soll. (b) Im Client aus der Monatsreihe
 rechnen — zwei Implementierungen, und die Reihe ist nicht immer die vom Monat.

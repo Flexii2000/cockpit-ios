@@ -40,11 +40,11 @@ struct WeightSummary: Decodable, Sendable {
     /// Mittlerer Abstand der Tagesmesswerte zur Zielkurve ueber die letzten
     /// sieben Tage bis zur letzten Messung - jeder Tag gegen sein eigenes
     /// Target, gerechnet im Dienst. Positiv heisst ueber der Kurve.
-    let diff7: Double?
+    let residual7: Double?
     /// Wie viele dieser sieben Tage gemessen waren. Beides fehlt bei einem
     /// Dienst von vor der Kachel - deshalb optional, damit die Summary dann
     /// trotzdem laedt.
-    let diff7Days: Int?
+    let residual7Days: Int?
 
     /// Liegt der aktuelle Wert im Zielkorridor? Erst ab `corridorReachedOn`.
     var isInCorridor: Bool {
