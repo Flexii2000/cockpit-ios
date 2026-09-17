@@ -20,7 +20,7 @@ enum Tone: Sendable {
 /// nicht als Tabelle von Closures: so ist jede Kachel an einer Stelle
 /// vollstaendig beschrieben, und der Compiler merkt, wenn eine fehlt.
 enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
-    case current, goal, diff, bmi
+    case current, goal, diff, diff7, bmi
     case avg7, avg14, avg30, target, corridor, targetDate
     case startWeight, recordingStart, lastEntry, totalDiff
     case lost, remaining, progress, daysToTarget
@@ -43,6 +43,7 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
         case .current:        "Aktuell"
         case .goal:           "Ziel"
         case .diff:           "Differenz z. Target"
+        case .diff7:          "7-Tage-Differenz"
         case .bmi:            "BMI"
         case .avg7:           "7-Tage-Mittel"
         case .avg14:          "14-Tage-Mittel"
@@ -69,6 +70,11 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
             if let current = s.current, let target = s.target {
                 (current - target).signedKg
             } else { "–" }
+        // Der Messwert jedes Tages gegen das Target desselben Tages, gemittelt
+        // ueber die letzten sieben Tage - gerechnet im Dienst, siehe
+        // `WeightSummary.diff7`. Bewusst nicht das zentrierte 7-Tage-Mittel
+        // gegen das Target von heute: das hinkt am aktuellen Rand.
+        case .diff7:          s.diff7.signedKg
         case .bmi:
             if let bmi = Self.bmi(s) { String(format: "%.1f", bmi) } else { "–" }
         case .avg7:           s.avg7.kg
@@ -118,6 +124,17 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
             let diff = current - target
             if diff <= 0 { return .good }
             return diff <= 0.75 ? .warn : .bad
+        case .diff7:
+            guard let diff = s.diff7 else { return nil }
+            // Beim Halten gilt die halbe Korridorbreite als Toleranz - dieselbe
+            // Idee wie bei "Differenz z. Target": ein Wochenmittel innerhalb
+            // des Bandes ist dort der Normalfall, kein Alarm.
+            if s.corridorReachedOn != nil, let upper = s.corridorUpper, let goal = s.goalWeight,
+               abs(diff) <= upper - goal {
+                return .good
+            }
+            if diff <= 0 { return .good }
+            return diff <= 0.75 ? .warn : .bad
         case .bmi:
             guard let bmi = Self.bmi(s) else { return nil }
             // WHO: <18,5 Untergewicht, <25 Normal, <30 Uebergewicht, sonst Adipositas
@@ -131,6 +148,19 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
         case .totalDiff:
             guard let current = s.current, let start = s.startWeight else { return nil }
             return current <= start ? .good : .bad
+        default:
+            return nil
+        }
+    }
+
+    /// Eine Zeile Kleingedrucktes unter dem Wert - nur, wenn die Kachel etwas
+    /// einzuschraenken hat. Die Wochen-Differenz sagt, wenn Tage fehlen: dann
+    /// ist das Mittel schmaler, als ihr Name verspricht.
+    func note(_ s: WeightSummary) -> String? {
+        switch self {
+        case .diff7:
+            guard s.diff7 != nil, let days = s.diff7Days, days < 7 else { return nil }
+            return "\(days) von 7 Tagen"
         default:
             return nil
         }

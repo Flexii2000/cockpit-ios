@@ -3,6 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-17 — 7-Tage-Differenz: Tagesmesswert gegen Tages-Target, gerechnet im Dienst
+Die Kachel mittelt `Messwert − Target` **je Tag** über die letzten sieben
+Kalendertage bis zur letzten Messung. **Warum:** Felix will einen fairen
+Vergleich auch für die letzten Tage. Das zentrierte 7-Tage-Mittel reicht am
+aktuellen Rand in noch ungemessene Tage und hinkt deshalb nach; der Abstand
+eines Tages zu seinem eigenen Target steht fest, sobald der Tag gemessen ist.
+Gerechnet wird im Weight Tracker (`diff7`, `diff7Days` in der Summary), nicht
+in der App — sonst rechneten Web und App dieselbe Regel zweimal, und in der
+App hängt die geladene Reihe am Zeitraum-Umschalter. Fehlen Tage, steht es
+unter dem Wert („5 von 7 Tagen“, neuer `note`-Text an Kacheln); gefärbt wie
+„Differenz z. Target“, beim Halten mit der halben Korridorbreite als Toleranz.
+**Verworfen:** (a) `avg7 − target` aus der bestehenden Summary — genau das
+Nachhinken, das die Kachel vermeiden soll. (b) Im Client aus der Monatsreihe
+rechnen — zwei Implementierungen, und die Reihe ist nicht immer die vom Monat.
+(c) Das Fenster auf „heute“ statt auf den letzten Messtag setzen — nach zwei
+Tagen ohne Waage stünde ein 5-Tage-Mittel da, obwohl sieben gemessene Tage
+vorliegen.
+
 ## 2026-09-11 — Linien und Zeiträume in einer Liste, Farbe als Hex-String
 Ein Typ `Highlight` mit `kind` (band | line) statt zwei Endpunkten und zwei
 Listen. **Warum:** dieselbe Verwaltung für beides — wer eine Linie anlegen

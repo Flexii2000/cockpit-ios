@@ -112,6 +112,11 @@ struct WeightTab: View {
                     Text(widget.value(summary))
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(widget.tone(summary)?.color ?? .primary)
+                    if let note = widget.note(summary) {
+                        Text(note)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)

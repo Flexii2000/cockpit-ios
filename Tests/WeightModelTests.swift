@@ -31,12 +31,30 @@ final class WeightModelTests: XCTestCase {
         {"date":"2026-09-01","current":83.2,"avg7":83.5,"avg14":83.8,"avg30":84.4,
          "target":82.7,"targetDate":"2026-12-20","goalWeight":82.0,"startWeight":92.0,
          "recordingStart":"2025-01-05","corridorLower":80.5,"corridorUpper":83.5,
-         "corridorReachedOn":"2026-07-14"}
+         "corridorReachedOn":"2026-07-14","diff7":0.43,"diff7Days":7}
         """.utf8)
         let summary = try APIClient.decoder().decode(WeightSummary.self, from: json)
         XCTAssertEqual(summary.current, 83.2)
         XCTAssertTrue(summary.isInCorridor)
         XCTAssertEqual(summary.activeCorridor?.lower, 80.5)
+        XCTAssertEqual(summary.diff7, 0.43)
+        XCTAssertEqual(summary.diff7Days, 7)
+    }
+
+    /// Ein Dienst von vor der Kachel kennt `diff7` nicht - die Summary muss
+    /// trotzdem laden, sonst waere der ganze Tab leer.
+    func testSummaryLoadsWithoutSevenDayDiff() throws {
+        let json = Data("""
+        {"date":"2026-09-01","current":83.2,"avg7":83.5,"avg14":83.8,"avg30":84.4,
+         "target":82.7,"targetDate":"2026-12-20","goalWeight":82.0,"startWeight":92.0,
+         "recordingStart":"2025-01-05","corridorLower":80.5,"corridorUpper":83.5,
+         "corridorReachedOn":"2026-07-14"}
+        """.utf8)
+        let summary = try APIClient.decoder().decode(WeightSummary.self, from: json)
+        XCTAssertNil(summary.diff7)
+        XCTAssertEqual(WeightWidget.diff7.value(summary), "–")
+        XCTAssertNil(WeightWidget.diff7.tone(summary))
+        XCTAssertNil(WeightWidget.diff7.note(summary))
     }
 
     /// Solange der Korridor nie erreicht war, ist er kein Massstab - dann
@@ -113,16 +131,48 @@ final class WeightModelTests: XCTestCase {
 final class WeightWidgetTests: XCTestCase {
 
     private func summary(current: Double? = 83.2, target: Double? = 82.7,
-                         corridorReached: Bool = true) -> WeightSummary {
+                         corridorReached: Bool = true,
+                         diff7: Double? = nil, diff7Days: Int = 0) -> WeightSummary {
         let json = """
         {"date":"2026-09-01","current":\(jsonNumber(current)),
          "avg7":83.5,"avg14":null,"avg30":null,
          "target":\(jsonNumber(target)),
          "targetDate":"2026-12-20","goalWeight":82.0,"startWeight":92.0,
          "recordingStart":"2025-01-05","corridorLower":80.5,"corridorUpper":83.5,
-         "corridorReachedOn":\(corridorReached ? "\"2026-07-14\"" : "null")}
+         "corridorReachedOn":\(corridorReached ? "\"2026-07-14\"" : "null"),
+         "diff7":\(jsonNumber(diff7)),"diff7Days":\(diff7Days)}
         """
         return try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8))
+    }
+
+    /// Die Wochen-Differenz zeigt das Mittel mit Vorzeichen und faerbt sich
+    /// wie die Tages-Differenz: knapp drueber orange, deutlich drueber rot.
+    func testSevenDayDiffShowsSignedMeanWithDiffTones() {
+        let slightly = summary(corridorReached: false, diff7: 0.43, diff7Days: 7)
+        XCTAssertEqual(WeightWidget.diff7.value(slightly), "+0.4 kg")
+        XCTAssertEqual(WeightWidget.diff7.tone(slightly), .warn)
+        XCTAssertNil(WeightWidget.diff7.note(slightly))
+
+        XCTAssertEqual(WeightWidget.diff7.tone(summary(corridorReached: false, diff7: 2.1, diff7Days: 7)), .bad)
+        let below = summary(corridorReached: false, diff7: -0.8, diff7Days: 7)
+        XCTAssertEqual(WeightWidget.diff7.value(below), "-0.8 kg")
+        XCTAssertEqual(WeightWidget.diff7.tone(below), .good)
+    }
+
+    /// Beim Halten ist ein Wochenmittel innerhalb der halben Korridorbreite
+    /// der Normalfall - erst darueber wird es rot.
+    func testSevenDayDiffToleratesTheCorridorOnceReached() {
+        XCTAssertEqual(WeightWidget.diff7.tone(summary(diff7: 1.2, diff7Days: 7)), .good)
+        XCTAssertEqual(WeightWidget.diff7.tone(summary(diff7: 1.6, diff7Days: 7)), .bad)
+    }
+
+    /// Fehlen Tage, sagt es die Kachel - das Mittel ist dann schmaler, als
+    /// sein Name verspricht.
+    func testSevenDayDiffNotesMissingDays() {
+        XCTAssertEqual(WeightWidget.diff7.note(summary(diff7: 0.2, diff7Days: 5)), "5 von 7 Tagen")
+        XCTAssertNil(WeightWidget.diff7.note(summary(diff7: 0.2, diff7Days: 7)))
+        XCTAssertNil(WeightWidget.diff7.note(summary(diff7: nil, diff7Days: 0)))
+        XCTAssertEqual(WeightWidget.diff7.value(summary(diff7: nil, diff7Days: 0)), "–")
     }
 
     /// Im Korridor ist gruen, auch wenn der Tageswert der Zielkurve knapp
