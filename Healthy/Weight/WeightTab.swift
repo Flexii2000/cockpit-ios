@@ -118,7 +118,11 @@ struct WeightTab: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                // Auch in der Hoehe fuellen: das Grid macht eine Zeile so hoch
+                // wie ihre hoechste Kachel, streckt die Nachbarn aber nicht -
+                // neben einer Kachel mit Zusatzzeile schwebte die andere sonst
+                // kuerzer in der Mitte. Wie im Web gilt: eine Zeile, eine Hoehe.
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(12)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
                 // Jede Kachel laesst sich entfernen, auch die vier frueher

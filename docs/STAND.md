@@ -1,38 +1,37 @@
 # Stand
 
-> **Nächster Schritt:** Xcode-27-Lizenz annehmen (`sudo xcodebuild -license
-> accept`) — seit dem Xcode-Update laufen `verify.sh`, `run-simulator.sh` und
-> `install-device.sh` nicht mehr an. Dann `tools/verify.sh Healthy` und
-> `tools/install-device.sh Healthy --launch` für die Kachel „7-Tage-Differenz"
-> (bisher nur typgeprüft, siehe unten). Danach Felix' QA der Einkaufsliste — Dienst per
+> **Nächster Schritt:** Felix' QA der Einkaufsliste — Dienst per
 > `setup-shopping.sh` ausrollen (druckt beide Setup-Links), Token in Healthy
 > und Einkaufsliste eintragen, Liste/Gerichte/Regeln/Kategorien im Gebrauch, im
 > Browser dasselbe. Dann das zweite Handy (Einkaufsliste per Kabel oder später
 > TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
 > (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
 
-## Gewicht: Kachel „7-Tage-Differenz" · **gebaut, nur typgeprüft** (2026-09-17)
+## Gewicht: Kachel „7-Tage-Differenz" · **gebaut, ausgerollt** (2026-09-17)
 
 Neue Kachel in App und Web: der Messwert **jedes** Tages gegen das Target
 desselben Tages, gemittelt über die letzten sieben Kalendertage bis zur
 letzten Messung. Gerechnet im Weight Tracker (`diff7`, `diff7Days` in der
 Summary — dort ausgerollt, 99 Tests grün); die App zeigt nur
 (`WeightWidget.diff7`). Farbe wie „Differenz z. Target", beim Halten mit der
-halben Korridorbreite als Toleranz. Fehlen Tage, steht „5 von 7 Tagen" unter
+halben Korridorbreite als Toleranz. Fehlen Tage, steht „6 von 7 Tagen" unter
 dem Wert — dafür hat jede Kachel jetzt einen optionalen `note`-Text
-(`caption2`, nur belegt, wenn es etwas einzuschränken gibt). Beide Felder
-decodieren optional, damit ein älterer Dienst die Summary nicht kippt. Die
-Kachel liegt im Live-Dashboard hinter „Differenz z. Target"; im Web geprüft
-(+1.8 kg rot, „6 von 7 Tagen").
-**Nicht gelaufen:** `tools/verify.sh`, Simulator-Bild und Geräteinstallation.
-Xcode 27.0 verlangt die Lizenzzustimmung (`sudo`), und `xcrun`/`xcodebuild`
-verweigern bis dahin jeden Aufruf. Ersatz: App-Quellen (Swift 6, strict
-concurrency) und alle Unit-Tests direkt mit dem Toolchain-`swiftc` typgeprüft
-(`-emit-module` für Healthy, `-typecheck` der Tests gegen das Modul; XCTest-
-Overlay aus `Platforms/iPhoneSimulator.platform/Developer/usr/lib`,
-Swift-Testing-Makros per `-plugin-path …/swift/host/plugins/testing`). Das
-ersetzt keinen Testlauf — die Zeile unter der Kachel ist im Simulator noch
-nicht gesehen.
+(`caption2`, nur belegt, wenn es etwas einzuschränken gibt), und die Kacheln
+einer Zeile sind gleich hoch (`maxHeight: .infinity`), sonst schwebte die
+Nachbarkachel kürzer in der Mitte. Beide Felder decodieren optional, damit
+ein älterer Dienst die Summary nicht kippt. Die Kachel liegt im
+Live-Dashboard hinter „Differenz z. Target"; im Web, im Simulator (hell und
+dunkel) und auf dem Gerät.
+Drei Stolpersteine unterwegs: **(1)** Xcode 27 wollte die Lizenz neu
+(`sudo xcodebuild -license accept`, kann nur Felix); bis dahin ging nur eine
+Typprüfung direkt mit dem Toolchain-`swiftc`. **(2)** `devicectl` führt seit
+Xcode 27 auch die Simulatoren als gekoppelte Geräte mit stets verbundenem
+Tunnel — `install-device.sh` wählte deshalb den Simulator „iPhone 17" statt
+des Handys, installierte in dessen Container und meldete Erfolg; das Skript
+überspringt jetzt `transportType: sameMachine`. **(3)** Der alte Build auf
+dem Handy kannte `diff7` nicht und speicherte beim Hinzufügen/Entfernen einer
+Kachel die Liste ohne sie zurück — einmal passiert, Kachel neu eingehängt;
+mit dem neuen Build nicht mehr möglich.
 
 ## Gewicht: Zeiträume & Linien · **gebaut** (2026-09-11)
 
@@ -52,10 +51,9 @@ Zeile tiefer. Bänder behalten die Pille oben links, ab 6 % der Spanne (vorher
 8 %, damit eine Krankheitswoche in 90 Tagen beschriftet ist). Im Simulator
 geprüft: 90 Tage hell und dunkel, „Alles“ dunkel. Der Dienst ist ausgerollt,
 die Live-Daten sind umgestellt.
-**Offen:** auf dem Gerät prüfen — Wischen in der Liste, Farbwähler; und
-Healthy neu installieren (`tools/install-device.sh Healthy`), der alte Build
-läuft über den Alias `/vacations` zwar weiter, kennt aber weder Linien noch
-Farben.
+**Offen:** auf dem Gerät prüfen — Wischen in der Liste, Farbwähler. Healthy
+ist seit 2026-09-17 neu installiert (zusammen mit der Kachel
+„7-Tage-Differenz"); der Alias `/vacations` kann weg, sobald das sicher ist.
 
 ## Einkaufsliste · **gebaut, noch nicht ausgerollt** (2026-09-05)
 

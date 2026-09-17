@@ -43,6 +43,12 @@ for device in json.load(open(sys.argv[1])).get("result", {}).get("devices", []):
     connection = device.get("connectionProperties", {})
     if connection.get("pairingState") != "paired":
         continue
+    # Seit Xcode 27 fuehrt devicectl auch die Simulatoren als CoreDevices -
+    # mit transportType "sameMachine" und einem Tunnel, der immer "connected"
+    # ist. Ohne diese Zeile gewinnt der Simulator die Vorauswahl, die
+    # Installation landet in seinem Container und meldet Erfolg.
+    if connection.get("transportType") == "sameMachine":
+        continue
     ready = connection.get("tunnelState") == "connected"
     entry = (device["identifier"],
              "bereit" if ready else "nicht-erreichbar",
