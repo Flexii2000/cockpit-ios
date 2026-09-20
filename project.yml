@@ -181,10 +181,11 @@ targets:
         aps-environment: development
         # Der Wald: waehrend einer Fokus-Session alle anderen Apps sperren
         # (FamilyControls + ManagedSettings). Die Entwicklungs-Variante
-        # vergibt Xcode selbst - aber nur Xcode: xcodebuild hat kein Konto
-        # dafuer, deshalb wie bei Push einmal Schema Fokus, ⌘R, danach greift
-        # install-device.sh. Fuer den App Store braeuchte es Apples Freigabe;
-        # die Apps kommen aber per Kabel aufs Handy.
+        # traegt -allowProvisioningUpdates selbst ein - sofern in Xcode ein
+        # Konto angemeldet ist; ohne meldet der Build "No Accounts" und
+        # scheitert am Profil (2026-09-20, ein erneuter Login genuegte). Fuer
+        # den App Store braeuchte es Apples Freigabe; die Apps kommen aber per
+        # Kabel aufs Handy.
         com.apple.developer.family-controls: true
         # „Baum gepflanzt" soll auch durch einen noch laufenden Fokus-Modus
         # kommen.

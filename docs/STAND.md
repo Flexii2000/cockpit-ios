@@ -1,12 +1,10 @@
 # Stand
 
 > **Nächster Schritt:** Wald auf dem Gerät durchspielen (Felix): Habits-Dienst
-> ausrollen (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`),
-> Fokus **einmal aus Xcode** aufs Handy (Schema Fokus, ⌘R): `install-device.sh`
-> scheitert am Signieren — die Profile kennen die neuen Fähigkeiten Family
-> Controls (Development) und Time Sensitive Notifications noch nicht, und
-> `xcodebuild` hat kein Konto, um sie anzulegen („No Accounts"); wie damals bei
-> Push greift das Skript danach wieder. Dann: Erlaubnis
+> ausrollen (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`)
+> — bis dahin meldet der Wald-Tab einen Fehler, der Dienst kennt
+> `/api/focus/sessions` noch nicht. Fokus ist auf dem Handy (22:30, samt
+> `FokusMonitor`). Dann: Erlaubnis
 > „Bildschirmzeit" geben, unter „…" › „Erlaubte Apps" die Whitelist setzen
 > (**Fokus selbst mit dazu** — ob der Schild die eigene App mit sperrt, ist
 > ungeprüft; steht so im Blatt), die Kurzbefehle „Fokus an" (Eingabe: Endzeit
@@ -15,7 +13,7 @@
 > Meldung „Baum gepflanzt", Baum im Wald, Habit „Fokus-Zeit" zählt. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
-## Fokus: der Wald · **gebaut, nicht auf dem Gerät geprüft** (2026-09-20)
+## Fokus: der Wald · **gebaut, auf dem Gerät, nicht durchgespielt** (2026-09-20)
 
 Neuer Tab **Wald** in Fokus: eine Fokus-Session pflanzt einen Baum. Dauer aus
 dem Rad (30 bis 240 Minuten, unter 30 gibt es nicht), Knopf „Baum pflanzen":
@@ -43,8 +41,12 @@ Editor mit Tagesziel, Kachel). Vier Apps bauen, Unit-Tests grün.
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`
 der Erweiterung zuverlässig kommt, und ob die Kurzbefehle-App mit dem
-x-callback sauber zurückkommt. **Geprüft und gescheitert:** `install-device.sh`
-signiert die neuen Fähigkeiten nicht (siehe oben) — einmal Xcode. Debug-Schalter für den
+x-callback sauber zurückkommt. **Signieren:** der erste `install-device.sh`
+scheiterte mit „No Accounts" — die neuen Fähigkeiten Family Controls
+(Development) und Time Sensitive Notifications standen in keinem Profil, und
+`xcodebuild` hatte kein Konto, um sie anzulegen. Nach Felix' erneutem
+Xcode-Login hat `-allowProvisioningUpdates` sie selbst eingetragen; ein
+Lauf aus Xcode war nicht nötig. Debug-Schalter für den
 Simulator: `COCKPIT_NO_SCREENTIME=1`, `COCKPIT_FOREST_RUNNING=45`,
 `COCKPIT_TAB=forest`.
 
