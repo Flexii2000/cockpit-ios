@@ -4,6 +4,19 @@ import XCTest
 /// Die Auszuege stammen aus den Java-Records in `../food/src/main/java/…`.
 final class FoodModelTests: XCTestCase {
 
+    /// Das Mittel kommt aus /api/food/daily-average - Feld fuer Feld wie das
+    /// Java-Record DayAverage.
+    func testDecodesDayAverage() throws {
+        let json = Data("""
+        [{"date":"2026-09-17","kcal":2140.0,"days":6,"complete":false}]
+        """.utf8)
+        let averages = try APIClient.decoder().decode([DayAverage].self, from: json)
+        XCTAssertEqual(averages.count, 1)
+        XCTAssertEqual(averages[0].kcal, 2140)
+        XCTAssertEqual(averages[0].days, 6)
+        XCTAssertFalse(averages[0].complete)
+    }
+
     func testDecodesDaySummaryWithMealTargets() throws {
         let json = Data("""
         {"date":"2026-09-01",

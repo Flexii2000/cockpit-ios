@@ -13,6 +13,13 @@ final class FoodStore {
     private(set) var day: DaySummary?
     private(set) var dishes: [Dish] = []
     private(set) var history: [DayTotal] = []
+    /// Das 7-Tage-Mittel zum Verlauf, fertig gerechnet vom Dienst.
+    private(set) var historyAverage: [DayAverage] = []
+    /// Welche kcal-Kurven der Verlauf zeigt. Das Mittel ist die Vorgabe: der
+    /// Tageswert springt von Mahlzeit zu Mahlzeit, das Mittel sagt, ob eine
+    /// Woche gepasst hat.
+    var showKcalAverage = true
+    var showKcalDaily = false
     /// Die Gewichtskurve unter den kcal - dieselbe Zusammenschau wie in der
     /// Weboberflaeche. In der App braucht es dafuer kein CORS: die
     /// Same-Origin-Policy gilt nur im Browser.
@@ -101,11 +108,16 @@ final class FoodStore {
         historyFrom = from
         historyTo = to
         do {
-            history = try await api.daily(from: from, to: to)
+            async let totals = api.daily(from: from, to: to)
+            async let averages = api.dailyAverage(from: from, to: to)
+            history = try await totals
+            // Ein alter Dienst kennt das Mittel noch nicht - dann fehlt nur das.
+            historyAverage = (try? await averages) ?? []
         } catch {
             // Der Verlauf ist Beiwerk: faellt er aus, soll deshalb nicht der
             // ganze Tag als kaputt dastehen.
             history = []
+            historyAverage = []
         }
         // Dasselbe fuer die Gewichtskurve - fehlt sie, fehlt nur sie.
         weightPoints = (try? await weightApi.points(.last90)) ?? []

@@ -18,6 +18,41 @@ final class FoodChartDataTests: XCTestCase {
         return try! APIClient.decoder().decode(DayTotal.self, from: Data(json.utf8))
     }
 
+    private func average(_ month: Int, _ dayOfMonth: Int, kcal: Double, complete: Bool = true) -> DayAverage {
+        let json = """
+        {"date":"2026-\(String(format: "%02d", month))-\(String(format: "%02d", dayOfMonth))",
+         "kcal":\(kcal),"days":7,"complete":\(complete)}
+        """
+        return try! APIClient.decoder().decode(DayAverage.self, from: Data(json.utf8))
+    }
+
+    /// Das Mittel bricht an einer Luecke ab und wechselt am vorlaeufigen Rand
+    /// in einen eigenen, gepunkteten Lauf - der am letzten festen Punkt
+    /// ansetzt, damit die Linie nicht abreisst.
+    func testAverageRunsSplitAtGapsAndAtTheProvisionalEdge() {
+        let averages = [average(8, 1, kcal: 2000), average(8, 2, kcal: 2050),
+                        average(8, 10, kcal: 2100), average(8, 11, kcal: 2150),
+                        average(8, 12, kcal: 2200, complete: false),
+                        average(8, 13, kcal: 2250, complete: false)]
+        let runs = FoodChartData.averageRuns(averages)
+        XCTAssertEqual(runs.map(\.samples.count), [2, 2, 3])
+        XCTAssertEqual(runs.map(\.complete), [true, true, false])
+        // Der gepunktete Lauf beginnt am 11., dem letzten festen Punkt.
+        XCTAssertEqual(runs[2].samples.first?.value, 2150)
+        XCTAssertEqual(runs[2].samples.first?.date, runs[1].samples.last?.date)
+    }
+
+    /// Nur das Mittel sichtbar: die Achse richtet sich nicht nach den
+    /// Tageswerten, die ein Vielfaches ausschlagen koennen.
+    func testKcalDomainFollowsWhatIsShown() {
+        let daily = [total(8, 1, kcal: 3400), total(8, 2, kcal: 1200)]
+        let averages = [average(8, 1, kcal: 2200), average(8, 2, kcal: 2250)]
+        let onlyAverage = FoodChartData.kcalDomain(daily: [], averages: averages, target: 2300)
+        let both = FoodChartData.kcalDomain(daily: daily, averages: averages, target: 2300)
+        XCTAssertLessThan(onlyAverage.upperBound, both.upperBound)
+        XCTAssertGreaterThanOrEqual(both.upperBound, 3400 + 150)
+    }
+
     private func weightPoint(_ month: Int, _ dayOfMonth: Int, avg7: Double) -> WeightPoint {
         let json = """
         {"date":"2026-\(String(format: "%02d", month))-\(String(format: "%02d", dayOfMonth))",

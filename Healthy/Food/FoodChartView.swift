@@ -11,8 +11,13 @@ import SwiftUI
 struct FoodChartView: View {
 
     let history: [DayTotal]
+    /// Das 7-Tage-Mittel dazu, fertig gerechnet vom Dienst.
+    let averages: [DayAverage]
     let weightPoints: [WeightPoint]
     let kcalTarget: Double?
+    /// Welche kcal-Kurven zu sehen sind: das Mittel (Vorgabe) und der Tageswert.
+    let showAverage: Bool
+    let showDaily: Bool
     /// Der gewaehlte Zeitraum. Bewusst von aussen gesetzt und nicht aus
     /// `history` abgeleitet: sonst zeigt das Diagramm nur die Tage, an denen
     /// etwas eingetragen wurde, und der Umschalter bliebe wirkungslos.
@@ -43,50 +48,63 @@ struct FoodChartView: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
             }
 
-            // Kurve statt Saeulen - aber an jeder Luecke getrennt: Tage ohne
-            // Eintrag liefert der Kalorienzaehler gar nicht, sie sind
+            // Der Tageswert: blass und duenn, an jeder Luecke getrennt - Tage
+            // ohne Eintrag liefert der Kalorienzaehler gar nicht, sie sind
             // unbekannt und nicht null.
-            ForEach(kcalRuns) { run in
-                if run.isSingle, let only = run.samples.first {
-                    PointMark(x: .value("Tag", only.date),
-                              y: .value("kcal", only.value))
-                    .foregroundStyle(Palette.kcal)
-                    .symbolSize(18)
-                } else {
-                    ForEach(run.samples) { sample in
-                        LineMark(x: .value("Tag", sample.date),
-                                 y: .value("kcal", sample.value),
-                                 series: .value("Serie", run.id))
+            if showDaily {
+                ForEach(kcalRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kcal", only.value))
+                        .foregroundStyle(Palette.kcal.opacity(0.55))
+                        .symbolSize(18)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kcal", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.kcal.opacity(0.55))
+                        .lineStyle(StrokeStyle(lineWidth: 1.3))
+                        // Bewusst keine Glaettung: eine Kurve durch die Punkte
+                        // (Catmull-Rom) ueberschwingt zwischen weit
+                        // auseinanderliegenden Werten und zeichnet damit Zahlen,
+                        // die nie gemessen wurden.
+                        .interpolationMethod(.linear)
                     }
-                    .foregroundStyle(Palette.kcal)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
-                    // Bewusst keine Glaettung: eine Kurve durch die Punkte (Catmull-Rom)
-                // ueberschwingt zwischen weit auseinanderliegenden Werten und
-                // zeichnet damit Zahlen, die nie gemessen wurden. Gerade
-                // Verbindungen behaupten nur, was zwischen zwei Messungen
-                // plausibel ist: nichts.
-                    .interpolationMethod(.linear)
+                }
+
+                // Was die Saeulenfarbe vorher trug: Tage deutlich ueber dem Ziel
+                // bekommen einen Punkt, sonst ginge die Information verloren.
+                ForEach(daysOverTarget) { sample in
+                    PointMark(x: .value("Tag", sample.date),
+                              y: .value("kcal", sample.value))
+                    .foregroundStyle(Palette.over)
+                    .symbolSize(26)
                 }
             }
 
-            if let day = effectiveSelection, !entries(for: day).isEmpty {
-                RuleMark(x: .value("Tag", day.startOfDay(), unit: .day))
-                    .foregroundStyle(.secondary.opacity(0.4))
-                    .lineStyle(StrokeStyle(lineWidth: 1))
-                    .annotation(position: .top, spacing: 4,
-                                overflowResolution: .init(x: .fit(to: .chart),
-                                                          y: .fit(to: .chart))) {
-                        ChartCallout(title: day.short, entries: entries(for: day))
+            // Das 7-Tage-Mittel - die eigentliche Kurve. Gepunktet, wo das
+            // Fenster noch in die Zukunft reicht: die letzten drei Tage koennen
+            // sich mit den naechsten Eintraegen noch aendern.
+            if showAverage {
+                ForEach(averageRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kcal", only.value))
+                        .foregroundStyle(Palette.kcal)
+                        .symbolSize(18)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kcal", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.kcal)
+                        .lineStyle(StrokeStyle(lineWidth: 2.2, dash: run.complete ? [] : [1, 5]))
+                        .interpolationMethod(.linear)
                     }
-            }
-
-            // Was die Saeulenfarbe vorher trug: Tage deutlich ueber dem Ziel
-            // bekommen einen Punkt, sonst ginge die Information verloren.
-            ForEach(daysOverTarget) { sample in
-                PointMark(x: .value("Tag", sample.date),
-                          y: .value("kcal", sample.value))
-                .foregroundStyle(Palette.over)
-                .symbolSize(26)
+                }
             }
 
             // Gewicht: Mittel und Tageswerte einzeln zuschaltbar. Auch hier
@@ -185,14 +203,20 @@ struct FoodChartView: View {
     /// Die Tage, auf die sich eine Beruehrung zuordnen laesst. Der Verlauf hat
     /// nur an Tagen mit Eintrag Werte - dazwischen springt die Markierung auf
     /// den naechstgelegenen.
-    private var tageImDiagramm: [CalendarDate] { history.map(\.date) }
+    private var tageImDiagramm: [CalendarDate] {
+        Array(Set(history.map(\.date) + averages.map(\.date))).sorted()
+    }
 
     /// Alle sichtbaren Reihen fuer diesen Tag.
     private func entries(for day: CalendarDate) -> [CalloutEntry] {
         var result: [CalloutEntry] = []
-        if let total = history.first(where: { $0.date == day }) {
-            result.append(CalloutEntry(label: "kcal", value: total.consumed.kcal.whole,
+        if showAverage, let average = averages.first(where: { $0.date == day }) {
+            result.append(CalloutEntry(label: "kcal ⌀", value: average.kcal.whole,
                                        color: Palette.kcal))
+        }
+        if showDaily, let total = history.first(where: { $0.date == day }) {
+            result.append(CalloutEntry(label: "kcal", value: total.consumed.kcal.whole,
+                                       color: Palette.kcal.opacity(0.55)))
         }
         for series in [WeightSeries.avg7, .measured] where weightOverlay.contains(series) {
             if let value = FoodChartData
@@ -209,7 +233,13 @@ struct FoodChartView: View {
     // MARK: - Skalen (Rechnerei in FoodChartData, damit sie testbar ist)
 
     private var kcalDomain: ClosedRange<Double> {
-        FoodChartData.kcalDomain(history, target: kcalTarget)
+        FoodChartData.kcalDomain(daily: showDaily ? history : [],
+                                 averages: showAverage ? averages : [],
+                                 target: kcalTarget)
+    }
+
+    private var averageRuns: [AverageRun] {
+        FoodChartData.averageRuns(averages)
     }
 
     /// Alle sichtbaren Gewichtswerte - sie teilen sich eine Skala, sonst

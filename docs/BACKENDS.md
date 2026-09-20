@@ -178,6 +178,7 @@ erst ab dem Tag gezeichnet, an dem seine Oberkante erstmals unterschritten war.
 |---|---|---|
 | GET | `/api/food/day?date=YYYY-MM-DD` | `DaySummary` (ohne `date` = heute) |
 | GET | `/api/food/daily?from=…&to=…` | `[DayTotal]` |
+| GET | `/api/food/daily-average?from=…&to=…` | `[DayAverage]` — gleitendes 7-Tage-Mittel der kcal je Tag (seit 2026-09-20) |
 | GET | `/api/food/dishes` | `[Dish]` |
 | POST | `/api/food/dishes` | Body `DishRequest` → `Dish` |
 | PUT | `/api/food/dishes/{id}` | Body `DishRequest` → `Dish` |
@@ -200,6 +201,8 @@ FoodEntry      id, date, dishId?, name, grams, per100g, meal, createdAt: Instant
 DaySummary     date, targets, consumed, remaining,
                entries: [FoodEntry], mealTargets: [Meal: Double]
 DayTotal       date, consumed: Nutrients
+DayAverage     date, kcal, days, complete   (zentriertes 7-Tage-Fenster, nur Tage mit Eintrag;
+               complete = false, solange das Fenster in die Zukunft reicht)
 NewEntryRequest date, dishId?, dish?: DishRequest, grams, meal
 QuickCaptureJob id, status ("running"|"done"|"failed"), preview?, error?, elapsedSeconds
 QuickCapturePreview known, dishId?, name, per100g, portionG?, grams, meal,

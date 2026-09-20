@@ -3,6 +3,22 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-20 — kcal als 7-Tage-Mittel, zentriert, gerechnet im Kalorienzähler
+Die kcal-Kurven in beiden Verlaufsdiagrammen (Gewicht-Tab, Essen-Tab; Web
+genauso) zeigen standardmäßig das **gleitende 7-Tage-Mittel**, der Tageswert
+ist ein zweiter, blasserer Umschalter und aus. **Warum:** Felix will ein
+„sinnvolles Mittel" statt der springenden Tageswerte; Tage ohne Eintrag
+dürfen nicht als null einrechnen. Das Fenster ist **zentriert** (3 davor, der
+Tag, 3 danach) wie das 7-Tage-Mittel des Gewichts – im selben Diagramm decken
+beide Kurven dieselben Tage ab, und der vorläufige Rand ist gepunktet wie beim
+Gewicht. Gerechnet wird im Kalorienzähler (`/api/food/daily-average`), nicht
+in den Clients: vier Oberflächen, ein Wert. Felix hat zentriert gewählt und
+für das Web das Mittel standardmäßig an (vorher waren die kcal dort aus).
+**Verworfen:** (a) rückblickendes Fenster (steht am Rand sofort fest, läuft
+dem Gewichtsmittel aber drei Tage hinterher); (b) 14 Tage (träger);
+(c) Rechnen im Client (zweimal Swift, zweimal JS, und die App hat nur den
+sichtbaren Zeitraum, das Fenster des ersten Tages bräuchte mehr).
+
 ## 2026-09-17 — 7-Tage-Residuum: Tagesmesswert gegen Tages-Target, gerechnet im Dienst
 Die Kachel mittelt `Messwert − Target` **je Tag** über die letzten sieben
 Kalendertage bis zur letzten Messung. **Warum:** Felix will einen fairen

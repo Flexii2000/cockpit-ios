@@ -7,6 +7,19 @@
 > TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
 > (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
 
+## kcal als 7-Tage-Mittel in beiden Tabs · **gebaut** (2026-09-20)
+
+Gewicht-Tab und Essen-Tab zeigen die kcal jetzt als gleitendes 7-Tage-Mittel
+(zentriert, nur Tage mit Eintrag, vorläufiger Rand gepunktet), der Tageswert
+ist ein blasserer Umschalter und standardmäßig aus. Der Wert kommt fertig vom
+Kalorienzähler (`/api/food/daily-average`, `DayAverage`); die Läufe baut
+`DaySeries.averageRuns` (bricht an Lücken und am Umschlag von `complete`, der
+gepunktete Lauf setzt am letzten festen Punkt an). Umschalter-Reihen sind
+seitlich scrollbar, weil fünf Chips nicht in eine iPhone-Breite passen.
+Weboberflächen beider Dienste genauso umgestellt. **Offen:** Kalorienzähler
+ausrollen (`update-food.sh`, braucht TTY) – bis dahin fehlt in der App nur die
+Mittelkurve; Weight Tracker ausrollen; auf dem Gerät ansehen.
+
 ## Gewicht: Kachel „7-Tage-Residuum" · **gebaut, ausgerollt** (2026-09-17)
 
 Neue Kachel in App und Web: der Messwert **jedes** Tages gegen das Target

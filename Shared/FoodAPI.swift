@@ -26,6 +26,15 @@ struct FoodAPI: Sendable {
         ])
     }
 
+    /// Das 7-Tage-Mittel je Tag - was die Verlaufsdiagramme statt der
+    /// Tageswerte zeigen. Gerechnet im Dienst, damit Web und App dasselbe sehen.
+    func dailyAverage(from: CalendarDate, to: CalendarDate) async throws -> [DayAverage] {
+        try await client.get("/api/food/daily-average", query: [
+            URLQueryItem(name: "from", value: from.iso),
+            URLQueryItem(name: "to", value: to.iso),
+        ])
+    }
+
     func dishes() async throws -> [Dish] {
         try await client.get("/api/food/dishes")
     }

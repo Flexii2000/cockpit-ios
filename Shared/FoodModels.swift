@@ -88,6 +88,19 @@ struct DayTotal: Decodable, Identifiable, Sendable {
     var id: CalendarDate { date }
 }
 
+/// Gleitendes 7-Tage-Mittel der kcal fuer einen Tag, gerechnet im
+/// Kalorienzaehler ueber die Tage mit Eintrag (zentriertes Fenster, dasselbe
+/// wie beim Gewichtsmittel). `complete` ist falsch, solange das Fenster in
+/// die Zukunft reicht - dann wird gepunktet gezeichnet, wie beim Gewicht.
+struct DayAverage: Decodable, Identifiable, Sendable, Equatable {
+    let date: CalendarDate
+    let kcal: Double
+    let days: Int
+    let complete: Bool
+
+    var id: CalendarDate { date }
+}
+
 struct Features: Decodable, Sendable {
     let quickCapture: Bool
 }

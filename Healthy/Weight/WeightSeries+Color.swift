@@ -10,6 +10,7 @@ extension WeightSeries {
         case .avg30:    Palette.avg30
         case .target:   Palette.target
         case .kcal:     Palette.kcal
+        case .kcalDay:  Palette.kcal.opacity(0.55)
         }
     }
 }

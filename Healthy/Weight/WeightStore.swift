@@ -23,6 +23,8 @@ final class WeightStore {
     /// in der Weboberflaeche. Faellt der Kalorienzaehler aus, fehlt nur diese
     /// Kurve; das Gewicht steht davon unabhaengig da.
     private(set) var kcalByDay: [DayValue] = []
+    /// Das 7-Tage-Mittel dazu, fertig gerechnet vom Kalorienzaehler.
+    private(set) var kcalAverage: [DayAverage] = []
     private(set) var kcalTarget: Double?
 
     private(set) var stepsToday: Int?
@@ -120,10 +122,13 @@ final class WeightStore {
     private func loadKcal() async {
         guard let first = points.first?.date, let last = points.last?.date else {
             kcalByDay = []
+            kcalAverage = []
             return
         }
-        let totals = (try? await foodApi.daily(from: first, to: last)) ?? []
-        kcalByDay = totals.map { DayValue(date: $0.date, value: $0.consumed.kcal) }
+        async let totals = foodApi.daily(from: first, to: last)
+        async let averages = foodApi.dailyAverage(from: first, to: last)
+        kcalByDay = ((try? await totals) ?? []).map { DayValue(date: $0.date, value: $0.consumed.kcal) }
+        kcalAverage = (try? await averages) ?? []
         if kcalTarget == nil {
             kcalTarget = (try? await foodApi.targets())?.kcal
         }

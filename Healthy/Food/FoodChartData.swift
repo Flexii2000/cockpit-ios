@@ -49,16 +49,30 @@ enum FoodChartData {
             case .avg30:    point.avg30
             case .target:   point.target
             case .kcal:     nil
+            case .kcalDay:  nil
             }
             return raw.map { DayValue(date: point.date, value: $0) }
         }
     }
 
-    static func kcalDomain(_ history: [DayTotal], target: Double?) -> ClosedRange<Double> {
-        let values = history.map(\.consumed.kcal) + [target].compactMap { $0 }
+    /// Das 7-Tage-Mittel als Laeufe, gepunktet am vorlaeufigen Rand.
+    static func averageRuns(_ averages: [DayAverage]) -> [AverageRun] {
+        DaySeries.averageRuns(averages, key: "kcalavg")
+    }
+
+    /// Ausgemessen an dem, was zu sehen ist - das Mittel braucht weniger
+    /// Platz als die Tageswerte. Wer nur das Mittel zeigt, uebergibt keine
+    /// Tageswerte, und umgekehrt.
+    static func kcalDomain(daily: [DayTotal], averages: [DayAverage],
+                           target: Double?) -> ClosedRange<Double> {
+        let values = daily.map(\.consumed.kcal) + averages.map(\.kcal) + [target].compactMap { $0 }
         let lower = min(kcalBase, (values.min() ?? kcalBase) - 100)
         let upper = max((values.max() ?? 2500) + 150, (target ?? 2000) * 1.1)
         return lower...max(upper, lower + 100)
+    }
+
+    static func kcalDomain(_ history: [DayTotal], target: Double?) -> ClosedRange<Double> {
+        kcalDomain(daily: history, averages: [], target: target)
     }
 
     /// Der Gewichtsbereich mit etwas Luft - sonst klebt die Kurve am Rand.

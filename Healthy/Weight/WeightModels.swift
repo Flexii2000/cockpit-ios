@@ -184,16 +184,17 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// Ein fuenfter Umschalter passte nicht in die Reihe.
     var offeredSeries: [WeightSeries] {
         switch self {
-        case .allTime: [.measured, .avg30, .target, .kcal]
+        case .allTime: [.measured, .avg30, .target, .kcal, .kcalDay]
         default:       WeightSeries.offered
         }
     }
 
-    /// Womit der Zeitraum aufmacht. „Alles" ohne kcal: acht Jahre Tageswerte
-    /// waeren nur Rauschen ueber der Kurve, die man sehen will.
+    /// Womit der Zeitraum aufmacht. Seit die kcal als 7-Tage-Mittel kommen,
+    /// auch in „Alles": acht Jahre Tageswerte waeren Rauschen, das Mittel ist
+    /// eine Kurve.
     var defaultVisible: Set<WeightSeries> {
         switch self {
-        case .allTime: [.avg30, .target]
+        case .allTime: [.avg30, .target, .kcal]
         default:       WeightSeries.defaultVisible
         }
     }
@@ -202,18 +203,21 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// 14er darin kaum mehr - dieselbe Einschraenkung wie in der Weboberflaeche.
     var availableSeries: [WeightSeries] {
         switch self {
-        case .month: [.measured, .avg7, .target, .kcal]
-        default:     [.measured, .avg7, .avg14, .avg30, .target, .kcal]
+        case .month: [.measured, .avg7, .target, .kcal, .kcalDay]
+        default:     [.measured, .avg7, .avg14, .avg30, .target, .kcal, .kcalDay]
         }
     }
 }
 
 enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     case measured, avg7, avg14, avg30, target
-    /// Die Tageskalorien aus dem Kalorienzaehler. Sie liegen auf einer
-    /// eigenen Skala und werden in den Gewichtsbereich hineingerechnet -
+    /// Das 7-Tage-Mittel der kcal aus dem Kalorienzaehler - die Vorgabe. Liegt
+    /// auf einer eigenen Skala und wird in den Gewichtsbereich hineingerechnet,
     /// dieselbe Zusammenschau wie in der Weboberflaeche.
     case kcal
+    /// Die kcal-Tageswerte selbst: blasser, standardmaessig aus. Sie springen
+    /// von Mahlzeit zu Mahlzeit; das Mittel sagt, ob eine Woche gepasst hat.
+    case kcalDay
 
     var id: String { rawValue }
 
@@ -224,7 +228,8 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
         case .avg14:    "14-Tage-Mittel"
         case .avg30:    "30-Tage-Mittel"
         case .target:   "Zielkurve"
-        case .kcal:     "kcal"
+        case .kcal:     "kcal ⌀"
+        case .kcalDay:  "kcal Tag"
         }
     }
 
@@ -232,7 +237,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// Weboberflaeche (`offeredSeries` in app.js): die langen Mittel dort
     /// nicht anbieten, statt einen Umschalter zu zeigen, den niemand
     /// benutzt. „Alles" hat sein eigenes Angebot, siehe `WeightRange`.
-    static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal]
+    static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal, .kcalDay]
 
     static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .kcal]
 }

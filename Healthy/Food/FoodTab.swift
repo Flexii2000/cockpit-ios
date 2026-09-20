@@ -325,24 +325,38 @@ struct FoodTab: View {
             .pickerStyle(.segmented)
 
             FoodChartView(history: store.history,
+                          averages: store.historyAverage,
                           weightPoints: store.weightPoints,
                           kcalTarget: day.targets.kcal,
+                          showAverage: store.showKcalAverage,
+                          showDaily: store.showKcalDaily,
                           from: store.historyFrom,
                           to: store.historyTo,
                           weightOverlay: store.weightOverlay)
 
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,
-                               isOn: store.weightOverlay.contains(.avg7)) {
-                        toggleWeight(.avg7)
-                    }
-                    SeriesChip(title: "Gewicht täglich", color: Palette.measured,
-                               isOn: store.weightOverlay.contains(.measured)) {
-                        toggleWeight(.measured)
+                // Vier Umschalter passen nicht in eine iPhone-Breite - seitlich scrollbar.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        SeriesChip(title: "kcal ⌀", color: Palette.kcal,
+                                   isOn: store.showKcalAverage) {
+                            store.showKcalAverage.toggle()
+                        }
+                        SeriesChip(title: "kcal Tag", color: Palette.kcal.opacity(0.55),
+                                   isOn: store.showKcalDaily) {
+                            store.showKcalDaily.toggle()
+                        }
+                        SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,
+                                   isOn: store.weightOverlay.contains(.avg7)) {
+                            toggleWeight(.avg7)
+                        }
+                        SeriesChip(title: "Gewicht täglich", color: Palette.measured,
+                                   isOn: store.weightOverlay.contains(.measured)) {
+                            toggleWeight(.measured)
+                        }
                     }
                 }
-                Text("Gelb: kcal je Tag, rote Punkte mehr als 100 kcal über dem Ziel.")
+                Text("Gelb: kcal im 7-Tage-Mittel, blass der Tageswert; rote Punkte mehr als 100 kcal über dem Ziel.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
