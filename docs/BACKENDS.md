@@ -357,8 +357,10 @@ FocusSession  id, start, end (Instant, ISO-8601 mit Z), minutes,
 
 ⚠️ **Die Id vergibt die App** (`FocusSessionDraft`), damit ein Nachsenden aus
 dem Postausgang keinen zweiten Baum pflanzt — deshalb darf `plant` mit
-`queueWhenOffline: true` gehen. Abgelehnt (400) werden unter 30 und über 1440
-Minuten sowie ein Ende mehr als fünf Minuten in der Zukunft.
+`queueWhenOffline: true` gehen. Abgelehnt (400) werden unter einer und über
+1440 Minuten sowie ein Ende mehr als fünf Minuten in der Zukunft — die 30
+Minuten sind die Regel des Rads in der App, der Testbaum aus dem Menü hat
+eine Minute und zählt wie jeder andere.
 
 ⚠️ **`start`/`end` gehen als ISO-Zeitpunkt raus**, nicht als Sekunden seit
 2001: `APIClient.encoder()` setzt `.iso8601`, sonst antwortete der Dienst mit

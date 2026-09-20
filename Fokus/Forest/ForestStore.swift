@@ -110,7 +110,9 @@ final class ForestStore {
     /// verlaesst.
     func plant(minutes: Int) async {
         guard active == nil else { return }
-        let minutes = max(SessionLength.minimum, minutes)
+        // Das Rad bietet nichts unter 30 Minuten an; die eine Minute des
+        // Testbaums kommt aus dem Menue und ist erlaubt.
+        let minutes = max(SessionLength.test, minutes)
         do {
             try await screenTime.authorise()
         } catch {
@@ -207,7 +209,7 @@ final class ForestStore {
     private func scheduleEndNotification(_ session: ActiveSession) async {
         let content = UNMutableNotificationContent()
         content.title = "Baum gepflanzt"
-        content.body = "\(session.minutes) Minuten Fokus."
+        content.body = session.minutes == 1 ? "1 Minute Fokus." : "\(session.minutes) Minuten Fokus."
         content.sound = .default
         content.userInfo = ["kind": "forest"]
         content.interruptionLevel = .timeSensitive

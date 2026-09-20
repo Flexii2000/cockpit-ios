@@ -53,6 +53,13 @@ struct ForestTab: View {
                     Menu {
                         Button("Erlaubte Apps …") { showingWhitelist = true }
                         Toggle("Kurzbefehle „Fokus an/aus“", isOn: $store.shortcutsEnabled)
+                        Divider()
+                        // Zum Durchspielen des Ablaufs - Schild, Meldung,
+                        // Baum, Habit - ohne eine halbe Stunde zu warten.
+                        Button("Testbaum (1 min)") {
+                            Task { await store.plant(minutes: SessionLength.test) }
+                        }
+                        .disabled(store.active != nil)
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }

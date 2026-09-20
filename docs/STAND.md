@@ -10,7 +10,11 @@
 > ungeprüft; steht so im Blatt), die Kurzbefehle „Fokus an" (Eingabe: Endzeit
 > als `yyyy-MM-dd HH:mm`) und „Fokus aus" anlegen, eine 30-Minuten-Session
 > pflanzen und prüfen: Schild liegt, Schild fällt am Ende (Erweiterung),
-> Meldung „Baum gepflanzt", Baum im Wald, Habit „Fokus-Zeit" zählt. Danach
+> Meldung „Baum gepflanzt", Baum im Wald, Habit „Fokus-Zeit" zählt. Zum
+> schnellen Durchspielen gibt es im „…"-Menü den **Testbaum (1 min)** — dort
+> nimmt die App den Schild selbst weg (DeviceActivity kennt nichts unter 15
+> Minuten; die Erweiterung ist auf 15 Minuten gestreckt nur das Netz), die
+> echte Probe für die Erweiterung ist also erst die 30-Minuten-Session. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
 ## Fokus: der Wald · **gebaut, auf dem Gerät, nicht durchgespielt** (2026-09-20)
@@ -48,7 +52,10 @@ scheiterte mit „No Accounts" — die neuen Fähigkeiten Family Controls
 Xcode-Login hat `-allowProvisioningUpdates` sie selbst eingetragen; ein
 Lauf aus Xcode war nicht nötig. Debug-Schalter für den
 Simulator: `COCKPIT_NO_SCREENTIME=1`, `COCKPIT_FOREST_RUNNING=45`,
-`COCKPIT_TAB=forest`.
+`COCKPIT_TAB=forest`. **Testbaum (1 min)** im „…"-Menü, auf Felix' Wunsch:
+der Dienst nimmt seit demselben Tag Sessions ab einer Minute (die 30 sind die
+Regel des Rads); DeviceActivity wird auf sein Minimum von 15 Minuten
+gestreckt angemeldet, den Schild nimmt die App am echten Ende selbst weg.
 
 ## kcal als 7-Tage-Mittel in beiden Tabs · **gebaut** (2026-09-20)
 

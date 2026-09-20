@@ -25,6 +25,12 @@ final class ScreenTimeGuard {
     /// Erweiterung uebersetzt keine App-Datei, deshalb zweimal.
     static let activity = DeviceActivityName("fokus.session")
 
+    /// Kuerzer nimmt DeviceActivity kein Intervall an. Ein Testbaum von einer
+    /// Minute wird trotzdem angemeldet - auf diese Laenge gestreckt: den
+    /// Schild nimmt die App am echten Ende selbst weg, sobald sie laeuft; die
+    /// Erweiterung bleibt das Sicherheitsnetz, falls sie das nicht kann.
+    static let minimumMonitoring: TimeInterval = 15 * 60
+
     private let store = ManagedSettingsStore()
     private let center = DeviceActivityCenter()
 
@@ -66,10 +72,14 @@ final class ScreenTimeGuard {
 
         let calendar = Calendar.current
         let parts: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
+        let end = max(session.end, session.start.addingTimeInterval(Self.minimumMonitoring))
         let schedule = DeviceActivitySchedule(
             intervalStart: calendar.dateComponents(parts, from: session.start),
-            intervalEnd: calendar.dateComponents(parts, from: session.end),
+            intervalEnd: calendar.dateComponents(parts, from: end),
             repeats: false)
+        // Ein Rest von frueher (App beendet, bevor sie aufraeumen konnte)
+        // soll die neue Anmeldung nicht stoeren.
+        center.stopMonitoring([Self.activity])
         try center.startMonitoring(Self.activity, during: schedule)
     }
 

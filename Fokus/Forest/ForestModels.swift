@@ -53,6 +53,9 @@ enum TreeSize: Comparable {
 enum SessionLength {
     static let choices = [30, 45, 60, 75, 90, 120, 150, 180, 240]
     static let minimum = 30
+    /// Der Testbaum: eine Minute, um den Ablauf durchzuspielen - Schild,
+    /// Meldung, Baum, Habit. Steht nicht im Rad, sondern im Menue.
+    static let test = 1
 }
 
 /// Ein Tag im Wald: seine Baeume und ihre Minuten.
