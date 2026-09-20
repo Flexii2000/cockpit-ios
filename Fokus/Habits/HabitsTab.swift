@@ -93,7 +93,7 @@ struct HabitRow: View {
             if habit.unavailable == nil {
                 RecentDots(recent: habit.recent, unit: habit.unit)
             }
-            if habit.kind == .steps, let progress = habit.progress {
+            if habit.kind == .steps || habit.kind == .focus, let progress = habit.progress {
                 ProgressBar(fraction: progress.fraction, reached: habit.doneToday)
             }
         }
@@ -196,6 +196,13 @@ struct HabitRow: View {
                     .font(.title3.weight(.semibold).monospacedDigit())
                     .foregroundStyle(habit.doneToday ? Color.green : Color.primary)
                     .accessibilityIdentifier("steps-\(habit.id)")
+            }
+        case .focus:
+            if let progress = habit.progress {
+                Text(progress.focusText)
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(habit.doneToday ? Color.green : Color.primary)
+                    .accessibilityIdentifier("focus-\(habit.id)")
             }
         }
     }

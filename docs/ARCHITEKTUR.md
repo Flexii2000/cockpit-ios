@@ -54,8 +54,8 @@ Healthy/            App: Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine
   Food/ Weight/ Health/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
-Fokus/              App: Habits, To-Do
-  App/ Habits/ Todo/
+Fokus/              App: Habits, To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
+  App/ Habits/ Todo/ Forest/
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/
 Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkaufsliste
@@ -66,6 +66,8 @@ Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
 FokusWidget/        Habits-Kachel
+FokusMonitor/       DeviceActivity-Erweiterung von Fokus: nimmt am Ende einer
+                    Fokus-Session den Schild weg - eine Datei, kein Shared/
 Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
 UITests/            Harness.swift (gemeinsam) + je App eine Datei, vier Bundles
 project.yml         Quelle des Xcode-Projekts - vier App-Targets, YAML-Anker für Gemeinsames
@@ -140,6 +142,23 @@ Keychain-Gruppe — die Vorgabegruppe der App, in der es ohnehin schon liegt.
 Cookies der App sieht sie nicht, sie hängt ihren eigenen an die Anfrage. Die
 App stößt nach jeder Änderung nur ein Neuzeichnen an; Daten reicht sie keine
 weiter.
+
+**Die Fokus-Sperre.** Während einer Fokus-Session (Wald-Tab in Fokus) liegt
+ein Schild auf allen App-Kategorien außer den erlaubten Apps —
+`ManagedSettingsStore().shield` aus dem Screen-Time-API, Erlaubnis einmal per
+`FamilyControls` („Bildschirmzeit"). Das Ende meldet die App bei
+`DeviceActivityCenter` an; wenn das Intervall endet, startet iOS die
+Erweiterung **FokusMonitor** (`com.apple.deviceactivity.monitor-extension`),
+die den Vorgabe-Store leert — die App muss dafür nicht laufen und nicht einmal
+existieren im Speicher. Die laufende Session liegt in den UserDefaults; sobald
+die App danach wieder aktiv ist (`ForestStore.reconcile`, beim Start und bei
+jedem Vordergrund), nimmt sie den Schild sicherheitshalber selbst weg, meldet
+den Baum an den Habits-Dienst und ruft den Kurzbefehl „Fokus aus". Abbrechen
+gibt es nicht: keinen Knopf, keinen Weg über die App. Mitteilungen schaltet
+nicht die App (das darf sie nicht), sondern Felix' Kurzbefehle „Fokus an" /
+„Fokus aus", die die App per x-callback-URL aufruft; zurück kommt sie über
+das eigene URL-Schema `cockpit-fokus://forest` (deshalb hat Fokus als einzige
+App eine eigene `Info.plist` in `project.yml`).
 
 **Push.** Zwei Dienste melden sich von selbst: der Kalorienzähler an
 **Healthy** (Topic `com.fherrmann.cockpit`), die Notenübersicht an **Vault**

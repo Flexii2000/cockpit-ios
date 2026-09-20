@@ -305,18 +305,22 @@ ist der einzige Client, deshalb ist die Antwort schon fertig gerechnet
 | Methode | Pfad | Was |
 |---|---|---|
 | GET | `/api/habits` | alle Habits mit Sträh­ne und Stand von heute |
-| POST | `/api/habits` | `{name, kind, weeklyStepGoal?}` → 201 |
-| PUT | `/api/habits/{id}` | Name/Wochenziel ändern — **nicht** die Art |
+| POST | `/api/habits` | `{name, kind, weeklyStepGoal?, focusMinutesGoal?}` → 201 |
+| PUT | `/api/habits/{id}` | Name/Wochenziel/Tagesziel ändern — **nicht** die Art |
 | DELETE | `/api/habits/{id}` | löscht samt aller Einträge, kein Archiv |
 | POST | `/api/habits/{id}/marks` | `{date?}` — Haken (BUILD) bzw. Rückfall (QUIT), ohne Datum heute |
 | DELETE | `/api/habits/{id}/marks/{date}` | Haken bzw. Rückfall zurücknehmen |
 
 ```
-HabitStatus  id, name, kind (BUILD|QUIT|FOOD|STEPS), unit (DAYS|WEEKS),
-             weeklyStepGoal, streak, doneToday, atRisk,
+HabitStatus  id, name, kind (BUILD|QUIT|FOOD|STEPS|FOCUS), unit (DAYS|WEEKS),
+             weeklyStepGoal, focusMinutesGoal (nur FOCUS, sonst null),
+             streak, doneToday, atRisk,
              progress {value, goal} | null, recent [7 × bool, älteste zuerst],
              unavailable (String | null)
 ```
+
+`focusMinutesGoal` decodiert optional — ein Dienst von vor dem Wald kennt das
+Feld nicht, und die Liste muss trotzdem laden.
 
 ⚠️ **`atRisk` ist kein Fehler.** Ein Build-Habit, das heute noch nicht
 abgehakt ist, hat seine Sträh­ne nicht verloren — erst um Mitternacht. Bis
@@ -328,12 +332,38 @@ Rückfall heute ist entschieden, `streak` ist dann 0.
 der App trägt dann einen ein (`POST …/marks`); ist einer eingetragen, nimmt
 derselbe Knopf ihn zurück (`DELETE …/marks/{heute}`).
 
-⚠️ **Automatische Habits (FOOD, STEPS) nehmen keine Marks** — `POST …/marks`
+⚠️ **Automatische Habits (FOOD, STEPS, FOCUS) nehmen keine Marks** — `POST …/marks`
 ist dort ein 400. Ihr Stand kommt bei jeder Anfrage frisch aus dem
-Kalorienzähler bzw. dem Weight Tracker; `progress` ist kcal gegen 80 % des
-Tagesziels bzw. Schritte gegen das Wochenziel (Woche ab Montag 0:00
-Europe/Berlin). Ist die Quelle weg, steht `unavailable` und alles andere ist
-nicht zu gebrauchen.
+Kalorienzähler, dem Weight Tracker bzw. den Fokus-Sessions; `progress` ist kcal
+gegen 80 % des Tagesziels, Schritte gegen das Wochenziel (Woche ab Montag 0:00
+Europe/Berlin) bzw. Fokus-Minuten des Tages gegen `focusMinutesGoal` (die
+App zeigt „2:15/4:00 h"). Ist die Quelle weg, steht `unavailable` und alles
+andere ist nicht zu gebrauchen.
+
+### Der Wald — `/habits/api/focus/sessions`
+
+Die Fokus-Sessions der Fokus-App liegen beim Habits-Dienst (`FocusController`,
+`data/focus.json`) — derselbe Bestand, aus dem das Habit FOCUS rechnet.
+
+| Methode | Pfad | Was |
+|---|---|---|
+| POST | `/api/focus/sessions` | `{id, start, end}` → 201; **dieselbe Id noch einmal → 200**, nichts ändert sich |
+| GET | `/api/focus/sessions?from=&to=` | Sessions, deren `day` im Zeitraum liegt, neueste zuerst |
+
+```
+FocusSession  id, start, end (Instant, ISO-8601 mit Z), minutes,
+              day (yyyy-MM-dd: der Tag des BEGINNS in Europe/Berlin)
+```
+
+⚠️ **Die Id vergibt die App** (`FocusSessionDraft`), damit ein Nachsenden aus
+dem Postausgang keinen zweiten Baum pflanzt — deshalb darf `plant` mit
+`queueWhenOffline: true` gehen. Abgelehnt (400) werden unter 30 und über 1440
+Minuten sowie ein Ende mehr als fünf Minuten in der Zukunft.
+
+⚠️ **`start`/`end` gehen als ISO-Zeitpunkt raus**, nicht als Sekunden seit
+2001: `APIClient.encoder()` setzt `.iso8601`, sonst antwortete der Dienst mit
+400. `day` rechnet der Dienst, die App nicht — auch nicht für lokal wartende
+Bäume, die nimmt sie mit dem Tag des Beginns in der Gerätezeit an.
 
 ⚠️ **Fehler kommen als Klartext** (`Ein Habit braucht einen Namen.`), nicht
 als JSON-Fehlerseite — `APIClient.shortMessage` reicht sie so durch.

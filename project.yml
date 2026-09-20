@@ -4,7 +4,7 @@
 # Vier Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
 #   Healthy  - Essen, Gewicht, Einkaufsliste  com.fherrmann.cockpit (die alte ID, bleibt)
 #   Vault    - Noten, Finanzen           com.fherrmann.vault
-#   Fokus    - Habits, To-Do             com.fherrmann.fokus
+#   Fokus    - Habits, To-Do, Wald       com.fherrmann.fokus
 #   Einkaufsliste - nur die Liste       com.fherrmann.einkauf (fuer ein zweites Handy)
 #
 # Neue Swift-Datei hinzufuegen: Datei in den passenden Ordner legen und
@@ -170,6 +170,8 @@ targets:
     dependencies:
       - target: FokusWidget
         embed: true
+      - target: FokusMonitor
+        embed: true
     entitlements:
       path: Fokus/Fokus.entitlements
       properties:
@@ -177,9 +179,32 @@ targets:
         # mit Push braucht einmal Xcode (Schema Fokus, ⌘R), danach greift
         # install-device.sh.
         aps-environment: development
+        # Der Wald: waehrend einer Fokus-Session alle anderen Apps sperren
+        # (FamilyControls + ManagedSettings). Die Entwicklungs-Variante
+        # vergibt Xcode selbst - aber nur Xcode: xcodebuild hat kein Konto
+        # dafuer, deshalb wie bei Push einmal Schema Fokus, ⌘R, danach greift
+        # install-device.sh. Fuer den App Store braeuchte es Apples Freigabe;
+        # die Apps kommen aber per Kabel aufs Handy.
+        com.apple.developer.family-controls: true
+        # „Baum gepflanzt" soll auch durch einen noch laufenden Fokus-Modus
+        # kommen.
+        com.apple.developer.usernotifications.time-sensitive: true
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.fherrmann.fokus
           - *shared_group
+    info:
+      # Eine eigene Info.plist nur wegen des URL-Schemas: fuer CFBundleURLTypes
+      # gibt es keinen INFOPLIST_KEY_-Schalter. Ueber cockpit-fokus://forest
+      # kommt die Kurzbefehle-App zurueck (ShortcutsBridge). Die uebrigen
+      # Schluessel erzeugt Xcode weiterhin aus den INFOPLIST_KEY_-Settings.
+      path: Fokus/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.fherrmann.fokus
+            CFBundleURLSchemes: [cockpit-fokus]
     settings:
       base:
         <<: *app_settings
@@ -203,6 +228,33 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.fokus.widget
+        INFOPLIST_KEY_CFBundleDisplayName: Fokus
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        SKIP_INSTALL: YES
+
+  # Die Erweiterung, die am Ende einer Fokus-Session den Schild wegnimmt -
+  # iOS startet sie selbst, die App muss dafuer nicht laufen. Nur die eine
+  # Datei, kein Shared/: sie geht nicht ins Netz und braucht keinen Zugang.
+  FokusMonitor:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: FokusMonitor
+    entitlements:
+      path: FokusMonitor/FokusMonitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+    info:
+      path: FokusMonitor/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).FocusSessionMonitor
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.fokus.monitor
         INFOPLIST_KEY_CFBundleDisplayName: Fokus
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         SKIP_INSTALL: YES
@@ -324,6 +376,7 @@ schemes:
       targets:
         Fokus: all
         FokusWidget: all
+        FokusMonitor: all
     test:
       targets:
         - FokusUITests

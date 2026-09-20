@@ -5,7 +5,7 @@ Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 `weight.fherrmann.com`, Einkaufsliste `fherrmann.com/shopping-list`),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
 `finanzen.fherrmann.com`), **Fokus** (Habits `fherrmann.com/habits`, To-Do
-`fherrmann.com/todo`) und **Einkaufsliste** (nur die Einkaufsliste — für das Handy
+`fherrmann.com/todo`, Wald — Fokus-Sessions, ebenfalls beim Habits-Dienst) und **Einkaufsliste** (nur die Einkaufsliste — für das Handy
 von Joana, deren Token nur diesen einen Dienst öffnet).
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
@@ -22,6 +22,7 @@ Tagessummen); die Apps zeigen.
 | `Core/` | alle vier Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
 | `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
+| `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei, kein `Shared/`: nimmt am Ende einer Fokus-Session den Schild weg, sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
 `tools/verify.sh` immer alle vier. `TabSelection` und `Router` gibt es je App;
@@ -71,7 +72,7 @@ tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
 `Fokus`, `Einkaufsliste`). Tabs: Healthy `food|weight|shopping|widget`, Vault
-`grades|finance`, Fokus `habits|todo|widget`, Einkaufsliste hat nur die eine Seite;
+`grades|finance`, Fokus `habits|todo|forest|widget`, Einkaufsliste hat nur die eine Seite;
 `setup` öffnet das Zugang-Blatt. Der Einkaufs-Token kommt wie die anderen aus
 dem Schlüsselbund (`shopping_token`, freiwillig — ohne ihn fehlt der Tab).
 
@@ -156,6 +157,8 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
 | `COCKPIT_ASK_PUSH=1` | fragt trotzdem nach der Benachrichtigungs-Erlaubnis (ohne sie zeigt der Simulator nichts an), meldet aber weiterhin keine Kennung an — fuer `pushtest.sh` |
 | `COCKPIT_TODO_AREA=Uni` | öffnet im To-Do-Tab eine bestimmte Seite - wischen kann der Simulator nicht |
+| `COCKPIT_NO_SCREENTIME=1` | Wald-Tab ohne Bildschirmzeit: kein Erlaubnis-Dialog, kein Schild, keine DeviceActivity — im Simulator gibt es das alles nicht, und so lässt sich eine Session trotzdem pflanzen |
+| `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |

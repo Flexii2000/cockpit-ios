@@ -17,9 +17,11 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
         case food = "FOOD"
         /// Schritte je Woche - der Weight Tracker entscheidet.
         case steps = "STEPS"
+        /// Fokus-Zeit je Tag - der Wald der Fokus-App entscheidet.
+        case focus = "FOCUS"
 
         /// Ob die Quelle woanders liegt und hier nichts abzuhaken ist.
-        var isAutomatic: Bool { self == .food || self == .steps }
+        var isAutomatic: Bool { self == .food || self == .steps || self == .focus }
 
         var label: String {
             switch self {
@@ -27,6 +29,7 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
             case .quit:  "Lassen"
             case .food:  "Track food"
             case .steps: "Schritte / Woche"
+            case .focus: "Fokus-Zeit"
             }
         }
     }
@@ -41,6 +44,9 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
     let kind: Kind
     let unit: Unit
     let weeklyStepGoal: Int?
+    /// Nur bei Fokus-Zeit: das Tagesziel in Minuten. Optional, damit ein
+    /// aelterer Dienst die Liste nicht kippt.
+    let focusMinutesGoal: Int?
     let streak: Int
     let doneToday: Bool
     /// Heute noch nicht erledigt, aber die Straehne lebt - bis Mitternacht.
@@ -85,6 +91,15 @@ struct HabitProgress: Decodable, Sendable, Equatable {
     var kcalText: String {
         "\(value.formatted())/\(goal.formatted()) kcal"
     }
+
+    /// „2:15/4:00 h" - Fokus-Minuten des Tages gegen das Ziel.
+    var focusText: String {
+        "\(HabitProgress.hours(value))/\(HabitProgress.hours(goal)) h"
+    }
+
+    static func hours(_ minutes: Int) -> String {
+        String(format: "%d:%02d", minutes / 60, minutes % 60)
+    }
 }
 
 /// Was die App beim Anlegen schickt.
@@ -92,4 +107,27 @@ struct HabitDraft: Encodable, Sendable {
     let name: String
     let kind: String
     let weeklyStepGoal: Int?
+    let focusMinutesGoal: Int?
+}
+
+/// Eine durchgestandene Fokus-Session, wie der Habits-Dienst sie liefert
+/// (`/habits/api/focus/sessions`): ein Baum im Wald.
+///
+/// Anfang und Ende sind Zeitpunkte (`Instant`, ISO-8601 mit `Z`), nicht Tage -
+/// `day` ist der Tag, dem der Dienst die Session zurechnet: der des Beginns,
+/// in Felix' Zeitzone. Die App rechnet das nicht nach.
+struct FocusSession: Codable, Identifiable, Sendable, Equatable {
+    let id: String
+    let start: Date
+    let end: Date
+    let minutes: Int
+    let day: CalendarDate
+}
+
+/// Was die App meldet, wenn eine Session durch ist. Die Id vergibt die App,
+/// damit ein Nachsenden aus dem Postausgang keinen zweiten Baum pflanzt.
+struct FocusSessionDraft: Encodable, Sendable {
+    let id: String
+    let start: Date
+    let end: Date
 }

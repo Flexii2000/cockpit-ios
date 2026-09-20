@@ -1,11 +1,52 @@
 # Stand
 
-> **Nächster Schritt:** Felix' QA der Einkaufsliste — Dienst per
-> `setup-shopping.sh` ausrollen (druckt beide Setup-Links), Token in Healthy
-> und Einkaufsliste eintragen, Liste/Gerichte/Regeln/Kategorien im Gebrauch, im
-> Browser dasselbe. Dann das zweite Handy (Einkaufsliste per Kabel oder später
-> TestFlight). Danach weiter mit Schritt 2 aus `PLAN-AUFTEILUNG.md`
-> (aufräumen) und der Roadmap als Projektliste im To-Do-Dienst.
+> **Nächster Schritt:** Wald auf dem Gerät durchspielen (Felix): Habits-Dienst
+> ausrollen (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`),
+> Fokus **einmal aus Xcode** aufs Handy (Schema Fokus, ⌘R): `install-device.sh`
+> scheitert am Signieren — die Profile kennen die neuen Fähigkeiten Family
+> Controls (Development) und Time Sensitive Notifications noch nicht, und
+> `xcodebuild` hat kein Konto, um sie anzulegen („No Accounts"); wie damals bei
+> Push greift das Skript danach wieder. Dann: Erlaubnis
+> „Bildschirmzeit" geben, unter „…" › „Erlaubte Apps" die Whitelist setzen
+> (**Fokus selbst mit dazu** — ob der Schild die eigene App mit sperrt, ist
+> ungeprüft; steht so im Blatt), die Kurzbefehle „Fokus an" (Eingabe: Endzeit
+> als `yyyy-MM-dd HH:mm`) und „Fokus aus" anlegen, eine 30-Minuten-Session
+> pflanzen und prüfen: Schild liegt, Schild fällt am Ende (Erweiterung),
+> Meldung „Baum gepflanzt", Baum im Wald, Habit „Fokus-Zeit" zählt. Danach
+> Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
+
+## Fokus: der Wald · **gebaut, nicht auf dem Gerät geprüft** (2026-09-20)
+
+Neuer Tab **Wald** in Fokus: eine Fokus-Session pflanzt einen Baum. Dauer aus
+dem Rad (30 bis 240 Minuten, unter 30 gibt es nicht), Knopf „Baum pflanzen":
+Erlaubnis Bildschirmzeit (`FamilyControls`), Schild auf alle App-Kategorien
+außer der Whitelist (`ManagedSettingsStore().shield`, Whitelist aus Apples
+`FamilyActivityPicker`, als JSON in den UserDefaults), Ende bei
+`DeviceActivityCenter` angemeldet, lokale Meldung „Baum gepflanzt" zum Ende
+(zeitkritisch), Kurzbefehl „Fokus an" per x-callback (Rückweg
+`cockpit-fokus://forest`, dafür hat Fokus jetzt eine eigene `Info.plist` mit
+URL-Schema in `project.yml`). Während der Session: wachsender Baum, Countdown,
+**kein Abbrechen**. Am Ende nimmt die neue Erweiterung **FokusMonitor**
+(`com.apple.deviceactivity.monitor-extension`, Bundle
+`com.fherrmann.fokus.monitor`) den Schild weg; die App räumt beim nächsten
+Aktivwerden selbst nach (`ForestStore.reconcile`): Schild weg, Session an den
+Habits-Dienst (`POST /api/focus/sessions`, Id von der App, Postausgang
+erlaubt), Kurzbefehl „Fokus aus", neu laden. Der Wald: Tage mit ihren Bäumen
+(Größe nach Dauer), heutige Minuten gegen das Tagesziel des Habits.
+
+Im Habits-Dienst (`../habits`, 37 Tests grün, **nicht ausgerollt**): fünfte Art
+`FOCUS` mit `focusMinutesGoal` (Vorgabe 240), `FocusService`/`FocusRepository`
+(`data/focus.json`), Tag = Tag des Beginns in Europe/Berlin, Regeln in dessen
+README. In der App: Kind `.focus` überall (Zeile „2:15/4:00 h" mit Balken,
+Editor mit Tagesziel, Kachel). Vier Apps bauen, Unit-Tests grün.
+
+**Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
+selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`
+der Erweiterung zuverlässig kommt, und ob die Kurzbefehle-App mit dem
+x-callback sauber zurückkommt. **Geprüft und gescheitert:** `install-device.sh`
+signiert die neuen Fähigkeiten nicht (siehe oben) — einmal Xcode. Debug-Schalter für den
+Simulator: `COCKPIT_NO_SCREENTIME=1`, `COCKPIT_FOREST_RUNNING=45`,
+`COCKPIT_TAB=forest`.
 
 ## kcal als 7-Tage-Mittel in beiden Tabs · **gebaut** (2026-09-20)
 

@@ -2,12 +2,18 @@ import UIKit
 import UserNotifications
 
 /// Push-Kennung entgegennehmen (fuer Erinnerungen des To-Do-Dienstes) und
-/// einen Tipp auf eine Erinnerung zum To-Do-Tab fuehren.
+/// einen Tipp auf eine Meldung zum passenden Tab fuehren.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private let notifications = NotificationDelegate(onOpen: { kind in
-        guard kind == "todo" else { return }
-        Task { @MainActor in Router.shared.show(.todo) }
+        // „todo": Erinnerung des To-Do-Dienstes. „forest": „Baum gepflanzt"
+        // am Ende einer Fokus-Session - der Tipp fuehrt in den Wald, und die
+        // App raeumt dort die Session auf (Baum melden, „Fokus aus").
+        switch kind {
+        case "todo":   Task { @MainActor in Router.shared.show(.todo) }
+        case "forest": Task { @MainActor in Router.shared.show(.forest) }
+        default: break
+        }
     })
 
     func application(

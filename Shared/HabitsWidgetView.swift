@@ -80,6 +80,10 @@ struct HabitsWidgetView: View {
     private func trailing(_ habit: HabitStatus) -> some View {
         if habit.unavailable != nil {
             Image(systemName: "exclamationmark.triangle").font(.caption2).foregroundStyle(.secondary)
+        } else if habit.kind == .focus, let progress = habit.progress {
+            Text(progress.focusText)
+                .font(.caption2.weight(.semibold).monospacedDigit())
+                .foregroundStyle(habit.doneToday ? .green : .secondary)
         } else if habit.kind == .steps, let progress = habit.progress {
             Text(progress.stepsText)
                 .font(.caption.weight(.semibold).monospacedDigit())

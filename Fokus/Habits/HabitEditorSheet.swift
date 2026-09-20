@@ -9,13 +9,17 @@ struct HabitEditorSheet: View {
     @State private var name = ""
     @State private var kind: HabitStatus.Kind = .build
     @State private var goalText = "70000"
+    /// Fokus-Zeit in Minuten je Tag - vier Stunden, so hat Felix es bestellt.
+    @State private var focusMinutesText = "240"
     @State private var isSaving = false
 
     private var goal: Int? { Int(goalText.replacingOccurrences(of: ".", with: "")) }
+    private var focusMinutes: Int? { Int(focusMinutesText) }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
             && (kind != .steps || (goal ?? 0) > 0)
+            && (kind != .focus || (focusMinutes ?? 0) > 0)
             && !isSaving
     }
 
@@ -43,6 +47,12 @@ struct HabitEditorSheet: View {
                             .keyboardType(.numberPad)
                     }
                 }
+                if kind == .focus {
+                    Section("Tagesziel in Minuten") {
+                        TextField("Minuten", text: $focusMinutesText)
+                            .keyboardType(.numberPad)
+                    }
+                }
             }
             .navigationTitle("Neues Habit")
             .navigationBarTitleDisplayMode(.inline)
@@ -64,6 +74,7 @@ struct HabitEditorSheet: View {
         case .quit:  "Etwas, das du lassen willst. Zaehlt von selbst; ein eingetragener Rückfall setzt auf null."
         case .food:  "Gilt als erledigt, wenn 80 % des kcal-Ziels erreicht sind oder Frühstück, Mittag und Abend je einen Eintrag haben."
         case .steps: "Erreicht, sobald die Schritte der Woche (ab Montag 0:00) das Ziel schaffen. Kommt aus Apple Health."
+        case .focus: "Erreicht, sobald die Fokus-Sessions des Tages zusammen das Ziel schaffen. Kommt aus dem Wald."
         }
     }
 
@@ -72,7 +83,8 @@ struct HabitEditorSheet: View {
         defer { isSaving = false }
         let ok = await store.create(name: name.trimmingCharacters(in: .whitespaces),
                                     kind: kind,
-                                    weeklyStepGoal: kind == .steps ? goal : nil)
+                                    weeklyStepGoal: kind == .steps ? goal : nil,
+                                    focusMinutesGoal: kind == .focus ? focusMinutes : nil)
         if ok { dismiss() }
     }
 }

@@ -5,7 +5,7 @@
 #   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste> [tab] [screenshot.png]
 #
 # Tabs: Healthy food|weight|shopping|widget, Vault grades|finance,
-# Fokus habits|todo|widget, Einkaufsliste (hat nur die eine Seite);
+# Fokus habits|todo|forest|widget, Einkaufsliste (hat nur die eine Seite);
 # `setup` oeffnet in jeder App das Zugang-Blatt.
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
@@ -45,6 +45,10 @@
 #
 # COCKPIT_SELECT=2026-08-15 waehlt einen Tag im Diagramm vor, damit die
 # Sprechblase im Bild ist - eine Ziehgeste kann der Simulator nicht.
+#
+# COCKPIT_NO_SCREENTIME=1 laesst im Wald-Tab (Fokus) die Bildschirmzeit aus -
+# im Simulator gibt es keine; so laesst sich eine Session trotzdem pflanzen.
+# COCKPIT_FOREST_RUNNING=45 zeigt dort eine laufende Session mit 45 Minuten Rest.
 #
 # COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
 # fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
@@ -103,6 +107,8 @@ SIMCTL_CHILD_COCKPIT_URL_GRADES="${COCKPIT_URL_GRADES:-}" \
 SIMCTL_CHILD_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}" \
 SIMCTL_CHILD_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}" \
 SIMCTL_CHILD_COCKPIT_TODO_AREA="${COCKPIT_TODO_AREA:-}" \
+SIMCTL_CHILD_COCKPIT_NO_SCREENTIME="${COCKPIT_NO_SCREENTIME:-}" \
+SIMCTL_CHILD_COCKPIT_FOREST_RUNNING="${COCKPIT_FOREST_RUNNING:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \

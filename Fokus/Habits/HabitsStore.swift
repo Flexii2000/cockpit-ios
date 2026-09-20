@@ -52,7 +52,7 @@ final class HabitsStore {
                 updated = habit.doneToday
                     ? try await api.mark(id: habit.id)
                     : try await api.unmark(id: habit.id, date: .today())
-            case .food, .steps:
+            case .food, .steps, .focus:
                 return
             }
             replace(updated)
@@ -65,10 +65,12 @@ final class HabitsStore {
     }
 
     @discardableResult
-    func create(name: String, kind: HabitStatus.Kind, weeklyStepGoal: Int?) async -> Bool {
+    func create(name: String, kind: HabitStatus.Kind, weeklyStepGoal: Int?,
+                focusMinutesGoal: Int? = nil) async -> Bool {
         do {
             let created = try await api.create(HabitDraft(
-                name: name, kind: kind.rawValue, weeklyStepGoal: weeklyStepGoal))
+                name: name, kind: kind.rawValue, weeklyStepGoal: weeklyStepGoal,
+                focusMinutesGoal: focusMinutesGoal))
             habits.append(created)
             errorMessage = nil
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.habits)

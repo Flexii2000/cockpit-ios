@@ -25,6 +25,23 @@ struct HabitsAPI: Sendable {
         try await client.send("POST", "/api/habits", body: draft)
     }
 
+    // MARK: - Der Wald
+
+    /// Die Sessions eines Zeitraums, neueste zuerst.
+    func focusSessions(from: CalendarDate, to: CalendarDate) async throws -> [FocusSession] {
+        try await client.get("/api/focus/sessions", query: [
+            URLQueryItem(name: "from", value: from.iso),
+            URLQueryItem(name: "to", value: to.iso),
+        ])
+    }
+
+    /// Meldet eine durchgestandene Session. Ohne Netz in den Postausgang:
+    /// der Baum steht dann, sobald wieder Netz da ist - und nur einmal, weil
+    /// die Id mitgeht.
+    func plant(_ draft: FocusSessionDraft) async throws -> FocusSession {
+        try await client.send("POST", "/api/focus/sessions", body: draft, queueWhenOffline: true)
+    }
+
     func delete(id: String) async throws {
         let _: APIClient.Empty = try await client.delete("/api/habits/\(id)")
     }

@@ -3,6 +3,49 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-20 — Wald: Sperre über das Screen-Time-API, Ende in einer eigenen Erweiterung
+Eine Fokus-Session sperrt alle anderen Apps über `ManagedSettings` (Schild auf
+alle Kategorien außer der Whitelist aus Apples `FamilyActivityPicker`); das
+Ende ist bei `DeviceActivity` angemeldet, und die Erweiterung `FokusMonitor`
+leert den Store, wenn das Intervall abläuft. **Warum:** Felix will, dass
+„alle anderen Apps gesperrt" sind — das kann auf iOS nur das Screen-Time-API,
+und nur eine DeviceActivity-Erweiterung läuft garantiert am Ende, auch wenn
+die App längst beendet ist. Die App räumt zusätzlich selbst auf, sobald sie
+wieder aktiv ist, weil Apples Rückruf „zeitnah" kommt, nicht auf die Sekunde.
+**Verworfen:** (a) nur ein Timer in der App (räumt nichts weg, wenn die App
+nicht läuft — die Sperre bliebe stehen); (b) Geführter Zugriff / Sperren der
+App auf sich selbst (sperrt nichts anderes, und Abbrechen wäre ein Dreifachklick
+entfernt); (c) eine Fremd-App wie Forest (die kann weder das Habit speisen noch
+Felix' Whitelist und Kurzbefehle).
+
+## 2026-09-20 — Wald: Sessions liegen beim Habits-Dienst, Tag = Tag des Beginns
+Die durchgestandenen Sessions speichert der Habits-Dienst
+(`/api/focus/sessions`, `data/focus.json`), und das neue Habit „Fokus-Zeit"
+(FOCUS, Tagesziel 240 Minuten) rechnet aus demselben Bestand. **Warum:** Felix
+will das Habit mit dem Wald „synchronisiert" — ein Bestand, eine Regel, gerechnet
+im Dienst wie alle Sträh­nen. Eine Session gehört zum Tag ihres **Beginns**
+(Europe/Berlin), nicht anteilig zu beiden Tagen: wer um 23:30 pflanzt, hat am
+Abend fokussiert, und eine Aufteilung machte aus einem Baum zwei halbe.
+**Verworfen:** (a) Sessions nur auf dem Gerät (das Habit könnte sie nicht sehen,
+und ein neues Handy hätte einen leeren Wald); (b) ein eigener Dienst (ein
+vierter Spring-Boot-Prozess für eine Liste von Zeitpunkten); (c) Aufteilen an
+Mitternacht.
+
+## 2026-09-20 — Wald: kein Abbrechen, Mitteilungen über Felix' Kurzbefehle
+Eine laufende Session hat keinen Abbrechen-Knopf und keinen Weg über die App
+hinaus; Mitteilungen schaltet nicht die App, sondern die Kurzbefehle „Fokus an"
+und „Fokus aus", die sie per x-callback-URL aufruft (mit dem Endzeitpunkt als
+Eingabe). **Warum:** Beides Felix' Entscheidung — „vorzeitig abbrechen soll
+nicht möglich sein", Mitteilungen „per Kurzbefehl automatisch". Den
+Fokus-Modus des Systems darf eine App nicht selbst schalten; ein Kurzbefehl
+darf es. „Fokus aus" kann erst laufen, wenn die App nach dem Ende wieder im
+Vordergrund ist (Kurzbefehle starten nicht aus dem Hintergrund) — deshalb geht
+der Endzeitpunkt mit, damit „Fokus an" den Modus bis dahin befristen kann.
+**Verworfen:** (a) Abbrechen mit Strafe (verfaulter Baum) — ausdrücklich nicht
+gewollt; (b) Mitteilungen nur über den Schild (der sperrt Apps, keine Banner);
+(c) Felix schaltet den Fokus-Modus von Hand (vergisst man, und die Session
+ist dann keine).
+
 ## 2026-09-20 — kcal als 7-Tage-Mittel, zentriert, gerechnet im Kalorienzähler
 Die kcal-Kurven in beiden Verlaufsdiagrammen (Gewicht-Tab, Essen-Tab; Web
 genauso) zeigen standardmäßig das **gleitende 7-Tage-Mittel**, der Tageswert

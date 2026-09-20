@@ -24,3 +24,5 @@ secrets.plist
 *.entitlements
 HealthyWidget/Info.plist
 FokusWidget/Info.plist
+Fokus/Info.plist
+FokusMonitor/Info.plist

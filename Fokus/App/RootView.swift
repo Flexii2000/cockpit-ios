@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum TabSelection: Hashable {
-    case habits, todo
+    case habits, todo, forest
     #if DEBUG
     case widget
 
@@ -15,6 +15,7 @@ enum TabSelection: Hashable {
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "widget": return .widget
         case "todo":   return .todo
+        case "forest": return .forest
         default:       break
         }
         #endif
@@ -49,6 +50,9 @@ struct RootView: View {
             Tab(Backend.todo.title, systemImage: Backend.todo.systemImage, value: TabSelection.todo) {
                 TodoTab()
             }
+            Tab("Wald", systemImage: "tree", value: TabSelection.forest) {
+                ForestTab()
+            }
             #if DEBUG
             if TabSelection.showsWidgetPreview {
                 Tab("Kachel", systemImage: "square.grid.2x2", value: TabSelection.widget) {
@@ -63,9 +67,15 @@ struct RootView: View {
         .sheet(isPresented: $setup.isPresented) {
             SetupView(sections: [.privateToken])
         }
-        // Ein Tipp auf die Habits-Kachel (`.widgetURL`).
+        // Ein Tipp auf die Habits-Kachel (`.widgetURL`) - oder die Rueckkehr
+        // aus der Kurzbefehle-App (`cockpit-fokus://forest`, siehe
+        // ShortcutsBridge).
         .onOpenURL { url in
-            if url.host() == "habits" { router.show(.habits) }
+            switch url.host() {
+            case "habits": router.show(.habits)
+            case "forest": router.show(.forest)
+            default: break
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await Outbox.shared.replay() } }

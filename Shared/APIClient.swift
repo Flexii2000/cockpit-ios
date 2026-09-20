@@ -59,7 +59,7 @@ struct APIClient: Sendable {
     ) async throws -> T {
         var req = request(method: method, path: path)
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONEncoder().encode(body)
+        req.httpBody = try Self.encoder().encode(body)
         return try await perform(req, queueWhenOffline: queueWhenOffline)
     }
 
@@ -167,6 +167,16 @@ struct APIClient: Sendable {
             return date
         }
         return decoder
+    }
+
+    /// Das Gegenstueck fuers Senden: `Date` als ISO-Zeitpunkt mit `Z`, wie
+    /// Jacksons `Instant` ihn liest. Ohne die Vorgabe schriebe `JSONEncoder`
+    /// Sekunden seit 2001 - eine Zahl, an der der Dienst mit 400 scheitert.
+    /// `CalendarDate` schreibt sich weiterhin selbst (yyyy-MM-dd).
+    static func encoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
     }
 
     /// Der Klartext einer Fehlerantwort, sofern es einer ist. Bewusst
