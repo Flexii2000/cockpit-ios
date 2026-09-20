@@ -10,10 +10,11 @@
 > als `yyyy-MM-dd HH:mm`) und „Fokus aus" anlegen, eine 30-Minuten-Session
 > pflanzen und prüfen: Schild liegt, Schild fällt am Ende (Erweiterung),
 > Meldung „Baum gepflanzt", Baum im Wald, Habit „Fokus-Zeit" zählt. Zum
-> schnellen Durchspielen gibt es im „…"-Menü den **Testbaum (1 min)** — dort
-> nimmt die App den Schild selbst weg (DeviceActivity kennt nichts unter 15
-> Minuten; die Erweiterung ist auf 15 Minuten gestreckt nur das Netz), die
-> echte Probe für die Erweiterung ist also erst die 30-Minuten-Session. Danach
+> schnellen Durchspielen gibt es im „…"-Menü den **Testbaum (20 s)** — zählt
+> nirgends, und dort nimmt die App den Schild selbst weg (DeviceActivity kennt
+> nichts unter 15 Minuten; die Erweiterung ist auf 15 Minuten gestreckt nur
+> das Netz), die echte Probe für die Erweiterung ist also erst die
+> 30-Minuten-Session. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
 ## Fokus: der Wald · **gebaut, auf dem Gerät, nicht durchgespielt** (2026-09-20)
@@ -56,7 +57,18 @@ solange sie fehlt (`ScreenTimeGuard.note`). Auflösung: der Picker war nur
 **langsam** — er lädt die Apps mit Verzögerung, wer sofort schaut, sieht eine
 leere Liste. Alles gut, Erlaubnis erteilt; Apples Blatt bleibt trotzdem.
 Während einer Session sind „Erlaubte Apps" und der Testbaum im Menü gesperrt —
-die Liste soll nicht anfassbar sein, solange ein Baum wächst (Felix).
+die Liste soll nicht anfassbar sein, solange ein Baum wächst (Felix). Dritte
+Runde: Kurzbefehle sprang auf und sofort zurück, ohne dass die App etwas
+sagte. Zwei Änderungen: **der Schild kommt erst nach dem Kurzbefehl** — die
+Kurzbefehle-App ist selbst eine App und läge sonst mit unter dem Schild
+(`ActiveSession.shielded`, `reconcile` legt ihn beim Zurückkommen, sofort nur,
+wenn Kurzbefehle gar nicht aufging) — und **die Rückkehr-URL trägt das
+Ergebnis** (`?shortcut=an&result=ok|error|cancel`, Kurzbefehle hängt
+`errorMessage` an); ein Fehler steht in der Leiste, etwa dass „Fokus an" nicht
+existiert. Ob der Fokus-Modus angeht, entscheidet allein der Kurzbefehl. Der
+**Testbaum** dauert jetzt **20 Sekunden** und zählt nirgends (Felix): gleicher
+Ablauf, aber am Ende weder Baum noch Minuten (`ActiveSession.test`), der
+Dienst sieht ihn nie.
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`
@@ -68,10 +80,11 @@ scheiterte mit „No Accounts" — die neuen Fähigkeiten Family Controls
 Xcode-Login hat `-allowProvisioningUpdates` sie selbst eingetragen; ein
 Lauf aus Xcode war nicht nötig. Debug-Schalter für den
 Simulator: `COCKPIT_NO_SCREENTIME=1`, `COCKPIT_FOREST_RUNNING=45`,
-`COCKPIT_TAB=forest`. **Testbaum (1 min)** im „…"-Menü, auf Felix' Wunsch:
-der Dienst nimmt seit demselben Tag Sessions ab einer Minute (die 30 sind die
-Regel des Rads); DeviceActivity wird auf sein Minimum von 15 Minuten
-gestreckt angemeldet, den Schild nimmt die App am echten Ende selbst weg.
+`COCKPIT_TAB=forest`. **Testbaum** im „…"-Menü, auf Felix' Wunsch (erst eine
+Minute, dann 20 Sekunden und ohne Zählung); der Dienst nimmt seit demselben
+Tag Sessions ab einer Minute (die 30 sind die Regel des Rads); DeviceActivity
+wird auf sein Minimum von 15 Minuten gestreckt angemeldet, den Schild nimmt
+die App am echten Ende selbst weg.
 
 ## kcal als 7-Tage-Mittel in beiden Tabs · **gebaut** (2026-09-20)
 

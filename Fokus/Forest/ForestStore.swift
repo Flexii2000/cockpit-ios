@@ -59,15 +59,14 @@ final class ForestStore {
         if active == nil,
            let raw = ProcessInfo.processInfo.environment["COCKPIT_FOREST_RUNNING"],
            let minutes = Int(raw) {
-            active = ActiveSession(id: Self.demoID,
+            active = ActiveSession(id: "demo",
                                    start: Date().addingTimeInterval(-600),
-                                   end: Date().addingTimeInterval(Double(minutes) * 60))
+                                   end: Date().addingTimeInterval(Double(minutes) * 60),
+                                   shielded: true, test: true)
         }
         #endif
         watchEnd()
     }
-
-    private static let demoID = "demo"
 
     /// Der Wald: Tage mit ihren Baeumen, neueste zuerst. Lokal Fertiges steht
     /// mit drin, solange der Dienst es noch nicht hat.
@@ -106,39 +105,45 @@ final class ForestStore {
         }
     }
 
-    /// Pflanzt einen Baum: Erlaubnis, Schild, Ende anmelden, Kurzbefehl.
+    /// Pflanzt einen Baum. Das Rad bietet nichts unter 30 Minuten an.
+    func plant(minutes: Int) async {
+        await start(seconds: Double(max(SessionLength.minimum, minutes)) * 60, test: false)
+    }
+
+    /// Der Testbaum: derselbe Ablauf - Erlaubnis, Schild, Meldung, Kurzbefehle -
+    /// in zwanzig Sekunden. Kein Baum, keine Minuten: er zaehlt nirgends.
+    func plantTest() async {
+        await start(seconds: SessionLength.testSeconds, test: true)
+    }
+
+    /// Erlaubnis, Session, Ende anmelden, Kurzbefehl - und der Schild erst,
+    /// wenn die App zurueck ist.
     ///
     /// Reihenfolge mit Absicht. Erst die Erlaubnis - ohne Sperre keine
-    /// Session. Dann die Session festhalten, **bevor** der Schild liegt: wuerde
-    /// die App zwischen beidem beendet, staende sonst ein Schild ohne Session,
-    /// den niemand mehr wegnimmt. Der Kurzbefehl zuletzt, weil er die App
-    /// verlaesst.
-    func plant(minutes: Int) async {
+    /// Session. Dann die Session festhalten, **bevor** irgendetwas gesperrt
+    /// wird: wuerde die App dazwischen beendet, staende sonst ein Schild ohne
+    /// Session, den niemand mehr wegnimmt. Dann der Kurzbefehl: er verlaesst
+    /// die App, und die Kurzbefehle-App ist selbst eine App - laege der Schild
+    /// schon, kaeme „Fokus an" nie zum Laufen. Der Schild folgt, sobald die
+    /// App wieder vorne ist (`reconcile`), oder sofort, wenn Kurzbefehle gar
+    /// nicht aufging.
+    private func start(seconds: TimeInterval, test: Bool) async {
         guard active == nil else { return }
-        // Das Rad bietet nichts unter 30 Minuten an; die eine Minute des
-        // Testbaums kommt aus dem Menue und ist erlaubt.
-        let minutes = max(SessionLength.test, minutes)
         guard await authorise() else { return }
         await Notifications.requestPermission()
 
         let now = Date()
         let session = ActiveSession(id: UUID().uuidString.lowercased(),
                                     start: now,
-                                    end: now.addingTimeInterval(Double(minutes) * 60))
+                                    end: now.addingTimeInterval(seconds),
+                                    test: test)
         active = session
         Self.write(session, key: Self.activeKey)
-        do {
-            try screenTime.shield(except: whitelist, until: session)
-        } catch {
-            // Der Schild liegt; nur das Ende ist bei DeviceActivity nicht
-            // angemeldet. Dann nimmt ihn die App weg, sobald sie nach dem
-            // Ende wieder laeuft - spaeter, aber sicher.
-            print("Ende der Session nicht angemeldet: \(error.localizedDescription)")
-        }
         await scheduleEndNotification(session)
         errorMessage = nil
         watchEnd()
-        ShortcutsBridge.focusOn(until: session.end)
+        let left = await ShortcutsBridge.focusOn(until: session.end)
+        if !left { applyShield() }
     }
 
     /// Die Erlaubnis „Bildschirmzeit" - vor dem Pflanzen und vor dem
@@ -155,11 +160,39 @@ final class ForestStore {
         }
     }
 
-    /// Ist die Session vorbei, wird sie abgeschlossen. Von ueberall
-    /// aufrufbar, beliebig oft: beim Start, beim Aktivwerden, vom Timer.
+    /// Bringt die Session auf den Stand der Uhr. Von ueberall aufrufbar,
+    /// beliebig oft: beim Start, beim Aktivwerden, vom Timer. Vorbei: Baum
+    /// melden. Laeuft noch, aber ohne Schild (die App war beim Kurzbefehl):
+    /// Schild drauf.
     func reconcile() async {
-        guard let session = active, session.isOver() else { return }
-        await finish(session)
+        guard let session = active else { return }
+        if session.isOver() {
+            await finish(session)
+        } else if !session.shielded {
+            applyShield()
+        }
+    }
+
+    /// Was die Kurzbefehle-App bei der Rueckkehr sagt - ein Fehler landet in
+    /// der Leiste, sonst wuesste niemand, dass „Fokus an" fehlt.
+    func handleCallback(_ url: URL) {
+        guard let back = ShortcutsBridge.Return(url: url) else { return }
+        if let note = back.note { errorMessage = note }
+    }
+
+    private func applyShield() {
+        guard var session = active, !session.shielded, !session.isOver() else { return }
+        do {
+            try screenTime.shield(except: whitelist, until: session)
+        } catch {
+            // Der Schild liegt; nur das Ende ist bei DeviceActivity nicht
+            // angemeldet. Dann nimmt ihn die App weg, sobald sie nach dem
+            // Ende wieder laeuft - spaeter, aber sicher.
+            print("Ende der Session nicht angemeldet: \(error.localizedDescription)")
+        }
+        session.shielded = true
+        active = session
+        Self.write(session, key: Self.activeKey)
     }
 
     private func finish(_ session: ActiveSession) async {
@@ -168,17 +201,16 @@ final class ForestStore {
         screenTime.lift()
         active = nil
         UserDefaults.standard.removeObject(forKey: Self.activeKey)
-        #if DEBUG
-        if session.id == Self.demoID { return }
-        #endif
-        // Erst lokal festhalten, dann melden: geht das Melden schief, ist der
-        // Baum nicht weg, sondern wartet.
-        unsynced.append(FocusSession(id: session.id, start: session.start, end: session.end,
-                                     minutes: session.minutes,
-                                     day: CalendarDate(date: session.start)))
-        persistUnsynced()
-        await syncPending()
-        ShortcutsBridge.focusOff()
+        if !session.test {
+            // Erst lokal festhalten, dann melden: geht das Melden schief, ist
+            // der Baum nicht weg, sondern wartet.
+            unsynced.append(FocusSession(id: session.id, start: session.start, end: session.end,
+                                         minutes: session.minutes,
+                                         day: CalendarDate(date: session.start)))
+            persistUnsynced()
+            await syncPending()
+        }
+        await ShortcutsBridge.focusOff()
         await load()
     }
 
@@ -222,8 +254,8 @@ final class ForestStore {
     /// durch einen noch laufenden Fokus-Modus kommt.
     private func scheduleEndNotification(_ session: ActiveSession) async {
         let content = UNMutableNotificationContent()
-        content.title = "Baum gepflanzt"
-        content.body = session.minutes == 1 ? "1 Minute Fokus." : "\(session.minutes) Minuten Fokus."
+        content.title = session.test ? "Testbaum fertig" : "Baum gepflanzt"
+        content.body = session.test ? "Zählt nicht." : "\(session.minutes) Minuten Fokus."
         content.sound = .default
         content.userInfo = ["kind": "forest"]
         content.interruptionLevel = .timeSensitive

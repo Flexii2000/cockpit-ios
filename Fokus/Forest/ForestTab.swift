@@ -70,9 +70,9 @@ struct ForestTab: View {
                         Toggle("Kurzbefehle „Fokus an/aus“", isOn: $store.shortcutsEnabled)
                         Divider()
                         // Zum Durchspielen des Ablaufs - Schild, Meldung,
-                        // Baum, Habit - ohne eine halbe Stunde zu warten.
-                        Button("Testbaum (1 min)") {
-                            Task { await store.plant(minutes: SessionLength.test) }
+                        // Kurzbefehle - ohne eine halbe Stunde zu warten.
+                        Button("Testbaum (20 s)") {
+                            Task { await store.plantTest() }
                         }
                         .disabled(store.active != nil)
                     } label: {
@@ -90,10 +90,14 @@ struct ForestTab: View {
                 await store.load()
             }
             // Zurueck im Vordergrund - vielleicht ist die Session inzwischen
-            // vorbei (die Erweiterung hat den Schild dann schon weggenommen).
+            // vorbei (die Erweiterung hat den Schild dann schon weggenommen),
+            // oder sie hat gerade erst begonnen und wartet auf ihren Schild.
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await store.reconcile() } }
             }
+            // Die Rueckkehr aus der Kurzbefehle-App (RootView waehlt den Tab,
+            // hier landet die Rueckmeldung).
+            .onOpenURL { url in store.handleCallback(url) }
             .onChange(of: OfflineStatus.shared.pending) { before, after in
                 if before > 0, after == 0 { Task { await store.load() } }
             }

@@ -10,6 +10,32 @@ struct ActiveSession: Codable, Sendable, Equatable {
     let id: String
     let start: Date
     let end: Date
+    /// Ob der Schild schon liegt. Er kommt erst, wenn der Kurzbefehl durch
+    /// ist: die Kurzbefehle-App ist selbst eine App und laege sonst mit
+    /// darunter - „Fokus an" koennte nie laufen.
+    var shielded = false
+    /// Der Testbaum: gleicher Ablauf, aber am Ende kein Baum und keine
+    /// Minuten - er zaehlt nirgends.
+    let test: Bool
+
+    init(id: String, start: Date, end: Date, shielded: Bool = false, test: Bool = false) {
+        self.id = id
+        self.start = start
+        self.end = end
+        self.shielded = shielded
+        self.test = test
+    }
+
+    /// `shielded` und `test` duerfen fehlen: eine Session aus einem Stand,
+    /// der die Felder noch nicht kannte, gilt als geschuetzt und echt.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        start = try container.decode(Date.self, forKey: .start)
+        end = try container.decode(Date.self, forKey: .end)
+        shielded = try container.decodeIfPresent(Bool.self, forKey: .shielded) ?? true
+        test = try container.decodeIfPresent(Bool.self, forKey: .test) ?? false
+    }
 
     var minutes: Int { Int(end.timeIntervalSince(start) / 60) }
 
@@ -53,9 +79,10 @@ enum TreeSize: Comparable {
 enum SessionLength {
     static let choices = [30, 45, 60, 75, 90, 120, 150, 180, 240]
     static let minimum = 30
-    /// Der Testbaum: eine Minute, um den Ablauf durchzuspielen - Schild,
-    /// Meldung, Baum, Habit. Steht nicht im Rad, sondern im Menue.
-    static let test = 1
+    /// Der Testbaum: zwanzig Sekunden, um den Ablauf durchzuspielen - Schild,
+    /// Meldung, Kurzbefehle. Steht nicht im Rad, sondern im Menue, und
+    /// zaehlt nirgends.
+    static let testSeconds: TimeInterval = 20
 }
 
 /// Ein Tag im Wald: seine Baeume und ihre Minuten.
