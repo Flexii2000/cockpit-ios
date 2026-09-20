@@ -51,7 +51,11 @@ struct ForestTab: View {
                 ToolbarItem(placement: .topBarLeading) { AccessButton() }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button("Erlaubte Apps …") { showingWhitelist = true }
+                        Button("Erlaubte Apps …") {
+                            // Erst die Erlaubnis, dann das Blatt: ohne sie
+                            // bliebe Apples Auswahl leer.
+                            Task { if await store.authorise() { showingWhitelist = true } }
+                        }
                         Toggle("Kurzbefehle „Fokus an/aus“", isOn: $store.shortcutsEnabled)
                         Divider()
                         // Zum Durchspielen des Ablaufs - Schild, Meldung,

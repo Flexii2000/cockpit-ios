@@ -2,9 +2,8 @@
 
 > **Nächster Schritt:** Wald auf dem Gerät durchspielen (Felix): Habits-Dienst
 > ausrollen (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`)
-> — bis dahin meldet der Wald-Tab einen Fehler, der Dienst kennt
-> `/api/focus/sessions` noch nicht. Fokus ist auf dem Handy (22:30, samt
-> `FokusMonitor`). Dann: Erlaubnis
+> — erledigt, antwortet. Fokus ist auf dem Handy (samt `FokusMonitor`).
+> Dann: Erlaubnis
 > „Bildschirmzeit" geben, unter „…" › „Erlaubte Apps" die Whitelist setzen
 > (**Fokus selbst mit dazu** — ob der Schild die eigene App mit sperrt, ist
 > ungeprüft; steht so im Blatt), die Kurzbefehle „Fokus an" (Eingabe: Endzeit
@@ -41,6 +40,14 @@ Im Habits-Dienst (`../habits`, 37 Tests grün, **nicht ausgerollt**): fünfte Ar
 (`data/focus.json`), Tag = Tag des Beginns in Europe/Berlin, Regeln in dessen
 README. In der App: Kind `.focus` überall (Zeile „2:15/4:00 h" mit Balken,
 Editor mit Tagesziel, Kachel). Vier Apps bauen, Unit-Tests grün.
+
+Erste Runde auf dem Gerät (22:45): der Testbaum war nur nicht gefunden; der
+App-Picker war **leer**, weil die Bildschirmzeit-Erlaubnis erst beim Pflanzen
+abgefragt wurde — jetzt fragt auch „Erlaubte Apps" zuerst danach
+(`ForestStore.authorise`), und scheitert die Erlaubnis, nennt die Leiste
+Apples Grund samt rohem Fehler (`ScreenTimeGuard.explain`), denn ein
+Systemprotokoll lässt sich vom Handy ohne root nicht ziehen. Habits-Dienst ist
+ausgerollt (Felix), `/api/focus/sessions` antwortet.
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`

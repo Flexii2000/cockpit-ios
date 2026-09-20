@@ -113,12 +113,7 @@ final class ForestStore {
         // Das Rad bietet nichts unter 30 Minuten an; die eine Minute des
         // Testbaums kommt aus dem Menue und ist erlaubt.
         let minutes = max(SessionLength.test, minutes)
-        do {
-            try await screenTime.authorise()
-        } catch {
-            errorMessage = "Bildschirmzeit nicht erlaubt – ohne Sperre keine Session."
-            return
-        }
+        guard await authorise() else { return }
         await Notifications.requestPermission()
 
         let now = Date()
@@ -139,6 +134,19 @@ final class ForestStore {
         errorMessage = nil
         watchEnd()
         ShortcutsBridge.focusOn(until: session.end)
+    }
+
+    /// Die Erlaubnis „Bildschirmzeit" - vor dem Pflanzen und vor dem
+    /// Whitelist-Blatt: Apples App-Auswahl zeigt ohne sie keine einzige App,
+    /// nur eine leere Liste ohne Erklaerung.
+    func authorise() async -> Bool {
+        do {
+            try await screenTime.authorise()
+            return true
+        } catch {
+            errorMessage = ScreenTimeGuard.explain(error)
+            return false
+        }
     }
 
     /// Ist die Session vorbei, wird sie abgeschlossen. Von ueberall
@@ -184,8 +192,8 @@ final class ForestStore {
                     sessions.insert(planted, at: 0)
                 }
             } catch APIError.queued {
-                // Liegt im Postausgang; der Baum bleibt bis zur Antwort lokal.
-                unsynced.removeAll { $0.id == tree.id }
+                // Liegt im Postausgang; der Baum bleibt lokal stehen, bis der
+                // Dienst ihn beim naechsten Laden kennt.
             } catch {
                 report(error)
             }

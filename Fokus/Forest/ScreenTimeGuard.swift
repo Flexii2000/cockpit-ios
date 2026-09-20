@@ -55,6 +55,31 @@ final class ScreenTimeGuard {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
     }
 
+    /// Warum die Erlaubnis nicht zustande kam - Apples Fehler in Worten, plus
+    /// der rohe Wert, damit sich auch ein unbekannter Fall zuordnen laesst.
+    /// Die Meldung ist das Einzige, was man vom Handy zurueckbekommt: ein
+    /// Systemprotokoll laesst sich ohne root nicht ziehen.
+    static func explain(_ error: Error) -> String {
+        let status = AuthorizationCenter.shared.authorizationStatus
+        let reason: String
+        if let familyError = error as? FamilyControlsError {
+            reason = switch familyError {
+            case .authorizationCanceled: "Anfrage abgebrochen."
+            case .invalidAccountType:    "Apple-Account passt nicht (Kinder- oder Institutionskonto?)."
+            case .networkError:          "Kein Netz zu Apple."
+            case .unavailable:           "Auf diesem Gerät nicht verfügbar."
+            case .restricted:            "Durch Einschränkungen gesperrt."
+            case .authorizationConflict: "Eine andere App verwaltet schon die Bildschirmzeit."
+            case .invalidArgument:       "Ungültige Anfrage."
+            @unknown default:            "Unbekannter Fehler."
+            }
+        } else {
+            reason = error.localizedDescription
+        }
+        return "Bildschirmzeit nicht erlaubt – ohne Sperre keine Session. \(reason) "
+            + "[\(String(describing: error)), Status \(String(describing: status))]"
+    }
+
     /// Schild drauf und das Ende bei DeviceActivity anmelden.
     ///
     /// Reihenfolge mit Absicht: erst der Schild - der gilt sofort und ist der
