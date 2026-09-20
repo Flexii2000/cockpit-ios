@@ -1,3 +1,4 @@
+import FamilyControls
 import SwiftUI
 
 /// Der Wald: jede durchgestandene Fokus-Session ein Baum.
@@ -51,10 +52,15 @@ struct ForestTab: View {
                 ToolbarItem(placement: .topBarLeading) { AccessButton() }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button("Erlaubte Apps …") {
+                        Button {
                             // Erst die Erlaubnis, dann das Blatt: ohne sie
                             // bliebe Apples Auswahl leer.
                             Task { if await store.authorise() { showingWhitelist = true } }
+                        } label: {
+                            Text("Erlaubte Apps …")
+                            // Der Schild gilt fuer alle Kategorien - auch fuer
+                            // die Fokus-App selbst, so die Annahme.
+                            Text("Fokus selbst mit auswählen")
                         }
                         Toggle("Kurzbefehle „Fokus an/aus“", isOn: $store.shortcutsEnabled)
                         Divider()
@@ -69,9 +75,10 @@ struct ForestTab: View {
                     }
                 }
             }
-            .sheet(isPresented: $showingWhitelist) {
-                WhitelistSheet(selection: $store.whitelist)
-            }
+            // Apples eigenes Blatt statt eines selbstgebauten: der Picker ist
+            // eine entfernte Ansicht eines Systemprozesses, und in einem
+            // eigenen Sheet blieb er auf dem Geraet leer (2026-09-20).
+            .familyActivityPicker(isPresented: $showingWhitelist, selection: $store.whitelist)
             .refreshable { await store.load() }
             .task {
                 await store.reconcile()
@@ -107,6 +114,11 @@ struct ForestTab: View {
             .buttonStyle(.borderedProminent)
             .tint(.green)
             .accessibilityIdentifier("plantTree")
+            if let note = store.screenTimeNote {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))

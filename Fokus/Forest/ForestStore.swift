@@ -32,6 +32,10 @@ final class ForestStore {
     var whitelist: FamilyActivitySelection {
         didSet { Whitelist.save(whitelist) }
     }
+    /// Stand der Erlaubnis „Bildschirmzeit" - nach jedem Nachfragen und jedem
+    /// Laden neu gelesen, weil sich `AuthorizationCenter` nicht beobachten
+    /// laesst. Nil heisst: alles gut, nichts anzuzeigen.
+    private(set) var screenTimeNote: String?
     var shortcutsEnabled: Bool {
         didSet { ShortcutsBridge.isEnabled = shortcutsEnabled }
     }
@@ -83,6 +87,7 @@ final class ForestStore {
 
     func load() async {
         isLoading = sessions.isEmpty
+        screenTimeNote = screenTime.note
         defer { isLoading = false }
         let today = CalendarDate.today()
         let calendar = Calendar(identifier: .gregorian)
@@ -140,6 +145,7 @@ final class ForestStore {
     /// Whitelist-Blatt: Apples App-Auswahl zeigt ohne sie keine einzige App,
     /// nur eine leere Liste ohne Erklaerung.
     func authorise() async -> Bool {
+        defer { screenTimeNote = screenTime.note }
         do {
             try await screenTime.authorise()
             return true

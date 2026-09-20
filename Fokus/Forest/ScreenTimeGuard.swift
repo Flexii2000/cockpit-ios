@@ -48,6 +48,17 @@ final class ScreenTimeGuard {
         isDisabled || AuthorizationCenter.shared.authorizationStatus == .approved
     }
 
+    /// Eine Zeile fuer die Oberflaeche, solange die Erlaubnis fehlt.
+    var note: String? {
+        if isDisabled { return nil }
+        return switch AuthorizationCenter.shared.authorizationStatus {
+        case .approved:      nil
+        case .denied:        "Bildschirmzeit abgelehnt"
+        case .notDetermined: "Bildschirmzeit noch nicht erlaubt"
+        @unknown default:    "Bildschirmzeit: unbekannter Stand"
+        }
+    }
+
     /// Fragt nach, wenn noch nicht entschieden. Wirft, wenn Felix ablehnt -
     /// dann gibt es keine Session, denn ohne Sperre ist es kein Fokus.
     func authorise() async throws {

@@ -47,7 +47,14 @@ abgefragt wurde — jetzt fragt auch „Erlaubte Apps" zuerst danach
 (`ForestStore.authorise`), und scheitert die Erlaubnis, nennt die Leiste
 Apples Grund samt rohem Fehler (`ScreenTimeGuard.explain`), denn ein
 Systemprotokoll lässt sich vom Handy ohne root nicht ziehen. Habits-Dienst ist
-ausgerollt (Felix), `/api/focus/sessions` antwortet.
+ausgerollt (Felix), `/api/focus/sessions` antwortet. Zweite Runde: der Picker
+blieb auch mit vorheriger Nachfrage leer — jetzt Apples eigener
+`.familyActivityPicker`-Modifier statt eines selbstgebauten Blatts (der
+Picker ist eine entfernte Ansicht), der Whitelist-Hinweis steht als Untertitel
+im Menüeintrag, und unter „Baum pflanzen" steht der Stand der Erlaubnis,
+solange sie fehlt (`ScreenTimeGuard.note`). Offen: ob Bildschirmzeit auf dem
+Handy überhaupt eingeschaltet ist — ohne sie hat der Picker womöglich keinen
+App-Katalog.
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`
