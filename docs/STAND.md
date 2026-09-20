@@ -11,10 +11,8 @@
 > pflanzen und prüfen: Schild liegt, Schild fällt am Ende (Erweiterung),
 > Meldung „Baum gepflanzt", Baum im Wald, Habit „Fokus-Zeit" zählt. Zum
 > schnellen Durchspielen gibt es im „…"-Menü den **Testbaum (20 s)** — zählt
-> nirgends, und dort nimmt die App den Schild selbst weg (DeviceActivity kennt
-> nichts unter 15 Minuten; die Erweiterung ist auf 15 Minuten gestreckt nur
-> das Netz), die echte Probe für die Erweiterung ist also erst die
-> 30-Minuten-Session. Danach
+> nirgends, läuft aber denselben Weg samt Erweiterung: steht in der Meldung
+> „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
 ## Fokus: der Wald · **gebaut, auf dem Gerät, nicht durchgespielt** (2026-09-20)
@@ -68,7 +66,14 @@ Ergebnis** (`?shortcut=an&result=ok|error|cancel`, Kurzbefehle hängt
 existiert. Ob der Fokus-Modus angeht, entscheidet allein der Kurzbefehl. Der
 **Testbaum** dauert jetzt **20 Sekunden** und zählt nirgends (Felix): gleicher
 Ablauf, aber am Ende weder Baum noch Minuten (`ActiveSession.test`), der
-Dienst sieht ihn nie.
+Dienst sieht ihn nie. Vierte Runde: nach dem Ende blieben die Apps gesperrt,
+solange Fokus im Hintergrund war — beim Testbaum war das Intervall der
+Erweiterung auf 15 Minuten **nach hinten** gestreckt. Jetzt liegt der
+**Anfang** des Intervalls so weit zurück, dass es lang genug ist, und das
+Ende ist das echte: die Erweiterung feuert pünktlich, auch beim Testbaum.
+Und sie **meldet sich**: die vorgeplante Meldung `forest.end` wird durch „Apps
+wieder frei" ersetzt — steht weiter „Baum gepflanzt", war die Erweiterung nicht
+da.
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`

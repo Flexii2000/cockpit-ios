@@ -250,8 +250,12 @@ final class ForestStore {
         }
     }
 
-    /// „Baum gepflanzt" zum Ende der Session. Zeitkritisch, damit sie auch
-    /// durch einen noch laufenden Fokus-Modus kommt.
+    /// Die Meldung zum Ende der Session. Zeitkritisch, damit sie auch durch
+    /// einen noch laufenden Fokus-Modus kommt. Feste Kennung: die Erweiterung
+    /// ersetzt sie durch „Apps wieder frei", sobald sie den Schild weggenommen
+    /// hat - so steht in der Mitteilung, ob das Ende wirklich angekommen ist.
+    static let endNotificationID = "forest.end"
+
     private func scheduleEndNotification(_ session: ActiveSession) async {
         let content = UNMutableNotificationContent()
         content.title = session.test ? "Testbaum fertig" : "Baum gepflanzt"
@@ -261,7 +265,7 @@ final class ForestStore {
         content.interruptionLevel = .timeSensitive
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: max(1, session.end.timeIntervalSinceNow), repeats: false)
-        let request = UNNotificationRequest(identifier: "forest.\(session.id)",
+        let request = UNNotificationRequest(identifier: Self.endNotificationID,
                                             content: content, trigger: trigger)
         try? await UNUserNotificationCenter.current().add(request)
     }

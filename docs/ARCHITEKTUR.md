@@ -149,8 +149,10 @@ ein Schild auf allen App-Kategorien außer den erlaubten Apps —
 `FamilyControls` („Bildschirmzeit"). Das Ende meldet die App bei
 `DeviceActivityCenter` an; wenn das Intervall endet, startet iOS die
 Erweiterung **FokusMonitor** (`com.apple.deviceactivity.monitor-extension`),
-die den Vorgabe-Store leert — die App muss dafür nicht laufen und nicht einmal
-existieren im Speicher. Die laufende Session liegt in den UserDefaults; sobald
+die den Vorgabe-Store leert und die vorgeplante Ende-Meldung durch „Apps
+wieder frei" ersetzt — die App muss dafür nicht laufen. Kürzer als 15 Minuten
+nimmt DeviceActivity kein Intervall; eine kürzere Session (der Testbaum) wird
+mit zurückverlegtem Anfang angemeldet, das Ende bleibt das echte. Die laufende Session liegt in den UserDefaults; sobald
 die App danach wieder aktiv ist (`ForestStore.reconcile`, beim Start und bei
 jedem Vordergrund), nimmt sie den Schild sicherheitshalber selbst weg, meldet
 den Baum an den Habits-Dienst und ruft den Kurzbefehl „Fokus aus". Abbrechen
