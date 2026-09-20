@@ -201,8 +201,9 @@ FoodEntry      id, date, dishId?, name, grams, per100g, meal, createdAt: Instant
 DaySummary     date, targets, consumed, remaining,
                entries: [FoodEntry], mealTargets: [Meal: Double]
 DayTotal       date, consumed: Nutrients
-DayAverage     date, kcal, days, complete   (zentriertes 7-Tage-Fenster, nur Tage mit Eintrag;
-               complete = false, solange das Fenster in die Zukunft reicht)
+DayAverage     date, kcal, days, complete   (zentriertes 7-Tage-Fenster, nur abgeschlossene Tage
+               mit Eintrag - heute und vorerfasste kuenftige Tage zaehlen nicht;
+               complete = false, solange das Fenster bis heute oder darueber hinaus reicht)
 NewEntryRequest date, dishId?, dish?: DishRequest, grams, meal
 QuickCaptureJob id, status ("running"|"done"|"failed"), preview?, error?, elapsedSeconds
 QuickCapturePreview known, dishId?, name, per100g, portionG?, grams, meal,

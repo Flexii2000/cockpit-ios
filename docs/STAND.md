@@ -10,7 +10,9 @@
 ## kcal als 7-Tage-Mittel in beiden Tabs · **gebaut** (2026-09-20)
 
 Gewicht-Tab und Essen-Tab zeigen die kcal jetzt als gleitendes 7-Tage-Mittel
-(zentriert, nur Tage mit Eintrag, vorläufiger Rand gepunktet), der Tageswert
+(zentriert, nur abgeschlossene Tage mit Eintrag – der laufende Tag und
+vorerfasste künftige Tage zählen nicht, ihre Summe wächst noch –, vorläufiger
+Rand gepunktet), der Tageswert
 ist ein blasserer Umschalter und standardmäßig aus. Der Wert kommt fertig vom
 Kalorienzähler (`/api/food/daily-average`, `DayAverage`); die Läufe baut
 `DaySeries.averageRuns` (bricht an Lücken und am Umschlag von `complete`, der
