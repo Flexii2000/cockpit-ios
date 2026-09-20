@@ -52,9 +52,9 @@ blieb auch mit vorheriger Nachfrage leer — jetzt Apples eigener
 `.familyActivityPicker`-Modifier statt eines selbstgebauten Blatts (der
 Picker ist eine entfernte Ansicht), der Whitelist-Hinweis steht als Untertitel
 im Menüeintrag, und unter „Baum pflanzen" steht der Stand der Erlaubnis,
-solange sie fehlt (`ScreenTimeGuard.note`). Offen: ob Bildschirmzeit auf dem
-Handy überhaupt eingeschaltet ist — ohne sie hat der Picker womöglich keinen
-App-Katalog.
+solange sie fehlt (`ScreenTimeGuard.note`). Auflösung: der Picker war nur
+**langsam** — er lädt die Apps mit Verzögerung, wer sofort schaut, sieht eine
+leere Liste. Alles gut, Erlaubnis erteilt; Apples Blatt bleibt trotzdem.
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`
