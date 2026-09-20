@@ -55,6 +55,8 @@ im Menüeintrag, und unter „Baum pflanzen" steht der Stand der Erlaubnis,
 solange sie fehlt (`ScreenTimeGuard.note`). Auflösung: der Picker war nur
 **langsam** — er lädt die Apps mit Verzögerung, wer sofort schaut, sieht eine
 leere Liste. Alles gut, Erlaubnis erteilt; Apples Blatt bleibt trotzdem.
+Während einer Session sind „Erlaubte Apps" und der Testbaum im Menü gesperrt —
+die Liste soll nicht anfassbar sein, solange ein Baum wächst (Felix).
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`

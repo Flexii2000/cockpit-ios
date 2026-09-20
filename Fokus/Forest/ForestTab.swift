@@ -62,6 +62,11 @@ struct ForestTab: View {
                             // die Fokus-App selbst, so die Annahme.
                             Text("Fokus selbst mit auswählen")
                         }
+                        // Was gesperrt ist, steht mit dem Pflanzen fest. Am
+                        // laufenden Schild aenderte die Liste ohnehin nichts -
+                        // sie soll waehrend einer Session aber auch nicht
+                        // anfassbar sein (Felix, 2026-09-20).
+                        .disabled(store.active != nil)
                         Toggle("Kurzbefehle „Fokus an/aus“", isOn: $store.shortcutsEnabled)
                         Divider()
                         // Zum Durchspielen des Ablaufs - Schild, Meldung,
