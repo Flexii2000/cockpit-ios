@@ -55,6 +55,54 @@ Die vier Ein-Minuten-Bäume von davor stehen noch beim Dienst; der bekam
 werden sie gefällt. Auf dem Gerät noch nicht durchgespielt: Kurzbefehl mit
 Minuten, „Apps wieder frei" von der Erweiterung.
 
+## Healthy: Wischen zwischen Tagen & Barcode-Scanner · **gebaut** (2026-09-21)
+
+**Wischen:** Im Essen-Tab blättert ein waagerechter Wisch den Tag — nach links
+der nächste, nach rechts der vorige, dieselben Regeln wie die Pfeile (auch in
+die Zukunft, zum Vorplanen). Die Geste (`DaySwipe`, `simultaneousGesture`,
+erst am Ende ausgewertet: mehr als 60 pt und deutlich waagerechter als
+senkrecht) hängt am Tacho-Block, an den Mahlzeiten-Überschriften und den
+„Hinzufügen"-Zeilen — bewusst **nicht** an den Eintragszeilen (dort heißt
+nach links wischen schon löschen), nicht am Diagramm (Ziehgeste liest Werte
+ab) und nicht an der Umschalter-Reihe (scrollt seitlich). Beim Wechsel gleitet
+nur der Tacho-Block zur Seite (`.id(day.date)` in einem ZStack mit
+Move-Transition, `.animation(value:)` erst nach dem ersten Blättern); die
+Liste wird nicht neu aufgebaut, die Mahlzeiten ändern sich zeilenweise.
+Pfeile, „Tag wählen" und „Heute" setzen dieselbe Richtung.
+
+**Scanner:** Neuer Knopf `barcode.viewfinder` in der Leiste des Essen-Tabs
+öffnet ein Blatt mit `VisionKit.DataScannerViewController` (EAN-8/13, UPC-E,
+Code 128, QR, ITF-14, DataMatrix, GS1 DataBar). `ProductCode` macht aus dem
+Inhalt die GTIN: Ziffern direkt, GS1 Digital Link (`/01/<GTIN>`) und
+GS1-Elementstring (`(01)…`); eine GTIN-14 mit führender 0 wird zur EAN-13.
+Alles andere (QR mit Webseite) zeigt „Kein Produktcode." und scannt weiter.
+Der erste Treffer schließt das Blatt; erst danach (`onDismiss`) fragt der Tab
+**Open Food Facts** (`OpenFoodFactsAPI`, direkt aus der App, User-Agent
+`Cockpit-iOS/0.2 (private, non-commercial)`, keine Cookies; Parser
+`OpenFoodFactsParser` ohne Netz getestet) und öffnet das vorhandene
+`AddEntrySheet` vorausgefüllt: „Neues Gericht" mit Name (plus Marke in
+Klammern), Werten je 100 g (kcal aus `energy-kcal_100g`, sonst kJ / 4,184;
+fehlende Werte bleiben leer) und Gramm aus `serving_size` (erste Zahl mit
+g/ml, auch „1 Cube (6.52 g)"), ersatzweise aus `quantity`. Kennt die
+Merkliste den Namen schon, ist das vorhandene Gericht gewählt statt ein
+zweites anzulegen (`EntryPrefill`). Unbekannter Code: leeres Formular mit
+„Nicht in der Datenbank: <code>". Weil kein Mahlzeiten-Abschnitt dahinter
+steht, hat das Blatt vom Scanner aus einen Mahlzeit-Wähler, vorbelegt nach
+Uhrzeit (`Meal.suggested`). Kamera-Text `NSCameraUsageDescription` in
+`project.yml`; kein Scanner (Simulator) oder keine Erlaubnis → ein Satz statt
+Absturz. Debug-Schalter `COCKPIT_SCAN=<code>` liefert den Code ohne Kamera und
+öffnet den Ablauf von selbst (Simulator, `run-simulator.sh`).
+
+Geprüft: Healthy baut, Unit-Tests grün (ProductCode, Open-Food-Facts-Parser
+aus echten Antworten, Prefill, Wisch-Schwellen); im Simulator hell und dunkel:
+Essen-Tab mit Scan-Knopf, Blatt mit gescanntem Ritter-Sport-Produkt
+(`COCKPIT_SCAN=4000417025005`) und mit unbekanntem Code. **Nur auf dem Gerät
+prüfbar:** die Kamera selbst — ob `startScanning` in
+`updateUIViewController` zuverlässig anläuft, der Erlaubnis-Dialog, das
+Erkennen echter Packungen, und das Wischen auf echtem Glas. Der Harness hat den Wisch einmal gefahren
+(`tools/uitest.sh Healthy testSwipingLeftOnTheGaugesShowsTheNextDay`, grün:
+Wisch nach links über den Tachos, danach steht „Morgen" in der Leiste).
+
 ## Fokus: der Wald · **gebaut, auf dem Gerät, nicht durchgespielt** (2026-09-20)
 
 Neuer Tab **Wald** in Fokus: eine Fokus-Session pflanzt einen Baum. Dauer aus

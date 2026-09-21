@@ -152,6 +152,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
+| `COCKPIT_SCAN=4000417025005` | liefert im Essen-Tab sofort diesen Produktcode, als wäre er gescannt worden: das Scanner-Blatt geht auf, gibt ihn ohne Kamera ab, danach öffnet sich das Eintrag-Blatt mit dem Produkt aus Open Food Facts — im Simulator gibt es keine Kamera |
 | `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |
 | `COCKPIT_FORCE_LOCK=1` | Sperrbildschirm erzwingen (im Simulator ist kein Gesicht hinterlegt) |
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |

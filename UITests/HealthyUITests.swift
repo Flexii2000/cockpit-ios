@@ -111,6 +111,28 @@ final class HealthyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Löschen"].waitForExistence(timeout: 3))
     }
 
+    /// Ein Wisch nach links ueber den Tachos blaettert auf morgen - dieselbe
+    /// Regel wie der Pfeil. Der einzige Ort, an dem sich die Geste pruefen
+    /// laesst: simctl kann nicht wischen.
+    func testSwipingLeftOnTheGaugesShowsTheNextDay() {
+        let app = start(tab: "food")
+        XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.navigationBars["Heute"].waitForExistence(timeout: 10))
+
+        // Ueber den Tachos ansetzen, knapp unter der Leiste: dort liegt die
+        // Geste. Weiter unten kaemen Eintragszeilen (wischen loescht) oder das
+        // Diagramm (wischen liest Werte ab).
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.22))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.22))
+        start.press(forDuration: 0.05, thenDragTo: end)
+
+        // Erst aufnehmen, dann pruefen.
+        _ = app.navigationBars["Morgen"].waitForExistence(timeout: 10)
+        shoot(app, "essen-gewischt")
+        XCTAssertTrue(app.navigationBars["Morgen"].exists,
+                      "Nach dem Wisch nach links muss „Morgen“ in der Leiste stehen")
+    }
+
     func testTabsAreReachable() {
         let app = start(tab: "food")
         for tab in ["Gewicht", "Essen"] {

@@ -243,6 +243,45 @@ prüft das vorher, damit man den Fehler nicht erst nach dem Sichern sieht.
 durch (`APIError.http(Int, String?)`), weil „HTTP 400" die schlechtere von
 beiden Meldungen ist.
 
+### Open Food Facts — externe Quelle für den Barcode-Scanner (seit 2026-09-21)
+
+Kein eigener Dienst: die App fragt Open Food Facts **direkt** (Begründung in
+`ENTSCHEIDUNGEN.md`), der Kalorienzähler bekommt erst das fertige Gericht
+über `POST /api/food/entries` mit `dish`.
+
+```
+GET https://world.openfoodfacts.org/api/v2/product/<code>.json
+    ?fields=product_name,brands,quantity,serving_size,nutriments
+User-Agent: Cockpit-iOS/0.2 (private, non-commercial)     (Pflicht laut OFF; sonst nichts - keine Cookies, keine Kennung)
+```
+
+```
+gefunden       HTTP 200  {"code":"4000417025005","status":1,"status_verbose":"product found",
+                          "product":{"product_name":"…","brands":"Ritter Sport","quantity":"100g",
+                                     "serving_size":"1 Cube (6.52 g)","nutriments":{…}}}
+nicht gefunden HTTP 404  {"code":"…","status":0,"status_verbose":"product not found"}
+```
+
+Gelesen wird (`OpenFoodFactsParser`): `product_name`; `brands` (Liste mit
+Komma, nur der erste Name); `nutriments["energy-kcal_100g"]`, ersatzweise
+`energy_100g` (immer kJ) / 4,184; `proteins_100g`, `carbohydrates_100g`,
+`fat_100g`; die Portion in Gramm aus `serving_size`, ersatzweise `quantity`
+(erste Zahl mit `g`/`ml` irgendwo im Text — `1 Cube (6.52 g)` → 6,52,
+`6 x 125 g` → 125, `1 l` → nichts).
+
+⚠️ **Zahlen kommen mal als Zahl, mal als String** (`"proteins_100g":"1.1"`),
+je nachdem, wer den Eintrag angelegt hat — der Parser nimmt beides. Fehlende
+Nährwerte bleiben `nil` und im Blatt leer; eine Null wäre eine Behauptung.
+
+⚠️ **`status` sagt es doppelt:** ein unbekannter Code kommt als 404 **mit**
+JSON-Rumpf; die App wertet 404 wie 200 aus und liest `status`. Alles andere
+außerhalb von 2xx ist ein Fehler („Open Food Facts hat mit 503 geantwortet.").
+
+⚠️ **Codes normalisiert OFF selbst** (eine GTIN-14 `04000417025005` liefert
+das Produkt `4000417025005`); die App schneidet die führende 0 trotzdem vorher
+ab (`ProductCode`), damit „Nicht in der Datenbank: <code>" und der
+Namensabgleich mit der Merkliste denselben Code sehen.
+
 ## Noten — `/grades/api`
 
 Quelle: `../grades/app/api/routen.py` und `../grades/app/lib/berechnung.py`.
