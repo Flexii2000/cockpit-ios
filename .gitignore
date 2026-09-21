@@ -26,3 +26,6 @@ HealthyWidget/Info.plist
 FokusWidget/Info.plist
 Fokus/Info.plist
 FokusMonitor/Info.plist
+
+# Arbeitsbaeume der Agenten - eingebettete Repos, nie mit einchecken.
+.claude/worktrees/
