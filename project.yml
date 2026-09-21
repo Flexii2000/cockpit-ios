@@ -111,6 +111,9 @@ targets:
         # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
         # App beim ersten HealthKit-Aufruf.
         INFOPLIST_KEY_NSHealthShareUsageDescription: Damit dein Gewicht und deine Schritte aus Health automatisch in Healthy landen.
+        # Der Barcode-Scanner im Essen-Tab. Ohne den Satz beendet iOS die App
+        # beim ersten Kamerazugriff.
+        INFOPLIST_KEY_NSCameraUsageDescription: Zum Scannen der Barcodes auf Lebensmittelpackungen.
 
   HealthyWidget:
     type: app-extension

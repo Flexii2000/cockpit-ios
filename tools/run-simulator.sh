@@ -53,6 +53,11 @@
 # COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
 # fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
 # Bildschirms, und scrollen kann simctl nicht.
+#
+# COCKPIT_SCAN=4000417025005 liefert im Essen-Tab sofort diesen Produktcode, als
+# waere er gescannt worden: das Scanner-Blatt geht auf, gibt ihn ohne Kamera ab,
+# und danach oeffnet sich das Eintrag-Blatt mit dem Produkt aus Open Food Facts.
+# Im Simulator gibt es keine Kamera.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -100,6 +105,7 @@ SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
 SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \
+SIMCTL_CHILD_COCKPIT_SCAN="${COCKPIT_SCAN:-}" \
 SIMCTL_CHILD_COCKPIT_FORCE_LOCK="${COCKPIT_FORCE_LOCK:-}" \
 SIMCTL_CHILD_COCKPIT_NO_LOCK="${COCKPIT_NO_LOCK:-}" \
 SIMCTL_CHILD_COCKPIT_NO_PUSH="${COCKPIT_NO_PUSH:-}" \

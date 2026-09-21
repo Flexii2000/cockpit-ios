@@ -3,6 +3,40 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-21 — Open Food Facts direkt aus der App, nicht über den Kalorienzähler
+Der Barcode-Scanner fragt `world.openfoodfacts.org/api/v2/product/<code>.json`
+selbst ab (`OpenFoodFactsAPI`, nur `product_name`, `brands`, `quantity`,
+`serving_size`, `nutriments`, User-Agent `Cockpit-iOS/0.2 (private,
+non-commercial)`, keine Cookies, keine Kennung). **Warum:** Es ist eine
+öffentliche, anonyme Leseanfrage ohne Geheimnis — es gibt nichts, was ein
+Server dazwischen schützen oder berechnen müsste; der Kalorienzähler bekommt
+wie bisher nur das fertige Gericht (`POST /entries` mit `dish`). Ein Umweg
+über `../food` hieße einen neuen Endpunkt, ein Ausrollen und eine zweite
+Stelle, die die Antwort liest, nur um sie durchzureichen. Das Parsen liegt
+in einem eigenen Typ (`OpenFoodFactsParser`) und ist aus echten Antworten
+ohne Netz getestet. **Verworfen:** (a) ein Proxy-Endpunkt im Kalorienzähler
+(`GET /api/food/lookup/{code}`) — mehr Code an zwei Stellen für dieselbe
+Antwort, und ohne den Dienst geht dann auch das Scannen nicht; (b) eine
+Produkt-Datenbank im Dienst spiegeln — Open Food Facts ist zu groß und
+ändert sich laufend. Wird eine zweite Quelle nötig (Nutritionix, fddb),
+ist das der Punkt, an dem ein Dienst-Endpunkt sinnvoll wird.
+
+## 2026-09-21 — Scanner mit VisionKit statt AVFoundation
+Der Scanner ist `VisionKit.DataScannerViewController` in einem
+`UIViewControllerRepresentable`, nicht eine eigene `AVCaptureSession` mit
+`AVCaptureMetadataOutput`. **Warum:** VisionKit bringt Kamera-Vorschau,
+Fokus, Hervorheben des erkannten Codes, Zoom per Fingergeste und die
+Anleitung („Code ausrichten") fertig mit — mit AVFoundation wären das alles
+eigene Layer und eigene Delegaten. Die Abfrage `isSupported`/`isAvailable`
+sagt vorher, ob es geht (im Simulator: nein), und die Kamera-Erlaubnis
+holt die App selbst über `AVCaptureDevice`, bevor der Scanner steht. Preis:
+iOS 16+, kein Simulator — beides gilt hier ohnehin (Deployment iOS 18, und
+der Ablauf hinter dem Scan ist über `COCKPIT_SCAN` ohne Kamera prüfbar).
+**Verworfen:** (a) `AVCaptureSession` + `AVCaptureMetadataOutput` — läuft
+auch im Simulator nicht, aber deutlich mehr Code für weniger; (b) eine
+Fremdbibliothek (z. B. CodeScanner) — eine Abhängigkeit für das, was das
+System selbst kann.
+
 ## 2026-09-20 — Wald: Sperre über das Screen-Time-API, Ende in einer eigenen Erweiterung
 Eine Fokus-Session sperrt alle anderen Apps über `ManagedSettings` (Schild auf
 alle Kategorien außer der Whitelist aus Apples `FamilyActivityPicker`); das

@@ -8,6 +8,18 @@ struct FoodTab: View {
     @State private var editing: FoodEntry?
     @State private var showingTargets = false
     @State private var showingDatePicker = false
+    /// Von welcher Seite der naechste Tag hereinkommt. `nil`, solange noch
+    /// nicht geblaettert wurde - der erste Aufbau soll nicht rutschen.
+    @State private var slideEdge: Edge?
+
+    @State private var showingScanner = false
+    /// Was der Scanner geliefert hat. Nachgeschlagen wird erst, wenn sein
+    /// Blatt zu ist - ein zweites Blatt kann vorher nicht aufgehen.
+    @State private var scannedCode: String?
+    @State private var scanResult: ScanResult?
+    @State private var lookingUp: String?
+    @State private var scanError: String?
+    private let openFoodFacts = OpenFoodFactsAPI()
 
     /// Traegt die Mahlzeit, aus deren Abschnitt heraus „+" getippt wurde.
     struct AddTarget: Identifiable {
@@ -39,8 +51,37 @@ struct FoodTab: View {
                     }
                 }
 
+                if let code = lookingUp {
+                    Section { lookupRow(code) }
+                }
+
+                if let message = scanError {
+                    Section {
+                        ErrorBanner(message: message, isAccessProblem: false)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .onTapGesture { scanError = nil }
+                    }
+                }
+
                 if let day = store.day {
-                    Section { gauges(day) }
+                    Section {
+                        // Beim Blaettern gleitet nur der Tacho-Block zur Seite.
+                        // Ein `.id` auf der ganzen Liste baute sie neu auf -
+                        // Scrollposition weg, kurzes Flackern -, und die
+                        // Mahlzeiten darunter aendern sich ohnehin zeilenweise.
+                        // Der ZStack ist die stabile Zeile, in der alter und
+                        // neuer Block aneinander vorbeiziehen.
+                        ZStack {
+                            gauges(day)
+                                .id(day.date)
+                                .transition(dayTransition)
+                        }
+                        .clipped()
+                        .animation(slideEdge == nil ? nil : .easeInOut(duration: 0.25),
+                                   value: day.date)
+                        .daySwipe(step)
+                    }
                     ForEach(store.mealSections) { section in
                         mealSection(section, day: day)
                     }
@@ -64,6 +105,12 @@ struct FoodTab: View {
             }
             .task {
                 await store.load()
+                #if DEBUG
+                // COCKPIT_SCAN: den Scanner gleich aufmachen - einen Knopf
+                // kann simctl nicht druecken. Nach dem Laden, damit die
+                // Merkliste fuer den Abgleich schon da ist.
+                if BarcodeScannerSheet.debugCode != nil { showingScanner = true }
+                #endif
                 // Ein Auftrag, der beim letzten Beenden noch lief, rechnet auf
                 // dem Server weiter - hier wird er wieder aufgenommen.
                 await store.resumeQuickCaptureIfNeeded()
@@ -80,6 +127,12 @@ struct FoodTab: View {
                 }
             }
             .sheet(isPresented: $showingDatePicker) { datePicker }
+            .sheet(isPresented: $showingScanner, onDismiss: lookUpScannedCode) {
+                BarcodeScannerSheet { code in scannedCode = code }
+            }
+            .sheet(item: $scanResult) { result in
+                AddEntrySheet(store: store, meal: nil, scan: result)
+            }
         }
     }
 
@@ -97,7 +150,7 @@ struct FoodTab: View {
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button { Task { await store.step(days: -1) } } label: {
+            Button { step(-1) } label: {
                 Image(systemName: "chevron.left")
             }
         }
@@ -105,15 +158,22 @@ struct FoodTab: View {
             // Auch in die Zukunft: Mahlzeiten lassen sich vorplanen, und das
             // Backend nimmt Eintraege mit beliebigem Datum an - `today()`
             // steht dort nur als Vorgabe, wenn keins mitkommt.
-            Button { Task { await store.step(days: 1) } } label: {
+            Button { step(1) } label: {
                 Image(systemName: "chevron.right")
             }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { showingScanner = true } label: {
+                Image(systemName: "barcode.viewfinder")
+            }
+            .accessibilityLabel("Scannen")
+            .accessibilityIdentifier("scanButton")
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button("Tag wählen …") { showingDatePicker = true }
                 if !store.isToday {
-                    Button("Heute") { Task { await store.show(.today()) } }
+                    Button("Heute") { show(.today()) }
                 }
                 Divider()
                 NavigationLink("Gerichte verwalten") { DishListView(store: store) }
@@ -134,11 +194,9 @@ struct FoodTab: View {
                         set: { newValue in
                             let parts = Calendar(identifier: .gregorian)
                                 .dateComponents([.year, .month, .day], from: newValue)
-                            Task {
-                                await store.show(CalendarDate(year: parts.year ?? 2026,
-                                                              month: parts.month ?? 1,
-                                                              day: parts.day ?? 1))
-                            }
+                            show(CalendarDate(year: parts.year ?? 2026,
+                                              month: parts.month ?? 1,
+                                              day: parts.day ?? 1))
                         }),
                        displayedComponents: .date)
             .datePickerStyle(.graphical)
@@ -152,6 +210,60 @@ struct FoodTab: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Blaettern
+
+    /// Pfeile und Wischen laufen hier zusammen: erst die Richtung merken,
+    /// dann laden - der Uebergang liest sie, sobald der neue Tag da ist.
+    private func step(_ days: Int) {
+        slideEdge = days > 0 ? .trailing : .leading
+        Task { await store.step(days: days) }
+    }
+
+    private func show(_ date: CalendarDate) {
+        if date != store.date {
+            slideEdge = date > store.date ? .trailing : .leading
+        }
+        Task { await store.show(date) }
+    }
+
+    /// Der neue Tag kommt von der Seite, in die gewischt wurde; der alte geht
+    /// zur anderen hinaus. Ohne Richtung (erster Aufbau) gibt es keinen
+    /// Uebergang.
+    private var dayTransition: AnyTransition {
+        guard let slideEdge else { return .identity }
+        let opposite: Edge = slideEdge == .trailing ? .leading : .trailing
+        return .asymmetric(insertion: .move(edge: slideEdge).combined(with: .opacity),
+                           removal: .move(edge: opposite).combined(with: .opacity))
+    }
+
+    // MARK: - Scanner
+
+    /// Laeuft, wenn das Scanner-Blatt zu ist - erst dann darf das naechste
+    /// Blatt aufgehen. Ohne Code (abgebrochen) passiert nichts.
+    private func lookUpScannedCode() {
+        guard let code = scannedCode else { return }
+        scannedCode = nil
+        scanError = nil
+        lookingUp = code
+        Task {
+            do {
+                let product = try await openFoodFacts.product(code: code)
+                scanResult = ScanResult(code: code, product: product)
+            } catch {
+                scanError = error.localizedDescription
+            }
+            lookingUp = nil
+        }
+    }
+
+    private func lookupRow(_ code: String) -> some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text("Suche \(code) …").font(.callout)
+            Spacer()
+        }
     }
 
     /// Zeigt, dass im Hintergrund noch etwas laeuft. Ohne das waere nach dem
@@ -222,6 +334,8 @@ struct FoodTab: View {
             }
         }
         .padding(.vertical, 8)
+        // Die ganze Zeile nimmt den Wisch an, nicht nur die Bogen.
+        .contentShape(Rectangle())
     }
 
     /// Der Bogen reicht bis zum 1,25-fachen des Ziels - sonst saesse die
@@ -261,6 +375,8 @@ struct FoodTab: View {
                 // ausgeschrieben. Die Mülltonne sagt dasselbe und braucht
                 // weniger Weg - der Titel bleibt aber am Label stehen, damit
                 // VoiceOver etwas vorzulesen hat.
+                // Kein Tageswechsel auf diesen Zeilen: nach links wischen
+                // heisst hier schon loeschen.
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
                         Task { await store.deleteEntry(entry) }
@@ -278,6 +394,7 @@ struct FoodTab: View {
                     Label("Hinzufügen", systemImage: "plus.circle")
                         .font(.callout)
                 }
+                .daySwipe(step)
             }
         } header: {
             HStack {
@@ -297,6 +414,8 @@ struct FoodTab: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .contentShape(Rectangle())
+            .daySwipe(step)
         }
     }
 
