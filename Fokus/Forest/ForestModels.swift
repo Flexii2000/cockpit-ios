@@ -49,7 +49,7 @@ struct ActiveSession: Codable, Sendable, Equatable {
     }
 }
 
-/// Wie gross ein Baum im Wald gezeichnet wird: nach Dauer, nicht nach Wert -
+/// Welche Art Baum eine Session wird: nach Dauer, nicht nach Wert -
 /// laenger fokussiert, groesserer Baum.
 enum TreeSize: Comparable {
     case sapling, young, grown, old
@@ -62,14 +62,39 @@ enum TreeSize: Comparable {
         default:      self = .old
         }
     }
+}
 
-    var pointSize: CGFloat {
+/// Welcher Ausschnitt des Waldes zu sehen ist.
+enum ForestRange: String, CaseIterable, Identifiable {
+    case today, week, month, year
+
+    var id: String { rawValue }
+
+    var title: String {
         switch self {
-        case .sapling: 22
-        case .young:   30
-        case .grown:   38
-        case .old:     46
+        case .today: "Heute"
+        case .week:  "Woche"
+        case .month: "Monat"
+        case .year:  "Jahr"
         }
+    }
+
+    /// Wie viele Tage zurueck, den heutigen mitgezaehlt.
+    var days: Int {
+        switch self {
+        case .today: 1
+        case .week:  7
+        case .month: 30
+        case .year:  365
+        }
+    }
+
+    func contains(_ day: CalendarDate, today: CalendarDate = .today()) -> Bool {
+        guard day <= today else { return false }
+        let calendar = Calendar(identifier: .gregorian)
+        guard let first = calendar.date(byAdding: .day, value: -(days - 1), to: today.startOfDay())
+        else { return true }
+        return day >= CalendarDate(date: first)
     }
 }
 

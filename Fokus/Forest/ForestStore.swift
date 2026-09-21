@@ -40,17 +40,30 @@ final class ForestStore {
         didSet { ShortcutsBridge.isEnabled = shortcutsEnabled }
     }
 
-    /// So weit reicht der Wald zurueck. Aeltere Baeume stehen weiter beim
-    /// Dienst, nur nicht auf dem Bildschirm.
-    static let historyDays = 90
+    /// Welcher Ausschnitt gezeigt wird - gemerkt, damit die Wahl bleibt.
+    var range: ForestRange {
+        didSet { UserDefaults.standard.set(range.rawValue, forKey: Self.rangeKey) }
+    }
+
+    /// So weit reicht der Wald zurueck: ein Jahr, der groesste Ausschnitt.
+    static let historyDays = 365
 
     private static let activeKey = "forest.active"
     private static let unsyncedKey = "forest.unsynced"
+    private static let rangeKey = "forest.range"
     private var endWatcher: Task<Void, Never>?
 
     init() {
         whitelist = Whitelist.load()
         shortcutsEnabled = ShortcutsBridge.isEnabled
+        range = UserDefaults.standard.string(forKey: Self.rangeKey).flatMap(ForestRange.init) ?? .week
+        #if DEBUG
+        // Fuer Bilder jedes Ausschnitts - tippen kann der Simulator nicht.
+        if let raw = ProcessInfo.processInfo.environment["COCKPIT_FOREST_RANGE"],
+           let forced = ForestRange(rawValue: raw) {
+            range = forced
+        }
+        #endif
         active = Self.read(ActiveSession.self, key: Self.activeKey)
         unsynced = Self.read([FocusSession].self, key: Self.unsyncedKey) ?? []
         #if DEBUG
@@ -68,15 +81,30 @@ final class ForestStore {
         watchEnd()
     }
 
-    /// Der Wald: Tage mit ihren Baeumen, neueste zuerst. Lokal Fertiges steht
-    /// mit drin, solange der Dienst es noch nicht hat.
-    var days: [ForestDay] {
+    /// Alle Baeume: was der Dienst kennt plus das, was lokal noch wartet.
+    var allSessions: [FocusSession] {
         let known = Set(sessions.map(\.id))
-        return ForestDay.group(sessions + unsynced.filter { !known.contains($0.id) })
+        return sessions + unsynced.filter { !known.contains($0.id) }
+    }
+
+    /// Die Baeume im gewaehlten Ausschnitt.
+    var visibleSessions: [FocusSession] {
+        let today = CalendarDate.today()
+        return allSessions.filter { range.contains($0.day, today: today) }
+    }
+
+    /// Der Ausschnitt als Tage, neueste zuerst.
+    var visibleDays: [ForestDay] {
+        ForestDay.group(visibleSessions)
+    }
+
+    var visibleMinutes: Int {
+        visibleSessions.reduce(0) { $0 + $1.minutes }
     }
 
     var todayMinutes: Int {
-        days.first { $0.day == .today() }?.minutes ?? 0
+        let today = CalendarDate.today()
+        return allSessions.filter { $0.day == today }.reduce(0) { $0 + $1.minutes }
     }
 
     /// Das Tagesziel aus dem Habit „Fokus-Zeit" - ohne Habit kein Ziel.
@@ -246,6 +274,11 @@ final class ForestStore {
             let delay = session.end.timeIntervalSinceNow
             if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
             guard !Task.isCancelled else { return }
+            // Sich selbst austragen, BEVOR es weitergeht: `finish` raeumt den
+            // Waechter ab - waere das noch dieser Task, hiesse das, sich
+            // selbst zu unterbrechen, und jede Netzanfrage danach scheiterte
+            // mit „cancelled" (so kam die rote Zeile nach dem Testbaum).
+            self?.endWatcher = nil
             await self?.reconcile()
         }
     }

@@ -67,7 +67,7 @@ enum ShortcutsBridge {
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
     }
 
-    /// „Fokus an" mit dem Endzeitpunkt als Text-Eingabe (`2026-09-20 21:45`).
+    /// „Fokus an" mit der Restdauer in **Minuten** als Text-Eingabe („30").
     /// Liefert, ob die Kurzbefehle-App wirklich aufging - dann verlaesst
     /// die App den Vordergrund und der Aufrufer wartet mit dem Schild.
     @discardableResult
@@ -75,19 +75,15 @@ enum ShortcutsBridge {
         await run(onName, tag: "an", input: inputText(for: end))
     }
 
-    /// Der Endzeitpunkt, wie der Kurzbefehl ihn bekommt: auf die naechste
-    /// volle Minute **aufgerundet**. „Fokus einschalten bis" kennt nur
-    /// Minuten, und ein Zeitpunkt, der ohne Sekunden schon vorbei ist, gilt
-    /// als „bis morgen" - so blieb der Fokus-Modus nach dem Testbaum stehen.
-    /// Lieber eine Minute laenger still als einen Tag.
-    static func inputText(for end: Date) -> String {
-        let minute: TimeInterval = 60
-        let rounded = Date(timeIntervalSinceReferenceDate:
-                            ceil(end.timeIntervalSinceReferenceDate / minute) * minute)
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter.string(from: rounded)
+    /// Minuten statt eines Datums: ein Datum als Text muss der Kurzbefehl
+    /// erst lesen - Format, Sprache, Zeitzone, und beim Testbaum lag die
+    /// Zeit ohne Sekunden schon in der Vergangenheit, was der Fokus als „bis
+    /// morgen" nahm. Eine Zahl kennt keinen dieser Fehler; der Kurzbefehl
+    /// zaehlt sie mit „Datum anpassen" auf das aktuelle Datum. Aufgerundet
+    /// und mindestens eine: lieber eine Minute laenger still als zu kurz.
+    static func inputText(for end: Date, now: Date = Date()) -> String {
+        let minutes = Int(ceil(max(0, end.timeIntervalSince(now)) / 60))
+        return String(max(1, minutes))
     }
 
     @discardableResult

@@ -3,6 +3,31 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-21 — Wald in 3D mit SceneKit, aus Grundkörpern statt Modellen
+Der Wald ist eine Insel in SceneKit (`ForestScene`), die Bäume aus Kegeln,
+Kugeln und Zylindern, je Session eine Pflanzstelle in einer
+Sonnenblumen-Spirale. **Warum:** Felix will einen Wald, der „richtig
+ausgeschmückt, mindestens 3D" ist. SceneKit läuft in SwiftUI (`SceneView`)
+und im Simulator, kennt Schatten, Nebel und Aktionen (der wachsende Baum ist
+eine `scale`-Aktion), und ein paar hundert Knoten aus Grundkörpern reichen für
+den Low-Poly-Stil — keine USDZ-Dateien im Repo, nichts zu laden. Die Varianz
+je Baum kommt aus einem stabilen Hash der Session-Id, damit der Wald bei jedem
+Start gleich aussieht. **Verworfen:** (a) RealityKit/`RealityView` (mächtiger,
+aber auf Modelle und Materialien ausgelegt; für Kegel und Kugeln nichts
+gewonnen, und die Simulator-Unterstützung ist dünner); (b) ein 2D-Wald aus
+SF-Symbolen (war der erste Wurf, „noch nicht so schön"); (c) fertige
+3D-Modelle (Lizenzfragen, Dateien im Repo, eine Pipeline für einen Baum).
+
+## 2026-09-21 — Kurzbefehl „Fokus an" bekommt Minuten, kein Datum
+Die App übergibt dem Kurzbefehl die Restdauer in Minuten („30"), nicht mehr den
+Endzeitpunkt als Text. **Warum:** Ein Datum als Text muss der Kurzbefehl erst
+lesen — Format, Sprache, Zeitzone —, und beim Testbaum lag die Zeit ohne
+Sekunden schon in der Vergangenheit, was „Fokus einschalten bis" als „bis
+morgen" nahm. Eine Zahl kennt keinen dieser Fehler; der Kurzbefehl rechnet sie
+mit „Datum anpassen" auf das aktuelle Datum. **Verworfen:** (a) ISO-8601-Text
+(löst Format und Zeitzone, nicht das Aufrunden und nicht das Lesen); (b) „Fokus
+aus" aus der Erweiterung (Erweiterungen können keine Kurzbefehle starten).
+
 ## 2026-09-20 — Wald: Sperre über das Screen-Time-API, Ende in einer eigenen Erweiterung
 Eine Fokus-Session sperrt alle anderen Apps über `ManagedSettings` (Schild auf
 alle Kategorien außer der Whitelist aus Apples `FamilyActivityPicker`); das

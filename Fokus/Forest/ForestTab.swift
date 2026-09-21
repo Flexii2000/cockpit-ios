@@ -4,9 +4,10 @@ import SwiftUI
 /// Der Wald: jede durchgestandene Fokus-Session ein Baum.
 ///
 /// Oben der Baum, der gerade waechst (oder der Knopf, einen zu pflanzen),
-/// darunter der heutige Stand gegen das Tagesziel, darunter der Wald - Tag
-/// fuer Tag, neueste zuerst. Waehrend einer Session gibt es hier nichts zu
-/// tun: kein Abbrechen, keine Verlaengerung - das war die Vorgabe.
+/// darunter die Insel in 3D fuer den gewaehlten Ausschnitt - heute, Woche,
+/// Monat, Jahr -, darunter die Summe und die Tage. Waehrend einer Session
+/// gibt es hier nichts zu tun: kein Abbrechen, keine Verlaengerung - das war
+/// die Vorgabe.
 struct ForestTab: View {
 
     @Environment(\.scenePhase) private var scenePhase
@@ -18,7 +19,7 @@ struct ForestTab: View {
         @Bindable var store = store
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 16) {
                     if let message = store.errorMessage {
                         ErrorBanner(message: message, isAccessProblem: store.isAccessProblem)
                     }
@@ -27,18 +28,26 @@ struct ForestTab: View {
                     } else {
                         plantCard
                     }
-                    todayCard
-                    if store.days.isEmpty {
-                        if store.isLoading {
-                            LoadingPlaceholder()
-                        } else {
-                            Text("Noch kein Baum.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+
+                    Picker("Zeitraum", selection: $store.range) {
+                        ForEach(ForestRange.allCases) { range in
+                            Text(range.title).tag(range)
                         }
+                    }
+                    .pickerStyle(.segmented)
+
+                    ForestSceneView(sessions: store.visibleSessions, active: store.active)
+                        .frame(height: 320)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .accessibilityIdentifier("forestScene")
+
+                    summaryCard
+
+                    if store.visibleDays.isEmpty, store.isLoading {
+                        LoadingPlaceholder()
                     } else {
-                        ForEach(store.days) { day in
-                            ForestDayView(day: day)
+                        ForEach(store.visibleDays) { day in
+                            ForestDayRow(day: day)
                         }
                     }
                 }
@@ -81,8 +90,7 @@ struct ForestTab: View {
                 }
             }
             // Apples eigenes Blatt statt eines selbstgebauten: der Picker ist
-            // eine entfernte Ansicht eines Systemprozesses, und in einem
-            // eigenen Sheet blieb er auf dem Geraet leer (2026-09-20).
+            // eine entfernte Ansicht eines Systemprozesses.
             .familyActivityPicker(isPresented: $showingWhitelist, selection: $store.whitelist)
             .refreshable { await store.load() }
             .task {
@@ -133,19 +141,21 @@ struct ForestTab: View {
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private var todayCard: some View {
+    /// Die Summe des Ausschnitts; bei „Heute" dazu der Stand gegen das
+    /// Tagesziel des Habits, sofern es eins gibt.
+    private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Heute")
+                Text(store.range.title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(todayText)
+                Text(summaryText)
                     .font(.title3.weight(.semibold).monospacedDigit())
                     .foregroundStyle(goalReached ? Color.green : Color.primary)
-                    .accessibilityIdentifier("todayFocus")
+                    .accessibilityIdentifier("forestSummary")
             }
-            if let goal = store.dailyGoal, goal > 0 {
+            if store.range == .today, let goal = store.dailyGoal, goal > 0 {
                 ProgressBar(fraction: min(1, Double(store.todayMinutes) / Double(goal)),
                             reached: goalReached)
             }
@@ -155,15 +165,17 @@ struct ForestTab: View {
     }
 
     private var goalReached: Bool {
-        if let goal = store.dailyGoal { return store.todayMinutes >= goal }
-        return false
+        guard store.range == .today, let goal = store.dailyGoal else { return false }
+        return store.todayMinutes >= goal
     }
 
-    private var todayText: String {
-        if let goal = store.dailyGoal {
+    private var summaryText: String {
+        if store.range == .today, let goal = store.dailyGoal {
             return HabitProgress(value: store.todayMinutes, goal: goal).focusText
         }
-        return HabitProgress.hours(store.todayMinutes) + " h"
+        let count = store.visibleSessions.count
+        let trees = count == 1 ? "1 Baum" : "\(count) Bäume"
+        return "\(trees) · \(HabitProgress.hours(store.visibleMinutes)) h"
     }
 }
 
@@ -204,36 +216,25 @@ struct RunningSessionCard: View {
     }()
 }
 
-/// Ein Tag im Wald: Kopfzeile mit Summe, darunter die Baeume auf dem Boden.
-struct ForestDayView: View {
+/// Ein Tag im Ausschnitt: Name, Baeume, Minuten.
+struct ForestDayRow: View {
 
     let day: ForestDay
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(HabitProgress.hours(day.minutes) + " h")
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 46), spacing: 2)],
-                      alignment: .leading, spacing: 2) {
-                ForEach(day.sessions) { session in
-                    TreeView(minutes: session.minutes)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
-            .background(alignment: .bottom) {
-                // Der Boden: ein Streifen unter den Staemmen.
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.brown.opacity(0.25))
-                    .frame(height: 6)
-            }
+        HStack {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            Text(day.sessions.count == 1 ? "1 Baum" : "\(day.sessions.count) Bäume")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(HabitProgress.hours(day.minutes) + " h")
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 64, alignment: .trailing)
         }
+        .padding(.vertical, 4)
     }
 
     private var title: String {
@@ -250,31 +251,7 @@ struct ForestDayView: View {
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "de_DE")
-        formatter.dateFormat = "EEE, dd.MM."
+        formatter.dateFormat = "EEE, dd.MM.yy"
         return formatter
     }()
-}
-
-/// Ein Baum - je laenger die Session, desto groesser und dunkler.
-struct TreeView: View {
-
-    let minutes: Int
-
-    var body: some View {
-        let size = TreeSize(minutes: minutes)
-        Image(systemName: "tree.fill")
-            .font(.system(size: size.pointSize))
-            .foregroundStyle(Self.color(size))
-            .frame(width: 46, height: 52, alignment: .bottom)
-            .accessibilityLabel("\(minutes) Minuten")
-    }
-
-    private static func color(_ size: TreeSize) -> Color {
-        switch size {
-        case .sapling: Color(red: 0.55, green: 0.78, blue: 0.45)
-        case .young:   Color(red: 0.35, green: 0.68, blue: 0.35)
-        case .grown:   Color(red: 0.20, green: 0.56, blue: 0.28)
-        case .old:     Color(red: 0.10, green: 0.42, blue: 0.22)
-        }
-    }
 }

@@ -1,8 +1,10 @@
 # Stand
 
-> **Nächster Schritt:** Wald auf dem Gerät durchspielen (Felix): Habits-Dienst
-> ausrollen (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`)
-> — erledigt, antwortet. Fokus ist auf dem Handy (samt `FokusMonitor`).
+> **Nächster Schritt:** Habits-Dienst noch einmal ausrollen
+> (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`) — er
+> kann jetzt Bäume fällen (`DELETE /api/focus/sessions/{id}`); danach die vier
+> Ein-Minuten-Testbäume vom 20.09. löschen (Ids in `focus.json`, Sessions mit
+> `minutes: 1`). Fokus ist auf dem Handy (samt `FokusMonitor`).
 > Dann: Erlaubnis
 > „Bildschirmzeit" geben, unter „…" › „Erlaubte Apps" die Whitelist setzen
 > (**Fokus selbst mit dazu** — ob der Schild die eigene App mit sperrt, ist
@@ -14,6 +16,44 @@
 > nirgends, läuft aber denselben Weg samt Erweiterung: steht in der Meldung
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
+
+## Fokus: der Wald in 3D, Ausschnitte, Kurzbefehl mit Minuten · **gebaut** (2026-09-21)
+
+Der Wald ist jetzt eine **Insel in 3D** (`ForestScene`, SceneKit über
+SwiftUIs `SceneView`): Rasenscheibe auf einem Erdsockel, Bäume in einer
+Sonnenblumen-Spirale von innen nach aussen (ältester in der Mitte, die Insel
+wächst mit der Zahl), vier Arten nach Dauer (Setzling, junge Tanne,
+ausgewachsene Tanne ab 90 min, alter Laubbaum ab 150 min), je Baum leicht
+andere Grösse, Drehung und Grünton aus einem stabilen Hash der Session-Id
+(FNV-1a + SplitMix64 — `hashValue` ist je Prozess gesalzen), Blumen und
+Steine als Schmuck, eine Sonne mit weichem Schatten, Nebel in der Tiefe, die
+Kamera kreist langsam. Im Dunkelmodus Nacht: dunkler Himmel, kühles Licht.
+Der wachsende Baum steht mit auf der Insel und wächst als `SCNAction` über
+die Restzeit. Jeder Baum ist ein `flattenedClone` (ein Zeichenaufruf), ein
+Jahr mit ein paar hundert Bäumen bleibt flüssig; 30 fps, damit der Tab
+nicht den Akku frisst.
+
+**Ausschnitte:** Segment „Heute · Woche · Monat · Jahr" (`ForestRange`,
+gemerkt in den UserDefaults, `COCKPIT_FOREST_RANGE` fürs Bild); die App lädt
+ein Jahr. Darunter die Summe des Ausschnitts („62 Bäume · 102:45 h", bei
+„Heute" der Stand gegen das Tagesziel des Habits) und die Tage als Zeilen.
+
+**Zwei Fehler behoben:** (1) Die rote Zeile „cancelled" nach dem Testbaum:
+der Wächter-Task für das Session-Ende rief `finish`, und `finish` brach als
+Erstes den Wächter ab — sich selbst; jede Netzanfrage danach scheiterte mit
+„cancelled". Der Wächter trägt sich jetzt aus, bevor er weitermacht.
+(2) Der Kurzbefehl „Fokus an" bekommt statt einer Endzeit als Text jetzt die
+**Restdauer in Minuten** („30", aufgerundet, mindestens 1) — kein Datumsformat,
+keine Sprache, keine Zeitzone, und keine abgeschnittenen Sekunden mehr.
+Einrichtung des Kurzbefehls: Aktion „Datum" (aktuelles Datum) → „Datum
+anpassen" (Kurzbefehl-Eingabe Minuten hinzufügen) → „Fokus festlegen" ein,
+bis Uhrzeit = das angepasste Datum.
+
+**Testbäume:** zählen seit dem 20.09. nirgends (die App meldet sie nicht).
+Die vier Ein-Minuten-Bäume von davor stehen noch beim Dienst; der bekam
+`DELETE /api/focus/sessions/{id}` (Habits `9fbd951`), nach dem Ausrollen
+werden sie gefällt. Auf dem Gerät noch nicht durchgespielt: Kurzbefehl mit
+Minuten, „Apps wieder frei" von der Erweiterung.
 
 ## Fokus: der Wald · **gebaut, auf dem Gerät, nicht durchgespielt** (2026-09-20)
 
