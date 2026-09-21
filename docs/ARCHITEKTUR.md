@@ -66,8 +66,10 @@ Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
 FokusWidget/        Habits-Kachel
-FokusMonitor/       DeviceActivity-Erweiterung von Fokus: nimmt am Ende einer
-                    Fokus-Session den Schild weg - eine Datei, kein Shared/
+FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
+                    Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
+FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallstart
+                    den Schild (neu), nimmt ihn am Ende weg - eine Datei plus FocusShared/
 Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
 UITests/            Harness.swift (gemeinsam) + je App eine Datei, vier Bundles
 project.yml         Quelle des Xcode-Projekts - vier App-Targets, YAML-Anker für Gemeinsames
@@ -152,7 +154,12 @@ Erweiterung **FokusMonitor** (`com.apple.deviceactivity.monitor-extension`),
 die den Vorgabe-Store leert und die vorgeplante Ende-Meldung durch „Apps
 wieder frei" ersetzt — die App muss dafür nicht laufen. Kürzer als 15 Minuten
 nimmt DeviceActivity kein Intervall; eine kürzere Session (der Testbaum) wird
-mit zurückverlegtem Anfang angemeldet, das Ende bleibt das echte. Die laufende Session liegt in den UserDefaults; sobald
+mit zurückverlegtem Anfang angemeldet, das Ende bleibt das echte. **Ein
+Neustart des Handys nimmt den Schild weg**, das Intervall überlebt ihn aber:
+iOS ruft die Erweiterung dann erneut mit `intervalDidStart`, und die legt den
+Schild neu — dafür stehen laufende Session und erlaubte Apps in der
+App-Gruppe (`FocusShared/FocusHandoff`), nicht in den UserDefaults der App.
+Die App legt ihn zusätzlich bei jedem Vordergrund noch einmal. Die laufende Session liegt in den UserDefaults; sobald
 die App danach wieder aktiv ist (`ForestStore.reconcile`, beim Start und bei
 jedem Vordergrund), nimmt sie den Schild sicherheitshalber selbst weg, meldet
 den Baum an den Habits-Dienst und ruft den Kurzbefehl „Fokus aus". Abbrechen

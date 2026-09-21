@@ -49,6 +49,18 @@ Einrichtung des Kurzbefehls: Aktion „Datum" (aktuelles Datum) → „Datum
 anpassen" (Kurzbefehl-Eingabe Minuten hinzufügen) → „Fokus festlegen" ein,
 bis Uhrzeit = das angepasste Datum.
 
+**Neustart:** Felix' Runde am Nachmittag: die Erweiterung gibt die Apps am
+Ende frei (also läuft sie), aber ein **Neustart des Handys nahm den Schild
+weg**. Jetzt liegen laufende Session und Whitelist in der App-Gruppe
+`group.com.fherrmann.fokus` (`FocusShared/FocusHandoff`, `Whitelist`), die
+Erweiterung legt den Schild in `intervalDidStart` (neu) — iOS ruft das nach
+einem Neustart erneut —, und die App legt ihn bei jedem Vordergrund noch
+einmal (`ScreenTimeGuard.reshield`). Ungeprüft: ob iOS `intervalDidStart`
+nach dem Neustart wirklich ruft (Apples Muster sagt ja). Der Fokus-Modus
+blieb bei Felix weiter an, bis er die App öffnete — der Kurzbefehl muss noch
+nach dem Minuten-Rezept gebaut werden (Web bestätigt das Rezept: „Datum
+anpassen" + „Fokus festlegen bis Uhrzeit" mit der Variable).
+
 **Testbäume:** zählen seit dem 20.09. nirgends (die App meldet sie nicht).
 Die vier Ein-Minuten-Bäume von davor stehen noch beim Dienst; der bekam
 `DELETE /api/focus/sessions/{id}` (Habits `9fbd951`), nach dem Ausrollen

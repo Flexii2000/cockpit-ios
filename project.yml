@@ -14,6 +14,7 @@
 #              das es in einer App-Erweiterung nicht gibt (UIApplication.shared)
 #   Core/      was alle Apps brauchen, aber keine Erweiterung
 #   Shopping/  der Einkaufs-Tab - in Healthy UND in Einkaufsliste, sonst nirgends
+#   FocusShared/ was Fokus UND die Erweiterung FokusMonitor teilen (Session, Whitelist, Schild)
 #   <App>/     nur diese App
 name: Cockpit
 
@@ -59,6 +60,10 @@ _app_settings: &app_settings
 # alte, um die vorhandenen Eintraege in die geteilte zu holen
 # (Access.migrateToSharedGroup).
 _shared_group: &shared_group $(AppIdentifierPrefix)com.fherrmann.shared
+
+# Die App-Gruppe von Fokus und FokusMonitor: laufende Session und erlaubte
+# Apps, damit die Erweiterung den Schild nach einem Neustart neu legen kann.
+_focus_group: &focus_group group.com.fherrmann.fokus
 
 _widget_info: &widget_info
   # Der Bezeichner muss UNTER NSExtension stehen. Auf oberster Ebene baut
@@ -170,6 +175,7 @@ targets:
       - path: Fokus
       - path: Core
       - path: Shared
+      - path: FocusShared
     dependencies:
       - target: FokusWidget
         embed: true
@@ -193,6 +199,11 @@ targets:
         # „Baum gepflanzt" soll auch durch einen noch laufenden Fokus-Modus
         # kommen.
         com.apple.developer.usernotifications.time-sensitive: true
+        # Die laufende Session und die erlaubten Apps muss auch FokusMonitor
+        # lesen koennen - nach einem Neustart legt die Erweiterung den Schild
+        # neu (FocusShared/FocusHandoff.swift).
+        com.apple.security.application-groups:
+          - *focus_group
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.fherrmann.fokus
           - *shared_group
@@ -244,10 +255,13 @@ targets:
     platform: iOS
     sources:
       - path: FokusMonitor
+      - path: FocusShared
     entitlements:
       path: FokusMonitor/FokusMonitor.entitlements
       properties:
         com.apple.developer.family-controls: true
+        com.apple.security.application-groups:
+          - *focus_group
     info:
       path: FokusMonitor/Info.plist
       properties:

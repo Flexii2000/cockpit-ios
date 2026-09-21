@@ -3,6 +3,20 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-21 — Schild auch aus der Erweiterung, Session in einer App-Gruppe
+Die Erweiterung `FokusMonitor` legt den Schild beim Start ihres Intervalls
+(neu), nicht nur die App beim Pflanzen; laufende Session und erlaubte Apps
+liegen dafür in der App-Gruppe `group.com.fherrmann.fokus` (`FocusShared/`).
+**Warum:** Ein Neustart des Handys nimmt den Schild weg — Felix hat es so an
+der Sperre vorbei geschafft. Das DeviceActivity-Intervall überlebt den
+Neustart, und iOS ruft `intervalDidStart` erneut; das ist auch Apples
+Muster (Schild in `intervalDidStart`, weg in `intervalDidEnd`). Die
+Erweiterung sieht die UserDefaults der App nicht, daher die Gruppe.
+**Verworfen:** (a) nur die App beim nächsten Öffnen (bis dahin ist alles
+frei — genau die Lücke); (b) Hintergrund-Auffrischung (`BGAppRefreshTask`,
+Zeitpunkt nicht steuerbar); (c) die Whitelist in den Store-Namen kodieren
+(Stores lassen sich nicht aufzählen).
+
 ## 2026-09-21 — Wald in 3D mit SceneKit, aus Grundkörpern statt Modellen
 Der Wald ist eine Insel in SceneKit (`ForestScene`), die Bäume aus Kegeln,
 Kugeln und Zylindern, je Session eine Pflanzstelle in einer

@@ -21,9 +21,8 @@ import Foundation
 @MainActor
 final class ScreenTimeGuard {
 
-    /// Der Name der Ueberwachung. Steht genauso in FokusMonitor - die
-    /// Erweiterung uebersetzt keine App-Datei, deshalb zweimal.
-    static let activity = DeviceActivityName("fokus.session")
+    /// Der Name der Ueberwachung - geteilt mit der Erweiterung (FocusShared).
+    static let activity = DeviceActivityName(FocusHandoff.activityName)
 
     /// Kuerzer nimmt DeviceActivity kein Intervall an. Eine kuerzere Session
     /// (der Testbaum) wird trotzdem angemeldet - mit einem Anfang, der so
@@ -100,12 +99,7 @@ final class ScreenTimeGuard {
     /// sobald sie wieder laeuft (siehe ForestStore.reconcile).
     func shield(except allowed: FamilyActivitySelection, until session: ActiveSession) throws {
         if isDisabled { return }
-        store.shield.applicationCategories = .all(except: allowed.applicationTokens)
-        store.shield.webDomainCategories = .all(except: allowed.webDomainTokens)
-        // Einzelne Apps aus dem Blatt zusaetzlich freilassen - `applications`
-        // sperrt sonst nichts, die Kategorien haben schon alles abgedeckt.
-        store.shield.applications = nil
-        store.shield.webDomains = nil
+        FocusHandoff.applyShield(except: allowed, to: store)
 
         let calendar = Calendar.current
         let parts: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
@@ -118,6 +112,15 @@ final class ScreenTimeGuard {
         // soll die neue Anmeldung nicht stoeren.
         center.stopMonitoring([Self.activity])
         try center.startMonitoring(Self.activity, during: schedule)
+    }
+
+    /// Nur den Schild noch einmal legen, ohne das Intervall neu anzumelden -
+    /// bei jedem Vordergrund waehrend einer Session. Nach einem Neustart des
+    /// Handys ist der Schild weg; die Erweiterung legt ihn beim Intervall neu,
+    /// die App hier ebenfalls, wer zuerst kommt. Doppelt ist harmlos.
+    func reshield(except allowed: FamilyActivitySelection) {
+        if isDisabled { return }
+        FocusHandoff.applyShield(except: allowed, to: store)
     }
 
     /// Schild weg. Idempotent - darf so oft aufgerufen werden, wie es Wege

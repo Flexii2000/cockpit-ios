@@ -48,7 +48,6 @@ final class ForestStore {
     /// So weit reicht der Wald zurueck: ein Jahr, der groesste Ausschnitt.
     static let historyDays = 365
 
-    private static let activeKey = "forest.active"
     private static let unsyncedKey = "forest.unsynced"
     private static let rangeKey = "forest.range"
     private var endWatcher: Task<Void, Never>?
@@ -64,7 +63,7 @@ final class ForestStore {
             range = forced
         }
         #endif
-        active = Self.read(ActiveSession.self, key: Self.activeKey)
+        active = FocusHandoff.loadSession()
         unsynced = Self.read([FocusSession].self, key: Self.unsyncedKey) ?? []
         #if DEBUG
         // Nur fuers Bild: eine Session, die vor zehn Minuten begann. Ohne
@@ -166,7 +165,7 @@ final class ForestStore {
                                     end: now.addingTimeInterval(seconds),
                                     test: test)
         active = session
-        Self.write(session, key: Self.activeKey)
+        FocusHandoff.save(session)
         await scheduleEndNotification(session)
         errorMessage = nil
         watchEnd()
@@ -198,6 +197,10 @@ final class ForestStore {
             await finish(session)
         } else if !session.shielded {
             applyShield()
+        } else {
+            // Ein Neustart des Handys nimmt den Schild weg, die Session
+            // laeuft aber weiter - also bei jedem Vordergrund noch einmal.
+            screenTime.reshield(except: whitelist)
         }
     }
 
@@ -220,7 +223,7 @@ final class ForestStore {
         }
         session.shielded = true
         active = session
-        Self.write(session, key: Self.activeKey)
+        FocusHandoff.save(session)
     }
 
     private func finish(_ session: ActiveSession) async {
@@ -228,7 +231,7 @@ final class ForestStore {
         endWatcher = nil
         screenTime.lift()
         active = nil
-        UserDefaults.standard.removeObject(forKey: Self.activeKey)
+        FocusHandoff.clearSession()
         if !session.test {
             // Erst lokal festhalten, dann melden: geht das Melden schief, ist
             // der Baum nicht weg, sondern wartet.
@@ -287,8 +290,6 @@ final class ForestStore {
     /// einen noch laufenden Fokus-Modus kommt. Feste Kennung: die Erweiterung
     /// ersetzt sie durch „Apps wieder frei", sobald sie den Schild weggenommen
     /// hat - so steht in der Mitteilung, ob das Ende wirklich angekommen ist.
-    static let endNotificationID = "forest.end"
-
     private func scheduleEndNotification(_ session: ActiveSession) async {
         let content = UNMutableNotificationContent()
         content.title = session.test ? "Testbaum fertig" : "Baum gepflanzt"
@@ -298,7 +299,7 @@ final class ForestStore {
         content.interruptionLevel = .timeSensitive
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: max(1, session.end.timeIntervalSinceNow), repeats: false)
-        let request = UNNotificationRequest(identifier: Self.endNotificationID,
+        let request = UNNotificationRequest(identifier: FocusHandoff.endNotificationID,
                                             content: content, trigger: trigger)
         try? await UNUserNotificationCenter.current().add(request)
     }
