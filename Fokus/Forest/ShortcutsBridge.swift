@@ -72,10 +72,22 @@ enum ShortcutsBridge {
     /// die App den Vordergrund und der Aufrufer wartet mit dem Schild.
     @discardableResult
     static func focusOn(until end: Date) async -> Bool {
+        await run(onName, tag: "an", input: inputText(for: end))
+    }
+
+    /// Der Endzeitpunkt, wie der Kurzbefehl ihn bekommt: auf die naechste
+    /// volle Minute **aufgerundet**. „Fokus einschalten bis" kennt nur
+    /// Minuten, und ein Zeitpunkt, der ohne Sekunden schon vorbei ist, gilt
+    /// als „bis morgen" - so blieb der Fokus-Modus nach dem Testbaum stehen.
+    /// Lieber eine Minute laenger still als einen Tag.
+    static func inputText(for end: Date) -> String {
+        let minute: TimeInterval = 60
+        let rounded = Date(timeIntervalSinceReferenceDate:
+                            ceil(end.timeIntervalSinceReferenceDate / minute) * minute)
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return await run(onName, tag: "an", input: formatter.string(from: end))
+        return formatter.string(from: rounded)
     }
 
     @discardableResult

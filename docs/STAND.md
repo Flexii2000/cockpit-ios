@@ -73,7 +73,13 @@ Erweiterung auf 15 Minuten **nach hinten** gestreckt. Jetzt liegt der
 Ende ist das echte: die Erweiterung feuert pünktlich, auch beim Testbaum.
 Und sie **meldet sich**: die vorgeplante Meldung `forest.end` wird durch „Apps
 wieder frei" ersetzt — steht weiter „Baum gepflanzt", war die Erweiterung nicht
-da.
+da. Fünfte Runde (2026-09-21): der Fokus-Modus blieb nach dem Testbaum an, bis
+Felix die App öffnete („Fokus aus" läuft nur aus dem Vordergrund). Der
+Kurzbefehl „Fokus an" soll ihn deshalb befristen („bis Uhrzeit" aus der
+Eingabe) — die App übergab die Endzeit aber ohne Sekunden, und bei 20
+Sekunden war die abgeschnittene Zeit oft schon vorbei, was der Fokus als „bis
+morgen" nimmt. Jetzt rundet `ShortcutsBridge.inputText` auf die nächste volle
+Minute **auf**.
 
 **Ungeprüft, weil nur auf dem Gerät prüfbar:** ob der Schild die Fokus-App
 selbst sperrt (deshalb der Hinweis im Whitelist-Blatt), ob `intervalDidEnd`
