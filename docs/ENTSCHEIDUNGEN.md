@@ -3,6 +3,17 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-22 — Die Insel folgt der Sonne über Hamburg, nicht dem Dunkelmodus
+Tag, Dämmerung und Nacht der Insel kommen aus dem gerechneten Sonnenstand
+für einen festen Ort (Hamburg), nicht aus `colorScheme` und nicht aus dem
+Standort des Geräts. **Warum:** Felix will die Insel bei Tageslicht sehen,
+wenn draussen Tag ist — der Dunkelmodus sagt darüber nichts. Ein fester Ort
+spart die Standortabfrage samt Dialog; eine Viertelstunde Abweichung an
+einem anderen Ort sieht niemand. **Verworfen:** (a) Dunkelmodus als Nacht
+(war so, „immer Nacht"); (b) Standortabfrage (Dialog, Berechtigung, für
+Minuten Genauigkeit); (c) feste Uhrzeiten 7–20 Uhr (im Winter ist es um
+17 Uhr dunkel, im Sommer um 21 Uhr hell).
+
 ## 2026-09-22 — Essen-Tab: drei Karten im Pager statt einer Wisch-Geste
 Der Tag im Essen-Tab ist eine von drei Karten in einem `TabView(.page)`;
 Nachbarn liegen vorgeladen daneben. **Warum:** Felix will beim Wischen

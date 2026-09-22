@@ -18,6 +18,28 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Fokus: die Insel nach der Uhr, kein Flackern · **gebaut** (2026-09-22, nachmittags)
+
+**Tag und Nacht folgen der echten Uhr**, nicht mehr dem Dunkelmodus — Felix
+wollte die Insel nicht dauernd bei Nacht sehen. `Daylight.sun(at:)` rechnet
+den Sonnenstand über Hamburg (fester Ort, keine Standortabfrage;
+Deklination + Stundenwinkel, ohne Zeitgleichung): über dem Horizont Tag,
+bis sechs Grad darunter **Dämmerung** (neue Phase: violett-oranger Himmel,
+rosa Wolken, tiefe orange Sonne, warmes Licht), darunter Nacht. Die Sonne
+wandert: das Licht steht, wo sie steht (Azimut aus dem Stundenwinkel, Höhe
+gedeckelt), die Schatten wandern mit, im Himmelsbild sinkt der Sonnenschein
+mit der Höhe. Die Ansicht liest die Uhr alle fünf Minuten (`TimelineView`)
+und baut nur neu, wenn Phase oder Sonnenstand sich in groben Stufen bewegt
+haben. Debug: `COCKPIT_FOREST_HOUR=17.4` (UTC) fürs Bild.
+
+**Flackern behoben:** Die Grasflecken lagen alle exakt gleich hoch und
+stritten an ihren Überlappungen um den Vordergrund (Z-Fighting) — jeder
+Fleck hat jetzt eine eigene Höhe, Teich, Sand und Seerosen liegen gestaffelt
+darüber. Und die Schattenprojektion passte sich der kreisenden Kamera an,
+so wanderten die Schattenkanten; sie ist jetzt fest auf die Insel gelegt
+(`automaticallyAdjustsShadowProjection = false`, `orthographicScale`,
+2048er Schattenkarte). Im Simulator geprüft: Tag, Dämmerung, Nacht.
+
 ## Fokus: die Insel bunt · **gebaut** (2026-09-22, mittags)
 
 Felix fand die Wiese „bisschen tot" und wollte Baumsorten und Farbe. Jetzt:

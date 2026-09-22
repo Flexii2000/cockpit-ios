@@ -162,6 +162,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_NO_SCREENTIME=1` | Wald-Tab ohne Bildschirmzeit: kein Erlaubnis-Dialog, kein Schild, keine DeviceActivity — im Simulator gibt es das alles nicht, und so lässt sich eine Session trotzdem pflanzen |
 | `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
+| `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |

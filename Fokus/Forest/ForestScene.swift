@@ -19,10 +19,10 @@ enum ForestScene {
     private static let spacing: Float = 1.3
 
     @MainActor
-    static func build(sessions: [FocusSession], active: ActiveSession?, night: Bool) -> SCNScene {
+    static func build(sessions: [FocusSession], active: ActiveSession?, sun: Daylight.Sun) -> SCNScene {
         let scene = SCNScene()
-        let palette = Palette(night: night)
-        scene.background.contents = palette.skyImage()
+        let palette = Palette(phase: sun.phase)
+        scene.background.contents = palette.skyImage(sun: sun)
         let root = scene.rootNode
 
         // Pflanzreihenfolge: aelteste zuerst, die steht in der Mitte.
@@ -63,19 +63,33 @@ enum ForestScene {
         decorate(root, radius: radius, trees: count, avoiding: spots, palette: palette, rng: &rng)
         animateSky(root, radius: radius, trees: count, palette: palette, rng: &rng)
 
-        // Licht: eine Sonne mit weichem Schatten, dazu Grundhelligkeit.
-        let sun = SCNNode()
-        sun.light = SCNLight()
-        sun.light?.type = .directional
-        sun.light?.intensity = palette.sunIntensity
-        sun.light?.color = palette.sunColor
-        sun.light?.castsShadow = true
-        sun.light?.shadowMode = .deferred
-        sun.light?.shadowRadius = 6
-        sun.light?.shadowSampleCount = 16
-        sun.light?.shadowColor = UIColor.black.withAlphaComponent(palette.night ? 0.45 : 0.3)
-        sun.eulerAngles = SCNVector3(-1.0, 0.8, 0)
-        root.addChildNode(sun)
+        // Licht: die Sonne (nachts der Mond) mit weichem Schatten, dazu
+        // Grundhelligkeit. Sie steht, wo sie ueber Hamburg gerade steht -
+        // morgens im Osten, abends flach im Westen, die Schatten wandern mit.
+        // Die Schattenprojektion ist fest auf die Insel gelegt: passt sie sich
+        // der Kamera an, wandern die Schattenkanten bei jeder Drehung und die
+        // Wiese flackert.
+        let light = SCNNode()
+        light.light = SCNLight()
+        light.light?.type = .directional
+        light.light?.intensity = palette.sunIntensity
+        light.light?.color = palette.sunColor
+        light.light?.castsShadow = true
+        light.light?.shadowMode = .deferred
+        light.light?.shadowRadius = 5
+        light.light?.shadowSampleCount = 12
+        light.light?.shadowMapSize = CGSize(width: 2048, height: 2048)
+        light.light?.shadowColor = UIColor.black.withAlphaComponent(palette.night ? 0.45 : 0.3)
+        light.light?.automaticallyAdjustsShadowProjection = false
+        light.light?.orthographicScale = Double(radius) * 1.15
+        light.light?.zNear = 1
+        light.light?.zFar = Double(radius) * 6
+        let elevation = palette.night ? 0.9 : Float(max(0.28, min(1.2, sun.elevation)))
+        light.eulerAngles = SCNVector3(-elevation, Float(sun.azimuth) + .pi, 0)
+        // Der Lichtknoten steht hoch ueber der Insel, damit die feste
+        // Projektion alles erfasst.
+        light.position = SCNVector3(0, radius * 3, 0)
+        root.addChildNode(light)
 
         let ambient = SCNNode()
         ambient.light = SCNLight()
@@ -163,7 +177,10 @@ enum ForestScene {
             patch.radialSegmentCount = 18
             patch.firstMaterial = material(index % 2 == 0 ? palette.grassLight : palette.grassDark)
             let node = SCNNode(geometry: patch)
-            node.position = SCNVector3(r * cos(a), 0.005, r * sin(a))
+            // Jeder Fleck auf eigener Hoehe: liegen zwei Flaechen exakt
+            // gleich hoch, streiten sie bei jeder Kamerabewegung um den
+            // Vordergrund - das war das Flackern der Wiese.
+            node.position = SCNVector3(r * cos(a), 0.004 + 0.0006 * Float(index % 16), r * sin(a))
             node.scale = SCNVector3(1, 1, rng.next(in: 0.6...1))
             node.eulerAngles.y = rng.next(in: 0..<Float.pi)
             root.addChildNode(node)
@@ -225,7 +242,8 @@ enum ForestScene {
         sand.radialSegmentCount = 36
         sand.firstMaterial = material(palette.sand)
         let shore = SCNNode(geometry: sand)
-        shore.position.y = 0.01
+        // Ueber allen Grasflecken (die enden bei 0,025).
+        shore.position.y = 0.03
         node.addChildNode(shore)
 
         let water = SCNCylinder(radius: CGFloat(radius), height: 0.05)
@@ -237,7 +255,7 @@ enum ForestScene {
         wet.lightingModel = .blinn
         water.firstMaterial = wet
         let surface = SCNNode(geometry: water)
-        surface.position.y = 0.03
+        surface.position.y = 0.06
         node.addChildNode(surface)
 
         // Seerosen: flache gruene Scheiben mit einer rosa Bluete.
@@ -248,14 +266,14 @@ enum ForestScene {
             let leaf = SCNNode(geometry: pad)
             let r = rng.next(in: 0.15...(radius - 0.25))
             let a = rng.next(in: 0..<(2 * Float.pi))
-            leaf.position = SCNVector3(r * cos(a), 0.07, r * sin(a))
+            leaf.position = SCNVector3(r * cos(a), 0.1, r * sin(a))
             node.addChildNode(leaf)
             if rng.nextRaw() % 2 == 0 {
                 let bloom = SCNSphere(radius: 0.06)
                 bloom.segmentCount = 8
                 bloom.firstMaterial = material(palette.lilyBloom)
                 let flower = SCNNode(geometry: bloom)
-                flower.position = SCNVector3(leaf.position.x, 0.12, leaf.position.z)
+                flower.position = SCNVector3(leaf.position.x, 0.15, leaf.position.z)
                 node.addChildNode(flower)
             }
         }
@@ -533,7 +551,10 @@ enum ForestScene {
     // MARK: - Farben
 
     struct Palette {
-        let night: Bool
+        let phase: Daylight.Phase
+
+        var night: Bool { phase == .night }
+        var dusk: Bool { phase == .dusk }
 
         private func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> UIColor {
             UIColor(red: r, green: g, blue: b, alpha: 1)
@@ -562,7 +583,13 @@ enum ForestScene {
         var stone: UIColor { night ? rgb(0.35, 0.36, 0.38) : rgb(0.6, 0.6, 0.62) }
         var mushroomCap: UIColor { night ? rgb(0.55, 0.15, 0.12) : rgb(0.88, 0.22, 0.18) }
         var mushroomStem: UIColor { night ? rgb(0.6, 0.58, 0.5) : rgb(0.96, 0.94, 0.86) }
-        var cloud: UIColor { night ? rgb(0.35, 0.38, 0.5) : rgb(0.99, 0.99, 1.0) }
+        var cloud: UIColor {
+            switch phase {
+            case .day:   rgb(0.99, 0.99, 1.0)
+            case .dusk:  rgb(1.0, 0.82, 0.78)
+            case .night: rgb(0.35, 0.38, 0.5)
+            }
+        }
 
         var flowers: [UIColor] {
             night ? [rgb(0.75, 0.72, 0.6), rgb(0.7, 0.5, 0.55), rgb(0.55, 0.55, 0.75), rgb(0.7, 0.6, 0.35)]
@@ -590,18 +617,55 @@ enum ForestScene {
         }
         var blossomLight: UIColor { night ? rgb(0.7, 0.55, 0.62) : rgb(1.0, 0.85, 0.9) }
 
-        var skyTop: UIColor { night ? rgb(0.04, 0.06, 0.16) : rgb(0.5, 0.75, 0.95) }
-        var skyBottom: UIColor { night ? rgb(0.14, 0.18, 0.32) : rgb(0.9, 0.95, 0.99) }
+        var skyTop: UIColor {
+            switch phase {
+            case .day:   rgb(0.5, 0.75, 0.95)
+            case .dusk:  rgb(0.28, 0.24, 0.5)
+            case .night: rgb(0.04, 0.06, 0.16)
+            }
+        }
+        var skyBottom: UIColor {
+            switch phase {
+            case .day:   rgb(0.9, 0.95, 0.99)
+            case .dusk:  rgb(0.99, 0.66, 0.42)
+            case .night: rgb(0.14, 0.18, 0.32)
+            }
+        }
         var fog: UIColor { skyBottom }
-        var sunIntensity: CGFloat { night ? 420 : 1100 }
-        var sunColor: UIColor { night ? rgb(0.75, 0.82, 1.0) : rgb(1.0, 0.96, 0.88) }
-        var ambientIntensity: CGFloat { night ? 240 : 430 }
-        var ambientColor: UIColor { night ? rgb(0.6, 0.7, 1.0) : rgb(1, 1, 1) }
+        var sunIntensity: CGFloat {
+            switch phase {
+            case .day: 1100
+            case .dusk: 800
+            case .night: 420
+            }
+        }
+        var sunColor: UIColor {
+            switch phase {
+            case .day:   rgb(1.0, 0.96, 0.88)
+            case .dusk:  rgb(1.0, 0.72, 0.5)
+            case .night: rgb(0.75, 0.82, 1.0)
+            }
+        }
+        var ambientIntensity: CGFloat {
+            switch phase {
+            case .day: 430
+            case .dusk: 380
+            case .night: 240
+            }
+        }
+        var ambientColor: UIColor {
+            switch phase {
+            case .day:   rgb(1, 1, 1)
+            case .dusk:  rgb(0.95, 0.8, 0.85)
+            case .night: rgb(0.6, 0.7, 1.0)
+            }
+        }
 
-        /// Der Himmel als Bild: Verlauf, dazu am Tag ein weicher Sonnenschein,
-        /// nachts Sterne und Mond - SceneKit nimmt fuer den Hintergrund ein
-        /// Bild, und im Bild kostet das nichts.
-        func skyImage() -> UIImage {
+        /// Der Himmel als Bild: Verlauf, dazu die Sonne dort, wo sie steht -
+        /// hoch am Tag, tief und orange in der Daemmerung -, nachts Sterne
+        /// und Mond. SceneKit nimmt fuer den Hintergrund ein Bild, und im Bild
+        /// kostet das nichts.
+        func skyImage(sun: Daylight.Sun) -> UIImage {
             let size = CGSize(width: 512, height: 768)
             return UIGraphicsImageRenderer(size: size).image { context in
                 let cg = context.cgContext
@@ -626,13 +690,19 @@ enum ForestScene {
                     cg.setFillColor(UIColor(red: 0.98, green: 0.96, blue: 0.82, alpha: 1).cgColor)
                     cg.fillEllipse(in: moon)
                 } else {
-                    let center = CGPoint(x: size.width * 0.78, y: size.height * 0.16)
-                    let glow = [UIColor(red: 1, green: 0.98, blue: 0.85, alpha: 0.95).cgColor,
-                                UIColor(red: 1, green: 0.95, blue: 0.7, alpha: 0).cgColor] as CFArray
+                    // Hoehe im Bild aus der Sonnenhoehe: mittags oben, in der
+                    // Daemmerung knapp ueber der Insel.
+                    let height = CGFloat(max(0, min(1, sun.elevation / (Double.pi / 3))))
+                    let center = CGPoint(x: size.width * 0.78, y: size.height * (0.5 - 0.36 * height))
+                    let glow = dusk
+                        ? [UIColor(red: 1, green: 0.85, blue: 0.55, alpha: 0.98).cgColor,
+                           UIColor(red: 1, green: 0.6, blue: 0.3, alpha: 0).cgColor] as CFArray
+                        : [UIColor(red: 1, green: 0.98, blue: 0.85, alpha: 0.95).cgColor,
+                           UIColor(red: 1, green: 0.95, blue: 0.7, alpha: 0).cgColor] as CFArray
                     if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                                  colors: glow, locations: [0, 1]) {
                         cg.drawRadialGradient(gradient, startCenter: center, startRadius: 0,
-                                              endCenter: center, endRadius: 110, options: [])
+                                              endCenter: center, endRadius: dusk ? 150 : 110, options: [])
                     }
                 }
             }
@@ -678,33 +748,46 @@ enum ForestScene {
     }
 }
 
-/// Die Szene in SwiftUI. Neu gebaut, wenn sich Baeume, laufende Session oder
-/// Hell/Dunkel aendern - der wachsende Baum waechst dazwischen als Aktion.
+/// Die Szene in SwiftUI. Neu gebaut, wenn sich Baeume, laufende Session
+/// oder der Sonnenstand aendern - der wachsende Baum waechst dazwischen als
+/// Aktion. Tag und Nacht folgen der Uhr, nicht dem Dunkelmodus: Felix wollte
+/// die Insel nicht dauernd bei Nacht sehen (2026-09-22). Alle fuenf Minuten
+/// wird der Sonnenstand neu gelesen, gebaut aber nur, wenn er sich merklich
+/// bewegt hat (Zehntelgrad-Stufen alle paar Minuten reichen nicht).
 struct ForestSceneView: View {
 
     let sessions: [FocusSession]
     let active: ActiveSession?
 
-    @Environment(\.colorScheme) private var colorScheme
     @State private var scene: SCNScene?
 
     private struct Key: Equatable {
         let ids: [String]
         let activeID: String?
-        let night: Bool
+        let phase: Daylight.Phase
+        /// Sonnenhoehe und -richtung in groben Stufen, damit die Sonne
+        /// ueber den Tag wandert, ohne die Szene minuetlich neu zu bauen.
+        let elevationStep: Int
+        let azimuthStep: Int
     }
 
-    private var key: Key {
-        Key(ids: sessions.map(\.id), activeID: active?.id, night: colorScheme == .dark)
+    private func key(at date: Date) -> Key {
+        let sun = Daylight.sun(at: date)
+        return Key(ids: sessions.map(\.id), activeID: active?.id, phase: sun.phase,
+                   elevationStep: Int((sun.elevation * 20).rounded()),
+                   azimuthStep: Int((sun.azimuth * 12).rounded()))
     }
 
     var body: some View {
-        SceneView(scene: scene,
-                  options: [.rendersContinuously],
-                  preferredFramesPerSecond: 30,
-                  antialiasingMode: .multisampling4X)
-            .task(id: key) {
-                scene = ForestScene.build(sessions: sessions, active: active, night: colorScheme == .dark)
-            }
+        TimelineView(.periodic(from: .now, by: 300)) { context in
+            SceneView(scene: scene,
+                      options: [.rendersContinuously],
+                      preferredFramesPerSecond: 30,
+                      antialiasingMode: .multisampling4X)
+                .task(id: key(at: context.date)) {
+                    scene = ForestScene.build(sessions: sessions, active: active,
+                                              sun: Daylight.sun(at: context.date))
+                }
+        }
     }
 }

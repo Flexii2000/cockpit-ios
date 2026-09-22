@@ -50,6 +50,7 @@
 # im Simulator gibt es keine; so laesst sich eine Session trotzdem pflanzen.
 # COCKPIT_FOREST_RUNNING=45 zeigt dort eine laufende Session mit 45 Minuten Rest.
 # COCKPIT_FOREST_RANGE=month stellt den Wald auf einen Ausschnitt (today, week, month, year).
+# COCKPIT_FOREST_HOUR=19.5 stellt die Uhr der Insel (Stunde in UTC) - Daemmerung, Nacht.
 #
 # COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
 # fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
@@ -117,6 +118,7 @@ SIMCTL_CHILD_COCKPIT_TODO_AREA="${COCKPIT_TODO_AREA:-}" \
 SIMCTL_CHILD_COCKPIT_NO_SCREENTIME="${COCKPIT_NO_SCREENTIME:-}" \
 SIMCTL_CHILD_COCKPIT_FOREST_RUNNING="${COCKPIT_FOREST_RUNNING:-}" \
 SIMCTL_CHILD_COCKPIT_FOREST_RANGE="${COCKPIT_FOREST_RANGE:-}" \
+SIMCTL_CHILD_COCKPIT_FOREST_HOUR="${COCKPIT_FOREST_HOUR:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \
