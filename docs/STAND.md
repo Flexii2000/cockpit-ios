@@ -18,6 +18,22 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Fokus: die Insel bunt · **gebaut** (2026-09-22, mittags)
+
+Felix fand die Wiese „bisschen tot" und wollte Baumsorten und Farbe. Jetzt:
+**sechs Arten** aus dem Zufall der Session-Id — Tanne (Kegel), Eiche
+(Kugelkrone), Birke (weisser Stamm, helles Laub, schlank), Blütenbaum (rosa
+und weissrosa), Herbstbaum (orange/rot/gelb), Zypresse (schmaler Kegel) —,
+die Grösse weiter aus der Dauer (`TreeSize.scale`). Auf der Wiese
+Grasflecken in zwei weiteren Grüntönen, Blumen in sieben Farben mit Stiel
+und in Grüppchen, Büsche, Fliegenpilze, Steine, ein **Teich** mit Sandrand
+und Seerosen am freien Ufer der Insel (zwischen Spirale und Kante ist immer
+Platz). Am Tag Schmetterlinge, die um die Insel kreisen und wippen, und
+Wolken hoch darüber; der Himmel hat einen weichen Sonnenschein. Nachts
+Sterne und Mond im Himmelsbild, blinkende Glühwürmchen, alles dunkler und
+kühler. Im Simulator geprüft: Heute (leer, nur Wiese und Teich), Woche,
+Monat hell und dunkel.
+
 ## Healthy: Tage als Karten · Fokus: Restminuten-Intent, kein Balken · **gebaut** (2026-09-22)
 
 **Karten statt Umblenden.** Der Essen-Tab ist jetzt ein Pager

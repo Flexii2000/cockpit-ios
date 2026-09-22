@@ -1,7 +1,8 @@
 import Foundation
 
-/// Welche Art Baum eine Session wird: nach Dauer, nicht nach Wert -
-/// laenger fokussiert, groesserer Baum.
+/// Wie gross ein Baum wird: nach Dauer, nicht nach Wert - laenger
+/// fokussiert, groesserer Baum. Die Art (Tanne, Birke, Bluetenbaum …) kommt
+/// aus dem Zufall der Session-Id, damit der Wald bunt wird.
 enum TreeSize: Comparable {
     case sapling, young, grown, old
 
@@ -11,6 +12,16 @@ enum TreeSize: Comparable {
         case ..<90:   self = .young
         case ..<150:  self = .grown
         default:      self = .old
+        }
+    }
+
+    /// Der Massstab gegenueber einem ausgewachsenen Baum.
+    var scale: Float {
+        switch self {
+        case .sapling: 0.55
+        case .young:   0.8
+        case .grown:   1.0
+        case .old:     1.25
         }
     }
 }
