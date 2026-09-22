@@ -234,11 +234,15 @@ targets:
     sources:
       - path: FokusWidget
       - path: Shared
+      # Fuer die Fokus-Kachel: die laufende Session aus der App-Gruppe.
+      - path: FocusShared
     entitlements:
       path: FokusWidget/FokusWidget.entitlements
       properties:
         keychain-access-groups:
           - *shared_group
+        com.apple.security.application-groups:
+          - *focus_group
     info:
       path: FokusWidget/Info.plist
       properties: *widget_info

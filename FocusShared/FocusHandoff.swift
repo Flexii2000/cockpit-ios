@@ -24,6 +24,9 @@ enum FocusHandoff {
     static let endNotificationID = "forest.end"
 
     private static let sessionKey = "forest.active"
+    private static let todayMinutesKey = "forest.todayMinutes"
+    private static let todayGoalKey = "forest.todayGoal"
+    private static let todayDateKey = "forest.todayDate"
 
     static var defaults: UserDefaults {
         UserDefaults(suiteName: group) ?? .standard
@@ -44,6 +47,26 @@ enum FocusHandoff {
 
     static func clearSession() {
         defaults.removeObject(forKey: sessionKey)
+    }
+
+    // MARK: - Der Stand von heute (fuer die Kachel)
+
+    /// Die App legt nach jedem Laden ab, wie viele Fokus-Minuten heute
+    /// zusammenkamen und was das Ziel ist - die Kachel hat kein Netz und
+    /// zeigt das, sobald keine Session laeuft. Mit dem Datum: ein alter Stand
+    /// von gestern gilt nicht mehr.
+    static func saveToday(minutes: Int, goal: Int?) {
+        defaults.set(minutes, forKey: todayMinutesKey)
+        defaults.set(goal ?? 0, forKey: todayGoalKey)
+        defaults.set(ISO8601DateFormatter().string(from: Date()), forKey: todayDateKey)
+    }
+
+    static func loadToday() -> (minutes: Int, goal: Int?) {
+        guard let raw = defaults.string(forKey: todayDateKey),
+              let stamp = ISO8601DateFormatter().date(from: raw),
+              Calendar.current.isDateInToday(stamp) else { return (0, nil) }
+        let goal = defaults.integer(forKey: todayGoalKey)
+        return (defaults.integer(forKey: todayMinutesKey), goal > 0 ? goal : nil)
     }
 
     // MARK: - Der Schild

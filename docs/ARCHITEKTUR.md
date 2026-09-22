@@ -65,7 +65,7 @@ Core/               was alle vier Apps brauchen, aber keine Erweiterung:
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
-FokusWidget/        Habits-Kachel
+FokusWidget/        Habits-Kachel, Fokus-Countdown-Kachel, Live-Aktivität der Session
 FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
                     Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
 FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallstart

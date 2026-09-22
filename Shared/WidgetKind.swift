@@ -9,4 +9,5 @@ import Foundation
 enum WidgetKind {
     static let calories = "CaloriesRemaining"
     static let habits = "HabitStreaks"
+    static let focus = "FocusCountdown"
 }

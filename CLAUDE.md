@@ -22,7 +22,7 @@ Tagessummen); die Apps zeigen.
 | `Core/` | alle vier Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
 | `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
-| `FocusShared/` | Fokus **und** `FokusMonitor` | laufende Session, erlaubte Apps, die Schild-Regel — was die Erweiterung nach einem Neustart braucht, um den Schild neu zu legen (App-Gruppe `group.com.fherrmann.fokus`) |
+| `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
 | `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei plus `FocusShared/`, kein `Shared/`: legt beim Intervallstart den Schild (neu), nimmt ihn am Ende weg und ersetzt die Ende-Meldung durch „Apps wieder frei", sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut

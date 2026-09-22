@@ -11,6 +11,16 @@ struct WidgetPreviewTab: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    labelled("Fokus systemMedium, Session läuft") {
+                        FocusWidgetView(state: .placeholder)
+                            .padding(14)
+                            .frame(width: 338, height: 158)
+                    }
+                    labelled("Fokus systemMedium, ohne Session") {
+                        FocusWidgetView(state: FocusWidgetState(session: nil, todayMinutes: 135, goal: 240))
+                            .padding(14)
+                            .frame(width: 338, height: 158)
+                    }
                     labelled("Live-Aktivität (Sperrbildschirm)") {
                         FocusActivityView(start: Date().addingTimeInterval(-900),
                                           end: Date().addingTimeInterval(2_700),

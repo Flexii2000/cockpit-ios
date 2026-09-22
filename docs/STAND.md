@@ -18,6 +18,20 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Fokus: breite Kachel mit dem Countdown · **gebaut** (2026-09-22, nachmittags)
+
+Neue Homebildschirm-Kachel `FocusCountdownWidget` (`systemMedium`, Kennung
+`WidgetKind.focus`): links der Baum, rechts gross die Restzeit der laufenden
+Session (`Text(timerInterval:)`, zählt selbst), darunter „bis 21:45"; ohne
+Session der Stand von heute gegen das Tagesziel („2:15/4:00 h"). Kein Netz:
+die Kachel liest Session und Tagesstand aus der App-Gruppe
+(`FocusHandoff.loadSession`, `loadToday` — die App legt den Tagesstand nach
+jedem Laden ab), dafür hat `FokusWidget` jetzt die Gruppe und `FocusShared/`.
+Zeitleiste mit zwei Einträgen (jetzt und Ende der Session); App und
+`FokusMonitor` laden die Kachel bei Anfang und Ende neu. Ein Tipp öffnet den
+Wald (`cockpit://forest`). Ansicht in `Shared/FocusWidgetView.swift`, im
+Debug-Tab „Kachel" zu sehen.
+
 ## Fokus: die Insel nach der Uhr, kein Flackern · **gebaut** (2026-09-22, nachmittags)
 
 **Tag und Nacht folgen der echten Uhr**, nicht mehr dem Dunkelmodus — Felix

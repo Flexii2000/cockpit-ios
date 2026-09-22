@@ -1,6 +1,7 @@
 import DeviceActivity
 import ManagedSettings
 import UserNotifications
+import WidgetKit
 
 /// Haelt den Schild einer Fokus-Session, auch wenn die App laengst beendet
 /// ist. iOS startet diese Erweiterung selbst, wenn das bei
@@ -41,5 +42,7 @@ final class FocusSessionMonitor: DeviceActivityMonitor {
         content.interruptionLevel = .timeSensitive
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: FocusHandoff.endNotificationID, content: content, trigger: nil))
+        // Die Kachel zeigt sonst „0:00", bis die App das naechste Mal laeuft.
+        WidgetCenter.shared.reloadTimelines(ofKind: "FocusCountdown")
     }
 }

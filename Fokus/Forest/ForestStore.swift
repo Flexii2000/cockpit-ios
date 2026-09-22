@@ -1,6 +1,7 @@
 import FamilyControls
 import Foundation
 import UserNotifications
+import WidgetKit
 
 /// Haelt den Wald und fuehrt eine Session von „pflanzen" bis „steht".
 ///
@@ -132,6 +133,9 @@ final class ForestStore {
         } catch {
             report(error)
         }
+        // Der Kachel den Stand von heute mitgeben.
+        FocusHandoff.saveToday(minutes: todayMinutes, goal: dailyGoal)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.focus)
     }
 
     /// Pflanzt einen Baum. Das Rad bietet nichts unter 30 Minuten an.
@@ -170,6 +174,7 @@ final class ForestStore {
         FocusHandoff.save(session)
         await scheduleEndNotification(session)
         await LiveActivityBridge.start(session)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.focus)
         errorMessage = nil
         watchEnd()
         let left = await ShortcutsBridge.focusOn(until: session.end)
@@ -238,6 +243,7 @@ final class ForestStore {
         active = nil
         FocusHandoff.clearSession()
         await LiveActivityBridge.endAll()
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.focus)
         if !session.test {
             // Erst lokal festhalten, dann melden: geht das Melden schief, ist
             // der Baum nicht weg, sondern wartet.
