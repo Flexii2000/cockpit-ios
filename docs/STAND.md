@@ -17,6 +17,13 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## To-Do: Unteraufgaben-Zeile ohne Platzhalter · **gebaut** (2026-09-22)
+
+Die leere Zeile unter den Unteraufgaben zeigt nur noch den gestrichelten
+Kreis, kein „Unteraufgabe" mehr — Felix war der Text zu viel. Für VoiceOver
+bleibt die Beschriftung (`accessibilityLabel`). Im Web (`../todo`, `app.js`)
+genauso, dort bleibt das `aria-label`.
+
 ## Fokus: der Wald in 3D, Ausschnitte, Kurzbefehl mit Minuten · **gebaut** (2026-09-21)
 
 Der Wald ist jetzt eine **Insel in 3D** (`ForestScene`, SceneKit über

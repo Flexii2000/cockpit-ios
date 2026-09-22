@@ -185,18 +185,21 @@ private struct AreaPage: View {
 
     /// Die leere Zeile unter den Unteraufgaben: ein gestrichelter Kreis und
     /// ein Feld. Vorher steckte das Anlegen in einem Menue und in einer
-    /// Wischaktion - und war damit fuer niemanden zu finden.
+    /// Wischaktion - und war damit fuer niemanden zu finden. Der Kreis allein
+    /// sagt genug, ein Platzhaltertext daneben war Felix zu viel (2026-09-22);
+    /// fuer VoiceOver bleibt die Beschriftung.
     private func ghostRow(under parent: TodoItem) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: "circle.dashed")
                 .font(.title3)
                 .foregroundStyle(.tertiary)
-            TextField("Unteraufgabe", text: Binding(
+            TextField("", text: Binding(
                 get: { subDrafts[parent.id] ?? "" },
                 set: { subDrafts[parent.id] = $0 }))
                 .focused($subFocus, equals: parent.id)
                 .submitLabel(.done)
                 .onSubmit { submitSub(under: parent) }
+                .accessibilityLabel("Unteraufgabe")
                 .accessibilityIdentifier("newSub-\(parent.id)")
         }
         .padding(.leading, 28)
