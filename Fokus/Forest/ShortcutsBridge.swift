@@ -1,18 +1,16 @@
 import UIKit
 
-/// Ruft Felix' Kurzbefehle „Fokus an" und „Fokus aus" auf - die schalten den
-/// Fokus-Modus des Handys (Mitteilungen aus) ein und aus.
+/// Ruft Felix' Kurzbefehl „Fokus an" auf - der schaltet den Fokus-Modus des
+/// Handys ein (Sperrbildschirm, Mitteilungen), befristet bis zum Ende der
+/// Session: die Restdauer in Minuten geht als Eingabe mit.
 ///
-/// Warum ueber Kurzbefehle: eine App darf den Fokus-Modus des Systems nicht
-/// selbst schalten. Ein Kurzbefehl darf es, und ihn kann die App per
+/// Warum ueber einen Kurzbefehl: eine App darf den Fokus-Modus des Systems
+/// nicht selbst schalten. Ein Kurzbefehl darf es, und ihn kann die App per
 /// x-callback-URL anstossen. Die Kurzbefehle-App springt dabei kurz auf und
-/// kommt ueber `cockpit-fokus://forest` zurueck.
-///
-/// Der Aufruf geht nur aus dem Vordergrund. „Fokus aus" kommt deshalb, sobald
-/// die App nach dem Ende der Session wieder offen ist - meist ueber den Tipp
-/// auf die Meldung „Baum gepflanzt". Wer den Fokus-Modus punktgenau am Ende
-/// aus haben will, baut „Fokus an" mit dem uebergebenen Endzeitpunkt
-/// („Fokus einschalten bis …"); der kommt als Eingabe mit.
+/// kommt ueber `cockpit-fokus://forest` zurueck - ohne diesen Sprung geht es
+/// nicht, eine fremde App kann keinen Kurzbefehl im Hintergrund starten.
+/// Ein „Fokus aus" am Ende gibt es seit 2026-09-22 nicht mehr: der Modus
+/// endet von selbst, und ein zweiter Sprung war Felix zu viel.
 ///
 /// Die Rueckkehr traegt, was passiert ist: `?shortcut=an&result=ok|error|cancel`,
 /// bei einem Fehler haengt Kurzbefehle `errorMessage` an - so steht in der
@@ -60,7 +58,7 @@ enum ShortcutsBridge {
 
     private static let enabledKey = "forest.shortcutsEnabled"
 
-    /// Aus, wenn die Kurzbefehle (noch) nicht existieren - sonst meldet die
+    /// Aus, wenn der Kurzbefehl (noch) nicht existiert - sonst meldet die
     /// Kurzbefehle-App bei jeder Session einen Fehler.
     static var isEnabled: Bool {
         get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }

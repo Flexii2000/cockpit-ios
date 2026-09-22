@@ -247,7 +247,9 @@ final class ForestStore {
             persistUnsynced()
             await syncPending()
         }
-        await ShortcutsBridge.focusOff()
+        // Kein „Fokus aus" mehr: „Fokus an" befristet den Fokus-Modus bis
+        // zum Ende der Session, ein zweiter Sprung in die Kurzbefehle-App
+        // war Felix zu viel (2026-09-22).
         await load()
     }
 

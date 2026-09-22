@@ -76,7 +76,7 @@ struct ForestTab: View {
                         // sie soll waehrend einer Session aber auch nicht
                         // anfassbar sein (Felix, 2026-09-20).
                         .disabled(store.active != nil)
-                        Toggle("Kurzbefehle „Fokus an/aus“", isOn: $store.shortcutsEnabled)
+                        Toggle("Kurzbefehl „Fokus an“", isOn: $store.shortcutsEnabled)
                         Divider()
                         // Zum Durchspielen des Ablaufs - Schild, Meldung,
                         // Kurzbefehle - ohne eine halbe Stunde zu warten.

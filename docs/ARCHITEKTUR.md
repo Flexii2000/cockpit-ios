@@ -162,12 +162,13 @@ App-Gruppe (`FocusShared/FocusHandoff`), nicht in den UserDefaults der App.
 Die App legt ihn zusätzlich bei jedem Vordergrund noch einmal. Die laufende Session liegt in den UserDefaults; sobald
 die App danach wieder aktiv ist (`ForestStore.reconcile`, beim Start und bei
 jedem Vordergrund), nimmt sie den Schild sicherheitshalber selbst weg, meldet
-den Baum an den Habits-Dienst und ruft den Kurzbefehl „Fokus aus". Abbrechen
-gibt es nicht: keinen Knopf, keinen Weg über die App. Mitteilungen schaltet
-nicht die App (das darf sie nicht), sondern Felix' Kurzbefehle „Fokus an" /
-„Fokus aus", die die App per x-callback-URL aufruft; zurück kommt sie über
-das eigene URL-Schema `cockpit-fokus://forest` (deshalb hat Fokus als einzige
-App eine eigene `Info.plist` in `project.yml`).
+den Baum an den Habits-Dienst. Abbrechen gibt es nicht: keinen Knopf, keinen
+Weg über die App. Den Fokus-Modus (Sperrbildschirm, Mitteilungen) schaltet
+nicht die App (das darf sie nicht), sondern Felix' Kurzbefehl „Fokus an", den
+die App beim Pflanzen per x-callback-URL mit der Restdauer in Minuten
+aufruft — befristet bis zum Ende, ein „Fokus aus" braucht es nicht; zurück
+kommt sie über das eigene URL-Schema `cockpit-fokus://forest` (deshalb hat
+Fokus als einzige App eine eigene `Info.plist` in `project.yml`).
 
 **Die Live-Aktivität.** Jede Fokus-Session startet eine Live-Aktivität
 (`FocusActivityAttributes` in `Shared/`, Ansicht `FocusActivityView`, Widget

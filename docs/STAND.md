@@ -97,6 +97,13 @@ eine korrigierte, signierte Datei „Fokus an 2" wurde aus seinen echten
 Aktionsdaten gebaut (`shortcuts sign --mode anyone`, Modus „Forest" =
 `com.apple.donotdisturb.mode.leaffill`).
 
+Nachmittags lief „Fokus an" (aus „Fokus an 2" umbenannt) hier auf dem Mac
+mit Eingabe „1" fehlerfrei durch. **„Fokus aus" ist raus:** der Modus endet
+durch die Befristung von selbst, der zweite Sprung in die Kurzbefehle-App am
+Ende war Felix zu viel. Der Sprung beim Pflanzen bleibt — eine fremde App
+kann keinen Kurzbefehl im Hintergrund starten, und es gibt keinen
+Automations-Auslöser, den die App setzen könnte.
+
 **Testbäume:** zählen seit dem 20.09. nirgends (die App meldet sie nicht).
 Die vier Ein-Minuten-Bäume von davor stehen noch beim Dienst; der bekam
 `DELETE /api/focus/sessions/{id}` (Habits `9fbd951`), nach dem Ausrollen
