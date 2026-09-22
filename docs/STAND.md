@@ -86,6 +86,17 @@ blieb bei Felix weiter an, bis er die App öffnete — der Kurzbefehl muss noch
 nach dem Minuten-Rezept gebaut werden (Web bestätigt das Rezept: „Datum
 anpassen" + „Fokus festlegen bis Uhrzeit" mit der Variable).
 
+**Mitteilungen:** Felix' Beobachtung (2026-09-22): von gesperrten Apps kommen
+während einer Session auch **keine Mitteilungen** — der Schild hält sie mit
+zurück, anders als hier zuvor angenommen. Der Kurzbefehl-Umweg über einen
+Fokus-Modus ist damit nur noch für Anrufe, SMS und die Whitelist-Apps nötig;
+der Schalter „Kurzbefehle" im „…"-Menü kann sonst aus. Sein Kurzbefehl
+„Fokus an" verwendete in „festlegen bis" die Ausgabe von „Aktuelles Datum"
+statt der von „Hinzufügen" (aus der Zwischenablage gelesen, `OutputUUID`);
+eine korrigierte, signierte Datei „Fokus an 2" wurde aus seinen echten
+Aktionsdaten gebaut (`shortcuts sign --mode anyone`, Modus „Forest" =
+`com.apple.donotdisturb.mode.leaffill`).
+
 **Testbäume:** zählen seit dem 20.09. nirgends (die App meldet sie nicht).
 Die vier Ein-Minuten-Bäume von davor stehen noch beim Dienst; der bekam
 `DELETE /api/focus/sessions/{id}` (Habits `9fbd951`), nach dem Ausrollen
