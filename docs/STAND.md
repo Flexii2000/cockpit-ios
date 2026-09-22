@@ -1,10 +1,11 @@
 # Stand
 
-> **Nächster Schritt:** Habits-Dienst noch einmal ausrollen
-> (`ssh -t HeimServerRemote '~/services/habits/deploy/update-habits.sh'`) — er
-> kann jetzt Bäume fällen (`DELETE /api/focus/sessions/{id}`); danach die vier
-> Ein-Minuten-Testbäume vom 20.09. löschen (Ids in `focus.json`, Sessions mit
-> `minutes: 1`). Fokus ist auf dem Handy (samt `FokusMonitor`).
+> **Nächster Schritt:** Felix prüft auf dem Gerät: die Karten im Essen-Tab
+> (Diagramm-Ziehgeste und Umschalter-Reihe im Pager), die Automation für den
+> Fokus-Modus über „Fokus-Restminuten", und ob nach einem Neustart der Schild
+> zurückkommt. Habits und To-Do sind ausgerollt (22.09.), die vier
+> Ein-Minuten-Testbäume vom 20.09. sind gefällt — im Wald steht der erste
+> echte Baum (30 min, 22.09.). Fokus ist auf dem Handy (samt `FokusMonitor`).
 > Dann: Erlaubnis
 > „Bildschirmzeit" geben, unter „…" › „Erlaubte Apps" die Whitelist setzen
 > (**Fokus selbst mit dazu** — ob der Schild die eigene App mit sperrt, ist
