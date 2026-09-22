@@ -3,6 +3,25 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-22 — Essen-Tab: drei Karten im Pager statt einer Wisch-Geste
+Der Tag im Essen-Tab ist eine von drei Karten in einem `TabView(.page)`;
+Nachbarn liegen vorgeladen daneben. **Warum:** Felix will beim Wischen
+sehen, wie die Karten verschoben werden, nicht ein Umblenden am Ende der
+Geste. Ein Pager macht das nativ, samt Richtungserkennung gegen das
+senkrechte Scrollen und Abbremsen. **Verworfen:** (a) die bisherige
+`DragGesture` mit Übergang am Ende (kein Mitziehen, „Blink"); (b) eine eigene
+Zieh-Animation über der Liste (zwei Listen übereinander versetzen, Richtung
+selbst erkennen, Rand selbst abfedern — alles, was der Pager schon kann).
+
+## 2026-09-22 — Fokus-Modus per Automation und App Intent statt URL-Sprung
+Die App bietet die Aktion „Fokus-Restminuten" an; eine Automation „Wenn
+Fokus geschlossen wird" holt sie sich und befristet den Fokus-Modus. **Warum:**
+Der Sprung in die Kurzbefehle-App beim Pflanzen störte. Eine App kann keinen
+Kurzbefehl im Hintergrund starten, eine Automation aber läuft still — ihr
+fehlte nur die Endzeit, und die kann ein App Intent liefern. **Verworfen:**
+(a) nur der URL-Sprung (bleibt als Rückfall hinter dem Schalter); (b) die
+Automation auf „App geöffnet" (läuft dann vor dem Pflanzen).
+
 ## 2026-09-21 — Schild auch aus der Erweiterung, Session in einer App-Gruppe
 Die Erweiterung `FokusMonitor` legt den Schild beim Start ihres Intervalls
 (neu), nicht nur die App beim Pflanzen; laufende Session und erlaubte Apps

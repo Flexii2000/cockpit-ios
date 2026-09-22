@@ -22,16 +22,10 @@ struct FocusLiveActivity: Widget {
                         Image(systemName: "tree.fill")
                             .font(.system(size: 34))
                             .foregroundStyle(.green)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(timerInterval: context.attributes.start...context.attributes.end,
-                                 countsDown: true)
-                                .font(.system(size: 30, weight: .semibold, design: .rounded).monospacedDigit())
-                                .frame(width: 120, alignment: .leading)
-                            ProgressView(timerInterval: context.attributes.start...context.attributes.end,
-                                         countsDown: false,
-                                         label: { EmptyView() }, currentValueLabel: { EmptyView() })
-                                .tint(.green)
-                        }
+                        Text(timerInterval: context.attributes.start...context.attributes.end,
+                             countsDown: true)
+                            .font(.system(size: 30, weight: .semibold, design: .rounded).monospacedDigit())
+                            .frame(width: 120, alignment: .leading)
                     }
                 }
             } compactLeading: {

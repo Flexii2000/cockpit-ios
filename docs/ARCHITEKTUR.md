@@ -170,6 +170,13 @@ aufruft — befristet bis zum Ende, ein „Fokus aus" braucht es nicht; zurück
 kommt sie über das eigene URL-Schema `cockpit-fokus://forest` (deshalb hat
 Fokus als einzige App eine eigene `Info.plist` in `project.yml`).
 
+**Der Fokus-Modus ohne Sprung.** `FocusMinutesLeftIntent` (App Intent)
+liefert der Kurzbefehle-App die Restminuten der laufenden Session aus der
+App-Gruppe. Eine Automation „Wenn Fokus geschlossen wird" fragt sie ab und
+befristet den Fokus-Modus — im Hintergrund, ohne dass die Kurzbefehle-App
+aufspringt. Der URL-Aufruf beim Pflanzen bleibt als Rückfall hinter dem
+Schalter „Kurzbefehl".
+
 **Die Live-Aktivität.** Jede Fokus-Session startet eine Live-Aktivität
 (`FocusActivityAttributes` in `Shared/`, Ansicht `FocusActivityView`, Widget
 `FocusLiveActivity` in der Kachel-Erweiterung): Sperrbildschirm groß und ohne

@@ -10,7 +10,15 @@ final class FoodStore {
     private let weightApi = WeightAPI()
 
     private(set) var date: CalendarDate = FoodStore.initialDate
-    private(set) var day: DaySummary?
+    /// Der gezeigte Tag. Jede Fassung landet auch im Tagesspeicher.
+    private(set) var day: DaySummary? {
+        didSet { if let day { summaries[day.date] = day } }
+    }
+    /// Die Tage, die schon geholt wurden. Die Nachbarn des gezeigten Tages
+    /// kommen vorab, damit die Karte beim Ziehen gleich Inhalt hat statt
+    /// eines Platzhalters. Ziele gelten fuer alle Tage - aendern sie sich,
+    /// wird der Speicher geleert.
+    private(set) var summaries: [CalendarDate: DaySummary] = [:]
     private(set) var dishes: [Dish] = []
     private(set) var history: [DayTotal] = []
     /// Das 7-Tage-Mittel zum Verlauf, fertig gerechnet vom Dienst.
@@ -48,7 +56,7 @@ final class FoodStore {
     /// Mit welchem Tag die App aufmacht. Im Debug-Build vorgebbar, damit sich
     /// auch ein leerer Tag ansehen laesst - auf einem vollen Tag liegt der
     /// Verlauf unterhalb des Bildschirms.
-    private static var initialDate: CalendarDate {
+    static var initialDate: CalendarDate {
         #if DEBUG
         if let raw = ProcessInfo.processInfo.environment["COCKPIT_DAY"],
            let day = CalendarDate(iso: raw) {
@@ -60,6 +68,15 @@ final class FoodStore {
 
     var isToday: Bool { date == CalendarDate.today() }
 
+    /// Gestern, der gezeigte Tag, morgen - die drei Karten des Essen-Tabs.
+    var pageDates: [CalendarDate] {
+        [date.adding(days: -1), date, date.adding(days: 1)]
+    }
+
+    func summary(for date: CalendarDate) -> DaySummary? {
+        summaries[date]
+    }
+
     /// Eintraege des Tages nach Mahlzeiten.
     ///
     /// Die vier Mahlzeiten stehen immer da, auch leer - jede hat ihren eigenen
@@ -68,6 +85,10 @@ final class FoodStore {
     /// Aufteilung gibt, und verschwindet danach von selbst.
     var mealSections: [MealSection] {
         guard let day else { return [] }
+        return Self.mealSections(of: day)
+    }
+
+    static func mealSections(of day: DaySummary) -> [MealSection] {
         var sections = Meal.allCases.map { meal in
             MealSection(meal: meal, entries: day.entries.filter { $0.meal == meal })
         }
@@ -93,6 +114,24 @@ final class FoodStore {
             report(error)
         }
         await loadHistory()
+        await prefetchNeighbours()
+    }
+
+    /// Holt gestern und morgen vorab, falls sie noch fehlen. Still: scheitert
+    /// das, zeigt die Karte beim Ziehen eben den Platzhalter.
+    func prefetchNeighbours() async {
+        let missing = pageDates.filter { $0 != date && summaries[$0] == nil }
+        guard !missing.isEmpty else { return }
+        await withTaskGroup(of: DaySummary?.self) { group in
+            for day in missing {
+                group.addTask { [api] in try? await api.day(day) }
+            }
+            for await summary in group {
+                if let summary, summaries[summary.date] == nil {
+                    summaries[summary.date] = summary
+                }
+            }
+        }
     }
 
     func loadHistory() async {
@@ -123,24 +162,25 @@ final class FoodStore {
         weightPoints = (try? await weightApi.points(.last90)) ?? []
     }
 
+    /// Zeigt einen Tag: erst aus dem Speicher, dann frisch vom Dienst - so
+    /// steht beim Ziehen der Karte sofort Inhalt, und was anderswo eingetragen
+    /// wurde, kommt trotzdem an. Danach die neuen Nachbarn vorab.
     func show(_ date: CalendarDate) async {
         self.date = date
+        day = summaries[date]
         do {
-            day = try await api.day(date)
+            let fresh = try await api.day(date)
+            // Nur uebernehmen, wenn inzwischen nicht weitergeblaettert wurde.
+            if self.date == date { day = fresh } else { summaries[date] = fresh }
             clearError()
         } catch {
             report(error)
         }
+        await prefetchNeighbours()
     }
 
     func step(days: Int) async {
-        guard let shifted = Calendar(identifier: .gregorian)
-            .date(byAdding: .day, value: days, to: date.startOfDay()) else { return }
-        let parts = Calendar(identifier: .gregorian)
-            .dateComponents([.year, .month, .day], from: shifted)
-        await show(CalendarDate(year: parts.year ?? date.year,
-                                month: parts.month ?? date.month,
-                                day: parts.day ?? date.day))
+        await show(date.adding(days: days))
     }
 
     func addEntry(dishId: String?, dish: DishRequest?, grams: Double, meal: Meal?) async -> Bool {
@@ -174,6 +214,7 @@ final class FoodStore {
     func updateEntry(_ entry: FoodEntry, grams: Double, meal: Meal?, date: CalendarDate?) async -> Bool {
         do {
             let updatedDay = try await api.updateEntry(id: entry.id, grams: grams, meal: meal, date: date)
+            summaries[updatedDay.date] = updatedDay
             if updatedDay.date == self.date {
                 day = updatedDay
             } else {
@@ -245,8 +286,11 @@ final class FoodStore {
         do {
             _ = try await api.updateTargets(request)
             // Die Ziele stecken in der Tagesantwort - die muss also neu geholt
-            // werden, sonst zeigen die Tachos weiter die alten Marken.
+            // werden, sonst zeigen die Tachos weiter die alten Marken. Und
+            // zwar fuer jeden Tag: der Speicher der Nachbarn ist damit alt.
+            summaries.removeAll()
             day = try await api.day(date)
+            await prefetchNeighbours()
             clearError()
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
             return true

@@ -17,6 +17,33 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Healthy: Tage als Karten · Fokus: Restminuten-Intent, kein Balken · **gebaut** (2026-09-22)
+
+**Karten statt Umblenden.** Der Essen-Tab ist jetzt ein Pager
+(`TabView(.page)`) mit drei Karten — gestern, der gezeigte Tag, morgen —,
+jede die komplette Tagesliste. Ziehen schiebt die eine Karte hinaus und die
+nächste herein, beide sichtbar, wie Felix es wollte („aktuell wechselt es
+stumpf mit einem Blink"). Die Kennung der Karten ist ihr Datum; nach jedem
+Wechsel rückt der neue Tag in die Mitte (`FoodStore.pageDates`), die
+Nachbarn kommen vorab (`prefetchNeighbours`, `summaries`-Speicher), damit die
+Karte beim Ziehen Inhalt hat statt eines Platzhalters. Pfeile animieren die
+Auswahl, „Tag wählen"/„Heute" laden über den Store, die Karte folgt
+(`selection` ↔ `store.date` über zwei `onChange`). Ziele leeren den
+Speicher (gelten für alle Tage), ein verschobener Eintrag aktualisiert den
+Zieltag. Die alte Wisch-Geste (`DaySwipe`) ist weg. UI-Test
+`testSwipingLeftOnTheGaugesShowsTheNextDay` grün, 89 Unit-Tests grün.
+Diagramm-Ziehgeste und Umschalter-Reihe liegen jetzt **im** Pager — im
+Simulator nicht prüfbar, ob sie sich gegen das Blättern durchsetzen; auf
+dem Gerät ansehen.
+
+**Fokus-Restminuten** (`FocusMinutesLeftIntent`, App Intent): eine Aktion
+für die Kurzbefehle-App, die die Restminuten der laufenden Session liefert
+(0 ohne Session), gelesen aus der App-Gruppe. Damit geht der Fokus-Modus
+**ohne Sprung**: Automation „Wenn Fokus geschlossen wird" → Kurzbefehl mit
+„Fokus-Restminuten" → „Wenn > 0" → „Datum anpassen" → „Fokus festlegen bis".
+Der Schalter „Kurzbefehl" im „…"-Menü kann dann aus. Der grüne Balken in der
+Live-Aktivität ist raus, es bleibt der Countdown (Felix).
+
 ## Fokus: Live-Aktivität für die laufende Session · **gebaut** (2026-09-22)
 
 Felix wollte „ein Lockscreen-Widget für den Baum, fast komplett transparent,

@@ -22,8 +22,7 @@ struct FocusActivityAttributes: ActivityAttributes {
     let test: Bool
 }
 
-/// Der Sperrbildschirm: ein grosser, blasser Baum hinter Countdown und
-/// Balken. Kein eigener Hintergrund - so bleibt das Hintergrundbild
+/// Der Sperrbildschirm: ein grosser, blasser Baum hinter dem Countdown. Kein eigener Hintergrund - so bleibt das Hintergrundbild
 /// sichtbar, das war Felix' Wunsch („fast komplett transparent, dafuer
 /// recht gross"). Ist die Session vorbei, ohne dass die App lief, steht
 /// „Baum gepflanzt" da, bis die App aufraeumt.
@@ -46,14 +45,11 @@ struct FocusActivityView: View {
                     Text(test ? "Testbaum fertig" : "Baum gepflanzt")
                         .font(.system(size: 26, weight: .semibold, design: .rounded))
                 } else {
+                    // Nur die Zeit, kein Balken - der war Felix zu viel.
                     Text(timerInterval: start...end, countsDown: true)
                         .font(.system(size: 46, weight: .semibold, design: .rounded).monospacedDigit())
                         .multilineTextAlignment(.center)
                         .frame(width: 180)
-                    ProgressView(timerInterval: start...end, countsDown: false,
-                                 label: { EmptyView() }, currentValueLabel: { EmptyView() })
-                        .tint(.green)
-                        .frame(width: 150)
                 }
             }
             .foregroundStyle(.white)

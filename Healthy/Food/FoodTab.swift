@@ -8,9 +8,9 @@ struct FoodTab: View {
     @State private var editing: FoodEntry?
     @State private var showingTargets = false
     @State private var showingDatePicker = false
-    /// Von welcher Seite der naechste Tag hereinkommt. `nil`, solange noch
-    /// nicht geblaettert wurde - der erste Aufbau soll nicht rutschen.
-    @State private var slideEdge: Edge?
+    /// Die Karte, die gerade vorn liegt. Laeuft dem Store hinterher (Pfeile,
+    /// „Tag waehlen") und ihm voraus (Ziehen) - siehe die beiden onChange.
+    @State private var selection: CalendarDate = FoodStore.initialDate
 
     @State private var showingScanner = false
     /// Was der Scanner geliefert hat. Nachgeschlagen wird erst, wenn sein
@@ -29,67 +29,19 @@ struct FoodTab: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if let error = store.error {
-                    Section {
-                        ErrorBanner(message: error, isAccessProblem: store.accessProblem)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                    }
-                }
-
-                if let running = store.running {
-                    Section { runningRow(running) }
-                }
-
-                if let message = store.captureError {
-                    Section {
-                        ErrorBanner(message: message, isAccessProblem: false)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .onTapGesture { store.clearCaptureError() }
-                    }
-                }
-
-                if let code = lookingUp {
-                    Section { lookupRow(code) }
-                }
-
-                if let message = scanError {
-                    Section {
-                        ErrorBanner(message: message, isAccessProblem: false)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .onTapGesture { scanError = nil }
-                    }
-                }
-
-                if let day = store.day {
-                    Section {
-                        // Beim Blaettern gleitet nur der Tacho-Block zur Seite.
-                        // Ein `.id` auf der ganzen Liste baute sie neu auf -
-                        // Scrollposition weg, kurzes Flackern -, und die
-                        // Mahlzeiten darunter aendern sich ohnehin zeilenweise.
-                        // Der ZStack ist die stabile Zeile, in der alter und
-                        // neuer Block aneinander vorbeiziehen.
-                        ZStack {
-                            gauges(day)
-                                .id(day.date)
-                                .transition(dayTransition)
-                        }
-                        .clipped()
-                        .animation(slideEdge == nil ? nil : .easeInOut(duration: 0.25),
-                                   value: day.date)
-                        .daySwipe(step)
-                    }
-                    ForEach(store.mealSections) { section in
-                        mealSection(section, day: day)
-                    }
-                    historySection(day)
-                } else if store.isLoading {
-                    Section { LoadingPlaceholder() }
+            // Gestern, heute, morgen als Karten nebeneinander: die Geste zieht
+            // die eine hinaus und die naechste herein, beide sichtbar - ein
+            // Umblenden war Felix zu stumpf (2026-09-22). Der Store liefert
+            // die drei Tage, der Pager laeuft auf ihren Daten als Kennung;
+            // nach jedem Wechsel rueckt der neue Tag in die Mitte und die
+            // Nachbarn kommen vorab.
+            TabView(selection: $selection) {
+                ForEach(store.pageDates, id: \.self) { date in
+                    dayList(date)
+                        .tag(date)
                 }
             }
+            .tabViewStyle(.page(indexDisplayMode: .never))
             .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .food) }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -97,7 +49,14 @@ struct FoodTab: View {
             .sheet(item: $editing) { entry in
                 EditEntrySheet(store: store, entry: entry)
             }
-            .refreshable { await store.load() }
+            // Gezogen: der Store folgt der Karte.
+            .onChange(of: selection) { _, date in
+                if date != store.date { Task { await store.show(date) } }
+            }
+            // Pfeile, „Tag waehlen", „Heute": die Karte folgt dem Store.
+            .onChange(of: store.date) { _, date in
+                if date != selection { selection = date }
+            }
             // Ist der Postausgang leer geworden, kennt der Server Eintraege,
             // die der Tag hier noch nicht zeigt.
             .onChange(of: OfflineStatus.shared.pending) { before, after in
@@ -134,6 +93,58 @@ struct FoodTab: View {
                 AddEntrySheet(store: store, meal: nil, scan: result)
             }
         }
+    }
+
+    /// Eine Karte: die Liste eines Tages. Die Meldungen oben (Fehler,
+    /// laufende Auswertung, Scanner) stehen auf jeder Karte - sie gehoeren
+    /// zum Tab, nicht zum Tag.
+    private func dayList(_ date: CalendarDate) -> some View {
+        List {
+            if let error = store.error {
+                Section {
+                    ErrorBanner(message: error, isAccessProblem: store.accessProblem)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
+            }
+
+            if let running = store.running {
+                Section { runningRow(running) }
+            }
+
+            if let message = store.captureError {
+                Section {
+                    ErrorBanner(message: message, isAccessProblem: false)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .onTapGesture { store.clearCaptureError() }
+                }
+            }
+
+            if let code = lookingUp {
+                Section { lookupRow(code) }
+            }
+
+            if let message = scanError {
+                Section {
+                    ErrorBanner(message: message, isAccessProblem: false)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .onTapGesture { scanError = nil }
+                }
+            }
+
+            if let day = store.summary(for: date) {
+                Section { gauges(day) }
+                ForEach(FoodStore.mealSections(of: day)) { section in
+                    mealSection(section, day: day)
+                }
+                historySection(day)
+            } else {
+                Section { LoadingPlaceholder() }
+            }
+        }
+        .refreshable { await store.load() }
     }
 
     private var title: String {
@@ -214,28 +225,18 @@ struct FoodTab: View {
 
     // MARK: - Blaettern
 
-    /// Pfeile und Wischen laufen hier zusammen: erst die Richtung merken,
-    /// dann laden - der Uebergang liest sie, sobald der neue Tag da ist.
+    /// Die Pfeile schieben die Karte, als haette man gezogen: der Nachbar
+    /// liegt schon im Pager, ein animierter Wechsel der Auswahl reicht.
     private func step(_ days: Int) {
-        slideEdge = days > 0 ? .trailing : .leading
-        Task { await store.step(days: days) }
-    }
-
-    private func show(_ date: CalendarDate) {
-        if date != store.date {
-            slideEdge = date > store.date ? .trailing : .leading
+        withAnimation(.easeInOut(duration: 0.3)) {
+            selection = store.date.adding(days: days)
         }
-        Task { await store.show(date) }
     }
 
-    /// Der neue Tag kommt von der Seite, in die gewischt wurde; der alte geht
-    /// zur anderen hinaus. Ohne Richtung (erster Aufbau) gibt es keinen
-    /// Uebergang.
-    private var dayTransition: AnyTransition {
-        guard let slideEdge else { return .identity }
-        let opposite: Edge = slideEdge == .trailing ? .leading : .trailing
-        return .asymmetric(insertion: .move(edge: slideEdge).combined(with: .opacity),
-                           removal: .move(edge: opposite).combined(with: .opacity))
+    /// Ein beliebiger Tag („Tag waehlen", „Heute"): kein Nachbar im Pager,
+    /// also laedt der Store, und die Karte folgt ihm.
+    private func show(_ date: CalendarDate) {
+        Task { await store.show(date) }
     }
 
     // MARK: - Scanner
@@ -334,8 +335,6 @@ struct FoodTab: View {
             }
         }
         .padding(.vertical, 8)
-        // Die ganze Zeile nimmt den Wisch an, nicht nur die Bogen.
-        .contentShape(Rectangle())
     }
 
     /// Der Bogen reicht bis zum 1,25-fachen des Ziels - sonst saesse die
@@ -394,7 +393,6 @@ struct FoodTab: View {
                     Label("Hinzufügen", systemImage: "plus.circle")
                         .font(.callout)
                 }
-                .daySwipe(step)
             }
         } header: {
             HStack {
@@ -414,8 +412,6 @@ struct FoodTab: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .contentShape(Rectangle())
-            .daySwipe(step)
         }
     }
 

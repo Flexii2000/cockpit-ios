@@ -53,6 +53,14 @@ struct CalendarDate: Hashable, Comparable, Codable, Sendable {
         return calendar.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
     }
 
+    /// Der Tag `days` Tage spaeter (negativ: frueher) - ueber den Kalender,
+    /// damit Monats- und Jahreswechsel stimmen.
+    func adding(days: Int) -> CalendarDate {
+        let calendar = Calendar(identifier: .gregorian)
+        guard let shifted = calendar.date(byAdding: .day, value: days, to: startOfDay()) else { return self }
+        return CalendarDate(date: shifted)
+    }
+
     static func < (lhs: CalendarDate, rhs: CalendarDate) -> Bool {
         (lhs.year, lhs.month, lhs.day) < (rhs.year, rhs.month, rhs.day)
     }

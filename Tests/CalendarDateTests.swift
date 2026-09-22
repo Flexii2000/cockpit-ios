@@ -28,6 +28,15 @@ final class CalendarDateTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(CalendarDate.self, from: data), original)
     }
 
+    func testAddsDaysAcrossMonthAndYearEnds() {
+        XCTAssertEqual(CalendarDate(year: 2026, month: 9, day: 30).adding(days: 1),
+                       CalendarDate(year: 2026, month: 10, day: 1))
+        XCTAssertEqual(CalendarDate(year: 2027, month: 1, day: 1).adding(days: -1),
+                       CalendarDate(year: 2026, month: 12, day: 31))
+        XCTAssertEqual(CalendarDate(year: 2026, month: 2, day: 27).adding(days: 2),
+                       CalendarDate(year: 2026, month: 3, day: 1))
+    }
+
     func testSortsChronologically() {
         XCTAssertTrue(CalendarDate(year: 2025, month: 12, day: 31)
                       < CalendarDate(year: 2026, month: 1, day: 1))
