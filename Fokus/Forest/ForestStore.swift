@@ -200,10 +200,12 @@ final class ForestStore {
             await finish(session)
         } else if !session.shielded {
             applyShield()
+            await LiveActivityBridge.ensure(session)
         } else {
             // Ein Neustart des Handys nimmt den Schild weg, die Session
             // laeuft aber weiter - also bei jedem Vordergrund noch einmal.
             screenTime.reshield(except: whitelist)
+            await LiveActivityBridge.ensure(session)
         }
     }
 

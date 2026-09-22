@@ -14,6 +14,9 @@ struct FocusActivityAttributes: ActivityAttributes {
         var planted = false
     }
 
+    /// Die Session, zu der sie gehoert - damit die App erkennt, ob die
+    /// laufende Session schon ihre Aktivitaet hat.
+    let sessionID: String
     let start: Date
     let end: Date
     let test: Bool
