@@ -114,6 +114,8 @@ final class ForestStore {
     func load() async {
         isLoading = sessions.isEmpty
         screenTimeNote = screenTime.note
+        // Ohne Session hat auch keine Live-Aktivitaet mehr etwas zu zeigen.
+        if active == nil { await LiveActivityBridge.endAll() }
         defer { isLoading = false }
         let today = CalendarDate.today()
         let calendar = Calendar(identifier: .gregorian)
@@ -167,6 +169,7 @@ final class ForestStore {
         active = session
         FocusHandoff.save(session)
         await scheduleEndNotification(session)
+        await LiveActivityBridge.start(session)
         errorMessage = nil
         watchEnd()
         let left = await ShortcutsBridge.focusOn(until: session.end)
@@ -232,6 +235,7 @@ final class ForestStore {
         screenTime.lift()
         active = nil
         FocusHandoff.clearSession()
+        await LiveActivityBridge.endAll()
         if !session.test {
             // Erst lokal festhalten, dann melden: geht das Melden schief, ist
             // der Baum nicht weg, sondern wartet.

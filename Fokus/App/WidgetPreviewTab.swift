@@ -25,6 +25,20 @@ struct WidgetPreviewTab: View {
                         HabitsWidgetView(family: .systemSmall, state: .noAccess)
                             .frame(width: 158, height: 158)
                     }
+                    labelled("Live-Aktivität (Sperrbildschirm)") {
+                        FocusActivityView(start: Date().addingTimeInterval(-900),
+                                          end: Date().addingTimeInterval(2_700),
+                                          test: false, stale: false)
+                            .frame(width: 358)
+                            .background(Color.black.opacity(0.6))
+                    }
+                    labelled("Live-Aktivität, vorbei") {
+                        FocusActivityView(start: Date().addingTimeInterval(-3_600),
+                                          end: Date().addingTimeInterval(-600),
+                                          test: false, stale: true)
+                            .frame(width: 358)
+                            .background(Color.black.opacity(0.6))
+                    }
                 }
                 .padding()
             }

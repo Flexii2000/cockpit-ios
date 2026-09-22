@@ -217,6 +217,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Die Live-Aktivitaet der laufenden Fokus-Session (FokusWidget).
+        NSSupportsLiveActivities: true
         CFBundleURLTypes:
           - CFBundleURLName: com.fherrmann.fokus
             CFBundleURLSchemes: [cockpit-fokus]

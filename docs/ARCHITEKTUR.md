@@ -169,6 +169,13 @@ nicht die App (das darf sie nicht), sondern Felix' Kurzbefehle „Fokus an" /
 das eigene URL-Schema `cockpit-fokus://forest` (deshalb hat Fokus als einzige
 App eine eigene `Info.plist` in `project.yml`).
 
+**Die Live-Aktivität.** Jede Fokus-Session startet eine Live-Aktivität
+(`FocusActivityAttributes` in `Shared/`, Ansicht `FocusActivityView`, Widget
+`FocusLiveActivity` in der Kachel-Erweiterung): Sperrbildschirm groß und ohne
+Hintergrund, Dynamic Island klein. Sie braucht keine Aktualisierung — Anfang
+und Ende stehen fest, Countdown und Balken zählen aus dem `timerInterval`.
+Beenden kann nur die App; bis dahin markiert `staleDate` das Ende.
+
 **Push.** Zwei Dienste melden sich von selbst: der Kalorienzähler an
 **Healthy** (Topic `com.fherrmann.cockpit`), die Notenübersicht an **Vault**
 (Topic `com.fherrmann.vault`). Derselbe APNs-Schlüssel, aber zwei Apps und

@@ -17,6 +17,24 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Fokus: Live-Aktivität für die laufende Session · **gebaut** (2026-09-22)
+
+Felix wollte „ein Lockscreen-Widget für den Baum, fast komplett transparent,
+aber recht groß". Im Widget-Bereich des Sperrbildschirms gibt es nur die
+kleinen Accessory-Formen in Einfarbig — groß und durchsichtig geht dort nur
+als **Live-Aktivität**. Die läuft jetzt mit jeder Session (auch dem
+Testbaum): auf dem Sperrbildschirm ein grosser, blasser Baum hinter Countdown
+und Balken ohne Hintergrund (`activityBackgroundTint(.clear)`), in der
+Dynamic Island Baum und Countdown. Countdown und Balken zählen selbst
+(`Text(timerInterval:)`, `ProgressView(timerInterval:)`), die App muss dafür
+nicht laufen. Beenden kann nur die App (`LiveActivityBridge.endAll` in
+`finish` und bei jedem Laden ohne Session); läuft sie am Ende nicht, bleibt
+„Baum gepflanzt" stehen (`staleDate` = Ende, `context.isStale`), bis sie
+aufräumt. Bausteine: `Shared/FocusActivity.swift` (Attribute + Ansicht, auch
+im Debug-Tab „Kachel" zu sehen), `FokusWidget/FocusLiveActivity.swift`,
+`NSSupportsLiveActivities` in der Info.plist von Fokus. Nur auf dem Gerät
+prüfbar: wie durchsichtig der Sperrbildschirm sie wirklich zeigt.
+
 ## To-Do: Unteraufgaben-Zeile ohne Platzhalter · **gebaut** (2026-09-22)
 
 Die leere Zeile unter den Unteraufgaben zeigt nur noch den gestrichelten
