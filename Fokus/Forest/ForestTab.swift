@@ -14,6 +14,9 @@ struct ForestTab: View {
     @State private var store = ForestStore()
     @State private var minutes = 60
     @State private var showingWhitelist = false
+    /// „Eigene Dauer": ein Zahlenfeld fuer alles, was das Rad nicht hat.
+    @State private var askingCustom = false
+    @State private var customMinutes = ""
 
     var body: some View {
         @Bindable var store = store
@@ -78,6 +81,8 @@ struct ForestTab: View {
                         .disabled(store.active != nil)
                         Toggle("Kurzbefehl „Fokus an“", isOn: $store.shortcutsEnabled)
                         Divider()
+                        Button("Eigene Dauer …") { askingCustom = true }
+                            .disabled(store.active != nil)
                         // Zum Durchspielen des Ablaufs - Schild, Meldung,
                         // Kurzbefehle - ohne eine halbe Stunde zu warten.
                         Button("Testbaum (20 s)") {
@@ -92,6 +97,17 @@ struct ForestTab: View {
             // Apples eigenes Blatt statt eines selbstgebauten: der Picker ist
             // eine entfernte Ansicht eines Systemprozesses.
             .familyActivityPicker(isPresented: $showingWhitelist, selection: $store.whitelist)
+            .alert("Eigene Dauer", isPresented: $askingCustom) {
+                TextField("Minuten", text: $customMinutes)
+                    .keyboardType(.numberPad)
+                Button("Pflanzen") {
+                    let value = Int(customMinutes.trimmingCharacters(in: .whitespaces)) ?? 0
+                    customMinutes = ""
+                    guard value >= SessionLength.customMinimum else { return }
+                    Task { await store.plant(minutes: value) }
+                }
+                Button("Abbrechen", role: .cancel) { customMinutes = "" }
+            }
             .refreshable { await store.load() }
             .task {
                 await store.reconcile()

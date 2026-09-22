@@ -60,12 +60,15 @@ enum ForestRange: String, CaseIterable, Identifiable {
     }
 }
 
-/// Die Dauern, die sich waehlen lassen. Unter 30 Minuten ist kein Fokus,
-/// das war Felix' Vorgabe; nach oben ist bei vier Stunden Schluss - laenger
-/// sperrt niemand sein Handy am Stueck.
+/// Die Dauern im Rad. Ab 30 Minuten, das war Felix' Vorgabe fuer die
+/// Vorgaben; wer etwas anderes will - 11, 22, 56, 71 Minuten - tippt es
+/// unter „Eigene Dauer" ein, dort gilt nur die Untergrenze von einer Minute.
+/// Nach oben ist bei einem Tag Schluss, mehr nimmt der Dienst nicht an.
 enum SessionLength {
     static let choices = [30, 45, 60, 75, 90, 120, 150, 180, 240]
     static let minimum = 30
+    static let customMinimum = 1
+    static let maximum = 24 * 60
     /// Der Testbaum: zwanzig Sekunden, um den Ablauf durchzuspielen - Schild,
     /// Meldung, Kurzbefehle. Steht nicht im Rad, sondern im Menue, und
     /// zaehlt nirgends.

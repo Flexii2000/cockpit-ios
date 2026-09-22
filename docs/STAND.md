@@ -18,6 +18,14 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Flow: eigene Dauer · **gebaut** (2026-09-22, abends)
+
+„…"-Menü › **„Eigene Dauer …"**: ein Zahlenfeld für Minuten, die das Rad nicht
+hat — 11, 22, 56, 71 (Felix). Untergrenze eine Minute
+(`SessionLength.customMinimum`), Obergrenze ein Tag; das Rad bleibt bei 30
+bis 240. Solche Bäume zählen wie alle anderen (der Dienst nimmt ab einer
+Minute), kurze werden gern ein Busch. Während einer Session gesperrt.
+
 ## Fokus heisst jetzt „Flow", die Kachel zeigt ohne Session die Habits · **gebaut** (2026-09-22, abends)
 
 **Flow.** Felix hat den Namen aus sechs Vorschlägen gewählt (Flow, Efficiency,

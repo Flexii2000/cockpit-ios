@@ -138,9 +138,11 @@ final class ForestStore {
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.focus)
     }
 
-    /// Pflanzt einen Baum. Das Rad bietet nichts unter 30 Minuten an.
+    /// Pflanzt einen Baum. Das Rad bietet nichts unter 30 Minuten an, die
+    /// eigene Dauer alles ab einer Minute - beides zaehlt.
     func plant(minutes: Int) async {
-        await start(seconds: Double(max(SessionLength.minimum, minutes)) * 60, test: false)
+        let clamped = min(SessionLength.maximum, max(SessionLength.customMinimum, minutes))
+        await start(seconds: Double(clamped) * 60, test: false)
     }
 
     /// Der Testbaum: derselbe Ablauf - Erlaubnis, Schild, Meldung, Kurzbefehle -
