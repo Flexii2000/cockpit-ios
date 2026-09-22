@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// Was die Fokus-Kachel auf dem Homebildschirm zeigt: die laufende Session
-/// mit Countdown - oder, wenn keine laeuft, den Stand von heute.
+/// Was die Flow-Kachel auf dem Homebildschirm zeigt: die laufende Session
+/// mit Countdown - oder, wenn keine laeuft, die Habits. Eine Kachel, zwei
+/// Gesichter: waehrend der Session zaehlt sie, sonst zeigt sie, was heute
+/// noch offen ist (Felix, 2026-09-22).
 struct FocusWidgetState: Sendable, Equatable {
     struct Session: Sendable, Equatable {
         let start: Date
@@ -10,29 +12,30 @@ struct FocusWidgetState: Sendable, Equatable {
     }
 
     let session: Session?
-    /// Fokus-Minuten heute und das Tagesziel, wie die App sie zuletzt kannte.
-    let todayMinutes: Int
-    let goal: Int?
+    /// Die Habits fuer die Zeit ohne Session - dieselbe Ansicht wie die
+    /// Habits-Kachel.
+    let habits: HabitsWidgetState
 
     static let placeholder = FocusWidgetState(
         session: Session(start: Date(), end: Date().addingTimeInterval(1_500), test: false),
-        todayMinutes: 135, goal: 240)
+        habits: .unreachable)
 }
 
 /// Die breite Kachel: links der Baum, rechts gross die Restzeit. Der
 /// Countdown zaehlt selbst (`Text(timerInterval:)`), die Kachel muss dafuer
-/// nicht neu geladen werden. Kein Balken - der war Felix zu viel.
+/// nicht neu geladen werden. Kein Balken - der war Felix zu viel. Ohne
+/// Session die Habits-Ansicht.
 struct FocusWidgetView: View {
 
     let state: FocusWidgetState
 
     var body: some View {
-        HStack(spacing: 18) {
-            Image(systemName: "tree.fill")
-                .font(.system(size: 66))
-                .foregroundStyle(state.session == nil ? Color.green.opacity(0.35) : Color.green)
-            VStack(alignment: .leading, spacing: 4) {
-                if let session = state.session {
+        if let session = state.session {
+            HStack(spacing: 18) {
+                Image(systemName: "tree.fill")
+                    .font(.system(size: 66))
+                    .foregroundStyle(.green)
+                VStack(alignment: .leading, spacing: 4) {
                     Text(timerInterval: session.start...session.end, countsDown: true)
                         .font(.system(size: 42, weight: .semibold, design: .rounded).monospacedDigit())
                         .lineLimit(1)
@@ -42,25 +45,12 @@ struct FocusWidgetView: View {
                                       : "bis \(Self.clock.string(from: session.end))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                } else {
-                    Text(todayText)
-                        .font(.system(size: 34, weight: .semibold, design: .rounded).monospacedDigit())
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    Text("Heute")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+        } else {
+            HabitsWidgetView(family: .systemMedium, state: state.habits)
         }
-    }
-
-    private var todayText: String {
-        if let goal = state.goal, goal > 0 {
-            return "\(HabitProgress.hours(state.todayMinutes))/\(HabitProgress.hours(goal)) h"
-        }
-        return HabitProgress.hours(state.todayMinutes) + " h"
     }
 
     private static let clock: DateFormatter = {

@@ -54,7 +54,7 @@ Healthy/            App: Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine
   Food/ Weight/ Health/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
-Fokus/              App: Habits, To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
+Fokus/              App „Flow": Habits, To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
   App/ Habits/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit)
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/

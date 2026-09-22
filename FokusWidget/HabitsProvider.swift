@@ -36,6 +36,14 @@ struct HabitsProvider: TimelineProvider {
     }
 
     private func state() async -> HabitsWidgetState {
+        await HabitsWidgetState.load(timeout: timeout)
+    }
+}
+
+extension HabitsWidgetState {
+    /// Holt die Liste - fuer die Habits-Kachel und fuer die Flow-Kachel,
+    /// wenn keine Session laeuft.
+    static func load(timeout: TimeInterval) async -> HabitsWidgetState {
         guard let token = Keychain.read(Keychain.privateTokenKey), !token.isEmpty else {
             return .noAccess
         }

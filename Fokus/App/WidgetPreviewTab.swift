@@ -11,13 +11,15 @@ struct WidgetPreviewTab: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    labelled("Fokus systemMedium, Session läuft") {
-                        FocusWidgetView(state: .placeholder)
+                    labelled("Flow systemMedium, Session läuft") {
+                        FocusWidgetView(state: FocusWidgetState(
+                            session: .init(start: Date(), end: Date().addingTimeInterval(1_500), test: false),
+                            habits: habits))
                             .padding(14)
                             .frame(width: 338, height: 158)
                     }
-                    labelled("Fokus systemMedium, ohne Session") {
-                        FocusWidgetView(state: FocusWidgetState(session: nil, todayMinutes: 135, goal: 240))
+                    labelled("Flow systemMedium, ohne Session") {
+                        FocusWidgetView(state: FocusWidgetState(session: nil, habits: habits))
                             .padding(14)
                             .frame(width: 338, height: 158)
                     }

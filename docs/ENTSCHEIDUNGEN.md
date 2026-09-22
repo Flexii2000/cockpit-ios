@@ -3,6 +3,14 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-22 — „Flow" nur als Anzeigename, technisch bleibt es Fokus
+Die App heisst auf dem Homebildschirm „Flow", Bundle-ID, Target, Ordner,
+Schema und URL-Schema bleiben `Fokus`. **Warum:** Eine neue Bundle-ID wäre
+eine neue App — Family Controls, App-Gruppe, Push-Kennung, Keychain-Gruppe,
+gespeicherte Session und Whitelist wären weg, und der Umbau des Repos wäre
+ein Tag Arbeit ohne sichtbaren Nutzen. **Verworfen:** die Umbenennung bis in
+die Kennungen.
+
 ## 2026-09-22 — Die Insel folgt der Sonne über Hamburg, nicht dem Dunkelmodus
 Tag, Dämmerung und Nacht der Insel kommen aus dem gerechneten Sonnenstand
 für einen festen Ort (Hamburg), nicht aus `colorScheme` und nicht aus dem

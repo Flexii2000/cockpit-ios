@@ -18,6 +18,24 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Fokus heisst jetzt „Flow", die Kachel zeigt ohne Session die Habits · **gebaut** (2026-09-22, abends)
+
+**Flow.** Felix hat den Namen aus sechs Vorschlägen gewählt (Flow, Efficiency,
+Kern, Takt, Hain, Deep). Geändert sind nur Anzeigename (`Flow` bei App,
+Kachel-Erweiterung und Monitor) und Icon — eine weisse Sinuswelle mit
+blassem Echo auf Blau-Petrol (`make-icon.swift fokus`, eine volle Periode;
+anderthalb sahen aus wie ein „W"). Bundle-ID, Ordner, Target, Schema und
+URL-Schema bleiben `Fokus`/`com.fherrmann.fokus`: sonst wäre es eine neue App
+ohne Berechtigungen, App-Gruppe und Daten. In der Kurzbefehle-App heisst die
+App damit „Flow" (Automation „Wenn Flow geschlossen wird").
+
+**Die Kachel hat zwei Gesichter:** läuft eine Session, der Countdown; sonst
+die Habits — dieselbe `HabitsWidgetView` wie die Habits-Kachel, geladen über
+das ausgelagerte `HabitsWidgetState.load(timeout:)`. Ein Tipp führt dorthin,
+was zu sehen ist (`cockpit://forest` bzw. `cockpit://habits`). Der Tagesstand
+in der App-Gruppe (`saveToday`) bleibt geschrieben, wird aber nicht mehr
+gezeigt.
+
 ## Fokus: breite Kachel mit dem Countdown · **gebaut** (2026-09-22, nachmittags)
 
 Neue Homebildschirm-Kachel `FocusCountdownWidget` (`systemMedium`, Kennung

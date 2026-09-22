@@ -6,59 +6,66 @@ struct FocusEntry: TimelineEntry {
     let state: FocusWidgetState
 }
 
-/// Liest die laufende Session und den Tagesstand aus der App-Gruppe - kein
-/// Netz, kein Token: was die Kachel zeigt, hat die App dort abgelegt.
+/// Die laufende Session kommt aus der App-Gruppe (kein Netz), die Habits
+/// fuer die Zeit ohne Session wie bei der Habits-Kachel vom Dienst.
 ///
-/// Zwei Eintraege je Zeitleiste: jetzt (die Session laeuft) und ihr Ende
-/// (der Stand von heute, den Baum schon mitgezaehlt). Dazwischen zaehlt der
-/// Countdown von selbst. Die App und die Erweiterung `FokusMonitor` laden die
-/// Kachel bei jedem Anfang und Ende neu.
+/// Zwei Eintraege je Zeitleiste, solange eine Session laeuft: jetzt (der
+/// Countdown) und ihr Ende (die Habits). Dazwischen zaehlt der Countdown von
+/// selbst. Die App und die Erweiterung `FokusMonitor` laden die Kachel bei
+/// jedem Anfang und Ende neu.
 struct FocusProvider: TimelineProvider {
+
+    private let timeout: TimeInterval = 12
 
     func placeholder(in context: Context) -> FocusEntry {
         FocusEntry(date: Date(), state: .placeholder)
     }
 
     func getSnapshot(in context: Context, completion: @escaping @Sendable (FocusEntry) -> Void) {
-        completion(FocusEntry(date: Date(), state: context.isPreview ? .placeholder : current()))
+        if context.isPreview {
+            completion(FocusEntry(date: Date(), state: .placeholder))
+            return
+        }
+        Task { completion(FocusEntry(date: Date(), state: await current())) }
     }
 
     func getTimeline(in context: Context, completion: @escaping @Sendable (Timeline<FocusEntry>) -> Void) {
-        let now = Date()
-        let state = current()
-        var entries = [FocusEntry(date: now, state: state)]
-        if let session = state.session, session.end > now {
-            let minutes = session.test ? 0 : Int(session.end.timeIntervalSince(session.start) / 60)
-            entries.append(FocusEntry(date: session.end,
-                                      state: FocusWidgetState(session: nil,
-                                                              todayMinutes: state.todayMinutes + minutes,
-                                                              goal: state.goal)))
-            completion(Timeline(entries: entries, policy: .after(session.end.addingTimeInterval(60))))
-        } else {
-            completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(30 * 60))))
+        Task {
+            let now = Date()
+            let state = await current()
+            if let session = state.session, session.end > now {
+                let entries = [FocusEntry(date: now, state: state),
+                               FocusEntry(date: session.end,
+                                          state: FocusWidgetState(session: nil, habits: state.habits))]
+                completion(Timeline(entries: entries, policy: .after(session.end.addingTimeInterval(60))))
+            } else {
+                // Wie die Habits-Kachel: halbstuendlich plus Mitternacht.
+                completion(Timeline(entries: [FocusEntry(date: now, state: state)],
+                                    policy: .after(RemainingCalories.nextRefresh(after: now))))
+            }
         }
     }
 
-    private func current() -> FocusWidgetState {
+    private func current() async -> FocusWidgetState {
         let session = FocusHandoff.loadSession().flatMap { active -> FocusWidgetState.Session? in
             active.isOver() ? nil : FocusWidgetState.Session(start: active.start, end: active.end, test: active.test)
         }
-        let today = FocusHandoff.loadToday()
-        return FocusWidgetState(session: session, todayMinutes: today.minutes, goal: today.goal)
+        return FocusWidgetState(session: session, habits: await HabitsWidgetState.load(timeout: timeout))
     }
 }
 
-/// Der Countdown der Fokus-Session auf dem Homebildschirm, breit.
+/// Die breite Flow-Kachel: Countdown der Session, sonst die Habits.
 struct FocusCountdownWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetKind.focus, provider: FocusProvider()) { entry in
             FocusWidgetView(state: entry.state)
                 .containerBackground(.fill.tertiary, for: .widget)
-                // Ein Tipp fuehrt in den Wald (RootView.onOpenURL, Host "forest").
-                .widgetURL(URL(string: "cockpit://forest"))
+                // Ein Tipp fuehrt dorthin, was gerade zu sehen ist: in den
+                // Wald oder zu den Habits (RootView.onOpenURL).
+                .widgetURL(URL(string: entry.state.session == nil ? "cockpit://habits" : "cockpit://forest"))
         }
-        .configurationDisplayName("Fokus")
-        .description("Die Restzeit der laufenden Session.")
+        .configurationDisplayName("Flow")
+        .description("Die Restzeit der Session, sonst die Habits.")
         .supportedFamilies([.systemMedium])
     }
 }

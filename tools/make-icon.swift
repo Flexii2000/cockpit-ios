@@ -10,7 +10,7 @@
 // als sie selbst zu erkennen sein:
 //   healthy  ein Herz, gruen                          (Gesundheit)
 //   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
-//   fokus    ein Haken im orangenen Kreis auf Weiss  (erledigt, im Fokus)
+//   fokus    eine Sinuswelle auf Blau-Petrol            (Flow - so heisst die App auf dem Homebildschirm)
 //   einkaufsliste  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
@@ -144,36 +144,39 @@ case "vault":
     ctx.fillPath()
 
 case "fokus":
-    // Weisser Grund - Felix' Wunsch. Darauf ein orangener Kreis mit einem
-    // kraeftigen Haken: erledigt, abgehakt, im Fokus. Orange ist die Farbe
-    // der Flamme in der App, so gehoert das Icon erkennbar dazu.
-    ctx.setFillColor(rgb(0xFFFFFF))
-    ctx.fill(CGRect(x: 0, y: 0, width: side, height: side))
-    let c = CGPoint(x: side / 2, y: side / 2)
-    let r = side * 0.36
-    withShadow {
-        let circle = CGGradient(colorsSpace: space,
-                                colors: [rgb(0xFF9F3C), rgb(0xE5701A)] as CFArray,
-                                locations: [0, 1])!
-        ctx.saveGState()
-        ctx.addEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2))
-        ctx.clip()
-        ctx.drawLinearGradient(circle,
-                               start: CGPoint(x: c.x - r, y: c.y + r),
-                               end: CGPoint(x: c.x + r, y: c.y - r),
-                               options: [])
-        ctx.restoreGState()
+    // "Flow": eine ruhige Sinuswelle, kraeftig genug fuer 60 px. Blau-Petrol
+    // wie Wasser, damit sie neben Healthy (gruen), Vault (dunkelblau) und
+    // Einkaufsliste (petrol) fuer sich steht. Darunter eine zweite, blasse
+    // Welle als Echo - nur Tiefe, kein zweites Motiv.
+    background(0x35B6D6, 0x1B3F8F)
+    let cx = side / 2, cy = side / 2
+    // Eine volle Periode, weit und flach: bei anderthalb sah es aus wie ein
+    // "W", nicht wie Wasser.
+    let width = side * 0.74, amplitude = side * 0.13
+    func wave(offsetY: CGFloat, periods: CGFloat, phase: CGFloat) -> CGMutablePath {
+        let path = CGMutablePath()
+        let steps = 120
+        for i in 0...steps {
+            let t = CGFloat(i) / CGFloat(steps)
+            let x = cx - width / 2 + width * t
+            let y = cy + offsetY + amplitude * sin(t * periods * 2 * .pi + phase)
+            if i == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
+        }
+        return path
     }
-    let check = CGMutablePath()
-    check.move(to: CGPoint(x: c.x - r * 0.46, y: c.y + r * 0.02))
-    check.addLine(to: CGPoint(x: c.x - r * 0.12, y: c.y - r * 0.32))
-    check.addLine(to: CGPoint(x: c.x + r * 0.50, y: c.y + r * 0.34))
-    ctx.addPath(check)
-    ctx.setStrokeColor(rgb(0xFFFFFF))
-    ctx.setLineWidth(side * 0.085)
     ctx.setLineCap(.round)
     ctx.setLineJoin(.round)
+    // Das Echo zuerst, damit die Hauptwelle darueber liegt.
+    ctx.addPath(wave(offsetY: -side * 0.17, periods: 1.0, phase: .pi * 1.15))
+    ctx.setStrokeColor(rgb(0xF4F7FB, 0.35))
+    ctx.setLineWidth(side * 0.055)
     ctx.strokePath()
+    withShadow {
+        ctx.addPath(wave(offsetY: side * 0.05, periods: 1.0, phase: .pi * 0.85))
+        ctx.setStrokeColor(ink)
+        ctx.setLineWidth(side * 0.105)
+        ctx.strokePath()
+    }
 
 case "einkaufsliste":
     // Eine Einkaufstasche auf Petrol - eine Farbe, die keine der anderen
