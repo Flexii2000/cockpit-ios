@@ -56,11 +56,12 @@ enum ForestScene {
             root.addChildNode(grower)
         }
 
-        // Der Schmuck haengt an der Zahl der Baeume: mehr Baeume, groessere
-        // Insel, mehr Wiese - aber je Groesse immer derselbe Schmuck.
+        // Der Schmuck waechst mit den Baeumen: je mehr gepflanzt ist, desto
+        // mehr Blumen, Pilze, Falter und Wolken - eine junge Insel darf
+        // leer aussehen, die Schoenheit ist verdient (Felix, 2026-09-22).
         var rng = SeededRandom(seed: 0x5EED_F0E5_7 &+ UInt64(count))
-        decorate(root, radius: radius, avoiding: spots, palette: palette, rng: &rng)
-        animateSky(root, radius: radius, palette: palette, rng: &rng)
+        decorate(root, radius: radius, trees: count, avoiding: spots, palette: palette, rng: &rng)
+        animateSky(root, radius: radius, trees: count, palette: palette, rng: &rng)
 
         // Licht: eine Sonne mit weichem Schatten, dazu Grundhelligkeit.
         let sun = SCNNode()
@@ -135,9 +136,10 @@ enum ForestScene {
 
     // MARK: - Wiese
 
-    /// Alles, was keine Baeume sind: Grasflecken, Blumen, Buesche, Pilze,
-    /// Steine und der Teich. Haelt Abstand zu den Staemmen.
-    private static func decorate(_ root: SCNNode, radius: Float, avoiding spots: [SCNVector3],
+    /// Alles, was keine Baeume sind: Grasflecken, Blumen, Pilze, Steine und
+    /// der Teich. Haelt Abstand zu den Staemmen. Buesche gibt es hier nicht -
+    /// die werden gepflanzt wie Baeume.
+    private static func decorate(_ root: SCNNode, radius: Float, trees: Int, avoiding spots: [SCNVector3],
                                  palette: Palette, rng: inout SeededRandom) {
         func free(_ x: Float, _ z: Float, _ margin: Float) -> Bool {
             !spots.contains { hypot($0.x - x, $0.z - z) < margin }
@@ -170,10 +172,10 @@ enum ForestScene {
         // Der Teich: eine Wasserflaeche mit Sandrand und Seerosen. Am Rand
         // der Insel, denn zwischen der Spirale und der Kante bleibt immer ein
         // Streifen frei - mitten im Wald gaebe es bei vielen Baeumen keinen
-        // Platz mehr.
+        // Platz mehr. Erst ab dem dritten Baum.
         let pondRadius: Float = radius > 8 ? 1.1 : 0.8
         let shore = radius - pondRadius - 0.4
-        for _ in 0..<12 {
+        for _ in 0..<(trees >= 3 ? 12 : 0) {
             let a = rng.next(in: 0..<(2 * Float.pi))
             let x = shore * cos(a), z = shore * sin(a)
             guard free(x, z, pondRadius + 0.45) else { continue }
@@ -183,7 +185,7 @@ enum ForestScene {
 
         // Blumen in vielen Farben, gern in kleinen Gruppen.
         let flowerColors = palette.flowers
-        for _ in 0..<Int(radius * 5) {
+        for _ in 0..<(2 + trees) {
             guard let center = place(0.35, rng: &rng) else { continue }
             let color = flowerColors[Int(rng.nextRaw() % UInt64(flowerColors.count))]
             let cluster = 1 + Int(rng.nextRaw() % 3)
@@ -195,22 +197,14 @@ enum ForestScene {
             }
         }
 
-        // Buesche: Kugelhaufen, dunkler als die Kronen.
-        for _ in 0..<Int(radius * 1.6) {
-            guard let position = place(0.7, rng: &rng) else { continue }
-            let node = bush(palette: palette, rng: &rng)
-            node.position = position
-            root.addChildNode(node)
-        }
-
         // Pilze und Steine - wenige, dafuer auffaellig.
-        for _ in 0..<max(2, Int(radius * 0.7)) {
+        for _ in 0..<(1 + trees / 4) {
             guard let position = place(0.4, rng: &rng) else { continue }
             let node = mushroom(palette: palette, rng: &rng)
             node.position = position
             root.addChildNode(node)
         }
-        for _ in 0..<max(2, Int(radius * 0.9)) {
+        for _ in 0..<(1 + trees / 3) {
             guard let position = place(0.5, rng: &rng) else { continue }
             let stone = SCNSphere(radius: CGFloat(rng.next(in: 0.1...0.2)))
             stone.segmentCount = 10
@@ -287,20 +281,21 @@ enum ForestScene {
         return node.flattenedClone()
     }
 
-    private static func bush(palette: Palette, rng: inout SeededRandom) -> SCNNode {
-        let node = SCNNode()
+    /// Der Busch: ein Haufen aus vier Kugeln, dunkler als die Kronen, ohne
+    /// Stamm. Eine Session von einer halben Stunde wird eher ein Busch als
+    /// ein Baum - und auch Buesche stehen fuer Fokus.
+    private static func bushCrown(_ node: SCNNode, palette: Palette, rng: inout SeededRandom) {
         let leaf = material(palette.bush(shift: rng.next(in: -0.03...0.03)))
-        for index in 0..<3 {
-            let r = rng.next(in: 0.16...0.26)
+        for index in 0..<4 {
+            let r = rng.next(in: 0.36...0.5)
             let ball = SCNSphere(radius: CGFloat(r))
-            ball.segmentCount = 10
+            ball.segmentCount = 12
             ball.firstMaterial = leaf
             let part = SCNNode(geometry: ball)
-            let angle = Float(index) * 2.1
-            part.position = SCNVector3(cos(angle) * 0.12, r * 0.75, sin(angle) * 0.12)
+            let angle = Float(index) * 1.6
+            part.position = SCNVector3(cos(angle) * 0.28, r * 0.8, sin(angle) * 0.28)
             node.addChildNode(part)
         }
-        return node.flattenedClone()
     }
 
     private static func mushroom(palette: Palette, rng: inout SeededRandom) -> SCNNode {
@@ -337,9 +332,9 @@ enum ForestScene {
     /// Am Tag Schmetterlinge und Wolken, nachts Gluehwuermchen: alles
     /// kreist langsam um die Insel und wippt dabei - das bisschen Bewegung
     /// macht den Unterschied zwischen Modell und Wald.
-    private static func animateSky(_ root: SCNNode, radius: Float, palette: Palette,
+    private static func animateSky(_ root: SCNNode, radius: Float, trees: Int, palette: Palette,
                                    rng: inout SeededRandom) {
-        let flyers = palette.night ? 7 : 5
+        let flyers = min(palette.night ? 7 : 5, 1 + trees / 3)
         for _ in 0..<flyers {
             let pivot = SCNNode()
             let body = SCNSphere(radius: palette.night ? 0.045 : 0.06)
@@ -377,7 +372,7 @@ enum ForestScene {
         }
 
         // Wolken: weiche Haufen aus drei Kugeln, hoch ueber der Insel.
-        for _ in 0..<(3 + Int(radius / 4)) {
+        for _ in 0..<min(3 + Int(radius / 4), 1 + trees / 2) {
             let pivot = SCNNode()
             let cloud = SCNNode()
             let puff = material(palette.cloud)
@@ -414,13 +409,20 @@ enum ForestScene {
     }
 
     enum Species {
-        case pine, oak, birch, blossom, autumn, cypress
+        case pine, oak, birch, blossom, autumn, cypress, bush
     }
 
     /// Welche Art ein Baum wird - bunt gemischt, Tannen und Eichen am
-    /// haeufigsten, dazwischen Farbe.
-    private static func species(_ rng: inout SeededRandom) -> Species {
-        switch rng.next(in: 0..<1) {
+    /// haeufigsten, dazwischen Farbe. Kurze Sessions werden gern ein Busch,
+    /// lange nie: ein vier Stunden hoher Busch waere seltsam.
+    private static func species(size: TreeSize, _ rng: inout SeededRandom) -> Species {
+        let bushChance: Float = switch size {
+        case .sapling: 0.45
+        case .young:   0.2
+        case .grown, .old: 0
+        }
+        if rng.next(in: 0..<1) < bushChance { return .bush }
+        return switch rng.next(in: 0..<1) {
         case ..<0.28: .pine
         case ..<0.52: .oak
         case ..<0.68: .birch
@@ -436,7 +438,10 @@ enum ForestScene {
     private static func tree(minutes: Int, rng: inout SeededRandom, palette: Palette) -> SCNNode {
         let node = SCNNode()
         let shift = rng.next(in: -0.04...0.04)
-        switch species(&rng) {
+        let size = TreeSize(minutes: minutes)
+        switch species(size: size, &rng) {
+        case .bush:
+            bushCrown(node, palette: palette, rng: &rng)
         case .pine:
             let crown = material(palette.pine(shift: shift))
             node.addChildNode(trunk(height: 0.6, radius: 0.09, material(palette.bark)))
@@ -481,7 +486,7 @@ enum ForestScene {
             spire.position = SCNVector3(0, 1.25, 0)
             node.addChildNode(spire)
         }
-        let scale = TreeSize(minutes: minutes).scale * rng.next(in: 0.92...1.08)
+        let scale = size.scale * rng.next(in: 0.92...1.08)
         node.scale = SCNVector3(scale, scale, scale)
         node.eulerAngles.y = rng.next(in: 0..<(2 * Float.pi))
         // Ein Knoten je Baum statt fuenf: weniger Zeichenaufrufe bei einem

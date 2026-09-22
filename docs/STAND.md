@@ -32,7 +32,12 @@ Platz). Am Tag Schmetterlinge, die um die Insel kreisen und wippen, und
 Wolken hoch darüber; der Himmel hat einen weichen Sonnenschein. Nachts
 Sterne und Mond im Himmelsbild, blinkende Glühwürmchen, alles dunkler und
 kühler. Im Simulator geprüft: Heute (leer, nur Wiese und Teich), Woche,
-Monat hell und dunkel.
+Monat hell und dunkel. Nachtrag (Felix): **Büsche werden gepflanzt**, nicht
+verstreut — siebte Art, kurze Sessions werden mit 45 % ein Busch, junge mit
+20 %, lange nie. Und der Schmuck wächst mit den Bäumen statt mit der Insel
+(Blumen `2 + n`, Pilze `1 + n/4`, Steine `1 + n/3`, Falter und Wolken
+gedeckelt, Teich ab dem dritten Baum): eine junge Insel darf leer aussehen,
+„je mehr Bäume, desto schöner".
 
 ## Healthy: Tage als Karten · Fokus: Restminuten-Intent, kein Balken · **gebaut** (2026-09-22)
 
