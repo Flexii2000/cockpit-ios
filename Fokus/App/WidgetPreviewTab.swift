@@ -11,20 +11,6 @@ struct WidgetPreviewTab: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    labelled("Habits systemSmall") {
-                        HabitsWidgetView(family: .systemSmall, state: habits)
-                            .padding(14)
-                            .frame(width: 158, height: 158)
-                    }
-                    labelled("Habits systemMedium") {
-                        HabitsWidgetView(family: .systemMedium, state: habits)
-                            .padding(14)
-                            .frame(width: 338, height: 158)
-                    }
-                    labelled("ohne Zugang") {
-                        HabitsWidgetView(family: .systemSmall, state: .noAccess)
-                            .frame(width: 158, height: 158)
-                    }
                     labelled("Live-Aktivität (Sperrbildschirm)") {
                         FocusActivityView(start: Date().addingTimeInterval(-900),
                                           end: Date().addingTimeInterval(2_700),
@@ -38,6 +24,20 @@ struct WidgetPreviewTab: View {
                                           test: false, stale: true)
                             .frame(width: 358)
                             .background(Color.black.opacity(0.6))
+                    }
+                    labelled("Habits systemSmall") {
+                        HabitsWidgetView(family: .systemSmall, state: habits)
+                            .padding(14)
+                            .frame(width: 158, height: 158)
+                    }
+                    labelled("Habits systemMedium") {
+                        HabitsWidgetView(family: .systemMedium, state: habits)
+                            .padding(14)
+                            .frame(width: 338, height: 158)
+                    }
+                    labelled("ohne Zugang") {
+                        HabitsWidgetView(family: .systemSmall, state: .noAccess)
+                            .frame(width: 158, height: 158)
                     }
                 }
                 .padding()

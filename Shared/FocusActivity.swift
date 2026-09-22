@@ -33,10 +33,11 @@ struct FocusActivityView: View {
 
     var body: some View {
         ZStack {
+            // 104 Punkte passen in die 156 hohe Aktivitaet - groesser ragte der
+            // Stamm heraus und der Sperrbildschirm schnitte ihn ab.
             Image(systemName: "tree.fill")
-                .font(.system(size: 124))
+                .font(.system(size: 104))
                 .foregroundStyle(.green.opacity(0.32))
-                .offset(y: 4)
             VStack(spacing: 8) {
                 if stale {
                     Text(test ? "Testbaum fertig" : "Baum gepflanzt")
@@ -56,6 +57,7 @@ struct FocusActivityView: View {
             .shadow(color: .black.opacity(0.4), radius: 6)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 150)
+        .frame(height: 156)
+        .clipped()
     }
 }
