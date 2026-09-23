@@ -22,6 +22,18 @@ einem anderen Ort sieht niemand. **Verworfen:** (a) Dunkelmodus als Nacht
 Minuten Genauigkeit); (c) feste Uhrzeiten 7–20 Uhr (im Winter ist es um
 17 Uhr dunkel, im Sommer um 21 Uhr hell).
 
+## 2026-09-23 — Essen-Tab: Karten von Hand gezogen, kein Pager
+Die Tageskarten werden mit einer eigenen `DragGesture` verschoben (Liste des
+Tages plus Nachbarliste im `ZStack`, versetzt um den Zug), die Geste liegt
+nur auf Tacho-Block, Überschriften und „Hinzufügen"-Zeilen. **Warum:** Der
+`TabView(.page)`-Pager vom Vortag ist ein horizontales Scrollfeld und
+schluckte jeden Wisch nach links — Eintragszeilen liessen sich nicht mehr
+löschen (Felix, 23.09.). Die Eintragszeilen gehören ihrem eigenen Wisch;
+Tacho-Block und Überschriften sind gross genug zum Blättern. **Verworfen:**
+(a) der Pager mit Löschen im Bearbeiten-Blatt (ein Standard-Wisch weniger);
+(b) UIPageViewController (unklar, ob dessen Scrollfeld den Zeilen-Wisch
+durchlässt, und ein UIKit-Umweg für eine Geste).
+
 ## 2026-09-22 — Essen-Tab: drei Karten im Pager statt einer Wisch-Geste
 Der Tag im Essen-Tab ist eine von drei Karten in einem `TabView(.page)`;
 Nachbarn liegen vorgeladen daneben. **Warum:** Felix will beim Wischen
@@ -31,6 +43,7 @@ senkrechte Scrollen und Abbremsen. **Verworfen:** (a) die bisherige
 `DragGesture` mit Übergang am Ende (kein Mitziehen, „Blink"); (b) eine eigene
 Zieh-Animation über der Liste (zwei Listen übereinander versetzen, Richtung
 selbst erkennen, Rand selbst abfedern — alles, was der Pager schon kann).
+**Zurückgenommen am 23.09.**, siehe oben: der Pager frass den Lösch-Wisch.
 
 ## 2026-09-22 — Fokus-Modus per Automation und App Intent statt URL-Sprung
 Die App bietet die Aktion „Fokus-Restminuten" an; eine Automation „Wenn

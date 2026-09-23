@@ -8,9 +8,13 @@ struct FoodTab: View {
     @State private var editing: FoodEntry?
     @State private var showingTargets = false
     @State private var showingDatePicker = false
-    /// Die Karte, die gerade vorn liegt. Laeuft dem Store hinterher (Pfeile,
-    /// „Tag waehlen") und ihm voraus (Ziehen) - siehe die beiden onChange.
-    @State private var selection: CalendarDate = FoodStore.initialDate
+    /// Wie weit die Karte gerade zur Seite gezogen ist - negativ nach links
+    /// (der naechste Tag kommt von rechts), positiv nach rechts.
+    @State private var drag: CGFloat = 0
+    /// Ob die laufende Geste als waagerecht (Karte) oder senkrecht (Liste
+    /// scrollt) erkannt wurde; nil, solange sie noch nicht entschieden ist.
+    @State private var horizontal: Bool?
+    @State private var pageWidth: CGFloat = 390
 
     @State private var showingScanner = false
     /// Was der Scanner geliefert hat. Nachgeschlagen wird erst, wenn sein
@@ -29,33 +33,34 @@ struct FoodTab: View {
 
     var body: some View {
         NavigationStack {
-            // Gestern, heute, morgen als Karten nebeneinander: die Geste zieht
-            // die eine hinaus und die naechste herein, beide sichtbar - ein
-            // Umblenden war Felix zu stumpf (2026-09-22). Der Store liefert
-            // die drei Tage, der Pager laeuft auf ihren Daten als Kennung;
-            // nach jedem Wechsel rueckt der neue Tag in die Mitte und die
-            // Nachbarn kommen vorab.
-            TabView(selection: $selection) {
-                ForEach(store.pageDates, id: \.self) { date in
-                    dayList(date)
-                        .tag(date)
+            // Gestern, heute, morgen als Karten: die Geste zieht die eine hinaus
+            // und die naechste herein, beide sichtbar. Kein Pager-Scrollfeld -
+            // das schluckte jeden Wisch nach links, auch den zum Loeschen einer
+            // Eintragszeile (Felix, 2026-09-23). Stattdessen liegt die Geste nur
+            // auf Tacho-Block, Mahlzeiten-Ueberschriften und „Hinzufuegen"-Zeilen,
+            // und die Nachbarkarte wird erst gezeichnet, wenn gezogen wird.
+            GeometryReader { geo in
+                ZStack {
+                    dayList(store.date)
+                        .offset(x: drag)
+                    if drag < 0 {
+                        dayList(store.date.adding(days: 1))
+                            .offset(x: geo.size.width + drag)
+                    } else if drag > 0 {
+                        dayList(store.date.adding(days: -1))
+                            .offset(x: -geo.size.width + drag)
+                    }
                 }
+                .clipped()
+                .onAppear { pageWidth = geo.size.width }
+                .onChange(of: geo.size.width) { _, width in pageWidth = width }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
             .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .food) }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbar }
             .sheet(item: $editing) { entry in
                 EditEntrySheet(store: store, entry: entry)
-            }
-            // Gezogen: der Store folgt der Karte.
-            .onChange(of: selection) { _, date in
-                if date != store.date { Task { await store.show(date) } }
-            }
-            // Pfeile, „Tag waehlen", „Heute": die Karte folgt dem Store.
-            .onChange(of: store.date) { _, date in
-                if date != selection { selection = date }
             }
             // Ist der Postausgang leer geworden, kennt der Server Eintraege,
             // die der Tag hier noch nicht zeigt.
@@ -91,6 +96,55 @@ struct FoodTab: View {
             }
             .sheet(item: $scanResult) { result in
                 AddEntrySheet(store: store, meal: nil, scan: result)
+            }
+        }
+    }
+
+    // MARK: - Die Karten-Geste
+
+    /// Zieht die Karte mit dem Finger. `simultaneousGesture`, damit die Liste
+    /// darunter weiter senkrecht scrollt; die erste deutliche Bewegung
+    /// entscheidet, ob es eine Karte oder ein Scrollen wird. Losgelassen
+    /// entscheidet die vorausberechnete Endlage: ueber ein Drittel der
+    /// Breite (oder ein Schwung dorthin) blaettert, sonst federt die Karte
+    /// zurueck.
+    private var cardDrag: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onChanged { value in
+                if horizontal == nil {
+                    horizontal = abs(value.translation.width) > abs(value.translation.height)
+                }
+                guard horizontal == true else { return }
+                drag = max(-pageWidth, min(pageWidth, value.translation.width))
+            }
+            .onEnded { value in
+                defer { horizontal = nil }
+                guard horizontal == true else { return }
+                let predicted = value.predictedEndTranslation.width
+                if predicted < -pageWidth / 3 {
+                    turn(1)
+                } else if predicted > pageWidth / 3 {
+                    turn(-1)
+                } else {
+                    withAnimation(.spring(duration: 0.3)) { drag = 0 }
+                }
+            }
+    }
+
+    /// Blaettert um einen Tag: die Karte gleitet zu Ende, dann wird der neue
+    /// Tag zum Haupttag und die Verschiebung ohne Animation zurueckgesetzt -
+    /// die Nachbarkarte stand schon genau dort, wo die neue Hauptkarte
+    /// erscheint, das Auge sieht keinen Sprung.
+    private func turn(_ days: Int) {
+        let target = store.date.adding(days: days)
+        withAnimation(.easeOut(duration: 0.28)) {
+            drag = days > 0 ? -pageWidth : pageWidth
+        } completion: {
+            Task { @MainActor in
+                await store.show(target)
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { drag = 0 }
             }
         }
     }
@@ -135,7 +189,12 @@ struct FoodTab: View {
             }
 
             if let day = store.summary(for: date) {
-                Section { gauges(day) }
+                Section {
+                    gauges(day)
+                        // Die ganze Zeile nimmt die Karten-Geste an, nicht nur die Bogen.
+                        .contentShape(Rectangle())
+                        .simultaneousGesture(cardDrag)
+                }
                 ForEach(FoodStore.mealSections(of: day)) { section in
                     mealSection(section, day: day)
                 }
@@ -145,6 +204,7 @@ struct FoodTab: View {
             }
         }
         .refreshable { await store.load() }
+        .frame(width: pageWidth)
     }
 
     private var title: String {
@@ -225,16 +285,14 @@ struct FoodTab: View {
 
     // MARK: - Blaettern
 
-    /// Die Pfeile schieben die Karte, als haette man gezogen: der Nachbar
-    /// liegt schon im Pager, ein animierter Wechsel der Auswahl reicht.
+    /// Die Pfeile schieben die Karte, als haette man gezogen.
     private func step(_ days: Int) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            selection = store.date.adding(days: days)
-        }
+        guard drag == 0 else { return }
+        turn(days)
     }
 
-    /// Ein beliebiger Tag („Tag waehlen", „Heute"): kein Nachbar im Pager,
-    /// also laedt der Store, und die Karte folgt ihm.
+    /// Ein beliebiger Tag („Tag waehlen", „Heute"): ohne Karte daneben, also
+    /// laedt der Store, und die Liste zeigt ihn.
     private func show(_ date: CalendarDate) {
         Task { await store.show(date) }
     }
@@ -393,6 +451,7 @@ struct FoodTab: View {
                     Label("Hinzufügen", systemImage: "plus.circle")
                         .font(.callout)
                 }
+                .simultaneousGesture(cardDrag)
             }
         } header: {
             HStack {
@@ -412,6 +471,8 @@ struct FoodTab: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .contentShape(Rectangle())
+            .simultaneousGesture(cardDrag)
         }
     }
 

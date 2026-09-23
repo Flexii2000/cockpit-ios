@@ -18,6 +18,23 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Healthy: Karten ohne Pager, Wischen zum Löschen wieder da · **gebaut** (2026-09-23)
+
+Felix: „man kann keine Gerichte mehr löschen — wegen dem Swipe". Der
+`TabView(.page)`-Pager ist ein horizontales Scrollfeld und schluckte jeden
+Wisch nach links, auch den zum Löschen einer Eintragszeile. Jetzt sind die
+Karten selbst gebaut: `ZStack` aus der Liste des Tages und — nur während des
+Ziehens — der Nachbarliste daneben, verschoben um `drag`; die Geste
+(`cardDrag`, `simultaneousGesture`, erste deutliche Bewegung entscheidet
+waagerecht/senkrecht) liegt wieder nur auf Tacho-Block,
+Mahlzeiten-Überschriften und „Hinzufügen"-Zeilen. Loslassen über ein Drittel
+der Breite oder mit Schwung blättert (`turn`: Karte gleitet zu Ende, dann
+`store.show` und `drag` ohne Animation auf 0 — die Nachbarkarte stand schon
+dort), sonst federt sie zurück. Pfeile nutzen dieselbe Bewegung. UI-Tests
+`testSwipeOnAnEntryRevealsTheTrashButton` und
+`testSwipingLeftOnTheGaugesShowsTheNextDay` grün. Der Tagesspeicher mit
+Nachbarn (`summaries`, `prefetchNeighbours`) bleibt.
+
 ## Habits mit Wochen- und Monatsrhythmus · **gebaut** (2026-09-23)
 
 Felix' Wunsch: „politisch aktiv sein: 2× im Monat", „Zeitungsartikel lesen:
