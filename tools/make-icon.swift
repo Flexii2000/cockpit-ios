@@ -10,7 +10,7 @@
 // als sie selbst zu erkennen sein:
 //   healthy  ein Herz, gruen                          (Gesundheit)
 //   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
-//   fokus    eine Sinuswelle auf Blau-Petrol            (Flow - so heisst die App auf dem Homebildschirm)
+//   fokus    eine Flamme auf Orange-Rot                 (Flow - die Straehnen-Flamme der Habits)
 //   einkaufsliste  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
@@ -144,39 +144,44 @@ case "vault":
     ctx.fillPath()
 
 case "fokus":
-    // "Flow": eine ruhige Sinuswelle, kraeftig genug fuer 60 px. Blau-Petrol
-    // wie Wasser, damit sie neben Healthy (gruen), Vault (dunkelblau) und
-    // Einkaufsliste (petrol) fuer sich steht. Darunter eine zweite, blasse
-    // Welle als Echo - nur Tiefe, kein zweites Motiv.
-    background(0x35B6D6, 0x1B3F8F)
+    // "Flow", aber mit der Flamme der Habits: die Straehne brennt. Aussen
+    // eine kraeftige weisse Flamme mit nach rechts leckender Spitze, innen
+    // eine kleinere Zunge in der Hintergrundfarbe - zwei Toene, sonst nichts,
+    // damit es bei 60 px noch als Flamme lesbar ist. Warm, damit es neben
+    // Healthy (gruen), Vault (dunkelblau) und Einkaufsliste (petrol) steht.
+    background(0xFFA43C, 0xD8351F)
     let cx = side / 2, cy = side / 2
-    // Eine volle Periode, weit und flach: bei anderthalb sah es aus wie ein
-    // "W", nicht wie Wasser.
-    let width = side * 0.74, amplitude = side * 0.13
-    func wave(offsetY: CGFloat, periods: CGFloat, phase: CGFloat) -> CGMutablePath {
-        let path = CGMutablePath()
-        let steps = 120
-        for i in 0...steps {
-            let t = CGFloat(i) / CGFloat(steps)
-            let x = cx - width / 2 + width * t
-            let y = cy + offsetY + amplitude * sin(t * periods * 2 * .pi + phase)
-            if i == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-        }
-        return path
+    func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+        CGPoint(x: cx + x * side, y: cy + y * side)
     }
-    ctx.setLineCap(.round)
-    ctx.setLineJoin(.round)
-    // Das Echo zuerst, damit die Hauptwelle darueber liegt.
-    ctx.addPath(wave(offsetY: -side * 0.17, periods: 1.0, phase: .pi * 1.15))
-    ctx.setStrokeColor(rgb(0xF4F7FB, 0.35))
-    ctx.setLineWidth(side * 0.055)
-    ctx.strokePath()
+    let outer = CGMutablePath()
+    outer.move(to: point(0.0, -0.36))
+    // Linke Flanke: weit ausladend, dann in die Spitze.
+    outer.addCurve(to: point(0.08, 0.36),
+                   control1: point(-0.48, -0.36),
+                   control2: point(-0.34, 0.22))
+    // Die Spitze leckt nach rechts und kommt als rechte Flanke zurueck.
+    outer.addCurve(to: point(0.0, -0.36),
+                   control1: point(0.30, 0.16),
+                   control2: point(0.44, -0.34))
+    outer.closeSubpath()
     withShadow {
-        ctx.addPath(wave(offsetY: side * 0.05, periods: 1.0, phase: .pi * 0.85))
-        ctx.setStrokeColor(ink)
-        ctx.setLineWidth(side * 0.105)
-        ctx.strokePath()
+        ctx.addPath(outer)
+        ctx.setFillColor(ink)
+        ctx.fillPath()
     }
+    let inner = CGMutablePath()
+    inner.move(to: point(0.02, -0.33))
+    inner.addCurve(to: point(0.03, 0.0),
+                   control1: point(-0.22, -0.33),
+                   control2: point(-0.17, -0.06))
+    inner.addCurve(to: point(0.02, -0.33),
+                   control1: point(0.18, -0.08),
+                   control2: point(0.24, -0.33))
+    inner.closeSubpath()
+    ctx.addPath(inner)
+    ctx.setFillColor(rgb(0xE8562A))
+    ctx.fillPath()
 
 case "einkaufsliste":
     // Eine Einkaufstasche auf Petrol - eine Farbe, die keine der anderen

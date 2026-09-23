@@ -62,9 +62,10 @@ Minute), kurze werden gern ein Busch. Während einer Session gesperrt.
 
 **Flow.** Felix hat den Namen aus sechs Vorschlägen gewählt (Flow, Efficiency,
 Kern, Takt, Hain, Deep). Geändert sind nur Anzeigename (`Flow` bei App,
-Kachel-Erweiterung und Monitor) und Icon — eine weisse Sinuswelle mit
-blassem Echo auf Blau-Petrol (`make-icon.swift fokus`, eine volle Periode;
-anderthalb sahen aus wie ein „W"). Bundle-ID, Ordner, Target, Schema und
+Kachel-Erweiterung und Monitor) und Icon. Das Icon war zuerst eine Sinuswelle
+auf Blau-Petrol; die mochte Felix nicht, seit dem 23.09. ist es die
+**Strähnen-Flamme** der Habits: weisse Flamme mit nach rechts leckender Spitze,
+innen eine orange Zunge, auf Orange-Rot (`make-icon.swift fokus`). Bundle-ID, Ordner, Target, Schema und
 URL-Schema bleiben `Fokus`/`com.fherrmann.fokus`: sonst wäre es eine neue App
 ohne Berechtigungen, App-Gruppe und Daten. In der Kurzbefehle-App heisst die
 App damit „Flow" (Automation „Wenn Flow geschlossen wird").
