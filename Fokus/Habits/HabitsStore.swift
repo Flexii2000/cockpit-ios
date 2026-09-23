@@ -21,7 +21,7 @@ final class HabitsStore {
         isLoading = habits.isEmpty
         defer { isLoading = false }
         do {
-            habits = try await api.list()
+            habits = try await api.list().manualFirst
             errorMessage = nil
             isAccessProblem = false
             // Eine frische Liste ist die Wahrheit - was bis eben wartete, ist
@@ -73,7 +73,7 @@ final class HabitsStore {
                 name: name, kind: kind.rawValue, weeklyStepGoal: weeklyStepGoal,
                 focusMinutesGoal: focusMinutesGoal,
                 period: period?.rawValue, timesPerPeriod: timesPerPeriod))
-            habits.append(created)
+            habits = (habits + [created]).manualFirst
             errorMessage = nil
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.habits)
             return true

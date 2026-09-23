@@ -62,6 +62,13 @@ final class HabitsModelTests: XCTestCase {
         XCTAssertEqual(HabitProgress.hours(605), "10:05")
     }
 
+    /// Selbst abgehakte zuerst, automatische danach, sonst nichts umsortiert.
+    func testManualHabitsComeBeforeAutomaticOnes() throws {
+        let habits = try APIClient.decoder().decode([HabitStatus].self, from: Self.sample)
+        let sorted = habits.manualFirst
+        XCTAssertEqual(sorted.map(\.id), ["b1", "s1", "f1"])
+    }
+
     /// Ein Habit je Woche: Rhythmus, Einheit und der Stand des Zeitraums -
     /// und ein Dienst von vor dem Rhythmus (ohne `period`) bleibt taeglich.
     func testDecodesPeriodicBuildHabit() throws {

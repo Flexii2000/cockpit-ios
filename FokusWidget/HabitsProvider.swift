@@ -49,7 +49,7 @@ extension HabitsWidgetState {
         }
         let api = HabitsAPI(cookie: "\(Keychain.privateTokenKey)=\(token)", timeout: timeout)
         do {
-            let habits = try await api.list()
+            let habits = try await api.list().manualFirst
             let stale = await MainActor.run { OfflineStatus.shared.staleSince[.habits] }
             return .value(habits, staleSince: stale)
         } catch APIError.notAuthorised {

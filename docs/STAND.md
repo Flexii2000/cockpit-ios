@@ -18,6 +18,15 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Habits: selbst abgehakte zuerst · **gebaut** (2026-09-23)
+
+Liste und Kachel sortieren jetzt gleich (`[HabitStatus].manualFirst` in
+`Shared/HabitsModels.swift`): erst Aufbauen und Lassen, dann Track food,
+Schritte, Fokus-Zeit; innerhalb der Gruppen die Anlegereihenfolge des
+Dienstes. Der Dienst selbst sortiert nicht — so brauchte es kein Ausrollen.
+Live angelegt heute: Habit „Fokus" (FOCUS, 240 min) — der Wald zeigt bei
+„Heute" damit das Tagesziel.
+
 ## Healthy: Karten ohne Pager, Wischen zum Löschen wieder da · **gebaut** (2026-09-23)
 
 Felix: „man kann keine Gerichte mehr löschen — wegen dem Swipe". Der

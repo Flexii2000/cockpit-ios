@@ -114,6 +114,18 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
     }
 }
 
+extension Array where Element == HabitStatus {
+    /// Erst, was man selbst abhakt (Aufbauen, Lassen), dann, was von selbst
+    /// zaehlt (Track food, Schritte, Fokus-Zeit) - der Dienst liefert in
+    /// Anlegereihenfolge, die bleibt innerhalb der Gruppen erhalten. Felix'
+    /// Wunsch (2026-09-23); gilt in der Liste und in der Kachel gleich.
+    var manualFirst: [HabitStatus] {
+        let manual = filter { !$0.kind.isAutomatic }
+        let automatic = filter { $0.kind.isAutomatic }
+        return manual + automatic
+    }
+}
+
 /// Wie weit der laufende Zeitraum ist - Schritte gegen das Wochenziel,
 /// kcal gegen die 80 % des Tagesziels.
 struct HabitProgress: Decodable, Sendable, Equatable {
