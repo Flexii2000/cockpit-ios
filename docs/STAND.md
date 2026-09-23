@@ -47,8 +47,11 @@ bzw. der Monat (ab dem Ersten), sobald genug Tage abgehakt sind;
 sein, `unit` wird `WEEKS`/`MONTHS`. In der App: Editor mit Segment „Täglich ·
 Pro Woche · Pro Monat" und Stepper „2× pro Monat", Zeile mit „1/2" neben dem
 Haken, Untertitel „diese Woche noch offen", Punkte „7 Wochen"/„7 Monate",
-Kachel zeigt „1/2". Im Simulator gegen den lokalen Dienst geprüft. Offen:
-`update-habits.sh` ausrollen, dann die beiden Habits anlegen.
+Kachel zeigt „1/2". Im Simulator gegen den lokalen Dienst geprüft. Dienst
+ausgerollt (Felix, 23.09.), beide Habits per API angelegt: „Politisch aktiv
+sein" 2× pro Monat, „Zeitungsartikel lesen" 1× pro Woche. Ein Habit
+„Fokus-Zeit" (FOCUS) gibt es live noch nicht — ohne es zeigt der Wald bei
+„Heute" kein Tagesziel.
 
 ## Flow: eigene Dauer · **gebaut** (2026-09-22, abends)
 
