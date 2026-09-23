@@ -63,12 +63,12 @@ Minute), kurze werden gern ein Busch. Während einer Session gesperrt.
 
 ## Fokus heisst jetzt „Flow", die Kachel zeigt ohne Session die Habits · **gebaut** (2026-09-22, abends)
 
-**Flow.** Felix hat den Namen aus sechs Vorschlägen gewählt (Flow, Efficiency,
-Kern, Takt, Hain, Deep). Geändert sind nur Anzeigename (`Flow` bei App,
-Kachel-Erweiterung und Monitor) und Icon. Das Icon war zuerst eine Sinuswelle
-auf Blau-Petrol; die mochte Felix nicht, seit dem 23.09. ist es die
-**Strähnen-Flamme** der Habits: weisse Flamme mit nach rechts leckender Spitze,
-innen eine orange Zunge, auf Orange-Rot (`make-icon.swift fokus`). Bundle-ID, Ordner, Target, Schema und
+**Flow, dann doch wieder Fokus.** Felix hatte „Flow" aus sechs Vorschlägen
+gewählt; am 23.09. wollte er den Namen zurück auf **Fokus**. Geändert war
+und ist nur der Anzeigename (App, Kachel-Erweiterung, Monitor) und das Icon.
+Das Icon ging von der Sinuswelle (Blau-Petrol) über eine selbst gezeichnete
+Flamme zur **exakten Habits-Flamme**: das SF Symbol `flame.fill`, weiss auf
+Orange-Rot, im Generator als Vorlagebild eingefärbt (`make-icon.swift fokus`). Bundle-ID, Ordner, Target, Schema und
 URL-Schema bleiben `Fokus`/`com.fherrmann.fokus`: sonst wäre es eine neue App
 ohne Berechtigungen, App-Gruppe und Daten. In der Kurzbefehle-App heisst die
 App damit „Flow" (Automation „Wenn Flow geschlossen wird").

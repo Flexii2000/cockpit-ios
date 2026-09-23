@@ -10,7 +10,7 @@
 // als sie selbst zu erkennen sein:
 //   healthy  ein Herz, gruen                          (Gesundheit)
 //   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
-//   fokus    eine Flamme auf Orange-Rot                 (Flow - die Straehnen-Flamme der Habits)
+//   fokus    die Straehnen-Flamme der Habits (SF Symbol flame.fill) auf Orange-Rot
 //   einkaufsliste  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
@@ -144,44 +144,33 @@ case "vault":
     ctx.fillPath()
 
 case "fokus":
-    // "Flow", aber mit der Flamme der Habits: die Straehne brennt. Aussen
-    // eine kraeftige weisse Flamme mit nach rechts leckender Spitze, innen
-    // eine kleinere Zunge in der Hintergrundfarbe - zwei Toene, sonst nichts,
-    // damit es bei 60 px noch als Flamme lesbar ist. Warm, damit es neben
-    // Healthy (gruen), Vault (dunkelblau) und Einkaufsliste (petrol) steht.
+    // Genau die Flamme, die im Habits-Tab neben jeder Straehne steht: das
+    // SF Symbol "flame.fill", weiss auf Orange-Rot. Eine selbst gezeichnete
+    // Flamme sah Felix zu fremd aus - das Icon soll dasselbe Ding sein wie
+    // in der App. Das Symbol kommt als Vorlagebild; eingefaerbt wird es mit
+    // sourceAtop, dann in unseren Kontext gezeichnet.
     background(0xFFA43C, 0xD8351F)
-    let cx = side / 2, cy = side / 2
-    func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-        CGPoint(x: cx + x * side, y: cy + y * side)
+    let config = NSImage.SymbolConfiguration(pointSize: 700, weight: .medium)
+    guard let symbol = NSImage(systemSymbolName: "flame.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(config) else {
+        fatalError("Kein SF Symbol flame.fill")
     }
-    let outer = CGMutablePath()
-    outer.move(to: point(0.0, -0.36))
-    // Linke Flanke: weit ausladend, dann in die Spitze.
-    outer.addCurve(to: point(0.08, 0.36),
-                   control1: point(-0.48, -0.36),
-                   control2: point(-0.34, 0.22))
-    // Die Spitze leckt nach rechts und kommt als rechte Flanke zurueck.
-    outer.addCurve(to: point(0.0, -0.36),
-                   control1: point(0.30, 0.16),
-                   control2: point(0.44, -0.34))
-    outer.closeSubpath()
+    let tinted = NSImage(size: symbol.size)
+    tinted.lockFocus()
+    symbol.draw(in: NSRect(origin: .zero, size: symbol.size))
+    NSColor(calibratedRed: 0.957, green: 0.969, blue: 0.984, alpha: 1).set()
+    NSRect(origin: .zero, size: symbol.size).fill(using: .sourceAtop)
+    tinted.unlockFocus()
+    // Auf 62 % der Kantenlaenge, mittig - die Flamme ist hoeher als breit.
+    let height = side * 0.62
+    let width = height * symbol.size.width / symbol.size.height
+    let rect = NSRect(x: (side - width) / 2, y: (side - height) / 2 - side * 0.01, width: width, height: height)
     withShadow {
-        ctx.addPath(outer)
-        ctx.setFillColor(ink)
-        ctx.fillPath()
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        tinted.draw(in: rect)
+        NSGraphicsContext.restoreGraphicsState()
     }
-    let inner = CGMutablePath()
-    inner.move(to: point(0.02, -0.33))
-    inner.addCurve(to: point(0.03, 0.0),
-                   control1: point(-0.22, -0.33),
-                   control2: point(-0.17, -0.06))
-    inner.addCurve(to: point(0.02, -0.33),
-                   control1: point(0.18, -0.08),
-                   control2: point(0.24, -0.33))
-    inner.closeSubpath()
-    ctx.addPath(inner)
-    ctx.setFillColor(rgb(0xE8562A))
-    ctx.fillPath()
 
 case "einkaufsliste":
     // Eine Einkaufstasche auf Petrol - eine Farbe, die keine der anderen

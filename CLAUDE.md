@@ -4,8 +4,7 @@ Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
 `weight.fherrmann.com`, Einkaufsliste `fherrmann.com/shopping-list`),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
-`finanzen.fherrmann.com`), **Fokus** — auf dem Homebildschirm heisst sie
-**„Flow"**, im Repo bleibt alles `Fokus` — (Habits `fherrmann.com/habits`, To-Do
+`finanzen.fherrmann.com`), **Fokus** (Habits `fherrmann.com/habits`, To-Do
 `fherrmann.com/todo`, Wald — Fokus-Sessions, ebenfalls beim Habits-Dienst) und **Einkaufsliste** (nur die Einkaufsliste — für das Handy
 von Joana, deren Token nur diesen einen Dienst öffnet).
 

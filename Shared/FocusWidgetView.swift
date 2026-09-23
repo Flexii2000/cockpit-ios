@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Was die Flow-Kachel auf dem Homebildschirm zeigt: die laufende Session
+/// Was die Fokus-Kachel auf dem Homebildschirm zeigt: die laufende Session
 /// mit Countdown - oder, wenn keine laeuft, die Habits. Eine Kachel, zwei
 /// Gesichter: waehrend der Session zaehlt sie, sonst zeigt sie, was heute
 /// noch offen ist (Felix, 2026-09-22).

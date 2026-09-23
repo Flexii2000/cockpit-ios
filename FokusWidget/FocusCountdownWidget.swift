@@ -54,7 +54,7 @@ struct FocusProvider: TimelineProvider {
     }
 }
 
-/// Die breite Flow-Kachel: Countdown der Session, sonst die Habits.
+/// Die breite Fokus-Kachel: Countdown der Session, sonst die Habits.
 struct FocusCountdownWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetKind.focus, provider: FocusProvider()) { entry in
@@ -64,7 +64,7 @@ struct FocusCountdownWidget: Widget {
                 // Wald oder zu den Habits (RootView.onOpenURL).
                 .widgetURL(URL(string: entry.state.session == nil ? "cockpit://habits" : "cockpit://forest"))
         }
-        .configurationDisplayName("Flow")
+        .configurationDisplayName("Fokus")
         .description("Die Restzeit der Session, sonst die Habits.")
         .supportedFamilies([.systemMedium])
     }
