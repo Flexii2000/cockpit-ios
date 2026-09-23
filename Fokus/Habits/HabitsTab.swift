@@ -130,7 +130,7 @@ struct HabitRow: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         } else if habit.atRisk {
-            Text("\(habit.streakText) · heute noch offen")
+            Text("\(habit.streakText) · \(habit.openText)")
                 .font(.caption)
                 .foregroundStyle(.orange)
         } else {
@@ -158,13 +158,23 @@ struct HabitRow: View {
     private var trailingByKind: some View {
         switch habit.kind {
         case .build:
-            Button(action: toggle) {
-                Image(systemName: habit.doneToday ? "checkmark.circle.fill" : "circle")
-                    .font(.title)
-                    .foregroundStyle(habit.doneToday ? Color.green : Color.secondary)
+            HStack(spacing: 10) {
+                // Je Woche oder Monat: der Stand des Zeitraums neben dem
+                // Haken von heute - „1/2" sagt, was noch fehlt.
+                if habit.isPeriodic, let progress = habit.progress {
+                    Text("\(progress.value)/\(progress.goal)")
+                        .font(.title3.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(progress.value >= progress.goal ? Color.green : Color.primary)
+                        .accessibilityIdentifier("period-\(habit.id)")
+                }
+                Button(action: toggle) {
+                    Image(systemName: habit.doneToday ? "checkmark.circle.fill" : "circle")
+                        .font(.title)
+                        .foregroundStyle(habit.doneToday ? Color.green : Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("toggle-\(habit.id)")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("toggle-\(habit.id)")
         case .quit:
             if habit.doneToday {
                 Button("Rückfall", action: toggle)
@@ -208,7 +218,7 @@ struct HabitRow: View {
     }
 }
 
-/// Die letzten sieben Tage oder Wochen als Punkte, aelteste links.
+/// Die letzten sieben Tage, Wochen oder Monate als Punkte, aelteste links.
 struct RecentDots: View {
 
     let recent: [Bool]
@@ -228,12 +238,20 @@ struct RecentDots: View {
                         }
                     }
             }
-            Text(unit == .days ? "7 Tage" : "7 Wochen")
+            Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 4)
         }
         .padding(.leading, 52)
+    }
+
+    private var label: String {
+        switch unit {
+        case .days:   "7 Tage"
+        case .weeks:  "7 Wochen"
+        case .months: "7 Monate"
+        }
     }
 }
 

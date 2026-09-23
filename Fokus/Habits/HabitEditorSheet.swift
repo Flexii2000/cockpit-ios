@@ -11,6 +11,9 @@ struct HabitEditorSheet: View {
     @State private var goalText = "70000"
     /// Fokus-Zeit in Minuten je Tag - vier Stunden, so hat Felix es bestellt.
     @State private var focusMinutesText = "240"
+    /// Nur beim Aufbauen: jeden Tag, oder so-und-so-oft je Woche oder Monat.
+    @State private var period: HabitStatus.Period = .day
+    @State private var timesPerPeriod = 1
     @State private var isSaving = false
 
     private var goal: Int? { Int(goalText.replacingOccurrences(of: ".", with: "")) }
@@ -41,6 +44,23 @@ struct HabitEditorSheet: View {
                 } footer: {
                     Text(explanation)
                 }
+                if kind == .build {
+                    Section("Rhythmus") {
+                        Picker("Rhythmus", selection: $period) {
+                            ForEach(HabitStatus.Period.allCases, id: \.self) { period in
+                                Text(period.label).tag(period)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        if period != .day {
+                            Stepper(value: $timesPerPeriod, in: 1...period.maxTimes) {
+                                Text(period == .week ? "\(timesPerPeriod)× pro Woche"
+                                                     : "\(timesPerPeriod)× pro Monat")
+                            }
+                            .accessibilityIdentifier("timesPerPeriod")
+                        }
+                    }
+                }
                 if kind == .steps {
                     Section("Wochenziel") {
                         TextField("Schritte", text: $goalText)
@@ -70,7 +90,9 @@ struct HabitEditorSheet: View {
 
     private var explanation: String {
         switch kind {
-        case .build: "Etwas, das du tun willst. Jeden Tag abhaken - sonst reisst die Straehne um Mitternacht."
+        case .build: period == .day
+            ? "Etwas, das du tun willst. Jeden Tag abhaken - sonst reisst die Straehne um Mitternacht."
+            : "Abhaken an den Tagen, an denen du es getan hast. Die Straehne zaehlt Wochen bzw. Monate, in denen es oft genug war."
         case .quit:  "Etwas, das du lassen willst. Zaehlt von selbst; ein eingetragener Rückfall setzt auf null."
         case .food:  "Gilt als erledigt, wenn 80 % des kcal-Ziels erreicht sind oder Frühstück, Mittag und Abend je einen Eintrag haben."
         case .steps: "Erreicht, sobald die Schritte der Woche (ab Montag 0:00) das Ziel schaffen. Kommt aus Apple Health."
@@ -84,7 +106,9 @@ struct HabitEditorSheet: View {
         let ok = await store.create(name: name.trimmingCharacters(in: .whitespaces),
                                     kind: kind,
                                     weeklyStepGoal: kind == .steps ? goal : nil,
-                                    focusMinutesGoal: kind == .focus ? focusMinutes : nil)
+                                    focusMinutesGoal: kind == .focus ? focusMinutes : nil,
+                                    period: kind == .build ? period : nil,
+                                    timesPerPeriod: kind == .build && period != .day ? timesPerPeriod : nil)
         if ok { dismiss() }
     }
 }

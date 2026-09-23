@@ -37,6 +37,33 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
     enum Unit: String, Decodable, Sendable {
         case days = "DAYS"
         case weeks = "WEEKS"
+        case months = "MONTHS"
+    }
+
+    /// Der Rhythmus eines Habits zum Aufbauen: jeden Tag, oder so-und-so-oft
+    /// je Woche oder Monat („Zeitungsartikel lesen: 1x die Woche",
+    /// „politisch aktiv sein: 2x im Monat").
+    enum Period: String, Decodable, Sendable, CaseIterable {
+        case day = "DAY"
+        case week = "WEEK"
+        case month = "MONTH"
+
+        var label: String {
+            switch self {
+            case .day:   "Täglich"
+            case .week:  "Pro Woche"
+            case .month: "Pro Monat"
+            }
+        }
+
+        /// Hoechstens so oft je Zeitraum.
+        var maxTimes: Int {
+            switch self {
+            case .day: 1
+            case .week: 7
+            case .month: 31
+            }
+        }
     }
 
     let id: String
@@ -47,6 +74,9 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
     /// Nur bei Fokus-Zeit: das Tagesziel in Minuten. Optional, damit ein
     /// aelterer Dienst die Liste nicht kippt.
     let focusMinutesGoal: Int?
+    /// Bei „Aufbauen" der Rhythmus; fehlt er (aelterer Dienst), ist es taeglich.
+    let period: Period?
+    let timesPerPeriod: Int?
     let streak: Int
     let doneToday: Bool
     /// Heute noch nicht erledigt, aber die Straehne lebt - bis Mitternacht.
@@ -58,11 +88,28 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
     /// und Punkte nichts, und statt der Flamme steht dieser Satz.
     let unavailable: String?
 
-    /// „12 Tage", „3 Wochen".
+    /// „12 Tage", „3 Wochen", „2 Monate".
     var streakText: String {
         switch unit {
-        case .days:  streak == 1 ? "1 Tag" : "\(streak) Tage"
-        case .weeks: streak == 1 ? "1 Woche" : "\(streak) Wochen"
+        case .days:   streak == 1 ? "1 Tag" : "\(streak) Tage"
+        case .weeks:  streak == 1 ? "1 Woche" : "\(streak) Wochen"
+        case .months: streak == 1 ? "1 Monat" : "\(streak) Monate"
+        }
+    }
+
+    /// Der Rhythmus, mit Vorgabe taeglich.
+    var rhythm: Period { period ?? .day }
+
+    /// Ob das ein Habit zum Aufbauen mit Wochen- oder Monatsrhythmus ist -
+    /// dann zaehlt `progress` die Haken im laufenden Zeitraum.
+    var isPeriodic: Bool { kind == .build && rhythm != .day }
+
+    /// „heute noch offen", „diese Woche noch offen", „diesen Monat noch offen".
+    var openText: String {
+        switch unit {
+        case .days:   "heute noch offen"
+        case .weeks:  "diese Woche noch offen"
+        case .months: "diesen Monat noch offen"
         }
     }
 }
@@ -108,6 +155,8 @@ struct HabitDraft: Encodable, Sendable {
     let kind: String
     let weeklyStepGoal: Int?
     let focusMinutesGoal: Int?
+    var period: String? = nil
+    var timesPerPeriod: Int? = nil
 }
 
 /// Eine durchgestandene Fokus-Session, wie der Habits-Dienst sie liefert

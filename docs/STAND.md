@@ -18,6 +18,21 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Habits mit Wochen- und Monatsrhythmus · **gebaut** (2026-09-23)
+
+Felix' Wunsch: „politisch aktiv sein: 2× im Monat", „Zeitungsartikel lesen:
+1× die Woche". Habits zum Aufbauen haben jetzt einen **Rhythmus** (`period`:
+täglich, pro Woche, pro Monat) und eine Häufigkeit (`timesPerPeriod`).
+Gerechnet im Habits-Dienst (`247089e`, 42 Tests grün, **nicht ausgerollt**):
+abgehakt werden einzelne Tage wie bisher, erfüllt ist die Woche (ab Montag)
+bzw. der Monat (ab dem Ersten), sobald genug Tage abgehakt sind;
+`Streaks.periodic`/`recentPeriods` zählen Zeiträume, der laufende darf offen
+sein, `unit` wird `WEEKS`/`MONTHS`. In der App: Editor mit Segment „Täglich ·
+Pro Woche · Pro Monat" und Stepper „2× pro Monat", Zeile mit „1/2" neben dem
+Haken, Untertitel „diese Woche noch offen", Punkte „7 Wochen"/„7 Monate",
+Kachel zeigt „1/2". Im Simulator gegen den lokalen Dienst geprüft. Offen:
+`update-habits.sh` ausrollen, dann die beiden Habits anlegen.
+
 ## Flow: eigene Dauer · **gebaut** (2026-09-22, abends)
 
 „…"-Menü › **„Eigene Dauer …"**: ein Zahlenfeld für Minuten, die das Rad nicht

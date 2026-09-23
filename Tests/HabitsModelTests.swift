@@ -62,6 +62,48 @@ final class HabitsModelTests: XCTestCase {
         XCTAssertEqual(HabitProgress.hours(605), "10:05")
     }
 
+    /// Ein Habit je Woche: Rhythmus, Einheit und der Stand des Zeitraums -
+    /// und ein Dienst von vor dem Rhythmus (ohne `period`) bleibt taeglich.
+    func testDecodesPeriodicBuildHabit() throws {
+        let habits = try APIClient.decoder().decode([HabitStatus].self, from: """
+        [{"id":"w1","name":"Zeitungsartikel lesen","kind":"BUILD","unit":"WEEKS","weeklyStepGoal":null,
+          "streak":3,"doneToday":false,"atRisk":true,"progress":{"value":0,"goal":1},
+          "recent":[true,true,true,true,true,true,false],"unavailable":null,
+          "focusMinutesGoal":null,"period":"WEEK","timesPerPeriod":1},
+         {"id":"m1","name":"Politisch aktiv","kind":"BUILD","unit":"MONTHS","weeklyStepGoal":null,
+          "streak":1,"doneToday":true,"atRisk":false,"progress":{"value":2,"goal":2},
+          "recent":[false,false,false,false,false,true,true],"unavailable":null,
+          "focusMinutesGoal":null,"period":"MONTH","timesPerPeriod":2},
+         {"id":"b1","name":"Logbook","kind":"BUILD","unit":"DAYS","weeklyStepGoal":null,
+          "streak":12,"doneToday":false,"atRisk":true,"progress":null,
+          "recent":[true,true,true,true,true,true,false],"unavailable":null}]
+        """.data(using: .utf8)!)
+        XCTAssertEqual(habits[0].rhythm, .week)
+        XCTAssertTrue(habits[0].isPeriodic)
+        XCTAssertEqual(habits[0].streakText, "3 Wochen")
+        XCTAssertEqual(habits[0].openText, "diese Woche noch offen")
+        XCTAssertEqual(habits[1].rhythm, .month)
+        XCTAssertEqual(habits[1].streakText, "1 Monat")
+        XCTAssertEqual(habits[1].timesPerPeriod, 2)
+        XCTAssertEqual(habits[2].rhythm, .day)
+        XCTAssertFalse(habits[2].isPeriodic)
+        XCTAssertEqual(habits[2].openText, "heute noch offen")
+    }
+
+    /// Was die App beim Anlegen schickt: Rhythmus und Haeufigkeit nur, wenn gesetzt.
+    func testHabitDraftEncodesTheRhythm() throws {
+        let weekly = HabitDraft(name: "Lesen", kind: "BUILD", weeklyStepGoal: nil, focusMinutesGoal: nil,
+                                period: "WEEK", timesPerPeriod: 1)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: APIClient.encoder().encode(weekly)) as? [String: Any])
+        XCTAssertEqual(object["period"] as? String, "WEEK")
+        XCTAssertEqual(object["timesPerPeriod"] as? Int, 1)
+        let daily = HabitDraft(name: "Logbook", kind: "BUILD", weeklyStepGoal: nil, focusMinutesGoal: nil)
+        let plain = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: APIClient.encoder().encode(daily)) as? [String: Any])
+        XCTAssertNil(plain["period"])
+    }
+
     /// Eine Session, wie `/api/focus/sessions` sie liefert - Zeitpunkte mit
     /// Nachkommastellen, der Tag als yyyy-MM-dd.
     func testDecodesFocusSession() throws {

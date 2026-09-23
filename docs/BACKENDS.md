@@ -344,22 +344,31 @@ ist der einzige Client, deshalb ist die Antwort schon fertig gerechnet
 | Methode | Pfad | Was |
 |---|---|---|
 | GET | `/api/habits` | alle Habits mit Sträh­ne und Stand von heute |
-| POST | `/api/habits` | `{name, kind, weeklyStepGoal?, focusMinutesGoal?}` → 201 |
-| PUT | `/api/habits/{id}` | Name/Wochenziel/Tagesziel ändern — **nicht** die Art |
+| POST | `/api/habits` | `{name, kind, weeklyStepGoal?, focusMinutesGoal?, period?, timesPerPeriod?}` → 201 |
+| PUT | `/api/habits/{id}` | Name/Wochenziel/Tagesziel/Rhythmus ändern — **nicht** die Art |
 | DELETE | `/api/habits/{id}` | löscht samt aller Einträge, kein Archiv |
 | POST | `/api/habits/{id}/marks` | `{date?}` — Haken (BUILD) bzw. Rückfall (QUIT), ohne Datum heute |
 | DELETE | `/api/habits/{id}/marks/{date}` | Haken bzw. Rückfall zurücknehmen |
 
 ```
-HabitStatus  id, name, kind (BUILD|QUIT|FOOD|STEPS|FOCUS), unit (DAYS|WEEKS),
+HabitStatus  id, name, kind (BUILD|QUIT|FOOD|STEPS|FOCUS), unit (DAYS|WEEKS|MONTHS),
              weeklyStepGoal, focusMinutesGoal (nur FOCUS, sonst null),
+             period (DAY|WEEK|MONTH, bei BUILD der Rhythmus), timesPerPeriod,
              streak, doneToday, atRisk,
              progress {value, goal} | null, recent [7 × bool, älteste zuerst],
              unavailable (String | null)
 ```
 
-`focusMinutesGoal` decodiert optional — ein Dienst von vor dem Wald kennt das
-Feld nicht, und die Liste muss trotzdem laden.
+`focusMinutesGoal`, `period` und `timesPerPeriod` decodieren optional — ein
+älterer Dienst kennt die Felder nicht, und die Liste muss trotzdem laden;
+ohne `period` gilt täglich.
+
+⚠️ **BUILD mit `period` WEEK/MONTH** („Zeitungsartikel lesen 1× die Woche",
+„politisch aktiv 2× im Monat"): abgehakt werden weiter einzelne Tage
+(`POST …/marks`), `doneToday` ist der Haken von heute (der Knopf), `progress`
+zählt die Haken im laufenden Zeitraum gegen `timesPerPeriod`, `streak` und
+`recent` gehen in Wochen (ab Montag) bzw. Monaten (ab dem Ersten), `atRisk`
+heisst „dieser Zeitraum noch offen". Die App zeigt „1/2" neben dem Haken.
 
 ⚠️ **`atRisk` ist kein Fehler.** Ein Build-Habit, das heute noch nicht
 abgehakt ist, hat seine Sträh­ne nicht verloren — erst um Mitternacht. Bis

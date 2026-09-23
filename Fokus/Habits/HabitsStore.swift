@@ -66,11 +66,13 @@ final class HabitsStore {
 
     @discardableResult
     func create(name: String, kind: HabitStatus.Kind, weeklyStepGoal: Int?,
-                focusMinutesGoal: Int? = nil) async -> Bool {
+                focusMinutesGoal: Int? = nil, period: HabitStatus.Period? = nil,
+                timesPerPeriod: Int? = nil) async -> Bool {
         do {
             let created = try await api.create(HabitDraft(
                 name: name, kind: kind.rawValue, weeklyStepGoal: weeklyStepGoal,
-                focusMinutesGoal: focusMinutesGoal))
+                focusMinutesGoal: focusMinutesGoal,
+                period: period?.rawValue, timesPerPeriod: timesPerPeriod))
             habits.append(created)
             errorMessage = nil
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.habits)

@@ -88,6 +88,11 @@ struct HabitsWidgetView: View {
             Text(progress.stepsText)
                 .font(.caption.weight(.semibold).monospacedDigit())
                 .foregroundStyle(habit.doneToday ? Color.green : Color.primary)
+        } else if habit.isPeriodic, let progress = habit.progress {
+            // Je Woche/Monat: der Stand des Zeitraums, gruen sobald voll.
+            Text("\(progress.value)/\(progress.goal)")
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(progress.value >= progress.goal ? Color.green : Color.primary)
         } else {
             Image(systemName: habit.doneToday ? "checkmark.circle.fill" : "circle")
                 .font(family == .systemMedium ? .body : .caption)
