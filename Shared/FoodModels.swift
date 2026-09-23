@@ -134,6 +134,9 @@ struct QuickCaptureRequest: Encodable, Sendable {
     let date: CalendarDate
     let text: String
     let meal: Meal?
+    /// Ein Foto der Mahlzeit, JPEG als Base64 - dann darf `text` leer sein
+    /// und ist nur Kontext. Nil bleibt im JSON weg.
+    var imageJpegBase64: String? = nil
 }
 
 /// Der Auftrag an die Schnellerfassung. Sie laeuft als Claude-Session auf dem

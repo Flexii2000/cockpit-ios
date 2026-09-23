@@ -188,7 +188,7 @@ erst ab dem Tag gezeichnet, an dem seine Oberkante erstmals unterschritten war.
 | PUT | `/api/food/entries/{id}` | `{grams, meal?, date?}` — Menge, Mahlzeit, Tag berichtigen; das Gericht bleibt. Antwort: der Tag, auf dem der Eintrag danach liegt — bei einem Tagwechsel also **nicht** der angezeigte |
 | GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest` |
 | GET | `/api/food/features` | `{quickCapture: Bool}` |
-| POST | `/api/food/quick-capture` | Body `{date, text, meal}` → `QuickCaptureJob` |
+| POST | `/api/food/quick-capture` | Body `{date, text, meal, imageJpegBase64?}` → `QuickCaptureJob`; mit Foto darf `text` leer sein (Kontext) |
 | GET | `/api/food/quick-capture/{id}` | `QuickCaptureJob` |
 | GET | `/api/food/status` | `StatusInfo` (für das Statusboard) |
 | POST | `/api/food/devices` | Body `{token}` → 204. Meldet ein Gerät für Push an |
@@ -219,6 +219,12 @@ einer aus Xcode installierten App. Ein TestFlight- oder App-Store-Build
 braucht `https://api.push.apple.com`, sonst kommt nur `BadDeviceToken`.
 Nachfragen tut die App trotzdem weiter, solange sie läuft: die
 Benachrichtigung ist die Zustellung, nicht die Wahrheit.
+
+⚠️ **Foto in der Schnellerfassung** (seit 2026-09-23): `imageJpegBase64` ist
+ein JPEG als Base64 ohne Präfix (`MealPhoto.base64`, 1280 px lange Kante,
+unter 700 kB — nginx lässt 1 MB durch). Der Dienst legt es als
+`data/inbox/<auftrag>.jpg` ab, der Agent liest genau diese Datei, danach ist
+sie weg. Werte aus dem Bild kommen als `estimated` zurück.
 
 ⚠️ **Schnellerfassung ist ein Auftrag, kein Aufruf.** `POST /quick-capture`
 startet auf dem Server eine Claude-Code-Session und kommt sofort mit einer Job-ID

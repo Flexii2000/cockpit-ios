@@ -18,6 +18,25 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Healthy: Schnellerfassung mit Foto · **gebaut** (2026-09-23)
+
+Felix: „ein Foto vom Essen machen und optional Kontext geben, um eine
+Schätzung zu erhalten". Das Blatt der Schnellerfassung hat oben einen
+Foto-Abschnitt: „Foto aufnehmen" (`CameraPicker`, `UIImagePickerController`)
+oder „Aus Fotos wählen" (`PhotosPicker`, ohne Berechtigung), Vorschau mit
+„Entfernen"; mit Foto ist der Text optional und heisst „Dazu". `MealPhoto`
+verkleinert auf 1280 px, JPEG 0,65, notfalls kleiner bis unter 700 kB (nginx:
+1 MB), und schickt Base64 in `imageJpegBase64`. Der Kalorienzähler
+(`../food`, 58 Tests grün, **nicht ausgerollt**) legt das Foto als
+`data/inbox/<auftrag>.jpg` ab (nur dort darf er schreiben, systemd
+`ProtectSystem=strict`), nennt dem Agenten den Pfad, löscht es danach; die
+Agent-Vorlagen (`deploy/agent/`) erlauben jetzt genau
+`Read(//opt/food/data/inbox/**)` und erklären das Foto (Menge aus Tellergrösse,
+alles `estimated`). Ausrollen mit `update-food.sh` (kopiert die
+Agent-Vorlagen mit); `client_max_body_size 8m` in der nginx-Vorlage greift erst
+mit `setup-food.sh`, ist aber dank der 700-kB-Grenze nicht nötig. Nur auf dem
+Gerät prüfbar: Kamera und eine echte Auswertung.
+
 ## Habits: selbst abgehakte zuerst · **gebaut** (2026-09-23)
 
 Liste und Kachel sortieren jetzt gleich (`[HabitStatus].manualFirst` in

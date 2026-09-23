@@ -322,20 +322,24 @@ final class FoodStore {
     /// waere das Ergebnis danach nicht mehr abholbar.
     private static let runningJobKey = "food.quickCapture.jobId"
 
-    /// Schickt den Text weg und kehrt sofort zurueck. Das Nachfragen laeuft
-    /// im Hintergrund; ist der Vorschlag da, meldet sich die App.
-    func startQuickCapture(text: String, meal: Meal?) {
+    /// Schickt Text und Foto weg und kehrt sofort zurueck. Das Nachfragen
+    /// laeuft im Hintergrund; ist der Vorschlag da, meldet sich die App.
+    func startQuickCapture(text: String, meal: Meal?, photo: UIImage? = nil) {
         captureTask?.cancel()
         captureError = nil
         pendingPreview = nil
         let day = date
+        // Verkleinern und kodieren vor dem Task: UIImage ist nicht Sendable,
+        // die Base64-Zeichenkette schon.
+        let image = photo.flatMap(MealPhoto.base64)
+        let label = text.trimmingCharacters(in: .whitespaces).isEmpty ? "Foto" : text
         captureTask = Task { [weak self] in
             guard let self else { return }
             await Notifications.requestPermission()
             do {
                 let job = try await api.startQuickCapture(
-                    QuickCaptureRequest(date: day, text: text, meal: meal))
-                running = RunningCapture(id: job.id, text: text, meal: meal,
+                    QuickCaptureRequest(date: day, text: text, meal: meal, imageJpegBase64: image))
+                running = RunningCapture(id: job.id, text: label, meal: meal,
                                          startedAt: Date())
                 UserDefaults.standard.set(job.id, forKey: Self.runningJobKey)
                 await follow(job)

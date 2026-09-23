@@ -1,10 +1,14 @@
+import PhotosUI
 import SwiftUI
 
-/// Schnellerfassung: Freitext rein, Blatt zu.
+/// Schnellerfassung: Freitext oder ein Foto rein, Blatt zu.
 ///
 /// Gewartet wird nicht mehr hier - der Auftrag laeuft im Store weiter und
 /// meldet sich, wenn der Vorschlag da ist. Eine Minute auf ein Blatt zu
 /// starren, das nichts tut, war der schlechteste Teil des Ablaufs.
+///
+/// Mit Foto ist der Text Kontext („die kleine Portion", „mit extra Kaese")
+/// und darf leer bleiben - der Agent sieht sich das Bild an.
 struct QuickCaptureSheet: View {
 
     let store: FoodStore
@@ -15,16 +19,52 @@ struct QuickCaptureSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var text = ""
+    @State private var photo: UIImage?
+    @State private var showingCamera = false
+    @State private var libraryItem: PhotosPickerItem?
+
+    private var canSubmit: Bool {
+        photo != nil || !text.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("z. B. ein großer Teller Spaghetti Bolognese",
+                    if let photo {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(uiImage: photo)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 96, height: 96)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            Button("Entfernen", role: .destructive) { self.photo = nil }
+                                .font(.callout)
+                            Spacer()
+                        }
+                    } else {
+                        if CameraPicker.isAvailable {
+                            Button {
+                                showingCamera = true
+                            } label: {
+                                Label("Foto aufnehmen", systemImage: "camera")
+                            }
+                            .accessibilityIdentifier("takePhoto")
+                        }
+                        PhotosPicker(selection: $libraryItem, matching: .images) {
+                            Label("Aus Fotos wählen", systemImage: "photo.on.rectangle")
+                        }
+                    }
+                } header: {
+                    Text("Foto")
+                }
+                Section {
+                    TextField(photo == nil ? "z. B. ein großer Teller Spaghetti Bolognese"
+                                           : "optional: Kontext, z. B. die kleine Portion",
                               text: $text, axis: .vertical)
                         .lineLimit(3...6)
                 } header: {
-                    Text("Was hast du gegessen?")
+                    Text(photo == nil ? "Was hast du gegessen?" : "Dazu")
                 } footer: {
                     Text("Die Auswertung läuft auf dem Server und dauert bis zu "
                          + "einer Minute. Du kannst die App derweil weiter "
@@ -39,11 +79,27 @@ struct QuickCaptureSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Auswerten") {
-                        store.startQuickCapture(text: text, meal: meal)
+                        store.startQuickCapture(text: text, meal: meal, photo: photo)
                         dismiss()
                         onStarted()
                     }
-                    .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(!canSubmit)
+                }
+            }
+            .fullScreenCover(isPresented: $showingCamera) {
+                CameraPicker { image in photo = image }
+                    .ignoresSafeArea()
+            }
+            // Aus der Mediathek: das Bild kommt als Daten, erst hier wird es
+            // ein UIImage - so bleibt der Picker frei von Berechtigungen.
+            .onChange(of: libraryItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        photo = image
+                    }
+                    libraryItem = nil
                 }
             }
         }

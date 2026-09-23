@@ -22,6 +22,19 @@ einem anderen Ort sieht niemand. **Verworfen:** (a) Dunkelmodus als Nacht
 Minuten Genauigkeit); (c) feste Uhrzeiten 7–20 Uhr (im Winter ist es um
 17 Uhr dunkel, im Sommer um 21 Uhr hell).
 
+## 2026-09-23 — Foto der Mahlzeit: Datei im Postfach, der Agent liest sie
+Das Foto geht als Base64 im JSON zum Kalorienzähler, der es als Datei in
+`data/inbox/` ablegt; die Claude-Code-Session des Agenten bekommt dafür ein
+einziges zusätzliches Recht, `Read` auf genau diesen Ordner, und liest das
+Bild selbst. **Warum:** Die Schnellerfassung läuft bewusst als Claude-Code-
+Session mit Felix' Abo, nicht über die API mit Schlüssel; Bilder kann die
+Session nur als Datei sehen. Das Recht ist auf den Ordner begrenzt, die Datei
+heisst nach der Auftragsnummer und wird nach der Auswertung gelöscht — die
+Leitplanke bleibt das Verzeichnis. **Verworfen:** (a) direkter API-Aufruf mit
+Bild (Schlüssel und Kosten je Bild, zweiter Weg neben der Session);
+(b) Multipart-Upload (ein zweiter Endpunkt für denselben Auftrag; Base64 im
+JSON kostet ein Drittel mehr Bytes, spart aber alles andere).
+
 ## 2026-09-23 — Essen-Tab: Karten von Hand gezogen, kein Pager
 Die Tageskarten werden mit einer eigenen `DragGesture` verschoben (Liste des
 Tages plus Nachbarliste im `ZStack`, versetzt um den Zug), die Geste liegt
