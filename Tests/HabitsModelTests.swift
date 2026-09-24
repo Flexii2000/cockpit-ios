@@ -62,6 +62,23 @@ final class HabitsModelTests: XCTestCase {
         XCTAssertEqual(HabitProgress.hours(605), "10:05")
     }
 
+    /// Die markierten Tage kommen als Daten; ein alter Dienst ohne das Feld
+    /// laesst die Liste weiter laden.
+    func testDecodesMarkedDaysAndCreatedAt() throws {
+        let habits = try APIClient.decoder().decode([HabitStatus].self, from: """
+        [{"id":"b1","name":"Logbook","kind":"BUILD","unit":"DAYS","weeklyStepGoal":null,
+          "streak":2,"doneToday":true,"atRisk":false,"progress":null,
+          "recent":[false,false,false,false,false,true,true],"unavailable":null,
+          "markedDays":["2026-09-22","2026-09-23"],"createdAt":"2026-09-01"}]
+        """.data(using: .utf8)!)
+        XCTAssertTrue(habits[0].isMarked(CalendarDate(year: 2026, month: 9, day: 22)))
+        XCTAssertFalse(habits[0].isMarked(CalendarDate(year: 2026, month: 9, day: 21)))
+        XCTAssertEqual(habits[0].createdAt, CalendarDate(year: 2026, month: 9, day: 1))
+        let old = try APIClient.decoder().decode([HabitStatus].self, from: Self.sample)
+        XCTAssertNil(old[0].markedDays)
+        XCTAssertFalse(old[0].isMarked(.today()))
+    }
+
     /// Selbst abgehakte zuerst, automatische danach, sonst nichts umsortiert.
     func testManualHabitsComeBeforeAutomaticOnes() throws {
         let habits = try APIClient.decoder().decode([HabitStatus].self, from: Self.sample)

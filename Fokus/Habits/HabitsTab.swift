@@ -9,6 +9,8 @@ struct HabitsTab: View {
 
     @State private var store = HabitsStore()
     @State private var showingEditor = false
+    /// Das Habit, dessen letzte Tage gerade offen sind (Langdruck).
+    @State private var historyHabitID: String?
 
     var body: some View {
         NavigationStack {
@@ -33,6 +35,11 @@ struct HabitsTab: View {
             .sheet(isPresented: $showingEditor) {
                 HabitEditorSheet(store: store)
             }
+            .sheet(item: Binding(
+                get: { historyHabitID.map(HistoryTarget.init) },
+                set: { historyHabitID = $0?.id })) { target in
+                HabitHistorySheet(store: store, habitID: target.id)
+            }
             .refreshable { await store.load() }
             .task { await store.load() }
             // Ist der Postausgang leer geworden, weiss der Server jetzt mehr
@@ -54,6 +61,13 @@ struct HabitsTab: View {
                 HabitRow(habit: habit, isPending: store.pendingIDs.contains(habit.id)) {
                     Task { await store.toggleToday(habit) }
                 }
+                // Langdruck: die letzten Tage nachtragen - der Haken von
+                // vorgestern, der Rueckfall von gestern.
+                .contextMenu {
+                    if !habit.kind.isAutomatic {
+                        Button("Frühere Tage …") { historyHabitID = habit.id }
+                    }
+                }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         Task { await store.delete(habit) }
@@ -71,6 +85,11 @@ struct HabitsTab: View {
 }
 
 /// Eine Gewohnheit als Zeile.
+/// Nur eine Kennung, damit `.sheet(item:)` etwas Identifizierbares hat.
+private struct HistoryTarget: Identifiable {
+    let id: String
+}
+
 struct HabitRow: View {
 
     let habit: HabitStatus

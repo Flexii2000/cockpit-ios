@@ -362,8 +362,14 @@ HabitStatus  id, name, kind (BUILD|QUIT|FOOD|STEPS|FOCUS), unit (DAYS|WEEKS|MONT
              period (DAY|WEEK|MONTH, bei BUILD der Rhythmus), timesPerPeriod,
              streak, doneToday, atRisk,
              progress {value, goal} | null, recent [7 × bool, älteste zuerst],
-             unavailable (String | null)
+             unavailable (String | null),
+             markedDays [yyyy-MM-dd …] (BUILD/QUIT: Tage mit Eintrag, letzte 31 Tage),
+             createdAt (yyyy-MM-dd)
 ```
+
+`markedDays` und `createdAt` decodieren optional (älterer Dienst). Die App
+nutzt sie für „Frühere Tage …" (Langdruck auf ein Habit): `POST …/marks {date}`
+und `DELETE …/marks/{date}` nehmen jeden Tag ab `createdAt` bis heute.
 
 `focusMinutesGoal`, `period` und `timesPerPeriod` decodieren optional — ein
 älterer Dienst kennt die Felder nicht, und die Liste muss trotzdem laden;

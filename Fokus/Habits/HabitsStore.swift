@@ -64,6 +64,23 @@ final class HabitsStore {
         }
     }
 
+    /// Rueckwirkend: einen Tag abhaken oder den Haken nehmen - bei „Lassen"
+    /// heisst der Eintrag Rueckfall. Nur fuer Habits, die man selbst abhakt.
+    func setMarked(_ habit: HabitStatus, day: CalendarDate, marked: Bool) async {
+        guard !habit.kind.isAutomatic else { return }
+        do {
+            let updated = marked
+                ? try await api.mark(id: habit.id, date: day)
+                : try await api.unmark(id: habit.id, date: day)
+            replace(updated)
+        } catch APIError.queued {
+            pendingIDs.insert(habit.id)
+            errorMessage = nil
+        } catch {
+            report(error)
+        }
+    }
+
     @discardableResult
     func create(name: String, kind: HabitStatus.Kind, weeklyStepGoal: Int?,
                 focusMinutesGoal: Int? = nil, period: HabitStatus.Period? = nil,

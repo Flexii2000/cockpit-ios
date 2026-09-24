@@ -18,6 +18,18 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Habits: rückwirkend abhaken · **gebaut** (2026-09-24)
+
+Felix: „rückwirkend für gestern Rückfälle ausfüllen". Langdruck auf ein Habit
+zum Aufbauen oder Lassen → **„Frühere Tage …"** → `HabitHistorySheet` mit den
+letzten 14 Tagen (ab dem Anlegetag), je Tag ein Schalter: Haken (Aufbauen,
+grün) bzw. Rückfall (Lassen, rot). Jeder Tipp geht sofort an den Dienst
+(`HabitsStore.setMarked`, `POST …/marks {date}` / `DELETE …/marks/{date}`,
+Postausgang erlaubt) und ersetzt die Zeile mit der Antwort. Damit die App
+weiss, was schon steht, liefert der Dienst jetzt `markedDays` (letzte 31
+Tage) und `createdAt` im Stand (Habits `43 Tests`, **nicht ausgerollt** —
+bis dahin zeigt das Blatt alle Tage leer, Tippen funktioniert trotzdem).
+
 ## Healthy: Schnellerfassung mit Foto · **gebaut** (2026-09-23)
 
 Felix: „ein Foto vom Essen machen und optional Kontext geben, um eine

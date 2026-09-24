@@ -87,6 +87,16 @@ struct HabitStatus: Decodable, Identifiable, Sendable, Equatable {
     /// Gesetzt, wenn die Quelle nicht erreichbar war. Dann taugen Straehne
     /// und Punkte nichts, und statt der Flamme steht dieser Satz.
     let unavailable: String?
+    /// Bei Aufbauen/Lassen: die Tage der letzten 31 Tage mit Eintrag (Haken
+    /// bzw. Rueckfall) - fuer das rueckwirkende Abhaken. Optional, damit ein
+    /// aelterer Dienst die Liste nicht kippt.
+    let markedDays: [CalendarDate]?
+    /// Ab wann das Habit zaehlt; davor nimmt der Dienst keine Eintraege.
+    let createdAt: CalendarDate?
+
+    func isMarked(_ day: CalendarDate) -> Bool {
+        markedDays?.contains(day) ?? false
+    }
 
     /// „12 Tage", „3 Wochen", „2 Monate".
     var streakText: String {
