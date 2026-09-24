@@ -3,13 +3,31 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-24 — Habits bearbeiten: Tipp auf den Namen, die Art bleibt fest
+Ein Tipp auf Name oder Untertitel öffnet denselben Editor wie das Plus, mit
+den Werten des Habits vorbelegt; änderbar sind Name, Ziel, Rhythmus und
+Häufigkeit — die Art nicht. Die Beschriftung neben den Punkten („7 Tage",
+„7 Wochen") ist weg. **Warum:** Felix wollte Zielwerte ändern können, ohne
+das Habit samt Strähne neu anzulegen. Die Art lässt der Dienst nicht ändern,
+und das ist richtig so: aus „Aufbauen" ein „Lassen" zu machen kehrte jeden
+Haken in einen Rückfall um. „7 Wochen" las sich wie ein Ziel, dabei sagt es
+nur, wie lang die Punktreihe ist — das sieht man ihr selbst an. **Verworfen:**
+(a) Bearbeiten im Kontextmenü (langes Drücken öffnet schon die früheren
+Tage, ein Menü davor war die Indirektion, die Felix gerade abgeschafft
+hatte); (b) ein eigenes Blatt nur fürs Ziel (zweiter Editor für dieselben
+Felder); (c) eine Beschriftung wie „letzte 7 Wochen" (erklärt, was die
+Reihe zeigt — Erklärtexte gehören nicht in die Oberfläche; als
+Accessibility-Label bleibt sie).
+
 ## 2026-09-22 — „Flow" nur als Anzeigename, technisch bleibt es Fokus
 Die App heisst auf dem Homebildschirm „Flow", Bundle-ID, Target, Ordner,
 Schema und URL-Schema bleiben `Fokus`. **Warum:** Eine neue Bundle-ID wäre
 eine neue App — Family Controls, App-Gruppe, Push-Kennung, Keychain-Gruppe,
 gespeicherte Session und Whitelist wären weg, und der Umbau des Repos wäre
 ein Tag Arbeit ohne sichtbaren Nutzen. **Verworfen:** die Umbenennung bis in
-die Kennungen.
+die Kennungen. **Nachtrag 2026-09-23:** Der Anzeigename ist wieder „Fokus",
+das Icon die Habits-Flamme — Felix mochte „Flow" mit der Welle nicht. Die
+Begründung, warum die Kennungen bleiben, gilt unverändert.
 
 ## 2026-09-22 — Die Insel folgt der Sonne über Hamburg, nicht dem Dunkelmodus
 Tag, Dämmerung und Nacht der Insel kommen aus dem gerechneten Sonnenstand

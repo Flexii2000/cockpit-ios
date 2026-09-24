@@ -42,6 +42,11 @@ struct HabitsAPI: Sendable {
         try await client.send("POST", "/api/focus/sessions", body: draft, queueWhenOffline: true)
     }
 
+    /// Name und Zielwerte aendern - die Art nicht, das laesst der Dienst nicht zu.
+    func update(id: String, _ draft: HabitDraft) async throws -> HabitStatus {
+        try await client.send("PUT", "/api/habits/\(id)", body: draft)
+    }
+
     func delete(id: String) async throws {
         let _: APIClient.Empty = try await client.delete("/api/habits/\(id)")
     }

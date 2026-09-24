@@ -14,6 +14,8 @@ struct HabitsTab: View {
     /// Die Zeile, die gerade gedrueckt wird - sie hebt sich leicht, wie beim
     /// Kontextmenue des Systems.
     @State private var pressedHabitID: String?
+    /// Das Habit im Editor (Tipp auf den Namen).
+    @State private var editingHabit: HabitStatus?
 
     var body: some View {
         NavigationStack {
@@ -43,6 +45,9 @@ struct HabitsTab: View {
                 set: { historyHabitID = $0?.id })) { target in
                 HabitHistorySheet(store: store, habitID: target.id)
             }
+            .sheet(item: $editingHabit) { habit in
+                HabitEditorSheet(store: store, editing: habit)
+            }
             .refreshable { await store.load() }
             .task { await store.load() }
             // Ist der Postausgang leer geworden, weiss der Server jetzt mehr
@@ -61,9 +66,9 @@ struct HabitsTab: View {
                     .listRowBackground(Color.clear)
             }
             ForEach(store.habits) { habit in
-                HabitRow(habit: habit, isPending: store.pendingIDs.contains(habit.id)) {
-                    Task { await store.toggleToday(habit) }
-                }
+                HabitRow(habit: habit, isPending: store.pendingIDs.contains(habit.id),
+                         toggle: { Task { await store.toggleToday(habit) } },
+                         edit: { editingHabit = habit })
                 // Langdruck: gleich die letzten Tage nachtragen - der Haken
                 // von vorgestern, der Rueckfall von gestern. Ohne Menue
                 // dazwischen, das war Felix ein Schritt zu viel - aber mit dem
@@ -106,6 +111,8 @@ struct HabitRow: View {
     /// Der Haken liegt ohne Netz im Postausgang - eine Uhr statt des Hakens.
     var isPending = false
     let toggle: () -> Void
+    /// Tipp auf Name oder Untertitel: bearbeiten.
+    var edit: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -116,6 +123,8 @@ struct HabitRow: View {
                         .font(.body.weight(.medium))
                     subtitle
                 }
+                .contentShape(Rectangle())
+                .onTapGesture(perform: edit)
                 Spacer(minLength: 8)
                 trailing
             }
@@ -267,19 +276,19 @@ struct RecentDots: View {
                         }
                     }
             }
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.leading, 4)
         }
         .padding(.leading, 52)
+        // Keine Beschriftung mehr: „7 Wochen" las sich wie ein Ziel (Felix,
+        // 2026-09-24). Die Punkte sind die letzten sieben Tage, Wochen oder
+        // Monate, der Ring der laufende - das sagt die Reihe selbst.
+        .accessibilityLabel(label)
     }
 
     private var label: String {
         switch unit {
-        case .days:   "7 Tage"
-        case .weeks:  "7 Wochen"
-        case .months: "7 Monate"
+        case .days:   "letzte 7 Tage"
+        case .weeks:  "letzte 7 Wochen"
+        case .months: "letzte 7 Monate"
         }
     }
 }

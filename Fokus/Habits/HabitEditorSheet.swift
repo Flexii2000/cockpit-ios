@@ -1,9 +1,13 @@
 import SwiftUI
 
-/// Neues Habit anlegen.
+/// Neues Habit anlegen - oder ein vorhandenes bearbeiten: dann sind Name und
+/// Ziele vorbelegt, und die Art steht fest (aus einem Aufbauen ein Lassen zu
+/// machen kehrte jeden Eintrag um; der Dienst laesst es nicht zu).
 struct HabitEditorSheet: View {
 
     let store: HabitsStore
+    /// Das Habit, das bearbeitet wird - nil beim Anlegen.
+    var editing: HabitStatus? = nil
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
@@ -15,6 +19,7 @@ struct HabitEditorSheet: View {
     @State private var period: HabitStatus.Period = .day
     @State private var timesPerPeriod = 1
     @State private var isSaving = false
+    @State private var prefilled = false
 
     private var goal: Int? { Int(goalText.replacingOccurrences(of: ".", with: "")) }
     private var focusMinutes: Int? { Int(focusMinutesText) }
@@ -34,13 +39,17 @@ struct HabitEditorSheet: View {
                         .accessibilityIdentifier("habitName")
                 }
                 Section {
-                    Picker("Art", selection: $kind) {
-                        ForEach(HabitStatus.Kind.allCases, id: \.self) { kind in
-                            Text(kind.label).tag(kind)
+                    if editing == nil {
+                        Picker("Art", selection: $kind) {
+                            ForEach(HabitStatus.Kind.allCases, id: \.self) { kind in
+                                Text(kind.label).tag(kind)
+                            }
                         }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    } else {
+                        LabeledContent("Art", value: kind.label)
                     }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
                 } footer: {
                     Text(explanation)
                 }
@@ -74,18 +83,34 @@ struct HabitEditorSheet: View {
                     }
                 }
             }
-            .navigationTitle("Neues Habit")
+            .navigationTitle(editing == nil ? "Neues Habit" : "Habit bearbeiten")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Abbrechen") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Anlegen") { Task { await save() } }
+                    Button(editing == nil ? "Anlegen" : "Sichern") { Task { await save() } }
                         .disabled(!canSave)
                 }
             }
+            .onAppear(perform: prefill)
         }
+    }
+
+    /// Beim Bearbeiten die Felder mit dem Stand des Habits fuellen - einmal,
+    /// nicht bei jedem Erscheinen.
+    private func prefill() {
+        guard let editing, !prefilled else { return }
+        prefilled = true
+        name = editing.name
+        kind = editing.kind
+        if let goal = editing.weeklyStepGoal { goalText = String(goal) }
+        if let minutes = editing.focusMinutesGoal ?? editing.progress.flatMap({ editing.kind == .focus ? $0.goal : nil }) {
+            focusMinutesText = String(minutes)
+        }
+        period = editing.rhythm
+        timesPerPeriod = editing.timesPerPeriod ?? 1
     }
 
     private var explanation: String {
@@ -103,12 +128,22 @@ struct HabitEditorSheet: View {
     private func save() async {
         isSaving = true
         defer { isSaving = false }
-        let ok = await store.create(name: name.trimmingCharacters(in: .whitespaces),
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let ok: Bool
+        if let editing {
+            ok = await store.update(editing, name: trimmed,
+                                    weeklyStepGoal: kind == .steps ? goal : nil,
+                                    focusMinutesGoal: kind == .focus ? focusMinutes : nil,
+                                    period: kind == .build ? period : nil,
+                                    timesPerPeriod: kind == .build && period != .day ? timesPerPeriod : nil)
+        } else {
+            ok = await store.create(name: trimmed,
                                     kind: kind,
                                     weeklyStepGoal: kind == .steps ? goal : nil,
                                     focusMinutesGoal: kind == .focus ? focusMinutes : nil,
                                     period: kind == .build ? period : nil,
                                     timesPerPeriod: kind == .build && period != .day ? timesPerPeriod : nil)
+        }
         if ok { dismiss() }
     }
 }

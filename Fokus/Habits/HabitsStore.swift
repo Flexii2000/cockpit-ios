@@ -100,6 +100,22 @@ final class HabitsStore {
         }
     }
 
+    /// Name und Zielwerte eines Habits aendern; die Art bleibt.
+    func update(_ habit: HabitStatus, name: String, weeklyStepGoal: Int?,
+                focusMinutesGoal: Int?, period: HabitStatus.Period?, timesPerPeriod: Int?) async -> Bool {
+        do {
+            let updated = try await api.update(id: habit.id, HabitDraft(
+                name: name, kind: habit.kind.rawValue, weeklyStepGoal: weeklyStepGoal,
+                focusMinutesGoal: focusMinutesGoal,
+                period: period?.rawValue, timesPerPeriod: timesPerPeriod))
+            replace(updated)
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
     func delete(_ habit: HabitStatus) async {
         do {
             try await api.delete(id: habit.id)

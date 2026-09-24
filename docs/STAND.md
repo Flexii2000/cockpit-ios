@@ -18,6 +18,16 @@
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
 
+## Habits bearbeiten, Punkte ohne Beschriftung · **gebaut** (2026-09-24)
+
+Tipp auf Name oder Untertitel eines Habits öffnet denselben Editor wie das
+Plus, jetzt mit „Habit bearbeiten": Name, Wochenziel (Schritte), Tagesziel
+(Fokus), Rhythmus und Häufigkeit (Aufbauen) — die Art steht fest, der Dienst
+lässt sie nicht ändern (`PUT /api/habits/{id}`, `HabitsAPI.update`,
+`HabitsStore.update`). Die Beschriftung neben den Punkten („7 Tage",
+„7 Wochen") ist weg — „7 Wochen" las sich wie ein Ziel; die Reihe bleibt als
+Accessibility-Label „letzte 7 Wochen".
+
 ## Habits: rückwirkend abhaken · **gebaut** (2026-09-24)
 
 Felix: „rückwirkend für gestern Rückfälle ausfüllen". Langdruck auf ein Habit
@@ -112,7 +122,7 @@ Flamme zur **exakten Habits-Flamme**: das SF Symbol `flame.fill`, weiss auf
 Orange-Rot, im Generator als Vorlagebild eingefärbt (`make-icon.swift fokus`). Bundle-ID, Ordner, Target, Schema und
 URL-Schema bleiben `Fokus`/`com.fherrmann.fokus`: sonst wäre es eine neue App
 ohne Berechtigungen, App-Gruppe und Daten. In der Kurzbefehle-App heisst die
-App damit „Flow" (Automation „Wenn Flow geschlossen wird").
+App wieder „Fokus" (Automation „Wenn Fokus geschlossen wird").
 
 **Die Kachel hat zwei Gesichter:** läuft eine Session, der Countdown; sonst
 die Habits — dieselbe `HabitsWidgetView` wie die Habits-Kachel, geladen über

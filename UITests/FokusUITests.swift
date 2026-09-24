@@ -38,4 +38,34 @@ final class FokusUITests: XCTestCase {
         XCTAssertTrue(waitFor(streak, toChangeFrom: between), "Straehne blieb bei \(between)")
         XCTAssertEqual(streak.label, before, "nach Haken und Loesen muss der alte Stand dastehen")
     }
+
+    /// Tipp auf den Namen oeffnet den Editor mit dem Habit vorbelegt; langes
+    /// Druecken die frueheren Tage. Beides nur ansehen, nichts sichern - der
+    /// Dienst bleibt, wie er war.
+    func testTapOpensTheEditorAndLongPressTheHistory() {
+        let environment = ProcessInfo.processInfo.environment
+        let app = start(tab: "habits", extra: [
+            "COCKPIT_URL_HABITS": environment["COCKPIT_URL_HABITS"] ?? "",
+        ])
+        let name = app.staticTexts["Logbook"]
+        XCTAssertTrue(name.waitForExistence(timeout: 25), "Habits nicht geladen")
+
+        name.tap()
+        let field = app.textFields["habitName"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "Editor nicht aufgegangen")
+        XCTAssertEqual(field.value as? String, "Logbook", "Name nicht vorbelegt")
+        XCTAssertTrue(app.navigationBars["Habit bearbeiten"].exists, "falscher Titel")
+        XCTAssertFalse(app.buttons["Anlegen"].exists, "beim Bearbeiten heisst der Knopf Sichern")
+        shoot(app, "habit-bearbeiten")
+        app.buttons["Abbrechen"].tap()
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), "Editor blieb offen")
+
+        name.press(forDuration: 0.8)
+        let yesterday = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'day-'")).element(boundBy: 1)
+        XCTAssertTrue(yesterday.waitForExistence(timeout: 5), "Verlauf nicht aufgegangen")
+        XCTAssertTrue(app.buttons["Fertig"].exists, "Verlauf ohne Fertig-Knopf")
+        XCTAssertFalse(field.exists, "langes Druecken darf den Editor nicht oeffnen")
+        shoot(app, "habit-verlauf")
+    }
 }
