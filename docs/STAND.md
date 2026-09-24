@@ -21,7 +21,8 @@
 ## Habits: rückwirkend abhaken · **gebaut** (2026-09-24)
 
 Felix: „rückwirkend für gestern Rückfälle ausfüllen". Langdruck auf ein Habit
-zum Aufbauen oder Lassen → **„Frühere Tage …"** → `HabitHistorySheet` mit den
+zum Aufbauen oder Lassen öffnet direkt (kein Menü dazwischen, Felix)
+`HabitHistorySheet` mit den
 letzten 14 Tagen (ab dem Anlegetag), je Tag ein Schalter: Haken (Aufbauen,
 grün) bzw. Rückfall (Lassen, rot). Jeder Tipp geht sofort an den Dienst
 (`HabitsStore.setMarked`, `POST …/marks {date}` / `DELETE …/marks/{date}`,

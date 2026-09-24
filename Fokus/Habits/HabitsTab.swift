@@ -61,12 +61,11 @@ struct HabitsTab: View {
                 HabitRow(habit: habit, isPending: store.pendingIDs.contains(habit.id)) {
                     Task { await store.toggleToday(habit) }
                 }
-                // Langdruck: die letzten Tage nachtragen - der Haken von
-                // vorgestern, der Rueckfall von gestern.
-                .contextMenu {
-                    if !habit.kind.isAutomatic {
-                        Button("Frühere Tage …") { historyHabitID = habit.id }
-                    }
+                // Langdruck: gleich die letzten Tage nachtragen - der Haken
+                // von vorgestern, der Rueckfall von gestern. Ohne Menue
+                // dazwischen, das war Felix ein Schritt zu viel.
+                .onLongPressGesture {
+                    if !habit.kind.isAutomatic { historyHabitID = habit.id }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
