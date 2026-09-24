@@ -11,6 +11,9 @@ struct HabitsTab: View {
     @State private var showingEditor = false
     /// Das Habit, dessen letzte Tage gerade offen sind (Langdruck).
     @State private var historyHabitID: String?
+    /// Die Zeile, die gerade gedrueckt wird - sie hebt sich leicht, wie beim
+    /// Kontextmenue des Systems.
+    @State private var pressedHabitID: String?
 
     var body: some View {
         NavigationStack {
@@ -63,9 +66,17 @@ struct HabitsTab: View {
                 }
                 // Langdruck: gleich die letzten Tage nachtragen - der Haken
                 // von vorgestern, der Rueckfall von gestern. Ohne Menue
-                // dazwischen, das war Felix ein Schritt zu viel.
-                .onLongPressGesture {
-                    if !habit.kind.isAutomatic { historyHabitID = habit.id }
+                // dazwischen, das war Felix ein Schritt zu viel - aber mit dem
+                // Anheben und dem Tippen des Systemmenues, das ihm fehlte.
+                .scaleEffect(pressedHabitID == habit.id ? 1.03 : 1)
+                .animation(.easeOut(duration: 0.18), value: pressedHabitID)
+                .onLongPressGesture(minimumDuration: 0.45, maximumDistance: 12) {
+                    guard !habit.kind.isAutomatic else { return }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    historyHabitID = habit.id
+                } onPressingChanged: { pressing in
+                    guard !habit.kind.isAutomatic else { return }
+                    pressedHabitID = pressing ? habit.id : nil
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
