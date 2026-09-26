@@ -2,7 +2,9 @@
 
 Referenz für den Client. **Quelle ist der Code der Dienste** — Java in
 `../food` und `../weight-app`, Python in `../grades`. Steht hier etwas anderes
-als dort, gilt dort.
+als dort, gilt dort. Die Android-App (`../healthy-android`) spricht dieselben
+Endpunkte von Kalorienzähler und Weight Tracker, mit einem persönlichen Token
+statt der Cookies (siehe „Persönliche Token" unten).
 Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 
 ## Überblick
@@ -33,6 +35,10 @@ Zwei verschiedene Token, beide langlebig, beide als Cookie:
 - **`grades_token`** — eigenes Token nur für `/grades`, Gültigkeit 5 Jahre,
   im Browser über `/grades/setup?token=…`. Es gilt **nur für diesen Pfad**;
   die App setzt es entsprechend eng (`Path=/grades`).
+- **`health_token`** / `Authorization: Bearer` — seit 2026-09 ein
+  **persönlicher Token je Person**, derselbe für Kalorienzähler **und** Weight
+  Tracker (siehe „Persönliche Token" unten). Die iPhone-App braucht ihn nicht:
+  `fh_private` und `weight_app_token` meinen weiterhin Felix.
 - **`shopping_token`** — eigenes Token **je Person** nur für
   `/shopping-list`, im Browser über `/shopping-list/setup?token=…`. Der
   Dienst liegt **nicht** hinter dem Privat-Gate und nimmt den Token als
@@ -45,9 +51,11 @@ dem Geräte-Token steht noch eine Anmeldung mit Benutzer und Passwort. Die App
 spielt sie nach, statt sie zu umgehen — Benutzername und Passwort liegen im
 Keychain, das Passwort hinter Face ID (siehe `ARCHITEKTUR.md`).
 
-⚠️ **Beide Domains verhalten sich ohne Cookie unhöflich:** nginx schickt bei
-`food` einen **302 auf `https://fherrmann.com/`**, die Apps selbst antworten
-mit **403 und einer HTML-Seite** statt mit 401/JSON. Ein Client, der auf
+⚠️ **Beide Domains verhalten sich ohne Cookie unhöflich:** die Dienste
+antworten mit **403 und einer HTML-Seite** statt mit 401/JSON. (Bis 2026-09
+schickte nginx bei `food` zusätzlich einen **302 auf `https://fherrmann.com/`**;
+das Gate ist mit den persönlichen Token weggefallen, ältere Clients müssen den
+302 trotzdem weiter als „kein Zugang" lesen.) Ein Client, der auf
 Statuscodes hört, sieht also nie ein sauberes „nicht angemeldet" — deshalb im
 `APIClient` alles außer 2xx als „Zugang prüfen" behandeln und die Antwort
 nicht als JSON zu lesen versuchen.
@@ -56,6 +64,55 @@ nicht als JSON zu lesen versuchen.
 Backends existieren nur, weil sich die beiden Weboberflächen gegenseitig lesen.
 Eine native App unterliegt keiner Same-Origin-Policy — sie darf beide APIs
 vollständig lesen, nicht nur die drei freigegebenen Endpunkte.
+
+### Persönliche Token (seit 2026-09)
+
+Damit Torben einen eigenen Zugang hat, kennen Kalorienzähler und Weight
+Tracker **je Person einen Token** (`HEALTH_TOKENS=torben:…` in
+`/etc/food.env` **und** `/etc/health-viz.env`, wortgleich). Er kommt an als
+
+- `Authorization: Bearer <token>` — die Android-App, oder
+- Cookie `health_token` auf `Domain=fherrmann.com` — ein Browser, einmal
+  eingerichtet über `https://food.fherrmann.com/setup?token=…` (oder dasselbe
+  unter `weight.`), öffnet damit beide Dienste.
+
+Der Dienst setzt den Namen zur Person als Principal; **jeder Endpunkt arbeitet
+dann auf ihren Daten** (Dateien unter `data/users/<name>/`, Felix' bleiben, wo
+sie waren). Die alten Cookies `fh_private` und `weight_app_token` meinen
+weiterhin Felix. Kommen persönlicher Token und alter Cookie zusammen an,
+gewinnt der persönliche. Angelegt werden die Token von
+`food/deploy/setup-health-users.sh`.
+
+Was damit dazukam:
+
+| Dienst | Methode | Pfad | Was |
+|---|---|---|---|
+| food | GET | `/api/food/features` | zusätzlich `me` (Name zum Token); `quickCapture` ist **pro Person** schaltbar (`FOOD_QUICK_CAPTURE`) |
+| food | POST | `/api/food/devices` | zusätzlich `platform: "android"` → Firebase-Kennung; ohne → APNs wie bisher |
+| food | GET | `/api/app/android` | `{versionCode, versionName, sizeBytes, sha256}` der Android-App, 404 ohne |
+| food | GET | `/api/app/android/apk` | die APK |
+| food | GET | `/setup?token=` | setzt `health_token` (nie `fh_private`) |
+| weight | PUT | `/api/weight/height` | `{heightCm}` (100–250) → `WeightSummary` |
+| weight | GET | `/setup?token=` | alter Token → `weight_app_token` wie bisher; persönlicher → `health_token` |
+
+⚠️ **`WeightSummary` hat `heightCm`** — für Felix `194` als Vorgabe
+(`weight.owner-height-cm`), solange nichts gespeichert ist. Die iOS-App rechnet
+den BMI weiter mit ihrem festen `WeightWidget.heightM`; beides ergibt für Felix
+dieselbe Zahl.
+
+⚠️ **Eine neue Person hat kein Vorhaben**, bis sie ein Ziel setzt: dann sind
+`target`, `targetDate`, `goalWeight`, `startWeight`, `recordingStart`, die
+Korridorfelder und `residual7` `null`, in den Reihen `target` überall `null`.
+Ohne jede Messung liefern die Reihen `[]` und `summary` ein Objekt aus lauter
+`null` (vorher: leerer Rumpf). `PUT /api/weight/target` startet das Vorhaben
+**heute** mit der jüngsten Messung; ohne Messung **409**.
+
+⚠️ **Schnellerfassung je Person:** ohne Freischaltung antwortet
+`POST /quick-capture` mit 403, der Auftrag einer anderen Person ist 404, und die
+Benachrichtigung geht nur an die Geräte dessen, der ihn gestartet hat — iPhones
+über APNs, Android über Firebase (reine Datennachricht
+`{kind: "quick-capture", jobId, status, title, body}`; bei neuer Android-Version
+`{kind: "app-update", versionCode, versionName, title, body}`).
 
 ## Datumsformate (der häufigste Stolperstein)
 
