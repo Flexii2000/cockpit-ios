@@ -87,7 +87,7 @@ Was damit dazukam:
 
 | Dienst | Methode | Pfad | Was |
 |---|---|---|---|
-| food | GET | `/api/food/features` | zusätzlich `me` (Name zum Token); `quickCapture` ist **pro Person** schaltbar (`FOOD_QUICK_CAPTURE`) |
+| food | GET | `/api/food/features` | zusätzlich `me` (Name zum Token) und `detailedNutrients`; `quickCapture` ist **pro Person** schaltbar (`FOOD_QUICK_CAPTURE`) |
 | food | POST | `/api/food/devices` | zusätzlich `platform: "android"` → Firebase-Kennung; ohne → APNs wie bisher |
 | food | GET | `/api/app/android` | `{versionCode, versionName, sizeBytes, sha256}` der Android-App, 404 ohne |
 | food | GET | `/api/app/android/apk` | die APK |
@@ -106,6 +106,16 @@ Korridorfelder und `residual7` `null`, in den Reihen `target` überall `null`.
 Ohne jede Messung liefern die Reihen `[]` und `summary` ein Objekt aus lauter
 `null` (vorher: leerer Rumpf). `PUT /api/weight/target` startet das Vorhaben
 **heute** mit der jüngsten Messung; ohne Messung **409**.
+
+⚠️ **Detailwerte je Person** (`FOOD_DETAILED_NUTRIENTS`, für Torben): `Nutrients`
+hat vier **optionale** Felder `saturatedFatG`, `sugarG`, `fiberG`, `saltG` (die
+übrigen Zeilen der EU-Nährwerttabelle, je 100 g bzw. als Tagessumme). Sie fehlen
+im JSON, wo sie nicht gesetzt sind — Felix' Tagebuch hat sie nie, die iPhone-App
+sieht also nichts Neues. `DishRequest` nimmt sie freiwillig mit (0–100);
+`DaySummary.detailGaps` nennt die Felder, bei denen ein Eintrag des Tages keine
+Angabe hat (die Summe ist dort eine Untergrenze), und fehlt, wenn es keine Lücke
+gibt. Für Detailwerte gibt es kein Ziel und keinen Rest. Die Schnellerfassung
+liefert sie nur für diese Personen, mit Herkunft in `valueSources`.
 
 ⚠️ **Schnellerfassung je Person:** ohne Freischaltung antwortet
 `POST /quick-capture` mit 403, der Auftrag einer anderen Person ist 404, und die
