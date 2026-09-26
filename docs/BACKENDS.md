@@ -512,8 +512,8 @@ setzt nichts zusammen.
 |---|---|---|
 | GET | `/api/board?all=false` | Bereiche mit sichtbaren Aufgaben; `all=true` auch ältere erledigte |
 | POST/PUT/DELETE | `/api/areas[/{id}]` | Bereich anlegen `{name}`, umbenennen, löschen (samt Aufgaben) |
-| POST | `/api/todos` | `{areaId, parentId?, title}` — `parentId` macht eine Unteraufgabe (eine Ebene) |
-| PUT | `/api/todos/{id}` | `{title, dueAt?}` — ohne `dueAt` gibt es keine Fälligkeit mehr |
+| POST | `/api/todos` | `{areaId, parentId?, title, link?}` — `parentId` macht eine Unteraufgabe (eine Ebene) |
+| PUT | `/api/todos/{id}` | `{title, dueAt?}` — ohne `dueAt` gibt es keine Fälligkeit mehr; `link` bleibt, wie er ist |
 | POST | `/api/todos/{id}/reminders` | `{at}` als Zeitpunkt **mit Zone** (`ReminderDraft` schreibt ISO mit `Z`), nur Zukunft |
 | DELETE | `/api/todos/{id}/reminders/{rid}` | Erinnerung weg |
 | POST | `/api/devices` | `{token}` — Push-Kennung von Fokus, für die Erinnerungen |
@@ -524,9 +524,20 @@ setzt nichts zusammen.
 ```
 Board     areas[], includesHidden, hiddenDoneCount, now
 AreaView  id, name, position, openCount, hiddenDoneCount, todos[]
-TodoView  id, title, createdAt, doneAt | null, visibleUntil | null,
+TodoView  id, title, link | null, createdAt, doneAt | null, visibleUntil | null,
           dueAt | null (ISO-Datum), reminders[] {id, at, sentAt | null}, children[]
 ```
+
+⚠️ **Den Link setzt nur das Anlegen** (seit 2026-09-26): Torbens
+Feature-Wünsche legt der Kalorienzähler als Unteraufgabe unter „Healthy“
+(Bereich Server) an, mit Link auf ihre Wunsch-Seite
+(`https://fherrmann.com/feature-requests/<id>`). `link` ist eine absolute
+Adresse mit `https://` oder `http://`, höchstens 500 Zeichen, getrimmt; leer
+heißt keiner, alles andere ist ein 400 im Klartext. `PUT` lässt ihn stehen —
+die App schickt ihn nie mit, und eine Fokus-Version ohne das Feld kann ihn so
+nicht löschen. Die App dekodiert ihn nachsichtig (`TodoItem.webLink`): fehlt
+er, ist er kein Text oder keine http(s)-Adresse mit Host, ist er `nil`; das
+Brett lädt trotzdem. Er steht in jeder `TodoView`, auch als `null`.
 
 ⚠️ **Erinnerungen schickt der Dienst**, jede Minute geprüft, als Push an
 Fokus (Topic `com.fherrmann.fokus`, Nutzlast `"kind": "todo"`). Die App

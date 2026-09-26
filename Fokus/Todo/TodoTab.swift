@@ -136,6 +136,7 @@ private struct AreaPage: View {
     @State private var detail: TodoItem?
     @FocusState private var typing: Bool
     @FocusState private var subFocus: String?
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         List {
@@ -225,6 +226,24 @@ private struct AreaPage: View {
         Task { await store.add(title: title, to: area) }
     }
 
+    /// Der Pfeil neben dem Titel oeffnet den Link in Safari. Ein eigener Knopf
+    /// statt der ganzen Zeile: der Tipp auf den Text oeffnet weiter das Blatt,
+    /// und die Wischaktionen bleiben, wo sie sind. Das Polster vergroessert
+    /// die Tippflaeche, ohne die Zeile hoeher zu machen.
+    private func linkButton(_ link: URL, for todo: TodoItem) -> some View {
+        Button { openURL(link) } label: {
+            Image(systemName: "arrow.up.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(todo.isDone ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Link öffnen")
+        .accessibilityIdentifier("link-\(todo.id)")
+    }
+
     private func row(_ todo: TodoItem, indent: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Button {
@@ -239,9 +258,14 @@ private struct AreaPage: View {
             .accessibilityIdentifier("toggle-\(todo.id)")
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(todo.title)
-                    .strikethrough(todo.isDone)
-                    .foregroundStyle(todo.isDone ? .secondary : .primary)
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(todo.title)
+                        .strikethrough(todo.isDone)
+                        .foregroundStyle(todo.isDone ? .secondary : .primary)
+                    if let link = todo.link {
+                        linkButton(link, for: todo)
+                    }
+                }
                 if todo.dueAt != nil || !todo.reminders.isEmpty {
                     HStack(spacing: 8) {
                         if let dueLabel = todo.dueLabel {

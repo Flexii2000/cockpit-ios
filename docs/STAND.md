@@ -17,6 +17,42 @@
 > nirgends, läuft aber denselben Weg samt Erweiterung: steht in der Meldung
 > „Apps wieder frei", hat die Erweiterung den Schild weggenommen. Danach
 > Felix' QA der Einkaufsliste (siehe unten) und Kalorienzähler ausrollen.
+> **To-Do-Links (26.09.):** Branch `todo-links` in `../todo` und hier
+> übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
+> und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
+> To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+
+## To-Do: Links an Aufgaben · **gebaut** (2026-09-26)
+
+Torbens Feature-Wünsche sollen automatisch als Unteraufgabe unter „Healthy“
+(Bereich Server) landen, jede mit Link auf ihre Wunsch-Seite
+(`fherrmann.com/feature-requests/<id>`, baut der Kalorienzähler). Der
+To-Do-Dienst hat dafür ein optionales `link` (`../todo`, Branch `todo-links`,
+32 Tests grün, **nicht ausgerollt**): gesetzt nur beim Anlegen, `PUT` lässt es
+stehen — sonst löschte die Fokus-Version auf dem Handy jeden Link beim
+Speichern. In Fokus steht neben dem Titel ein Pfeil (`arrow.up.right`), der
+den Link in Safari öffnet (`openURL`); der Tipp auf den Text öffnet weiter das
+Blatt, Kontextmenü und Wischaktion sind unverändert. Das Brett dekodiert den Link
+nachsichtig (`TodoItem.webLink`, getestet): fehlt er oder ist er keine
+Webadresse, ist er nil, das Brett lädt trotzdem. Im Web ein ↗ neben dem
+Titel, eigenes Ziel mit `target="_blank"`.
+
+Geprüft: `tools/verify.sh` (alle vier gebaut, Unit-Tests grün: 97 XCTest und
+31 Swift Testing, zwei davon neu für den Link). Im Simulator (iPhone Air)
+gegen einen lokal gestarteten Dienst mit einer Datei im alten Format: Pfeil
+hell und dunkel, bei erledigten grau und nicht durchgestrichen. Ein nicht
+eingecheckter UI-Test tippt den Pfeil (Safari geht auf, das Blatt nicht), den
+Titel und den Chevron am Zeilenende (das Blatt geht auf, Safari nicht), den
+Haken (hin und zurück) und drückt lange (Kontextmenü mit „Löschen“). Web im
+Headless-Chrome: das ↗ klappt nichts auf, der Titel weiter schon, Speichern
+im Detailfeld lässt den Link stehen.
+
+**Beim Prüfen aufgefallen, nicht von hier:** Wischen zum Löschen erreicht der
+UI-Test im To-Do-Tab gar nicht — an Zeilen mit und ohne Pfeil, und genauso
+mit dem `TodoTab` von vor dieser Änderung (sechs Wischarten, alle ohne
+„Löschen“). Vermutlich schluckt der Seiten-Pager (`TabView(.page)`) die
+Geste, wie früher im Essen-Tab. Auf dem Gerät prüfen; Löschen geht weiter
+über langes Drücken.
 
 ## Habits bearbeiten, Punkte ohne Beschriftung · **gebaut** (2026-09-24)
 

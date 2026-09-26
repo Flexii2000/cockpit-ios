@@ -3,6 +3,21 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-26 — To-Do-Links: nur beim Anlegen, in der App ein eigener Pfeil
+Aufgaben haben ein optionales `link`, gesetzt nur mit `POST /api/todos`;
+`PUT` lässt es stehen. In Fokus öffnet ein Pfeil neben dem Titel den Link in
+Safari, im Web ein ↗. **Warum:** Die Links kommen von einem anderen Dienst
+(Torbens Wünsche aus dem Kalorienzähler), nicht von Hand. Ein `PUT`, das den
+Link übernimmt, hätte ihn bei jedem Speichern aus der Fokus-Version auf dem
+Handy oder einem offenen Browser-Tab gelöscht — die kennen das Feld nicht.
+Der Pfeil ist ein eigenes Tippziel, weil der Tipp auf den Text schon das
+Blatt öffnet und Wischen schon Löschen heißt. Die App nimmt nur http(s) mit
+Host und macht aus allem anderen nil, statt am Brett zu scheitern.
+**Verworfen:** (a) `PUT` mit Link (bräche jeden alten Client); (b) die ganze
+Zeile als Link (nähme dem Text das Blatt); (c) den Link nur im Blatt oder im
+Kontextmenü (ein Umweg für genau das, wofür die Links da sind); (d) strikt
+dekodieren (ein kaputter Link ließe den ganzen Tab leer).
+
 ## 2026-09-24 — Habits bearbeiten: Tipp auf den Namen, die Art bleibt fest
 Ein Tipp auf Name oder Untertitel öffnet denselben Editor wie das Plus, mit
 den Werten des Habits vorbelegt; änderbar sind Name, Ziel, Rhythmus und

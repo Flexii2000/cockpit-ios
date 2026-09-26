@@ -26,6 +26,9 @@ struct TodoArea: Decodable, Identifiable, Sendable, Equatable {
 struct TodoItem: Decodable, Identifiable, Sendable, Equatable {
     let id: String
     let title: String
+    /// Eine Adresse zur Aufgabe, etwa die Wunsch-Seite, von der sie stammt.
+    /// Nur http und https - alles andere kommt als nil an.
+    let link: URL?
     let createdAt: Date
     let doneAt: Date?
     /// Bei erledigten: bis wann sie noch zu sehen ist.
@@ -63,6 +66,43 @@ struct TodoItem: Decodable, Identifiable, Sendable, Equatable {
         case -7 ... -2: "seit \(-days) Tagen"
         default: days < 0 ? "seit \(date.short)" : "bis \(date.short)"
         }
+    }
+}
+
+extension TodoItem {
+    /// Muss hier stehen: Swift erzeugt `CodingKeys` nur, wenn es den Decoder
+    /// selbst ableitet.
+    private enum CodingKeys: String, CodingKey {
+        case id, title, link, createdAt, doneAt, visibleUntil, dueAt, reminders, children
+    }
+
+    /// Wie der synthetisierte Decoder, nur der Link ist nachsichtig: fehlt er,
+    /// ist er kein Text oder keine Webadresse, gibt es eben keinen. Ein
+    /// kaputter Link darf nie das ganze Brett kippen - dann stuende der Tab
+    /// leer da, nur wegen eines Pfeils. Als Erweiterung, damit der
+    /// Memberwise-Init bleibt.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        link = TodoItem.webLink(try? container.decodeIfPresent(String.self, forKey: .link))
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        doneAt = try container.decodeIfPresent(Date.self, forKey: .doneAt)
+        visibleUntil = try container.decodeIfPresent(Date.self, forKey: .visibleUntil)
+        dueAt = try container.decodeIfPresent(CalendarDate.self, forKey: .dueAt)
+        reminders = try container.decode([TodoReminder].self, forKey: .reminders)
+        children = try container.decode([TodoItem].self, forKey: .children)
+    }
+
+    /// Nur http und https mit Host: das oeffnet Safari. Ein anderes Schema
+    /// wuerde irgendeine App starten, und der Dienst laesst es ohnehin nicht
+    /// durch - das hier faengt nur ab, was trotzdem ankommt.
+    static func webLink(_ raw: String?) -> URL? {
+        guard let text = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty,
+              let url = URL(string: text),
+              let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              let host = url.host(), !host.isEmpty else { return nil }
+        return url
     }
 }
 
