@@ -312,9 +312,13 @@ Summe 1,0 ergibt (±0,011) — es sind **Anteile, keine Prozent**. Sonst kommt e
 96,0 %"). Nachzulesen in `validShares()` in `FoodService.java`. Der Client
 prüft das vorher, damit man den Fehler nicht erst nach dem Sichern sieht.
 
-⚠️ **Fehlerantworten tragen ihre Begründung im Rumpf.** `APIClient` reicht sie
-durch (`APIError.http(Int, String?)`), weil „HTTP 400" die schlechtere von
-beiden Meldungen ist.
+⚠️ **Fehlerantworten tragen ihre Begründung im Rumpf** — beim Kalorienzähler
+und Weight Tracker erst seit 2026-09-26 wirklich: Spring Boot ließ das Feld
+`message` per Vorgabe weg, die Clients sahen nur „Bad Request". Jetzt steht
+`spring.web.error.include-message=always` in beiden Diensten (in Spring Boot 4
+heißt es so; das alte `server.error.include-message` wirkt nicht mehr).
+`APIClient` reicht die Begründung durch (`APIError.http(Int, String?)`), weil
+„HTTP 400" die schlechtere von beiden Meldungen ist.
 
 ### Open Food Facts — externe Quelle für den Barcode-Scanner (seit 2026-09-21)
 
