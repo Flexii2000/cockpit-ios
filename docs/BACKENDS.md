@@ -138,6 +138,17 @@ Schnellerfassung schätzt sie mit (Herkunft in `valueSources` unter dem
 Mikro-Schlüssel). Die iPhone-App braucht nichts davon — nur Torben nutzt es,
 über Web und Android.
 
+⚠️ **Veganer Modus je Person** (seit 2026-09-29, Torbens Wunsch): `features.veganMode`
+(immer da, Vorgabe `false`); `PUT /api/food/vegan-mode {enabled}` antwortet mit den
+neuen Features. Beim **ersten** Einschalten werden alle Gerichte mit unbekanntem
+Kennzeichen vegan. Gerichte, `DishRequest` und der Vorschlag der Schnellerfassung
+tragen optional `vegan` (fehlt = unbekannt, Herkunft in `valueSources.vegan`);
+`PUT /dishes/{id}` ersetzt ganz. Im Modus lehnt der Dienst Einträge nicht-veganer
+Gerichte und neue Gerichte mit `vegan:false` mit 400 ab. Wer den Modus nie
+einschaltet (Felix, iPhone-App), bekommt alles wie bisher. Außerdem:
+`DELETE /feature-requests/api/requests/{id}` (nur Eigentümerin) löscht eine
+Anfrage samt Unteraufgabe im To-Do.
+
 ⚠️ **Schnellerfassung je Person:** ohne Freischaltung antwortet
 `POST /quick-capture` mit 403, der Auftrag einer anderen Person ist 404, und die
 Benachrichtigung geht nur an die Geräte dessen, der ihn gestartet hat — iPhones
