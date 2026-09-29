@@ -87,7 +87,7 @@ Was damit dazukam:
 
 | Dienst | Methode | Pfad | Was |
 |---|---|---|---|
-| food | GET | `/api/food/features` | zusätzlich `me` (Name zum Token) und `detailedNutrients`; `quickCapture` ist **pro Person** schaltbar (`FOOD_QUICK_CAPTURE`) |
+| food | GET | `/api/food/features` | zusätzlich `me` (Name zum Token), `detailedNutrients` und `micronutrients`; `quickCapture` ist **pro Person** schaltbar (`FOOD_QUICK_CAPTURE`) |
 | food | POST | `/api/food/devices` | zusätzlich `platform: "android"` → Firebase-Kennung; ohne → APNs wie bisher |
 | food | GET | `/api/app/android` | `{versionCode, versionName, sizeBytes, sha256}` der Android-App, 404 ohne |
 | food | GET | `/api/app/android/apk` | die APK |
@@ -116,6 +116,27 @@ sieht also nichts Neues. `DishRequest` nimmt sie freiwillig mit (0–100);
 Angabe hat (die Summe ist dort eine Untergrenze), und fehlt, wenn es keine Lücke
 gibt. Für Detailwerte gibt es kein Ziel und keinen Rest. Die Schnellerfassung
 liefert sie nur für diese Personen, mit Herkunft in `valueSources`.
+
+⚠️ **Mikronährstoffe je Person** (`FOOD_MICRONUTRIENTS`, für Torben, seit
+2026-09-29): `Nutrients` hat ein **optionales** Objekt `micros` mit 14 Schlüsseln,
+die Einheit steckt im Namen — `vitaminAUg`, `vitaminDUg`, `vitaminEMg`,
+`vitaminCMg`, `vitaminB2Mg`, `vitaminB12Ug`, `folateUg`, `calciumMg`,
+`magnesiumMg`, `potassiumMg`, `ironMg`, `zincMg`, `iodineUg`, `seleniumUg`
+(Vitamin A als Retinol-Aktivitäts-, Folat als Folat-Äquivalente). Ein fehlender
+Schlüssel heißt „keine Angabe", nie 0; leer fehlt `micros` ganz — Felix' JSON
+ist unverändert. Anders als die Detailwerte haben sie **Tagesziele**:
+`targets.micros`, vorbelegt mit den DGE-Referenzwerten für Männer 25 bis unter
+51 Jahre (Vitamin E 8 mg, Eisen 11 mg, Jod 150 µg, Zink 16 mg für hohe
+Phytatzufuhr …, Quelle `Micronutrient.java` im Dienst), solange die Person
+nie eigene gespeichert hat. `PUT /targets` nimmt `micros` (jeder Wert > 0, ein
+fehlender Schlüssel = kein Ziel); fehlt `micros` im Rumpf ganz, bleiben die
+gespeicherten stehen. `remaining` hat nie `micros`. `DaySummary.microGaps` wie
+`detailGaps`. `DishRequest.micros` je 100 g, höchstens das Gegenstück von 10 g
+(10 000 mg bzw. 10 000 000 µg); **PUT eines Gerichts ersetzt es ganz**, wer
+`micros` hat, schickt sie mit. Für alle anderen wird `micros` ignoriert. Die
+Schnellerfassung schätzt sie mit (Herkunft in `valueSources` unter dem
+Mikro-Schlüssel). Die iPhone-App braucht nichts davon — nur Torben nutzt es,
+über Web und Android.
 
 ⚠️ **Schnellerfassung je Person:** ohne Freischaltung antwortet
 `POST /quick-capture` mit 403, der Auftrag einer anderen Person ist 404, und die
