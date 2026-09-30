@@ -85,8 +85,23 @@ Quelle FOCUS (`FocusGoal`), die Countdown-Kachel zeigt ohne Session wieder den
 Stand von heute.
 
 **Geprüft:** `tools/verify.sh` baut alle fünf, Unit-Tests grün (Healthy 90
-XCTest + 31 Swift Testing, coHabit 47: alle Vertrags-JSONs, Kodierung mit
-`null`, Link-Erkennung, Client, Postausgang, Kachel-Daten, Eingaben, Health-Tage).
+XCTest + 31 Swift Testing, coHabit 48: alle Vertrags-JSONs, Kodierung mit
+`null`, unbekannte Werte, Link-Erkennung, Client, Postausgang, Kachel-Daten,
+Eingaben, Health-Tage). Im Simulator gegen einen lokalen Dienst (Branch
+`cohabit`, eigene Datenkopie mit Demo-Daten): UI-Tests grün für Anlegen in
+drei Schritten, Abhaken mit Beweisfoto aus der Galerie (landet im Chat),
+Chat-Nachricht, Einladung annehmen, Anmelden mit App-Link mitten im Text und
+Beitritt per Einladungslink ohne Zugang. Ohne Netz (Dienst angehalten) steht
+„Offline · Stand: …", ein Haken wartet mit Uhr im Postausgang und kam nach
+dem Neustart des Dienstes an (über die API nachgesehen). Push im Simulator:
+`tools/pushtest.sh coHabit` stellt einen Stupser zu, der Tipp auf die Meldung
+führt nach „Heute"; mit erteilter Erlaubnis meldet die App ihre Kennung per
+`POST /devices` an (in den Daten des Dienstes nachgesehen). Der Rundgang
+(`COCKPIT_TOUR=1 tools/uitest.sh coHabit CohabitTourUITests/testTourOfAllScreens`)
+fotografiert jeden Bildschirm hell und dunkel, samt Menü, Blättern, Dialogen
+und Kachel-Vorschau. **Nur auf dem Gerät prüfbar:** Kamera, Health-Werte,
+Push, den der Dienst über APNs schickt, die Kacheln auf dem Homebildschirm
+samt Abhak-Knopf.
 
 ## To-Do: Links an Aufgaben · **gebaut** (2026-09-26)
 
