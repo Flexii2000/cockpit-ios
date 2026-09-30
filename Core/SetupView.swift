@@ -83,7 +83,7 @@ struct SetupView: View {
             Text("Privat-Token" + (access.privateToken != nil ? " ✓" : ""))
         } footer: {
             Text(privateSaved ? "Gespeichert."
-                 : "Gilt für Essen, Habits und das Widget (alles unter fherrmann.com). "
+                 : "Gilt für Essen, To-Do, Wald und das Widget (alles unter fherrmann.com). "
                    + "Auf dem Server: /etc/nginx/conf.d/private-mode.conf")
         }
     }

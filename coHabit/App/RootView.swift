@@ -9,7 +9,9 @@ struct RootView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            if session.isSignedIn {
+            if isWidgetPreview {
+                widgetPreview
+            } else if session.isSignedIn {
                 MainView()
                     .transition(.opacity)
             } else {
@@ -40,6 +42,23 @@ struct RootView: View {
                 DataBus.shared.changed()
             }
         }
+    }
+}
+
+extension RootView {
+    private var isWidgetPreview: Bool {
+        #if DEBUG
+        WidgetPreviewScreen.isRequested
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var widgetPreview: some View {
+        #if DEBUG
+        WidgetPreviewScreen()
+        #endif
     }
 }
 

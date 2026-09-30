@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Faehrt die Oberflaeche automatisiert durch und legt Screenshots ab.
 #
-#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste>             # alle UI-Tests der App
-#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste> testSwipe   # nur einer
+#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit>             # alle UI-Tests der App
+#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> testSwipe   # nur einer
 #
 # Der Grund: simctl kann weder tippen noch wischen noch scrollen. Alles, was
 # hinter einer Geste oder unterhalb des ersten Bildschirms liegt, ist nur von
@@ -28,13 +28,20 @@ cd "$(dirname "$0")/.."
 APP="${1:-}"
 FILTER="${2:-}"
 DEVICE="${DEVICE:-iPhone 17}"
-case "$APP" in Healthy|Vault|Fokus|Einkaufsliste) ;; *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkaufsliste sein." >&2; exit 1 ;; esac
+case "$APP" in Healthy|Vault|Fokus|Einkaufsliste|coHabit) ;; *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder coHabit sein." >&2; exit 1 ;; esac
 BUNDLE_NAME="${APP}UITests"
 
 export TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN
 export TEST_RUNNER_COCKPIT_WEIGHT_TOKEN
-TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
-TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
+if [ "$APP" = "coHabit" ]; then
+    # coHabit laeuft gegen einen lokalen Dienst mit Demo-Daten und eigenen
+    # Token je Person - die Token der anderen Apps braucht es nicht.
+    TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=""
+    TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=""
+else
+    TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
+    TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
+fi
 # Freiwillig: ohne Einkaufs-Token ueberspringt sich der Einkaufs-Test.
 export TEST_RUNNER_COCKPIT_SHOPPING_TOKEN
 TEST_RUNNER_COCKPIT_SHOPPING_TOKEN="${COCKPIT_SHOPPING_TOKEN:-$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)}"
@@ -47,6 +54,12 @@ export TEST_RUNNER_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}"
 export TEST_RUNNER_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}"
 export TEST_RUNNER_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}"
 export TEST_RUNNER_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}"
+export TEST_RUNNER_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}"
+# coHabit: Adresse des lokalen Dienstes, der Token der Person, als die die
+# App laeuft, und der einer zweiten, die im Einladungs-Test einlaedt.
+export TEST_RUNNER_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}"
+export TEST_RUNNER_COCKPIT_COHABIT_TOKEN="${COCKPIT_COHABIT_TOKEN:-}"
+export TEST_RUNNER_COCKPIT_COHABIT_OTHER_TOKEN="${COCKPIT_COHABIT_OTHER_TOKEN:-}"
 
 tools/bootstrap.sh > /dev/null
 rm -rf build/uitest.xcresult build/screenshots

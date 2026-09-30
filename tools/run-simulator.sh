@@ -2,11 +2,24 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste> [tab] [screenshot.png]
+#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> [tab] [screenshot.png]
 #
 # Tabs: Healthy food|weight|shopping|widget, Vault grades|finance,
-# Fokus habits|todo|forest|widget, Einkaufsliste (hat nur die eine Seite);
-# `setup` oeffnet in jeder App das Zugang-Blatt.
+# Fokus todo|forest|widget, Einkaufsliste (hat nur die eine Seite),
+# coHabit today|timeline|stats|profile|new|widget;
+# `setup` oeffnet in den ersten vier Apps das Zugang-Blatt.
+#
+# coHabit braucht keinen der Token unten, sondern einen eigenen je Person -
+# aus COCKPIT_COHABIT_TOKEN oder aus dem Schluesselbund (Dienst cohabit_token).
+# Gegen einen lokal gestarteten Dienst (Backend-Repo ../habits) umleiten:
+#
+#   COCKPIT_URL_COHABIT=http://127.0.0.1:48792/cohabit/api \
+#   COCKPIT_COHABIT_TOKEN=<Token einer Demo-Person> \
+#   tools/run-simulator.sh coHabit today bild.png
+#
+# COCKPIT_TODAY_MODE=list zeigt „Heute" als Liste, COCKPIT_STATS_RANGE=week|year
+# die Statistik fuer eine Woche oder ein Jahr; COCKPIT_TEST_PHOTO=1 laesst den
+# Galerie-Knopf im Beweisfoto-Blatt ein erzeugtes Bild liefern (UI-Tests).
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -72,17 +85,26 @@ case "$APP" in
     Vault)   BUNDLE="com.fherrmann.vault" ;;
     Fokus)   BUNDLE="com.fherrmann.fokus" ;;
     Einkaufsliste) BUNDLE="com.fherrmann.einkauf" ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkaufsliste sein." >&2; exit 1 ;;
+    coHabit) BUNDLE="com.fherrmann.cohabit" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder coHabit sein." >&2; exit 1 ;;
 esac
 
-PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
-    echo "Kein fh_private im Schluesselbund - siehe Kopf dieses Skripts." >&2
-    exit 1
-}
-WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) || {
-    echo "Kein weight_app_token im Schluesselbund - siehe Kopf dieses Skripts." >&2
-    exit 1
-}
+if [ "$APP" = "coHabit" ]; then
+    PRIVATE=""
+    WEIGHT=""
+    COHABIT="${COCKPIT_COHABIT_TOKEN:-$(security find-generic-password -a cockpit-ios -s cohabit_token -w 2>/dev/null || true)}"
+    [ -n "$COHABIT" ] || echo "Kein coHabit-Token - die App zeigt den Start mit „Link einfügen“." >&2
+else
+    COHABIT=""
+    PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
+        echo "Kein fh_private im Schluesselbund - siehe Kopf dieses Skripts." >&2
+        exit 1
+    }
+    WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) || {
+        echo "Kein weight_app_token im Schluesselbund - siehe Kopf dieses Skripts." >&2
+        exit 1
+    }
+fi
 # Der Einkaufs-Token ist freiwillig: ohne ihn fehlt in Healthy der Tab, und
 # Einkaufsliste zeigt das Zugang-Blatt - beides ein gueltiger Zustand.
 # Aus der Umgebung vor dem Schluesselbund: gegen einen lokal gestarteten
@@ -95,8 +117,8 @@ xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
     -derivedDataPath build/sim -quiet
 
 xcrun simctl boot "$DEVICE" 2>/dev/null || true
-xcrun simctl install booted "build/sim/Build/Products/Debug-iphonesimulator/$APP.app"
-xcrun simctl terminate booted "$BUNDLE" 2>/dev/null || true
+xcrun simctl install "$DEVICE" "build/sim/Build/Products/Debug-iphonesimulator/$APP.app"
+xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
 
 SIMCTL_CHILD_COCKPIT_FH_PRIVATE_TOKEN="$PRIVATE" \
 SIMCTL_CHILD_COCKPIT_WEIGHT_TOKEN="$WEIGHT" \
@@ -122,12 +144,17 @@ SIMCTL_CHILD_COCKPIT_FOREST_HOUR="${COCKPIT_FOREST_HOUR:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_TOKEN="${COCKPIT_GRADES_TOKEN:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \
-    xcrun simctl launch booted "$BUNDLE" > /dev/null
+SIMCTL_CHILD_COCKPIT_COHABIT_TOKEN="$COHABIT" \
+SIMCTL_CHILD_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}" \
+SIMCTL_CHILD_COCKPIT_TODAY_MODE="${COCKPIT_TODAY_MODE:-}" \
+SIMCTL_CHILD_COCKPIT_STATS_RANGE="${COCKPIT_STATS_RANGE:-}" \
+SIMCTL_CHILD_COCKPIT_TEST_PHOTO="${COCKPIT_TEST_PHOTO:-}" \
+    xcrun simctl launch "$DEVICE" "$BUNDLE" > /dev/null
 
 if [ -n "$SHOT" ]; then
     # Kurz warten: die Tabs laden ihre Daten erst nach dem Erscheinen, ein
     # sofortiger Screenshot zeigt nur den Ladezustand.
     sleep 6
-    xcrun simctl io booted screenshot "$SHOT"
+    xcrun simctl io "$DEVICE" screenshot "$SHOT"
     echo "$SHOT"
 fi

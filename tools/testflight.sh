@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Archiviert eine App fuer App Store Connect und laedt sie zu TestFlight hoch.
 #
-#   tools/testflight.sh <Healthy|Vault|Fokus|Einkaufsliste>            # archivieren + hochladen
+#   tools/testflight.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit>    # archivieren + hochladen
 #   tools/testflight.sh <App> --export-only                            # nur .ipa bauen, nichts hochladen
 #
 # Warum ueberhaupt: ein Entwickler-Install (install-device.sh) braucht auf dem
@@ -31,8 +31,8 @@ cd "$(dirname "$0")/.."
 APP="${1:-}"
 MODE="${2:-}"
 case "$APP" in
-    Healthy|Vault|Fokus|Einkaufsliste) ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus oder Einkaufsliste sein." >&2; exit 1 ;;
+    Healthy|Vault|Fokus|Einkaufsliste|coHabit) ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder coHabit sein." >&2; exit 1 ;;
 esac
 
 CONFIG="$HOME/.appstoreconnect/config"

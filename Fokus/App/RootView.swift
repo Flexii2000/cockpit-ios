@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum TabSelection: Hashable {
-    case habits, todo, forest
+    case todo, forest
     #if DEBUG
     case widget
 
@@ -14,12 +14,12 @@ enum TabSelection: Hashable {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "widget": return .widget
-        case "todo":   return .todo
         case "forest": return .forest
         default:       break
         }
         #endif
-        return .habits
+        // Die Habits sind nach coHabit umgezogen - vorn steht jetzt To-Do.
+        return .todo
     }
 }
 
@@ -44,9 +44,6 @@ struct RootView: View {
         @Bindable var router = router
         @Bindable var setup = setup
         TabView(selection: $router.selection) {
-            Tab(Backend.habits.title, systemImage: Backend.habits.systemImage, value: TabSelection.habits) {
-                HabitsTab()
-            }
             Tab(Backend.todo.title, systemImage: Backend.todo.systemImage, value: TabSelection.todo) {
                 TodoTab()
             }
@@ -67,15 +64,11 @@ struct RootView: View {
         .sheet(isPresented: $setup.isPresented) {
             SetupView(sections: [.privateToken])
         }
-        // Ein Tipp auf die Habits-Kachel (`.widgetURL`) - oder die Rueckkehr
+        // Ein Tipp auf die Fokus-Kachel (`.widgetURL`) - oder die Rueckkehr
         // aus der Kurzbefehle-App (`cockpit-fokus://forest`, siehe
         // ShortcutsBridge).
         .onOpenURL { url in
-            switch url.host() {
-            case "habits": router.show(.habits)
-            case "forest": router.show(.forest)
-            default: break
-            }
+            if url.host() == "forest" { router.show(.forest) }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await Outbox.shared.replay() } }

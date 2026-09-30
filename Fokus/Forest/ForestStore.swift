@@ -6,7 +6,7 @@ import WidgetKit
 /// Haelt den Wald und fuehrt eine Session von „pflanzen" bis „steht".
 ///
 /// Die Sessions liegen beim Habits-Dienst - derselbe Bestand, aus dem das
-/// Habit „Fokus-Zeit" rechnet. Die App merkt sich nur zweierlei selbst: die
+/// Co-Habit „Fokus-Zeit" in coHabit rechnet. Die App merkt sich nur zweierlei selbst: die
 /// **laufende** Session (in den UserDefaults, damit sie einen Neustart
 /// uebersteht) und fertige Sessions, die der Dienst **noch nicht bestaetigt**
 /// hat - der Baum steht sofort, auch ohne Netz.
@@ -14,7 +14,7 @@ import WidgetKit
 @Observable
 final class ForestStore {
 
-    private let api = HabitsAPI()
+    private let api = FocusSessionsAPI()
     private let screenTime = ScreenTimeGuard()
 
     /// Der Baum, der gerade waechst. Nil, wenn keine Session laeuft.
@@ -24,8 +24,8 @@ final class ForestStore {
     /// Fertig, aber noch nicht beim Dienst angekommen (Postausgang oder
     /// abgelehnt); wird beim naechsten Laden nachgereicht.
     private(set) var unsynced: [FocusSession] = []
-    /// Das Habit „Fokus-Zeit", falls es eins gibt - fuer das Tagesziel.
-    private(set) var focusHabit: HabitStatus?
+    /// Das Tagesziel aus dem Co-Habit „Fokus-Zeit" (coHabit) - ohne keins.
+    private(set) var dailyGoal: Int? = FocusGoal.cached
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var isAccessProblem = false
@@ -107,11 +107,6 @@ final class ForestStore {
         return allSessions.filter { $0.day == today }.reduce(0) { $0 + $1.minutes }
     }
 
-    /// Das Tagesziel aus dem Habit „Fokus-Zeit" - ohne Habit kein Ziel.
-    var dailyGoal: Int? {
-        focusHabit?.focusMinutesGoal ?? focusHabit?.progress?.goal
-    }
-
     func load() async {
         isLoading = sessions.isEmpty
         screenTimeNote = screenTime.note
@@ -123,10 +118,10 @@ final class ForestStore {
         let fromDate = calendar.date(byAdding: .day, value: -Self.historyDays, to: today.startOfDay())
             ?? today.startOfDay()
         do {
-            async let list = api.focusSessions(from: CalendarDate(date: fromDate), to: today)
-            async let habits = api.list()
+            async let list = api.sessions(from: CalendarDate(date: fromDate), to: today)
+            async let goal = FocusGoal.load()
             sessions = try await list
-            focusHabit = (try? await habits)?.first { $0.kind == .focus }
+            dailyGoal = await goal
             errorMessage = nil
             isAccessProblem = false
             await syncPending()

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prueft, ob ein Tipp auf eine Benachrichtigung die App ueberlebt.
 #
-#   tools/pushtest.sh <Healthy|Vault> [payload.json]
+#   tools/pushtest.sh <Healthy|Vault|coHabit> [payload.json]
 #
 # Der UI-Test kann keine Benachrichtigung erzeugen - das macht dieses Skript
 # von aussen mit `simctl push`, waehrend der Test schon wartet. Ohne Nutzlast
@@ -16,7 +16,10 @@ case "$APP" in
              DEFAULT='{"aps":{"alert":{"title":"Vorschlag ist fertig","body":"Haferbrei – antippen zum Übernehmen."},"sound":"default"}}' ;;
     Vault)   BUNDLE="com.fherrmann.vault"
              DEFAULT='{"aps":{"alert":{"title":"Neue Note 1,7","body":"Datenbanken · Abschlussnote jetzt 1,35"},"sound":"default"},"kind":"grade"}' ;;
-    *) echo "Erste Angabe muss Healthy oder Vault sein (Fokus hat keinen Push)." >&2; exit 1 ;;
+    # coHabit: ein Stupser, wie ihn der Dienst schickt - mit Link (Vertrag §4).
+    coHabit) BUNDLE="com.fherrmann.cohabit"
+             DEFAULT='{"aps":{"alert":{"title":"Lena hat dich angestupst","body":"Heute noch Laufen?"},"sound":"default","thread-id":"c-1"},"kind":"nudge","title":"Lena hat dich angestupst","body":"Heute noch Laufen?","cohabitId":"c-1","link":"cohabit://today"}' ;;
+    *) echo "Erste Angabe muss Healthy, Vault oder coHabit sein." >&2; exit 1 ;;
 esac
 if [ -z "$PAYLOAD" ]; then
     PAYLOAD="$(mktemp -t push).json"

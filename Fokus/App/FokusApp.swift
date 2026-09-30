@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Habits - und spaeter To-Do und Roadmap.
+/// To-Do und der Wald. Die Habits sind nach coHabit umgezogen.
 @main
 struct FokusApp: App {
 

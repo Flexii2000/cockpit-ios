@@ -132,7 +132,7 @@ struct ForestTab: View {
         VStack(spacing: 12) {
             Picker("Dauer", selection: $minutes) {
                 ForEach(SessionLength.choices, id: \.self) { choice in
-                    Text(HabitProgress.hours(choice) + " h").tag(choice)
+                    Text(FocusMinutes.hours(choice) + " h").tag(choice)
                 }
             }
             .pickerStyle(.wheel)
@@ -158,7 +158,7 @@ struct ForestTab: View {
     }
 
     /// Die Summe des Ausschnitts; bei „Heute" dazu der Stand gegen das
-    /// Tagesziel des Habits, sofern es eins gibt.
+    /// Tagesziel aus coHabit, sofern es eins gibt.
     private var summaryCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -187,11 +187,11 @@ struct ForestTab: View {
 
     private var summaryText: String {
         if store.range == .today, let goal = store.dailyGoal {
-            return HabitProgress(value: store.todayMinutes, goal: goal).focusText
+            return FocusMinutes.progress(store.todayMinutes, goal: goal)
         }
         let count = store.visibleSessions.count
         let trees = count == 1 ? "1 Baum" : "\(count) Bäume"
-        return "\(trees) · \(HabitProgress.hours(store.visibleMinutes)) h"
+        return "\(trees) · \(FocusMinutes.hours(store.visibleMinutes)) h"
     }
 }
 
@@ -245,7 +245,7 @@ struct ForestDayRow: View {
             Text(day.sessions.count == 1 ? "1 Baum" : "\(day.sessions.count) Bäume")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text(HabitProgress.hours(day.minutes) + " h")
+            Text(FocusMinutes.hours(day.minutes) + " h")
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(width: 64, alignment: .trailing)
@@ -270,4 +270,25 @@ struct ForestDayRow: View {
         formatter.dateFormat = "EEE, dd.MM.yy"
         return formatter
     }()
+}
+
+/// Der Balken unter der Summe bei „Heute" - stand bis zum Umzug der Habits
+/// nach coHabit im Habits-Tab und sieht hier unveraendert aus.
+private struct ProgressBar: View {
+
+    let fraction: Double
+    let reached: Bool
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.10))
+                Capsule()
+                    .fill(reached ? Color.green : Color.orange)
+                    .frame(width: geometry.size.width * fraction)
+            }
+        }
+        .frame(height: 6)
+        .padding(.leading, 52)
+    }
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Baut alle vier Apps fuer den Simulator und laesst die Unit-Tests laufen.
+# Baut alle fuenf Apps fuer den Simulator und laesst die Unit-Tests laufen.
 # Das ist der einzige gueltige Beleg dafuer, dass etwas funktioniert -
 # "sieht richtig aus" zaehlt nicht (siehe CLAUDE.md).
 #
-#   tools/verify.sh            # alle vier
+#   tools/verify.sh            # alle fuenf
 #   tools/verify.sh Vault      # nur eine (schneller, wenn man an einer arbeitet)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -24,7 +24,7 @@ echo "Simulator: $SIM"
 DEST="platform=iOS Simulator,name=$SIM"
 pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-APPS="${1:-Healthy Vault Fokus Einkaufsliste}"
+APPS="${1:-Healthy Vault Fokus Einkaufsliste coHabit}"
 for APP in $APPS; do
     echo "== $APP =="
     if [ "$APP" = "Healthy" ]; then
@@ -32,6 +32,11 @@ for APP in $APPS; do
         # Bewusst NUR die: UI-Tests dauern Minuten - dafuer gibt es uitest.sh.
         xcodebuild test -project Cockpit.xcodeproj -scheme Healthy \
             -only-testing:CockpitTests -destination "$DEST" | pretty
+    elif [ "$APP" = "coHabit" ]; then
+        # coHabit hat eigene Unit-Tests mit coHabit als Wirt: CohabitShared
+        # und der App-Code liegen nur dort.
+        xcodebuild test -project Cockpit.xcodeproj -scheme coHabit \
+            -only-testing:CohabitTests -destination "$DEST" | pretty
     else
         xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
             -destination "$DEST" | pretty

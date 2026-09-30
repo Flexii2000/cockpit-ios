@@ -4,7 +4,7 @@
 // woraus ein Icon besteht, und eine Aenderung ist eine Zeile statt einer
 // neuen Bilddatei aus einem Grafikprogramm.
 //
-//   swift tools/make-icon.swift <healthy|vault|fokus|einkaufsliste> <pfad/icon-1024.png>
+//   swift tools/make-icon.swift <healthy|vault|fokus|einkaufsliste|cohabit> <pfad/icon-1024.png>
 //
 // Vier Motive, vier Farbwelten - jede App soll auf dem Homebildschirm sofort
 // als sie selbst zu erkennen sein:
@@ -12,6 +12,8 @@
 //   vault    ein Vorhaengeschloss, dunkelblau         (Sicherheit)
 //   fokus    die Straehnen-Flamme der Habits (SF Symbol flame.fill) auf Orange-Rot
 //   einkaufsliste  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
+//   cohabit  das grosse „H" der Wortmarke auf Violett, dazu der angeschnittene
+//            Pfirsich-Kreis der Karten                   (gemeinsam, dieselbe Marke)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
 
@@ -21,7 +23,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 guard CommandLine.arguments.count > 2 else {
-    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkaufsliste> <pfad/icon-1024.png>")
+    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkaufsliste|cohabit> <pfad/icon-1024.png>")
 }
 let variant = CommandLine.arguments[1]
 let outputPath = CommandLine.arguments[2]
@@ -212,6 +214,32 @@ case "einkaufsliste":
     ctx.setLineCap(.round)
     ctx.setLineJoin(.round)
     ctx.strokePath()
+
+case "cohabit":
+    // Das „H" aus „coHabit" - in der Wortmarke das violette. Hier umgekehrt
+    // weiss auf Violett, aus Balken gezeichnet statt gesetzt (keine Schrift,
+    // siehe oben). Oben rechts der angeschnittene Kreis der Karten in
+    // Pfirsich, die erste Farbe der Palette.
+    background(0x6F55E8, 0x4527C9)
+    ctx.setFillColor(rgb(0xFFD9C7))
+    let circle = side * 0.56
+    ctx.fillEllipse(in: CGRect(x: side - circle * 0.66, y: side - circle * 0.66, width: circle, height: circle))
+    let barW = side * 0.15, barH = side * 0.54
+    let gap = side * 0.20
+    let left = (side - (barW * 2 + gap)) / 2
+    let bottom = (side - barH) / 2
+    let radius = barW * 0.28
+    withShadow {
+        ctx.setFillColor(ink)
+        for x in [left, left + barW + gap] {
+            ctx.addPath(CGPath(roundedRect: CGRect(x: x, y: bottom, width: barW, height: barH),
+                               cornerWidth: radius, cornerHeight: radius, transform: nil))
+        }
+        ctx.addPath(CGPath(roundedRect: CGRect(x: left + barW * 0.5, y: side / 2 - barW * 0.42,
+                                               width: gap + barW, height: barW * 0.84),
+                           cornerWidth: radius, cornerHeight: radius, transform: nil))
+        ctx.fillPath()
+    }
 
 default:
     fatalError("Unbekannte App: \(variant)")

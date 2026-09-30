@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Baut die App signiert und installiert sie auf dem iPhone.
 #
-#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste>            # bauen und installieren
-#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste> --launch   # danach auch starten
-#   tools/install-device.sh all                                      # alle vier
+#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit>            # bauen und installieren
+#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> --launch   # danach auch starten
+#   tools/install-device.sh all                                              # alle fuenf
 #
 # Das Geraet wird selbst gesucht: es muss einmal mit Xcode gekoppelt worden
 # sein, danach reicht dasselbe WLAN - ein Kabel ist nur beim ersten Mal noetig.
@@ -16,7 +16,7 @@ APP="${1:-}"
 LAUNCH=false
 [ "${2:-}" = "--launch" ] && LAUNCH=true
 if [ "$APP" = "all" ]; then
-    for each in Healthy Vault Fokus Einkaufsliste; do "$0" "$each" ${2:-}; done
+    for each in Healthy Vault Fokus Einkaufsliste coHabit; do "$0" "$each" ${2:-}; done
     exit 0
 fi
 case "$APP" in
@@ -24,7 +24,10 @@ case "$APP" in
     Vault)   BUNDLE="com.fherrmann.vault" ;;
     Fokus)   BUNDLE="com.fherrmann.fokus" ;;
     Einkaufsliste) BUNDLE="com.fherrmann.einkauf" ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder all sein." >&2; exit 1 ;;
+    # Neue Bundle-ID mit Push, App-Gruppe und HealthKit: das Profil legt
+    # -allowProvisioningUpdates beim ersten Mal an, solange Xcode angemeldet ist.
+    coHabit) BUNDLE="com.fherrmann.cohabit" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit oder all sein." >&2; exit 1 ;;
 esac
 
 JSON=$(mktemp)

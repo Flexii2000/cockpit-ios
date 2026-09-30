@@ -291,7 +291,8 @@ final class Access {
         // lokal gestarteter Dienst), gilt das Cookie fuer .fherrmann.com dort
         // nicht. Dann dasselbe Token noch einmal fuer diesen Rechner - ohne
         // das antwortet der lokale Dienst nur mit 403.
-        for backend in [Backend.habits, .todo, .food] {
+        // .cohabit: der Wald fragt dort nach seinem Tagesziel (FocusGoal).
+        for backend in [Backend.habits, .todo, .food, .cohabit] {
             let url = backend.url
             if let privateToken, let host = url.host(), !host.hasSuffix("fherrmann.com"),
                let c = Self.cookie(name: Self.privateTokenKey, value: privateToken,

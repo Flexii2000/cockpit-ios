@@ -24,4 +24,5 @@ if ! command -v xcodegen >/dev/null 2>&1; then
 fi
 
 xcodegen generate
-echo "Cockpit.xcodeproj erzeugt. Weiter mit:  open Cockpit.xcodeproj"
+echo "Cockpit.xcodeproj erzeugt (Healthy, Vault, Fokus, Einkaufsliste, coHabit)."
+echo "Weiter mit:  open Cockpit.xcodeproj"

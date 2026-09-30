@@ -28,7 +28,7 @@ final class OfflineTests: XCTestCase {
     }
 
     func testClearRemovesEverything() {
-        let url = URL(string: "https://fherrmann.com/habits/api/habits")!
+        let url = URL(string: "https://fherrmann.com/habits/api/focus/sessions")!
         OfflineCache.store(Data("x".utf8), for: url)
         OfflineCache.clear()
         XCTAssertNil(OfflineCache.load(for: url))
@@ -54,14 +54,17 @@ final class OfflineTests: XCTestCase {
     func testReadFallsBackToTheCacheWithoutNetwork() async throws {
         setenv("COCKPIT_URL_HABITS", "http://127.0.0.1:9/habits", 1)
         defer { unsetenv("COCKPIT_URL_HABITS") }
-        let url = Backend.habits.url.appending(path: "/api/habits")
+        let from = CalendarDate(year: 2026, month: 9, day: 1)
+        let to = CalendarDate(year: 2026, month: 9, day: 30)
+        var components = URLComponents(url: Backend.habits.url.appending(path: "/api/focus/sessions"),
+                                       resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "from", value: from.iso), URLQueryItem(name: "to", value: to.iso)]
         OfflineCache.store(Data("""
-        [{"id":"b1","name":"Logbook","kind":"BUILD","unit":"DAYS","weeklyStepGoal":null,
-          "streak":3,"doneToday":true,"atRisk":false,"progress":null,"recent":[],"unavailable":null}]
-        """.utf8), for: url)
+        [{"id":"a1","start":"2026-09-20T12:00:00Z","end":"2026-09-20T13:30:00Z","minutes":90,"day":"2026-09-20"}]
+        """.utf8), for: components.url!)
 
-        let habits = try await HabitsAPI().list()
-        XCTAssertEqual(habits.first?.streak, 3)
+        let sessions = try await FocusSessionsAPI().sessions(from: from, to: to)
+        XCTAssertEqual(sessions.first?.minutes, 90)
         XCTAssertNotNil(OfflineStatus.shared.staleSince[.habits], "die Leiste muss wissen, dass das alt ist")
     }
 
@@ -70,8 +73,10 @@ final class OfflineTests: XCTestCase {
         setenv("COCKPIT_URL_HABITS", "http://127.0.0.1:9/habits", 1)
         defer { unsetenv("COCKPIT_URL_HABITS") }
         let before = await Outbox.shared.count
+        let start = Date(timeIntervalSince1970: 1_789_000_000)
         do {
-            _ = try await HabitsAPI().mark(id: "b1")
+            _ = try await FocusSessionsAPI().plant(FocusSessionDraft(id: "t1", start: start,
+                                                                     end: start.addingTimeInterval(1_800)))
             XCTFail("ohne Netz darf das nicht durchgehen")
         } catch APIError.queued {
             let after = await Outbox.shared.count
