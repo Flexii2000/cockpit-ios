@@ -53,8 +53,11 @@ for device in json.load(open(sys.argv[1])).get("result", {}).get("devices", []):
     if connection.get("transportType") == "sameMachine":
         continue
     ready = connection.get("tunnelState") == "connected"
-    entry = (device["identifier"],
-             "bereit" if ready else "nicht-erreichbar",
+    # Ohne offenen Tunnel ist das iPhone nicht unerreichbar - der Tunnel ruht
+    # und wird bei Bedarf aufgebaut. "nicht-erreichbar" stand hier frueher und
+    # las sich wie ein Fehler, obwohl das iPhone am Kabel hing (2026-09-30).
+    state = "bereit" if ready else ("Kabel" if connection.get("transportType") == "wired" else "WLAN")
+    entry = (device["identifier"], state,
              device.get("deviceProperties", {}).get("name", "iPhone"))
     if ready:
         best = entry
