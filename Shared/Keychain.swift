@@ -43,16 +43,18 @@ enum Keychain {
     /// ID** - siehe `saveProtected`.
     static let gradesPasswordKey = "grades_password"
 
-    static func save(_ value: String, for key: String) {
+    /// - Parameter group: eine andere Zugriffsgruppe als die geteilte - fuer
+    ///   coHabit, dessen Token nur App und Kachel kennen sollen.
+    static func save(_ value: String, for key: String, group: String? = nil) {
         // Erst loeschen: SecItemAdd scheitert an einem vorhandenen Eintrag,
         // und ein "Update" waere hier zwei Codepfade fuer nichts.
-        delete(key)
+        delete(key, group: group)
         guard let data = value.data(using: .utf8) else { return }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
-            kSecAttrAccessGroup as String: accessGroup,
+            kSecAttrAccessGroup as String: group ?? accessGroup,
             kSecValueData as String: data,
             // Frueher `WhenUnlocked`. Ein Widget rendert und aktualisiert aber
             // bei GESPERRTEM Geraet - dort scheiterte jedes Lesen mit
@@ -165,12 +167,12 @@ enum Keychain {
         return status == errSecSuccess || status == errSecInteractionNotAllowed
     }
 
-    static func delete(_ key: String) {
+    static func delete(_ key: String, group: String? = nil) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
-            kSecAttrAccessGroup as String: accessGroup,
+            kSecAttrAccessGroup as String: group ?? accessGroup,
         ]
         SecItemDelete(query as CFDictionary)
     }

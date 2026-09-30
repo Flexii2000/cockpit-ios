@@ -13,6 +13,8 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
     case habits
     case todo
     case shopping
+    /// Habits mit Freunden - eigene App, eigener Token je Person.
+    case cohabit
 
     var id: String { rawValue }
 
@@ -41,6 +43,9 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .habits:  URL(string: "https://fherrmann.com/habits")!
         case .todo:    URL(string: "https://fherrmann.com/todo")!
         case .shopping: URL(string: "https://fherrmann.com/shopping-list")!
+        // Die API liegt eine Ebene tiefer als die Weboberflaeche
+        // (fherrmann.com/cohabit/); die Pfade der App beginnen danach.
+        case .cohabit: URL(string: "https://fherrmann.com/cohabit/api")!
         }
     }
 
@@ -53,6 +58,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .habits:  "Habits"
         case .todo:    "To-Do"
         case .shopping: "Einkaufsliste"
+        case .cohabit: "coHabit"
         }
     }
 
@@ -65,6 +71,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .habits:  "flame"
         case .todo:    "checklist"
         case .shopping: "cart"
+        case .cohabit: "person.2"
         }
     }
 }
