@@ -1,11 +1,19 @@
 import SwiftUI
 
-/// Habits gemeinsam mit Freunden.
+/// Habits gemeinsam mit Freunden (Vertrag: scratchpad/cohabit/CONTRACT.md).
 @main
 struct CohabitApp: App {
+
+    /// Push-Kennung und der Tipp auf eine Meldung.
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     var body: some Scene {
         WindowGroup {
-            Text("coHabit")
+            RootView()
+                .onOpenURL { url in
+                    // cohabit://… aus Kachel, Meldung oder einer anderen App.
+                    Router.shared.open(url)
+                }
         }
     }
 }

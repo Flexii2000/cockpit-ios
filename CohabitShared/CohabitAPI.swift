@@ -69,12 +69,12 @@ struct CohabitAPI: Sendable {
         try decode(try await perform(request("GET", path, query: query)))
     }
 
-    func send<T: Decodable>(_ method: String, _ path: String, body: some Encodable) async throws -> T {
+    func send<T: Decodable>(_ method: String, _ path: String, body: some Encodable & Sendable) async throws -> T {
         try decode(try await perform(request(method, path, body: body)))
     }
 
     /// Fuer Antworten ohne Inhalt (204) oder solche, deren Inhalt keiner braucht.
-    func sendIgnoringResponse(_ method: String, _ path: String, body: (some Encodable)? = Optional<EmptyBody>.none) async throws {
+    func sendIgnoringResponse(_ method: String, _ path: String, body: (some Encodable & Sendable)? = Optional<EmptyBody>.none) async throws {
         _ = try await perform(request(method, path, body: body))
     }
 

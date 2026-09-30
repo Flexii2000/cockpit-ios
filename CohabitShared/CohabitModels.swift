@@ -190,7 +190,7 @@ struct PersonSearchResult: Codable, Hashable, Sendable, Identifiable {
 }
 
 /// Einladungs- und Freundes-Link.
-struct ShareLink: Codable, Hashable, Sendable {
+struct LinkInfo: Codable, Hashable, Sendable {
     let url: String
     let code: String
     let expiresAt: Date?
