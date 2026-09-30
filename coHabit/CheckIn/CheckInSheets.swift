@@ -98,21 +98,24 @@ struct PhotoCheckInSheet: View {
 
     private var preview: some View {
         ZStack(alignment: .bottom) {
-            Group {
-                if let photo {
-                    Image(uiImage: photo)
-                        .resizable()
-                        .scaledToFill()
-                        .accessibilityIdentifier("chosenPhoto")
-                } else if cameraRunning {
-                    CameraPreview(session: camera.session)
-                } else {
-                    StripedPlaceholder(color: colors.accent, label: "Kamera-Vorschau")
+            // Fester Rahmen, Inhalt als overlay - ein Foto mit `scaledToFill`
+            // machte das Blatt sonst breiter als den Bildschirm.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 340)
+                .overlay {
+                    if let photo {
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .accessibilityIdentifier("chosenPhoto")
+                    } else if cameraRunning {
+                        CameraPreview(session: camera.session)
+                    } else {
+                        StripedPlaceholder(color: colors.accent, label: "Kamera-Vorschau")
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 340)
-            .clipShape(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
 
             HStack {
                 galleryButton

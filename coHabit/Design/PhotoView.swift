@@ -73,16 +73,18 @@ struct PhotoView: View {
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Rectangle().fill(placeholder)
+        // Das Bild liegt als overlay: `scaledToFill` meldet sonst die Groesse
+        // des gefuellten Bildes und macht den Rahmen breiter als vorgesehen.
+        Rectangle()
+            .fill(placeholder)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
             }
-        }
-        .clipped()
+            .clipped()
         .task(id: id + size.rawValue) {
             if let cached = PhotoLoader.shared.cached(id, size: size) {
                 image = cached

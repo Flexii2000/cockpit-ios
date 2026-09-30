@@ -3,6 +3,8 @@
 #
 #   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit>             # alle UI-Tests der App
 #   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> testSwipe   # nur einer
+#   COCKPIT_TOUR=1 tools/uitest.sh coHabit CohabitTourUITests/testTourOfAllScreens
+#                                    # jeder Bildschirm von coHabit, hell und dunkel
 #
 # Der Grund: simctl kann weder tippen noch wischen noch scrollen. Alles, was
 # hinter einer Geste oder unterhalb des ersten Bildschirms liegt, ist nur von
@@ -30,6 +32,10 @@ FILTER="${2:-}"
 DEVICE="${DEVICE:-iPhone 17}"
 case "$APP" in Healthy|Vault|Fokus|Einkaufsliste|coHabit) ;; *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder coHabit sein." >&2; exit 1 ;; esac
 BUNDLE_NAME="${APP}UITests"
+# Die Testklasse heisst wie das Bundle - ausser bei coHabit (Swift-Typen
+# beginnen gross). Ein Filter „Klasse/test" waehlt eine andere Klasse.
+CLASS_NAME="$BUNDLE_NAME"
+[ "$APP" = "coHabit" ] && CLASS_NAME="CohabitUITests"
 
 export TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN
 export TEST_RUNNER_COCKPIT_WEIGHT_TOKEN
@@ -60,6 +66,8 @@ export TEST_RUNNER_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}"
 export TEST_RUNNER_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}"
 export TEST_RUNNER_COCKPIT_COHABIT_TOKEN="${COCKPIT_COHABIT_TOKEN:-}"
 export TEST_RUNNER_COCKPIT_COHABIT_OTHER_TOKEN="${COCKPIT_COHABIT_OTHER_TOKEN:-}"
+# Der Rundgang fuer die Bildschirmfotos laeuft nur auf ausdruecklichen Wunsch.
+export TEST_RUNNER_COCKPIT_TOUR="${COCKPIT_TOUR:-}"
 
 tools/bootstrap.sh > /dev/null
 rm -rf build/uitest.xcresult build/screenshots
@@ -68,7 +76,10 @@ ARGS=(-project Cockpit.xcodeproj -scheme "$APP"
       -destination "platform=iOS Simulator,name=$DEVICE"
       -resultBundlePath build/uitest.xcresult)
 if [ -n "$FILTER" ]; then
-    ARGS+=(-only-testing:"$BUNDLE_NAME/$BUNDLE_NAME/$FILTER")
+    case "$FILTER" in
+        */*) ARGS+=(-only-testing:"$BUNDLE_NAME/$FILTER") ;;
+        *)   ARGS+=(-only-testing:"$BUNDLE_NAME/$CLASS_NAME/$FILTER") ;;
+    esac
 else
     ARGS+=(-only-testing:"$BUNDLE_NAME")
 fi

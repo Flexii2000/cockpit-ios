@@ -157,10 +157,9 @@ struct ChatView: View {
         VStack(spacing: 8) {
             if let photo {
                 HStack {
-                    Image(uiImage: photo)
-                        .resizable()
-                        .scaledToFill()
+                    Color.clear
                         .frame(width: 64, height: 64)
+                        .overlay { Image(uiImage: photo).resizable().scaledToFill() }
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(alignment: .topTrailing) {
                             Button { self.photo = nil } label: {

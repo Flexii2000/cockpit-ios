@@ -115,7 +115,9 @@ final class CohabitUITests: XCTestCase {
             format: "identifier == 'PXGGridLayout-Info' OR label BEGINSWITH 'Foto,'")).firstMatch
         XCTAssertTrue(photo.waitForExistence(timeout: 15), "keine Bilder in der Mediathek - simctl addmedia?")
         shoot(app, "galerie")
-        photo.tap()
+        // Die Auswahl laeuft in einem fremden Prozess: XCUITest sieht das Bild,
+        // haelt es aber fuer nicht tippbar - ein Tipp auf die Stelle geht.
+        photo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     // MARK: - Chat

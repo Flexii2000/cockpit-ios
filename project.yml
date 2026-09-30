@@ -471,6 +471,7 @@ targets:
     sources:
       - path: UITests/Harness.swift
       - path: UITests/CohabitUITests.swift
+      - path: UITests/CohabitTourUITests.swift
     dependencies:
       - target: coHabit
     settings:
