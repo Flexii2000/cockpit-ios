@@ -21,6 +21,9 @@
 # die Statistik fuer eine Woche oder ein Jahr; COCKPIT_TEST_PHOTO=1 laesst den
 # Galerie-Knopf im Beweisfoto-Blatt ein erzeugtes Bild liefern (UI-Tests);
 # COCKPIT_LINK=cohabit://cohabit/<id> oeffnet beim Start einen Deep Link.
+# COCKPIT_CLASSIC=1 legt den Schalter „Klassische Liste" (Profil) beim Start
+# um - „Heute" zeigt dann die alte Habit-Liste der Fokus-App; 0 schaltet ihn
+# aus. Ohne die Variable bleibt er, wie er war (er ueberlebt jeden Start).
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -148,6 +151,7 @@ SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \
 SIMCTL_CHILD_COCKPIT_COHABIT_TOKEN="$COHABIT" \
 SIMCTL_CHILD_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}" \
 SIMCTL_CHILD_COCKPIT_TODAY_MODE="${COCKPIT_TODAY_MODE:-}" \
+SIMCTL_CHILD_COCKPIT_CLASSIC="${COCKPIT_CLASSIC:-}" \
 SIMCTL_CHILD_COCKPIT_STATS_RANGE="${COCKPIT_STATS_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_TEST_PHOTO="${COCKPIT_TEST_PHOTO:-}" \
 SIMCTL_CHILD_COCKPIT_LINK="${COCKPIT_LINK:-}" \

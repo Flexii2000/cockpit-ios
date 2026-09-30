@@ -3,6 +3,68 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-30 — Klassische Liste: Schalter im Profil, „Heute" zeigt dann die alte Liste
+Felix mochte die Habit-Liste der Fokus-App lieber als das neue Design. coHabit
+hat im Profil den Schalter „Klassische Liste" (je Gerät,
+`@AppStorage("today.classic")`); ist er an, zeigt der Tab „Heute" die alte
+Liste statt Dashboard und Liste. Timeline, Statistik und Profil bleiben.
+Aussehen und Bedienung sind der Stand `529c651` (System-Liste, Flamme, Punkte,
+Langdruck, Editor, Wischen, Titel „Habits", „+" oben rechts) - ohne den
+Zugang-Knopf, den es in coHabit nicht gibt, und mit zurückgesetztem statt
+violettem Tint (ein ausdrückliches `.tint(.blue)` färbte unter iOS 26 auch das
+„+" blau; in der Fokus-App war es schwarz).
+**Warum:** Felix' Entscheidung; je Gerät wie die Wahl Dashboard/Liste, weil es
+eine Frage der Ansicht ist, nicht der Daten. **Verworfen:** (a) ein drittes
+Segment neben „Dashboard | Liste" im Kopf von „Heute" (die alte Liste hat
+diesen Kopf nicht - mit Umschalter darin sähe sie nicht mehr aus wie früher);
+(b) ein eigener Tab (die Leiste ist mit „+" voll, und zwei Startseiten
+nebeneinander wären doppelt); (c) der Habits-Tab zurück in Fokus (zwei Apps für
+dieselben Habits, geteilte kämen dort nicht an).
+
+## 2026-09-30 — Klassische Liste: Streaks und Abstinenz, auch geteilte
+Die Liste zeigt alle aktiven Streaks und Abstinenzen der Person, auch die, die
+sie mit anderen teilt; Ziele und Challenges nicht - die liefert der Dienst gar
+nicht erst (`GET /classic/habits`). **Warum:** Felix. Nur diese beiden Typen
+passen in die alte Zeile (Flamme, Haken bzw. Rückfall), und für den eigenen
+Haken ist es gleich, ob noch jemand mitmacht. **Verworfen:** (a) nur, was man
+allein hat (dann fehlte „Laufen" mit Lena und Max, obwohl man dort jeden Tag
+abhakt); (b) alle vier Typen (Beiträge und Ranglisten haben in der Zeile keinen
+Platz).
+
+## 2026-09-30 — Klassische Liste: wo das alte Design nichts hat, übernimmt coHabit
+Drei Fälle, die es in der Fokus-App nicht gab:
+- **Foto-Pflicht:** der Haken öffnet das Beweisfoto-Blatt von coHabit für
+  dieses Co-Habit - dasselbe wie der Kamera-Knopf auf dem Dashboard, gefüllt
+  aus der Zusammenfassung von `GET /cohabits/{id}` (Farbe, wer das Foto sieht).
+  Nachtragen per Langdruck gibt es dort nicht. **Verworfen:** den Haken
+  schicken und die 400 des Dienstes zeigen (eine Sackgasse); den Haken
+  ausblenden (dann ließe sich das Habit in der Liste nicht abhaken).
+- **Nicht Admin:** Tipp auf den Namen öffnet die Detailseite in coHabit.
+  **Verworfen:** der alte Editor schreibgeschützt (zeigt nichts, was man tun
+  kann); ein Tipp, der nichts tut.
+- **Geteilt:** Wischen fragt erst „„Name" verlassen?" (destruktiv
+  „Verlassen"), dann `DELETE` - der Dienst verlässt, statt zu löschen. Der
+  Knopf trägt dafür keine destruktive Rolle, die ließe die Zeile schon vor der
+  Antwort verschwinden; die Rückfrage hängt an der Zeile, weil sie unter iOS 26
+  ein Popover ist (ohne „Abbrechen", daneben tippen) und sonst auf eine fremde
+  Zeile zeigte. **Verworfen:** sofort verlassen, wie früher sofort
+  gelöscht wurde (man verlässt dabei Chat und Mitglieder - das verdient eine
+  Rückfrage); Wischen bei geteilten sperren (dann gäbe es aus der Liste keinen
+  Weg hinaus).
+
+## 2026-09-30 — Klassische Liste: Haken ohne Netz im Postausgang von coHabit
+Haken und Rücknahmen gehen ohne Netz in `CohabitOutbox` (Aufträge
+`classicMark` mit der Kennung aus dem ersten Versuch und `classicUnmark`); ein
+409 beim Nachsenden eines Hakens heißt „steht schon". Die Aufträge und
+`ClassicMarkRequest` liegen deshalb in `CohabitShared/`, obwohl die Kachel die
+Liste gar nicht zeigt. **Warum:** Die Kachel liest und schreibt dieselbe Datei
+(ihr Abhak-Knopf legt ohne Netz dort ab). Kennte sie einen Auftrag nicht,
+schlüge das Dekodieren fehl, und sie schriebe die Datei mit nur ihrem eigenen
+Eintrag neu - die Haken der Liste wären weg. **Verworfen:** (a) ein eigener
+Postausgang nur für die Liste (zwei Warteschlangen, zwei Nachsende-Läufe, zwei
+Stände in der Leiste); (b) ohne Netz nur eine Fehlermeldung (der alte Tab
+konnte ohne Netz abhaken).
+
 ## 2026-09-30 — coHabit: fünfte App im Repo, eigener Client mit Bearer
 coHabit ist ein weiteres Target (`coHabit` + `coHabitWidget`) in diesem Repo,
 mit eigenem Ordner `CohabitShared/` für das, was App und Kachel teilen. Es

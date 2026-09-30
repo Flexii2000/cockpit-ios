@@ -285,6 +285,13 @@ struct ErrorLine: View {
 struct SyncLine: View {
     private var sync: CohabitSync { CohabitSync.shared }
 
+    /// Ob die Leiste gerade etwas zu sagen hat - fuer Aufrufer, die um sie
+    /// herum Abstand halten und ohne sie keinen wollen.
+    static var hasContent: Bool {
+        let sync = CohabitSync.shared
+        return !parts(stale: sync.staleSince, pending: sync.pending).isEmpty || sync.lastError != nil
+    }
+
     var body: some View {
         let parts = Self.parts(stale: sync.staleSince, pending: sync.pending)
         if !parts.isEmpty || sync.lastError != nil {

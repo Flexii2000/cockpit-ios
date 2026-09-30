@@ -78,6 +78,9 @@ extension RootView {
 /// Die vier Bildschirme mit eigener Navigation und die untere Leiste.
 struct MainView: View {
 
+    /// „Klassische Liste" im Profil: dann zeigt „Heute" die alte Habit-Liste.
+    @AppStorage(ClassicList.storageKey) private var classicList = false
+
     private var router: Router { Router.shared }
     private var checkIns: CheckInController { CheckInController.shared }
 
@@ -90,7 +93,14 @@ struct MainView: View {
             TabView(selection: $router.tab) {
                 Tab("Heute", systemImage: "house", value: MainTab.today) {
                     NavigationStack(path: $router.todayPath) {
-                        TodayView().withRoutes()
+                        Group {
+                            if classicList {
+                                ClassicHabitsView()
+                            } else {
+                                TodayView()
+                            }
+                        }
+                        .withRoutes()
                     }
                     .toolbarVisibility(.hidden, for: .tabBar)
                 }

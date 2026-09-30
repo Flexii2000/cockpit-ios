@@ -61,13 +61,14 @@ Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
 coHabit/            App: Habits mit Freunden - Heute, Timeline, Statistik, Profil, Detail + Chat,
                     Anlegen, Einladen, Abhaken mit Beweisfoto, Health, Push, Kachel-Vorschau
   App/ Design/ Today/ Detail/ Chat/ CheckIn/ Timeline/ Stats/ Profile/ Create/ Invite/ Onboarding/ Health/
+  Classic/          die alte Habit-Liste der Fokus-App als „Heute" (Schalter im Profil)
 coHabitWidget/      Kacheln von coHabit: klein/rund (konfigurierbar, Abhak-Knopf), mittel, gross, rechteckig
 CohabitShared/      was coHabit UND coHabitWidget teilen: API mit Bearer, Modelle, Postausgang,
                     App-Gruppe group.com.fherrmann.cohabit, App-Intents, Kachel-Ansichten, Farben
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/
 Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkaufsliste
-Core/               was alle vier Apps brauchen, aber keine Erweiterung:
+Core/               was alle fünf Apps brauchen, aber keine Erweiterung (coHabit nur Notifications):
                     Zugang (Cookies, Keychain-Wanderung), Sperre, Benachrichtigungen,
                     Zugang-Blatt, Fehler-/Offline-Leisten
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
@@ -170,6 +171,16 @@ Reaktionen gehen in `CohabitOutbox` (App-Gruppe, typisierte Aufträge: erst das
 Foto, dann der Eintrag mit dessen Kennung). Idempotent über die Kennungen, die
 die App vergibt. Nachgerechnet wird nichts - der Abhak-Knopf zeigt eine Uhr,
 wartende Nachrichten stehen mit Uhr im Chat.
+
+**Klassische Liste** (`coHabit/Classic/`): Der Schalter „Klassische Liste" im
+Profil (`@AppStorage("today.classic")`, je Gerät) tauscht im Tab „Heute"
+`TodayView` gegen `ClassicHabitsView` - die Habit-Liste der Fokus-App (Stand
+`529c651`) in System-Optik, gespeist aus `GET /classic/habits` über
+`ClassicAPI`, das auf `CohabitAPI` aufsetzt (kein `APIClient`). Was es damals
+nicht gab, kommt aus coHabit: das Beweisfoto-Blatt (`CheckInController`), die
+Detailseite (`Route.cohabit`), `SyncLine`, `ErrorLine` und der Postausgang
+(`classicMark`/`classicUnmark`). Nach jeder Änderung stößt `ClassicStore`
+`DataBus` und `WidgetSync` an wie die übrigen Aktionen.
 
 **Push:** Topic `com.fherrmann.cohabit`, der Dienst schickt selbst
 (`POST /devices` meldet die Kennung an). Jede Meldung trägt einen `link`; ein

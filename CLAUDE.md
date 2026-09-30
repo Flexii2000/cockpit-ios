@@ -21,7 +21,7 @@ Tagessummen); die Apps zeigen.
 | Ordner | übersetzt von | darf |
 |---|---|---|
 | `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
-| `Core/` | alle vier Apps | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
+| `Core/` | alle fünf Apps (coHabit nimmt daraus nur `Notifications`; Netz, Fehler- und Offline-Leisten hat es eigene) | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
 | `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
@@ -182,6 +182,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann |
 | `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
+| `COCKPIT_CLASSIC=1` | legt in coHabit den Schalter „Klassische Liste" (Profil) beim Start um: „Heute" zeigt die alte Habit-Liste der Fokus-App; `0` schaltet ihn aus (der Schalter überlebt jeden Start - die UI-Tests setzen deshalb immer `0`, außer sie wollen die Liste) |
 | `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |
 | `COCKPIT_TEST_PHOTO=1` | der Galerie-Knopf im Beweisfoto-Blatt liefert ein erzeugtes Bild statt der Mediathek - nur falls ein UI-Test die Mediathek nicht erreicht |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |

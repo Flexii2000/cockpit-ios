@@ -36,6 +36,54 @@
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
 
+## coHabit: klassische Liste · **gebaut, nicht ausgerollt** (2026-09-30)
+
+Felix mochte die alte Habit-Liste der Fokus-App lieber als das neue Design. Im
+Profil von coHabit steht jetzt der Schalter **„Klassische Liste"** (je Gerät);
+ist er an, zeigt „Heute" die alte Liste statt Dashboard und Liste - Timeline,
+Statistik und Profil bleiben (Entscheidungen vom 2026-09-30). Aussehen und
+Bedienung wie der Habits-Tab bei `529c651`: System-Liste, Flamme mit Zahl
+(blass bei „heute noch offen", grau ohne Serie), Untertitel (orange „… · heute
+noch offen", rot bei nicht erreichbarer Quelle), rechts Haken bzw. „1/2" +
+Haken, „Rückfall"/„Doch nicht", kcal, „55/70k", „2:15/4:00 h", darunter sieben
+Punkte und bei Schritte/Fokus der Balken; Langdruck mit Anheben und Haptik
+öffnet die letzten 14 Tage, Tipp auf den Namen den Editor, Wischen löscht,
+Titel „Habits", „+" oben rechts, Reihenfolge `manualFirst`. Es fehlt nur der
+Zugang-Knopf; der Tint ist zurückgesetzt (sonst violett, und ein ausdrückliches
+Blau färbte unter iOS 26 das „+").
+
+**Inhalt und was coHabit beisteuert:** aktive Streaks und Abstinenz der
+Person, auch geteilte (`GET /classic/habits`, Dienst `../habits` ab Commit
+`4acd5a7`, Vertrag §3.10). Mit **Foto-Pflicht** öffnet der Haken das
+Beweisfoto-Blatt (dasselbe wie der Kamera-Knopf auf dem Dashboard, gefüllt aus
+`GET /cohabits/{id}`), Nachtragen per Langdruck gibt es dort nicht. **Nicht
+Admin:** der Name öffnet die Detailseite. **Geteilt:** Wischen fragt erst
+„„Name" verlassen?". Nachtragen nur für Tage ab Start **und** ab
+`backfillFrom`. Der Editor blendet einen Rhythmus aus, den er nicht kennt
+(Wochentage, „alle n Tage"), und schickt dann `period: null`; lehnt der Dienst
+ab („Diese Quelle hast du nicht."), steht die Meldung im Blatt. `unit: WINDOWS`
+heißt „n Mal"/„noch offen"; unbekannte Werte kippen das Dekodieren nicht. Ohne
+Netz gehen Haken und Rücknahme in den Postausgang von coHabit (`classicMark`
+mit der Kennung aus dem ersten Versuch, `classicUnmark`; Uhr an der Zeile),
+alles andere endet in „Kein Netz.". Nach jeder Änderung `DataBus` und
+`WidgetSync` wie bei den übrigen Aktionen. Code in `coHabit/Classic/`, die
+Aufträge in `CohabitShared/CohabitOutbox.swift` (die Kachel liest dieselbe Datei).
+Debug-Schalter `COCKPIT_CLASSIC=1|0`.
+
+**Geprüft:** `tools/verify.sh` baut alle fünf, Unit-Tests grün (Healthy 90
+XCTest + 31 Swift Testing, coHabit 77, davon 29 neu: alte `HabitsModelTests` sinngemäß, Vertrags-JSON, `WINDOWS`,
+`period: null`, unbekannte Werte, Nachtragstage, Rumpf des Formulars, Store
+gegen einen Stub-Dienst samt Postausgang). Im Simulator gegen den lokalen
+Dienst mit Felix' nachgebildeten Habits: die Liste hell und dunkel deckungsgleich
+mit dem alten Tab. UI-Tests grün: `testClassicListFromTheProfileSwitch`
+(Schalter im Profil umlegen, eine Zeile abhaken und wieder lösen, der Dienst
+steht danach wie vorher) und `testClassicListSheetsAndGestures` (Nachtragen,
+Editor, „+", Beweisfoto-Blatt bei Foto-Pflicht, Rückfrage „verlassen?",
+Detailseite ohne Admin). **Auf dem Gerät prüfen:** Haptik beim Langdruck,
+Wischen mit dem Finger - und ob ein Tipp auf den erledigten Haken eines
+Habits mit Foto-Pflicht den Eintrag samt Foto zurücknehmen soll (tut er, wie
+früher jeder Tipp den Haken nahm).
+
 ## coHabit — eigene App · **gebaut, nicht ausgerollt** (2026-09-30)
 
 Felix' Feature-Katalog F0–F15 als fünfte App, nach dem Vertrag

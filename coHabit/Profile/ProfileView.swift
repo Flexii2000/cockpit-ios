@@ -7,6 +7,8 @@ struct ProfileView: View {
     @State private var confirmSignOut = false
     @State private var confirmDelete = false
     @State private var showsDeleteInput = false
+    /// Je Geraet, wie die Wahl Dashboard/Liste auf „Heute".
+    @AppStorage(ClassicList.storageKey) private var classicList = false
     @Environment(\.openURL) private var openURL
 
     private var session: Session { Session.shared }
@@ -53,6 +55,9 @@ struct ProfileView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    FormCard {
+                        ToggleRow(title: "Klassische Liste", isOn: $classicList, identifier: "classicList")
+                    }
                     FormCard {
                         Button { confirmSignOut = true } label: {
                             FormRow(title: "Abmelden", chevron: false)

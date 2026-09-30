@@ -1,6 +1,7 @@
 import Foundation
 
-/// Eintraege, Nachrichten und Reaktionen, die auf Netz warten (Vertrag §5.1).
+/// Eintraege, Nachrichten und Reaktionen, die auf Netz warten (Vertrag §5.1) -
+/// und Haken und Rueckfaelle aus der klassischen Liste.
 ///
 /// Anders als der `Outbox` der uebrigen Apps (rohe Anfragen, Cookie-Auth)
 /// kennt dieser seine Arbeit: ein Haken mit Foto heisst erst das Foto
@@ -20,6 +21,11 @@ actor CohabitOutbox {
             case checkin(cohabitId: String, request: CheckinRequest)
             case message(cohabitId: String, request: MessageRequest)
             case reaction(ReactionRequest, add: Bool)
+            /// Haken bzw. Rueckfall aus der klassischen Liste.
+            case classicMark(habitId: String, request: ClassicMarkRequest)
+            /// Den eigenen Eintrag eines Tages zuruecknehmen - ein zweites Mal
+            /// aendert nichts, deshalb braucht es keine Kennung.
+            case classicUnmark(habitId: String, date: CalendarDate)
         }
 
         let id: UUID
@@ -50,6 +56,16 @@ actor CohabitOutbox {
 
     func enqueueMessage(cohabitId: String, request: MessageRequest, photo: Data?) async {
         await append(.message(cohabitId: cohabitId, request: request), photo: photo)
+    }
+
+    /// Haken oder Rueckfall aus der klassischen Liste - ohne Foto: mit
+    /// Foto-Pflicht geht das Abhaken dort ueber das Beweisfoto-Blatt.
+    func enqueueClassicMark(habitId: String, request: ClassicMarkRequest) async {
+        await append(.classicMark(habitId: habitId, request: request), photo: nil)
+    }
+
+    func enqueueClassicUnmark(habitId: String, date: CalendarDate) async {
+        await append(.classicUnmark(habitId: habitId, date: date), photo: nil)
     }
 
     /// Eine Reaktion - hebt eine wartende Gegenbewegung auf, statt beide zu
@@ -120,7 +136,7 @@ actor CohabitOutbox {
                     await publish(load(), error: lastError)
                     return
                 case .server(let status, let message) where (400..<500).contains(status):
-                    if case .checkin = entry.operation, status == 409 {
+                    if status == 409, entry.operation.isEntry {
                         // schon erledigt - genau das sollte der Haken bewirken
                     } else {
                         lastError = "Nicht angenommen: \(message)"
@@ -155,6 +171,10 @@ actor CohabitOutbox {
                     URLQueryItem(name: "reaction", value: request.reaction.rawValue),
                 ])
             }
+        case .classicMark(let habitId, let request):
+            try await api.sendIgnoringResponse("POST", ClassicMarkRequest.path(habitId: habitId), body: request)
+        case .classicUnmark(let habitId, let date):
+            try await api.sendIgnoringResponse("DELETE", ClassicMarkRequest.path(habitId: habitId, date: date))
         }
     }
 
@@ -223,8 +243,17 @@ extension CohabitOutbox.Entry.Operation {
         case .message(let cohabitId, var request):
             request.photoId = photoId
             return .message(cohabitId: cohabitId, request: request)
-        case .reaction:
+        case .reaction, .classicMark, .classicUnmark:
             return self
+        }
+    }
+
+    /// Ein Eintrag fuer einen Tag - ein 409 darauf heisst „steht schon", also
+    /// genau das, was er bewirken sollte.
+    var isEntry: Bool {
+        switch self {
+        case .checkin, .classicMark: true
+        case .message, .reaction, .classicUnmark: false
         }
     }
 }

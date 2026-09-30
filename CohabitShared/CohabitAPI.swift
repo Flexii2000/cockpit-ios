@@ -231,6 +231,9 @@ final class CohabitSync {
     private(set) var pending = 0
     /// Co-Habits mit einem wartenden Haken - dort zeigt der Knopf eine Uhr.
     private(set) var pendingCheckins: Set<String> = []
+    /// Habits der klassischen Liste mit einem wartenden Haken oder Rueckfall
+    /// (auch einem zurueckgenommenen) - die Zeile zeigt dann eine Uhr.
+    private(set) var pendingClassic: Set<String> = []
     /// Wartende Nachrichten je Co-Habit, fuer den Chat.
     private(set) var pendingMessages: [String: [MessageRequest]] = [:]
     /// Was der Dienst beim Nachsenden abgelehnt hat.
@@ -254,15 +257,18 @@ final class CohabitSync {
         pending = entries.count
         var checkins: Set<String> = []
         var messages: [String: [MessageRequest]] = [:]
+        var classic: Set<String> = []
         for entry in entries {
             switch entry.operation {
             case .checkin(let cohabitId, _): checkins.insert(cohabitId)
             case .message(let cohabitId, let request): messages[cohabitId, default: []].append(request)
             case .reaction: break
+            case .classicMark(let habitId, _), .classicUnmark(let habitId, _): classic.insert(habitId)
             }
         }
         pendingCheckins = checkins
         pendingMessages = messages
+        pendingClassic = classic
         if let error { lastError = error }
         if before > 0 && pending == 0 { flushCount += 1 }
     }
@@ -276,6 +282,7 @@ final class CohabitSync {
         pending = 0
         pendingCheckins = []
         pendingMessages = [:]
+        pendingClassic = []
         lastError = nil
     }
 }

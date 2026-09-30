@@ -24,7 +24,8 @@ final class CohabitTourUITests: XCTestCase {
 
     @MainActor
     private func launch(tab: String = "today", link: String? = nil, extra: [String: String] = [:]) -> XCUIApplication {
-        var env = ["COCKPIT_URL_COHABIT": baseURL, "COCKPIT_COHABIT_TOKEN": token]
+        // Mit Dashboard, auch wenn ein Lauf davor die klassische Liste eingeschaltet hat.
+        var env = ["COCKPIT_URL_COHABIT": baseURL, "COCKPIT_COHABIT_TOKEN": token, "COCKPIT_CLASSIC": "0"]
         if let link { env["COCKPIT_LINK"] = link }
         return start(tab: tab, extra: env.merging(extra) { _, new in new })
     }

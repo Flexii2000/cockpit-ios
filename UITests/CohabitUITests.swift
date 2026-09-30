@@ -26,6 +26,9 @@ final class CohabitUITests: XCTestCase {
         start(tab: tab, extra: [
             "COCKPIT_URL_COHABIT": baseURL,
             "COCKPIT_COHABIT_TOKEN": token,
+            // Der Schalter „Klassische Liste" ueberlebt jeden Lauf - ohne das
+            // saehe ein Test nach dem der klassischen Liste kein Dashboard.
+            "COCKPIT_CLASSIC": "0",
         ].merging(extra) { _, new in new })
     }
 
@@ -240,6 +243,185 @@ final class CohabitUITests: XCTestCase {
         shoot(app, "offline-haken-wartet")
     }
 
+    // MARK: - Klassische Liste
+
+    /// Der Schalter im Profil, dann „Heute" als alte Habit-Liste: eine Zeile
+    /// abhaken und wieder loesen. Das Habit legt der Test selbst an und raeumt
+    /// es danach weg; der Dienst steht hinterher wie vorher.
+    @MainActor
+    func testClassicListFromTheProfileSwitch() throws {
+        let name = unique("Klassisch UI")
+        let created = try request("POST", "/classic/habits", body: ["name": name, "kind": "BUILD"], token: token)
+        let id = try XCTUnwrap(created["id"] as? String)
+        // Kein `defer`: nach einem Fehlschlag bricht XCTest die Methode ab, ohne
+        // es auszufuehren - ein Teardown-Block laeuft trotzdem.
+        cleanUp("DELETE", "/classic/habits/\(id)", token: token)
+
+        let app = launch(tab: "profile")
+        let toggle = app.switches["classicList"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 20), "kein Schalter im Profil")
+        reveal(toggle, in: app)
+        XCTAssertEqual(toggle.value as? String, "0", "der Schalter stand schon")
+        // Rechts auf den Schalter - die Beschriftung schaltet nicht.
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        XCTAssertTrue(waitFor(toggle, toHaveValue: "1"), "der Schalter laesst sich nicht umlegen")
+        shoot(app, "klassisch-schalter")
+
+        app.buttons["tab-Heute"].tap()
+        XCTAssertTrue(app.navigationBars["Habits"].waitForExistence(timeout: 15),
+                      "„Heute“ zeigt nicht die klassische Liste")
+        shoot(app, "klassisch-liste")
+
+        let check = app.buttons["toggle-\(id)"]
+        reveal(check, in: app)
+        XCTAssertTrue(check.exists && check.isHittable, "die Zeile des neuen Habits fehlt")
+        let streak = app.staticTexts["streak-\(id)"]
+        XCTAssertEqual(streak.label, "0")
+        check.tap()
+        XCTAssertTrue(waitFor(streak, toReadAgain: "1"), "abgehakt, aber die Flamme zeigt \(streak.label)")
+        XCTAssertEqual(check.value as? String, "erledigt")
+        shoot(app, "klassisch-abgehakt")
+        check.tap()
+        XCTAssertTrue(waitFor(streak, toReadAgain: "0"), "geloest, aber die Flamme zeigt \(streak.label)")
+        shoot(app, "klassisch-geloest")
+
+        let after = try requestList("GET", "/classic/habits", token: token).first { $0["id"] as? String == id }
+        XCTAssertEqual(after?["doneToday"] as? Bool, false, "der Dienst steht nicht wieder wie vorher")
+
+        // Weiter unten die automatischen: Track food, Schritte, Fokus mit Balken.
+        scrollDown(app, times: 4)
+        shoot(app, "klassisch-unten")
+    }
+
+    /// Was nur hinter Gesten liegt: Langdruck (Nachtragen), Tipp auf den Namen
+    /// (Editor), „+", und an einem geteilten Habit mit Foto-Pflicht, in dem
+    /// die Person nicht Admin ist: Haken (Beweisfoto-Blatt), Wischen (Rueckfrage
+    /// „verlassen?") und Tipp auf den Namen (Detailseite statt Editor).
+    /// Jedes Blatt wird abgebrochen - geschrieben wird nur das Anlegen vorher.
+    @MainActor
+    func testClassicListSheetsAndGestures() throws {
+        try XCTSkipIf(otherToken.isEmpty, "COCKPIT_COHABIT_OTHER_TOKEN fehlt - niemand, der ein Habit teilt")
+        let name = unique("Allein UI")
+        let own = try request("POST", "/classic/habits", body: ["name": name, "kind": "BUILD"], token: token)
+        let ownId = try XCTUnwrap(own["id"] as? String)
+        cleanUp("DELETE", "/classic/habits/\(ownId)", token: token)
+        // Geteilt, mit Foto-Pflicht, Admin ist die andere Person.
+        let sharedName = unique("Geteilt UI")
+        let sharedId = try sharedCohabit(name: sharedName)
+        cleanUp("DELETE", "/cohabits/\(sharedId)", confirm: true, token: otherToken)
+
+        let app = launch(extra: ["COCKPIT_CLASSIC": "1"])
+        XCTAssertTrue(app.navigationBars["Habits"].waitForExistence(timeout: 20), "keine klassische Liste")
+        let ownName = app.staticTexts[name]
+        reveal(ownName, in: app)
+
+        ownName.press(forDuration: 0.8)
+        let yesterday = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'day-'")).firstMatch
+        XCTAssertTrue(yesterday.waitForExistence(timeout: 5), "Langdruck oeffnet das Nachtragen nicht")
+        XCTAssertFalse(app.textFields["habitName"].exists, "langes Druecken darf den Editor nicht oeffnen")
+        shoot(app, "klassisch-nachtragen")
+        app.buttons["Fertig"].tap()
+        XCTAssertTrue(yesterday.waitForNonExistence(timeout: 5))
+
+        ownName.tap()
+        let field = app.textFields["habitName"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "als Admin oeffnet der Name nicht den Editor")
+        XCTAssertEqual(field.value as? String, name, "Name nicht vorbelegt")
+        XCTAssertTrue(app.navigationBars["Habit bearbeiten"].exists, "falscher Titel")
+        shoot(app, "klassisch-bearbeiten")
+        app.buttons["Abbrechen"].tap()
+        XCTAssertTrue(field.waitForNonExistence(timeout: 5), "Editor blieb offen")
+
+        app.buttons["addHabit"].tap()
+        XCTAssertTrue(app.navigationBars["Neues Habit"].waitForExistence(timeout: 5), "„+“ oeffnet nichts")
+        shoot(app, "klassisch-neu")
+        app.buttons["Abbrechen"].tap()
+        XCTAssertTrue(app.navigationBars["Neues Habit"].waitForNonExistence(timeout: 5))
+
+        let shared = app.staticTexts[sharedName]
+        reveal(shared, in: app)
+        XCTAssertTrue(shared.exists && shared.isHittable, "das geteilte Habit fehlt in der Liste")
+
+        app.buttons["toggle-\(sharedId)"].tap()
+        let gallery = app.buttons["photoGallery"]
+        XCTAssertTrue(gallery.waitForExistence(timeout: 10), "Foto-Pflicht oeffnet nicht das Beweisfoto-Blatt")
+        shoot(app, "klassisch-beweisfoto")
+        app.buttons["sheetClose"].tap()
+        XCTAssertTrue(gallery.waitForNonExistence(timeout: 5))
+
+        shared.swipeLeft()
+        let delete = app.buttons["delete-\(sharedId)"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5), "Wischen zeigt keinen Papierkorb")
+        delete.tap()
+        let leave = app.buttons["Verlassen"]
+        XCTAssertTrue(leave.waitForExistence(timeout: 5), "geteilt: keine Rueckfrage vor dem Verlassen")
+        XCTAssertTrue(app.staticTexts["„\(sharedName)“ verlassen?"].exists, "falscher Titel der Rueckfrage")
+        shoot(app, "klassisch-verlassen")
+        // Unter iOS 26 ist die Rueckfrage ein Popover ohne „Abbrechen" - ein
+        // Tipp daneben (linker Rand, keine Zeile) schliesst es.
+        if app.buttons["Abbrechen"].exists {
+            app.buttons["Abbrechen"].tap()
+        } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5)).tap()
+        }
+        XCTAssertTrue(leave.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(shared.waitForExistence(timeout: 5), "nach „Abbrechen“ muss das Habit bleiben")
+
+        shared.tap()
+        XCTAssertTrue(app.buttons["detailMenu"].waitForExistence(timeout: 10),
+                      "ohne Admin oeffnet der Name nicht die Detailseite")
+        XCTAssertFalse(app.textFields["habitName"].exists)
+        shoot(app, "klassisch-detail")
+    }
+
+    /// Ein Co-Habit der anderen Person mit Foto-Pflicht, dem die Person hier
+    /// beigetreten ist - so ist es geteilt, und Admin ist die andere.
+    private func sharedCohabit(name: String) throws -> String {
+        let meId = try me(token: token)
+        let id = try createCohabit(name: name, photoRequired: true, token: otherToken, invite: [meId])
+        let invitation = try requestList("GET", "/me/invitations", token: token).first { invitation in
+            let cohabit = invitation["cohabit"] as? [String: Any]
+            return (cohabit?["ref"] as? [String: Any])?["id"] as? String == id
+        }
+        let invitationId = try XCTUnwrap(invitation?["id"] as? String, "keine Einladung angekommen")
+        _ = try request("POST", "/invitations/\(invitationId)/accept", body: [:], token: token)
+        return id
+    }
+
+    /// Raeumt nach dem Test weg, was er angelegt hat - auch nach einem Fehlschlag.
+    private func cleanUp(_ method: String, _ path: String, confirm: Bool = false, token: String) {
+        let url = URL(string: baseURL + path)!
+        addTeardownBlock {
+            var request = URLRequest(url: url)
+            request.httpMethod = method
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            if confirm {
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = Data(#"{"confirm":true}"#.utf8)
+            }
+            _ = try? await URLSession.shared.data(for: request)
+        }
+    }
+
+    /// Scrollt, bis ein Element ueber der schwebenden Leiste liegt. `isHittable`
+    /// taugt dafuer nicht: ganz unten im Fenster, hinter der Leiste, gilt ein
+    /// Element als erreichbar - der Tipp trifft dann die Leiste oder nichts.
+    @MainActor
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+        let bottom = app.frame.maxY - 140
+        for _ in 0..<12 {
+            if element.exists, element.frame.minY > 100, element.frame.maxY < bottom { return }
+            scrollDown(app)
+        }
+    }
+
+    /// Wartet, bis ein Element einen bestimmten Wert hat (Schalter, Haken).
+    @MainActor
+    private func waitFor(_ element: XCUIElement, toHaveValue value: String) -> Bool {
+        let expectation = expectation(for: NSPredicate(format: "value == %@", value), evaluatedWith: element)
+        return XCTWaiter.wait(for: [expectation], timeout: 10) == .completed
+    }
+
     // MARK: - Push
 
     /// Eine Meldung antippen fuehrt dorthin, wohin ihr `link` zeigt - und die
@@ -295,6 +477,19 @@ final class CohabitUITests: XCTestCase {
     }
 
     private func request(_ method: String, _ path: String, body: [String: Any]?, token: String) throws -> [String: Any] {
+        let data = try send(method, path, body: body, token: token)
+        // 204 ohne Inhalt (Loeschen) ist auch eine Antwort.
+        guard !data.isEmpty else { return [:] }
+        return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+    }
+
+    /// Fuer Antworten, die eine Liste sind (`/classic/habits`, `/me/invitations`).
+    private func requestList(_ method: String, _ path: String, token: String) throws -> [[String: Any]] {
+        let data = try send(method, path, body: nil, token: token)
+        return (try JSONSerialization.jsonObject(with: data) as? [[String: Any]]) ?? []
+    }
+
+    private func send(_ method: String, _ path: String, body: [String: Any]?, token: String) throws -> Data {
         var request = URLRequest(url: URL(string: baseURL + path)!)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -318,7 +513,6 @@ final class CohabitUITests: XCTestCase {
             done.fulfill()
         }.resume()
         wait(for: [done], timeout: 20)
-        let data = try result.get()
-        return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        return try result.get()
     }
 }

@@ -279,6 +279,34 @@ struct ReactionRequest: Codable, Hashable, Sendable {
     let reaction: ReactionKind
 }
 
+/// Ein Haken (Aufbauen) bzw. Rueckfall (Lassen) aus der klassischen Liste
+/// (`POST /classic/habits/{id}/marks`). Die Kennung vergibt die App - dieselbe
+/// noch einmal legt nichts doppelt an, deshalb darf er in den Postausgang.
+///
+/// Steht hier und nicht bei der Liste in `coHabit/Classic/`, weil der
+/// Postausgang ihn speichert und die Kachel dieselbe Datei liest und neu
+/// schreibt: einen Auftrag, den sie nicht dekodieren kann, verwuerfe sie samt
+/// allen anderen.
+struct ClassicMarkRequest: Codable, Hashable, Sendable {
+    let date: CalendarDate
+    /// 8 bis 64 Zeichen aus `[A-Za-z0-9-]` - eine klein geschriebene UUID passt.
+    let id: String
+
+    init(date: CalendarDate, id: String = UUID().uuidString.lowercased()) {
+        self.date = date
+        self.id = id
+    }
+
+    /// Hier, damit die Liste und das Nachsenden denselben Pfad schicken.
+    static func path(habitId: String) -> String {
+        "/classic/habits/\(habitId)/marks"
+    }
+
+    static func path(habitId: String, date: CalendarDate) -> String {
+        "/classic/habits/\(habitId)/marks/\(date.iso)"
+    }
+}
+
 // MARK: - Die Kachel (§3.7)
 
 struct WidgetData: Codable, Hashable, Sendable {

@@ -475,6 +475,7 @@ mit dem Status.
 | GET | `/me/export` | ZIP → Teilen |
 | DELETE | `/me` | `{"confirm":"LÖSCHEN"}` |
 | GET | `/today` | „Heute" (Dashboard und Liste) |
+| GET/POST/PUT/DELETE | `/classic/habits[/{id}[/marks[/{date}]]]` | „Heute" als klassische Liste (Schalter im Profil) - siehe unten |
 | GET/POST | `/cohabits` | Liste (Timeline-Filter), Anlegen mit `invitePersonIds` |
 | GET/PUT/DELETE | `/cohabits/{id}` | Detail, Bearbeiten (ohne Typwechsel), Löschen `{"confirm":true}` |
 | POST | `/cohabits/{id}/archive` · `/unarchive` | Admin |
@@ -540,6 +541,60 @@ für die Clients verbindlich):
 
 **Push** (Vertrag §4): APNs mit Topic `com.fherrmann.cohabit`, Sandbox; die
 Nutzlast trägt `kind` und `link` (`cohabit://…`), die App folgt dem Link.
+
+### Klassische Liste — `/cohabit/api/classic/habits` (seit 2026-09-30)
+
+Quelle: `../habits` Commit `4acd5a7` (`cohabit/web/ClassicController.java`,
+`cohabit/service/ClassicService.java`, `cohabit/api/ClassicHabit.java`),
+Vertrag §3.10. Für den Schalter „Klassische Liste" im Profil: die alte
+Habit-Liste der Fokus-App, gespeist aus coHabit. Zugang und Fehler wie alle
+coHabit-Aufrufe (Bearer, 4xx mit `{"message"}`); die App spricht es über
+`ClassicAPI` (`coHabit/Classic/`).
+
+| Methode | Pfad | Rumpf → Antwort |
+|---|---|---|
+| GET | `/classic/habits` | → `[ClassicHabit]`: aktive Streaks und Abstinenz der Person, **auch geteilte**, in Anlegereihenfolge — sortiert (`manualFirst`) wird in der App. Ziele und Challenges liefert der Dienst nicht |
+| POST | `/classic/habits` | `{"name","kind","weeklyStepGoal","focusMinutesGoal","period","timesPerPeriod"}` (das alte `HabitDraft`, `kind` BUILD\|QUIT\|FOOD\|STEPS\|FOCUS) → 201 `ClassicHabit`; allein, Europe/Berlin, Nachtragsfrist 336 h; fremde Quelle → 403 „Diese Quelle hast du nicht." |
+| PUT | `/classic/habits/{id}` | gleicher Rumpf → `ClassicHabit`; nur Admin; andere Art → 400; `period: null` lässt den Rhythmus, wie er ist; Farbe, Erinnerung, Foto-Pflicht, Frist, Health bleiben |
+| DELETE | `/classic/habits/{id}` | → 204; allein: löschen, geteilt: **verlassen** (die anderen behalten es) |
+| POST | `/classic/habits/{id}/marks` | `{"date":"yyyy-MM-dd","id":"<8–64 Zeichen [A-Za-z0-9-]>"}` → `ClassicHabit`; BUILD = Haken, QUIT = Rückfall; Foto-Pflicht 400, außerhalb der Frist 400, Tag schon erledigt 409, automatisch 403; **dieselbe `id` noch einmal → 200, nichts Neues** |
+| DELETE | `/classic/habits/{id}/marks/{date}` | → `ClassicHabit`; nimmt den eigenen Eintrag des Tages zurück, ohne Eintrag unverändert (wiederholbar) |
+
+```
+ClassicHabit  das alte HabitStatus: id (= Co-Habit-ID "c-…"), name,
+              kind (BUILD|QUIT|FOOD|STEPS|FOCUS), unit (DAYS|WEEKS|MONTHS|WINDOWS),
+              weeklyStepGoal, focusMinutesGoal, period (DAY|WEEK|MONTH|null),
+              timesPerPeriod, streak, doneToday, atRisk, progress {value, goal} | null,
+              recent [7 × bool, älteste zuerst; leer bei unavailable], unavailable,
+              markedDays [letzte 31 Tage; BUILD Haken, QUIT Rückfälle; leer bei automatischen],
+              createdAt (Start bzw. eigener Beitritt)
+              + photoRequired, shared (mehr als ein Mitglied), admin, backfillFrom
+```
+
+⚠️ **`id` ist die Kennung des Co-Habits.** Deshalb gehen Beweisfoto
+(`POST /cohabits/{id}/checkins` über das Blatt von coHabit) und Detailseite
+(`cohabit://cohabit/{id}`) direkt mit ihr.
+
+⚠️ **`period: null` bei BUILD** heißt: ein Rhythmus, den das alte Formular
+nicht kennt (Wochentage, „alle n Tage"). Die App blendet den Rhythmus im
+Editor dann aus und schickt `period`/`timesPerPeriod` als `null` — der Dienst
+lässt ihn stehen. `unit: WINDOWS` ist „alle n Tage": „n Mal", „noch offen".
+Unbekannte Werte von `kind`, `unit` und `period` dekodiert die App nachsichtig
+(`ClassicHabit.init(from:)`, Test `ClassicModelTests`).
+
+⚠️ **Foto-Pflicht gilt nur beim Abhaken.** `photoRequired` ist bei QUIT immer
+`false`; ein BUILD mit Foto-Pflicht nimmt über `…/marks` keinen Haken (400) —
+die App öffnet stattdessen das Beweisfoto-Blatt.
+
+⚠️ **Eigenheiten der alten Antwort bleiben:** `atRisk` ist bei QUIT und bei
+den Schritten nie gesetzt, `recent` bei QUIT zählt Tage ohne Rückfall ab dem
+Start. `backfillFrom` ist der früheste Tag, den der Dienst noch annimmt — die
+App zeigt im Nachtragen-Blatt nur Tage ab `createdAt` **und** ab `backfillFrom`.
+
+⚠️ **Ohne Netz:** Haken und Rücknahme gehen in `CohabitOutbox` (Aufträge
+`classicMark` mit der Kennung aus dem ersten Versuch, `classicUnmark`); ein 409
+beim Nachsenden eines Hakens heißt „steht schon". Anlegen, Ändern und Löschen
+warten nicht, sie enden ohne Netz in „Kein Netz.".
 
 ## Habits — `/habits/api/habits` (umgezogen)
 
