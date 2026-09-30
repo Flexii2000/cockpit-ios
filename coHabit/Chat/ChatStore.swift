@@ -141,11 +141,24 @@ final class ChatStore {
     }
 
     /// „Gratulieren" im Abschlussdialog: „Stark" auf die Systemmeldung zum
-    /// Ende der Challenge (Vertrag §5.2.17). Die Meldung selbst hat keine
-    /// Kennung im Dialog - gesucht wird die juengste Systemmeldung mit dem
-    /// Namen des Gewinners, sonst die juengste ueberhaupt.
-    static func congratulate(cohabitId: String, winner: PersonView?) async {
+    /// Ende der Challenge (Vertrag §5.2.17). Der Dienst nennt die Meldung im
+    /// Dialog (`reactionTarget`); fehlt sie, gilt die juengste Systemmeldung
+    /// mit dem Namen des Gewinners, sonst die juengste ueberhaupt.
+    static func congratulate(cohabitId: String, dialog: FinishedDialog) async {
         let api = Session.shared.api()
+        if let target = dialog.reactionTarget {
+            let request = ReactionRequest(target: target, reaction: .stark)
+            do {
+                let _: ReactionsResult = try await api.send("POST", "/reactions", body: request)
+            } catch CohabitError.offline {
+                await CohabitOutbox.shared.enqueueReaction(request, add: true)
+            } catch {
+                // „schon reagiert" oder weg - der Chat zeigt ohnehin den Stand.
+            }
+            DataBus.shared.changed()
+            return
+        }
+        let winner = dialog.podium.first?.person
         guard let page: MessagesPage = try? await api.get("/cohabits/\(cohabitId)/messages",
                                                           query: [URLQueryItem(name: "limit", value: "50")])
         else { return }

@@ -111,7 +111,7 @@ struct CohabitDetailView: View {
                                    congratulate: {
                                        close(dialog)
                                        section = .chat
-                                       Task { await ChatStore.congratulate(cohabitId: detail.id, winner: dialog.podium.first?.person) }
+                                       Task { await ChatStore.congratulate(cohabitId: detail.id, dialog: dialog) }
                                    })
                     .transition(.opacity)
             }

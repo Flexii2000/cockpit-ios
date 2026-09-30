@@ -449,6 +449,9 @@ struct FinishedDialog: Codable, Hashable, Sendable, Identifiable {
     let podium: [PodiumEntry]
     let stakeText: String?
     let nextText: String?
+    /// Die Systemmeldung zum Ende, auf die „Gratulieren" ein „Stark" setzt -
+    /// liefert der Dienst zusaetzlich zum Vertrag mit.
+    let reactionTarget: String?
 
     var isChallenge: Bool { kind.uppercased() == "CHALLENGE" }
 }
