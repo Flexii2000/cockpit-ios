@@ -1,7 +1,7 @@
 # Die Backends
 
 Referenz für den Client. **Quelle ist der Code der Dienste** — Java in
-`../food` und `../weight-app`, Python in `../grades`. Steht hier etwas anderes
+`../food`, `../weight-app` und `../habits` (coHabit), Python in `../grades`. Steht hier etwas anderes
 als dort, gilt dort. Die Android-App (`../healthy-android`) spricht dieselben
 Endpunkte von Kalorienzähler und Weight Tracker, mit einem persönlichen Token
 statt der Cookies (siehe „Persönliche Token" unten).
@@ -15,7 +15,8 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | Weight Tracker | `https://weight.fherrmann.com` | Cookie `weight_app_token` | **nativ** (Phase 1) |
 | Finance Cockpit | `https://finanzen.fherrmann.com` | Login: Passwort + TOTP → Session-Cookie | **WebView, dauerhaft** |
 | Noten | `https://fherrmann.com/grades` | Cookie `grades_token` **und** Anmeldung → Session-Cookie | **nativ** |
-| Habits | `https://fherrmann.com/habits` | Cookie `fh_private` (wie der Kalorienzähler) | **nativ**, einziger Client |
+| coHabit (früher Habits) | `https://fherrmann.com/cohabit/api` | `Authorization: Bearer` — Token **je Person** | **nativ** (App coHabit), daneben Web unter `/cohabit/` und Android |
+| Wald-Sessions | `https://fherrmann.com/habits/api/focus` | Cookie `fh_private` | **nativ** (Fokus, Wald) |
 | To-Do | `https://fherrmann.com/todo` | Cookie `fh_private` | **nativ** (Fokus) — daneben eine Weboberfläche |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
@@ -444,11 +445,96 @@ trägt `"kind": "grade"`; Vaults `AppDelegate` schaltet daraufhin auf den
 Noten-Tab. Der Kalorienzähler schickt weiter an `com.fherrmann.cockpit`,
 also an Healthy.
 
-## Habits — `/habits/api/habits`
+## coHabit — `/cohabit/api`
+
+Quelle: `../habits`, Branch `cohabit` (Controller unter
+`src/main/java/com/fherrmann/habits/cohabit/`, Antwortformen in
+`cohabit/api/*.java`), verbindlich beschrieben im Vertrag
+`scratchpad/cohabit/CONTRACT.md` §3. Stand 2026-09-30: **nicht ausgerollt** —
+bis `update-habits.sh` und `setup-cohabit.sh` gelaufen sind, gibt es
+`fherrmann.com/cohabit/` nicht.
+
+**Zugang:** `Authorization: Bearer <token>` — ein App-Token (im Profil unter
+„App verbinden" erzeugt, `https://fherrmann.com/cohabit/setup?token=<48 hex>`),
+ein Healthy-Token (`HEALTH_TOKENS`, Link `food.fherrmann.com/setup?token=…`)
+oder der, den `POST /invite-links/{code}/accept` einer neuen Person ausstellt.
+Der Dienst nimmt auch `fh_private` (als Bearer oder Cookie = Felix) — die
+coHabit-App schickt ihn nie; nur der Wald in Fokus fragt so nach seinem
+Tagesziel (`FocusGoal`, liest `GET /cohabits` und `/cohabits/{id}`).
+
+**Fehler kommen sauber:** 401 ohne gültige Anmeldung, sonst Status plus
+`{"message":"Klartext auf Deutsch"}` (400, 403, 404, 409, 410, 413, 429). Die App
+zeigt `message` (`CohabitAPI.message`), bei einer HTML-Seite (nginx) einen Satz
+mit dem Status.
+
+| Methode | Pfad | Was die App damit macht |
+|---|---|---|
+| GET | `/me` · PUT `/me` · PUT/DELETE `/me/avatar` | Anmeldung prüfen, Profil, Profilbild (multipart `photo`, quadratisch von der App) |
+| GET/PUT | `/me/notifications` | globale Schalter |
+| GET/POST/DELETE | `/me/app-links[/{id}]` | „App verbinden"; `DELETE /me/app-links/current` beim Abmelden |
+| GET | `/me/export` | ZIP → Teilen |
+| DELETE | `/me` | `{"confirm":"LÖSCHEN"}` |
+| GET | `/today` | „Heute" (Dashboard und Liste) |
+| GET/POST | `/cohabits` | Liste (Timeline-Filter), Anlegen mit `invitePersonIds` |
+| GET/PUT/DELETE | `/cohabits/{id}` | Detail, Bearbeiten (ohne Typwechsel), Löschen `{"confirm":true}` |
+| POST | `/cohabits/{id}/archive` · `/unarchive` | Admin |
+| GET/POST | `/cohabits/{id}/invite-candidates` · `/invitations` · `/invite-link` | Einladen |
+| DELETE · PUT | `/cohabits/{id}/members/{personId\|me}` · `/admin` | Mitglieder, Verlassen, Admin übertragen |
+| PUT | `/cohabits/{id}/settings/me` | Stumm, Check-ins/Chat (`null` = wie global), Unterbrechungen teilen, Health-Einwilligung |
+| POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
+| POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen |
+| PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health |
+| GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat |
+| POST/DELETE | `/reactions` | `{"target":"event:…\|message:…","reaction"}` |
+| POST | `/cohabits/{id}/nudges` · `/nudges/{id}/seen` | Stupsen, Stupser gesehen |
+| POST | `/cohabits/{id}/dialogs/{dialogId}/seen` | Abschlussdialog gesehen |
+| GET | `/timeline` · POST `/timeline/seen` | Timeline, „neue Beweisfotos" zurücksetzen |
+| GET | `/stats?range=WEEK\|MONTH\|YEAR&anchor=` | Statistik |
+| GET | `/widget` | die Kacheln (holen sie selbst) |
+| POST | `/photos` · GET `/photos/{id}?size=thumb\|full` | Fotos (siehe unten) |
+| GET/POST/DELETE | `/friends…` · `/people/search` · `/me/friend-link` · `/blocks…` | Freunde & Einladungen |
+| GET/POST | `/invite-links/{code}` · `/accept` | Einladungslink - ohne Zugang mit Anzeigename, Nutzername, `acceptTerms` |
+| GET/POST | `/me/invitations` · `/invitations/{id}/accept\|decline` | offene Einladungen |
+| POST/DELETE | `/devices[/{token}]` | `{"token","platform":"ios"}` — Push-Kennung |
+
+⚠️ **Kennungen vergibt die App** für Einträge, Nachrichten und Uploads (UUID
+klein geschrieben); dieselbe noch einmal liefert das bestehende Objekt. Darauf
+baut der Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht
+nach einem Neustart mitten im Nachsenden.
+
+⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG,
+höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` → `{"id","width","height"}`;
+danach steht die `id` im Eintrag oder in der Nachricht. Der Dienst dreht
+**nicht** nach EXIF — die App zeichnet das Bild aufrecht neu (≤ 2048 px, JPEG
+0,85, `PhotoEncoding`). Abrufen nur mit Token (`PhotoLoader`, kein
+`AsyncImage`); Fotos ändern sich nie und bleiben im Cache.
+
+⚠️ **Leere Felder schickt die App als `null`**, nicht weggelassen
+(`CohabitConfig`, `MySettings`, `CheckinRequest`) — beim Bearbeiten hieße ein
+fehlender Schlüssel sonst womöglich „nicht ändern".
+
+⚠️ **Tage** (`yyyy-MM-dd`) gelten in der Zone des Co-Habits, nicht des Geräts;
+ohne Netz abgelegte Haken bekommen deshalb ein ausdrückliches Datum in dieser
+Zone (die App merkt sich die Zone je Co-Habit in der App-Gruppe).
+
+⚠️ **Mehr Felder als im Vertrag:** `FinishedDialog.reactionTarget` nennt die
+Systemmeldung zum Ende einer Challenge — „Gratulieren" setzt dort ein „Stark".
+Die App dekodiert es optional.
+
+**Push** (Vertrag §4): APNs mit Topic `com.fherrmann.cohabit`, Sandbox; die
+Nutzlast trägt `kind` und `link` (`cohabit://…`), die App folgt dem Link.
+
+## Habits — `/habits/api/habits` (umgezogen)
+
+Seit coHabit antwortet `/habits/api/habits/**` mit **410** und
+`{"message":"Die Habits sind nach coHabit umgezogen: https://fherrmann.com/cohabit/"}`.
+Die Habits stehen als Co-Habits in coHabit (Migration im Dienst, Vertrag §7);
+Fokus hat keinen Habits-Tab und keine Habits-Kachel mehr. Was folgt, ist der
+Stand bis dahin - aufgehoben, weil `habits.json` als Sicherung liegen bleibt.
 
 Quelle: `../habits/src/main/java/com/fherrmann/habits/`. Kein Web-UI — die App
-ist der einzige Client, deshalb ist die Antwort schon fertig gerechnet
-(`HabitStatus`) und die App zählt **nichts** nach.
+war der einzige Client, deshalb ist die Antwort schon fertig gerechnet
+(`HabitStatus`) und die App zählte **nichts** nach.
 
 | Methode | Pfad | Was |
 |---|---|---|
@@ -506,7 +592,9 @@ andere ist nicht zu gebrauchen.
 ### Der Wald — `/habits/api/focus/sessions`
 
 Die Fokus-Sessions der Fokus-App liegen beim Habits-Dienst (`FocusController`,
-`data/focus.json`) — derselbe Bestand, aus dem das Habit FOCUS rechnet.
+`data/focus.json`) — derselbe Bestand, aus dem das Co-Habit mit der Quelle
+FOCUS in coHabit rechnet. Unverändert seit dem Umzug der Habits (Vertrag §7.3);
+die App spricht es über `FocusSessionsAPI` (`Shared/FocusAPI.swift`).
 
 | Methode | Pfad | Was |
 |---|---|---|

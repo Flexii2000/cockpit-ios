@@ -29,6 +29,8 @@ M3        + HealthKit, Widget, Shortcuts, Face-ID-Sperre
 danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
           + Habits (nativ; der Dienst hat kein Web-UI, die App ist sein einziger Client)
           + To-Do in Fokus (Bereiche als Seiten im Tab; der Dienst hat daneben Kacheln im Browser)
+2026-09   + coHabit als fünfte App: die Habits ziehen aus Fokus aus und werden
+            gemeinsam mit Freunden verfolgt (eigene Anmeldung je Person, Web daneben)
 ```
 
 ### Aufbau eines nativen Tabs
@@ -54,8 +56,14 @@ Healthy/            App: Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine
   Food/ Weight/ Health/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
-Fokus/              App: Habits, To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
-  App/ Habits/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit)
+Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
+  App/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit, Tagesziel aus coHabit)
+coHabit/            App: Habits mit Freunden - Heute, Timeline, Statistik, Profil, Detail + Chat,
+                    Anlegen, Einladen, Abhaken mit Beweisfoto, Health, Push, Kachel-Vorschau
+  App/ Design/ Today/ Detail/ Chat/ CheckIn/ Timeline/ Stats/ Profile/ Create/ Invite/ Onboarding/ Health/
+coHabitWidget/      Kacheln von coHabit: klein/rund (konfigurierbar, Abhak-Knopf), mittel, gross, rechteckig
+CohabitShared/      was coHabit UND coHabitWidget teilen: API mit Bearer, Modelle, Postausgang,
+                    App-Gruppe group.com.fherrmann.cohabit, App-Intents, Kachel-Ansichten, Farben
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/
 Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkaufsliste
@@ -65,19 +73,20 @@ Core/               was alle vier Apps brauchen, aber keine Erweiterung:
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
-FokusWidget/        Habits-Kachel, Fokus-Countdown-Kachel, Live-Aktivität der Session
+FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session
 FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
                     Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
 FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallstart
                     den Schild (neu), nimmt ihn am Ende weg - eine Datei plus FocusShared/
 Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
-UITests/            Harness.swift (gemeinsam) + je App eine Datei, vier Bundles
-project.yml         Quelle des Xcode-Projekts - vier App-Targets, YAML-Anker für Gemeinsames
+CohabitTests/       Unit-Tests von coHabit (Wirt: coHabit - CohabitShared liegt nur dort)
+UITests/            Harness.swift (gemeinsam) + je App eine Datei, fünf Bundles
+project.yml         Quelle des Xcode-Projekts - fünf App-Targets, YAML-Anker für Gemeinsames
 tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · make-icon
 docs/               diese Doku
 ```
 
-⚠️ **Vier Apps, ein Repo.** Nicht vier Repos: Zugang, Cookies, Cache,
+⚠️ **Fünf Apps, ein Repo.** Nicht fünf Repos: Zugang, Cookies, Cache,
 Postausgang, Sperre, Tools und Harness würden sonst vierfach gepflegt. Was
 in `Core/` liegt, muss in allen vier Apps übersetzen — wer dort etwas
 einbaut, das nur eine App kennt (Diagramm-Typen, Tab-Namen), bricht die
@@ -124,6 +133,66 @@ nach `/shopping-list/setup?token=…`. Healthy zeigt den Tab nur, wenn der
 Token da ist; Einkaufsliste besteht aus nichts anderem. So sieht Joana
 mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
 
+## coHabit: eine App mit Personen
+
+coHabit ist die eine App, hinter der **mehrere Personen** stehen (Vertrag:
+scratchpad/cohabit/CONTRACT.md). Der Dienst ist der frühere Habits-Dienst
+unter `fherrmann.com/cohabit/api`; die Weboberfläche daneben hat denselben
+Funktionsumfang, Android kommt aus `../cohabit-android`. Gerechnet wird nur im
+Dienst - Serien, Quoten, Ränge, alle Texte der Kennzahlen kommen fertig an,
+die App formatiert nur Datum und Uhrzeit.
+
+**Zugang: ein Token je Person, als Bearer.** Kein Cookie, kein `fh_private`
+(den bekommt die App nie). Der Token kommt als eingefügter Link - App-Link aus
+dem Profil (`/cohabit/setup?token=…`), Healthy-Link (`food.fherrmann.com/setup?token=…`)
+oder beim Annehmen einer Einladung ohne Zugang (der Dienst stellt ihn aus) -
+und wird erst gespeichert, wenn `GET /me` damit 200 liefert. Er liegt in einer
+eigenen Keychain-Gruppe (`ZWFV263P59.com.fherrmann.cohabit`), die nur App und
+Kachel tragen. Eine 401 irgendwo heißt: lokal alles löschen, zurück zum Start.
+
+**Schichten wie in den anderen Tabs**, aber mit eigenem Client: `CohabitAPI`
+(Bearer, JSON-Fehlermeldungen des Dienstes, Fotos als Multipart mit
+Idempotenz-Schlüssel), je Bildschirm ein `…Store`, Views ohne Rechnerei.
+`Session` hält, wer angemeldet ist, `Router` den Bereich, geschobene Seiten und
+Deep Links (`cohabit://…`, Vertrag §4), `CheckInController` das Abhaken von
+überall (Karte, Zeile, Detail, Chat) - mit Foto-Blatt, Wert-Blatt oder direkt.
+`DataBus` zählt hoch, wenn sich etwas geändert hat; offene Bildschirme laden
+dann neu.
+
+**Die Oberfläche ist selbst gezeichnet** nach den Entwürfen (Farben nach
+Vertrag §2.1 in `CohabitShared/CohabitPalette.swift`, hell und dunkel): eigene
+untere Leiste über einer `TabView` mit versteckter Systemleiste, Karten mit
+großen Radien und angeschnittenem Kreis, Primärknöpfe in Tinte.
+
+**Ohne Netz** zeigt jeder Bildschirm den letzten Stand aus dem `OfflineCache`
+mit „Offline · Stand: …"; Einträge (auch mit Foto), Nachrichten und
+Reaktionen gehen in `CohabitOutbox` (App-Gruppe, typisierte Aufträge: erst das
+Foto, dann der Eintrag mit dessen Kennung). Idempotent über die Kennungen, die
+die App vergibt. Nachgerechnet wird nichts - der Abhak-Knopf zeigt eine Uhr,
+wartende Nachrichten stehen mit Uhr im Chat.
+
+**Push:** Topic `com.fherrmann.cohabit`, der Dienst schickt selbst
+(`POST /devices` meldet die Kennung an). Jede Meldung trägt einen `link`; ein
+Tipp führt genau dorthin (`CohabitNotificationDelegate`, Completion-Handler
+wie in Core). Beim Abmelden wird die Kennung ausgetragen.
+
+**Health:** nur lesend (Schritte, Lauf-/Gehdistanz, Trainings), je Co-Habit
+mit Metrik und Einwilligung ein Tageswert pro Tag der Nachtragsfrist,
+mindestens heute und gestern, in der Zone des Co-Habits
+(`PUT /cohabits/{id}/health/{date}`). Abgleich beim Öffnen, höchstens alle
+zehn Minuten, nur geänderte Werte.
+
+**Die Kacheln** (`coHabitWidget`): klein und rund zeigen ein gewähltes
+Co-Habit (App-Intent `SelectCohabitIntent`), mittel „Heute", groß Challenge,
+Teamziel und offenen Streak, rechteckig den Challenge-Platz. Sie holen
+`GET /widget` selbst mit dem Token aus der Zugriffsgruppe; ohne Netz zeigen sie
+den Stand, den App oder Kachel zuletzt in die App-Gruppe gelegt haben. Der
+Haken auf der kleinen Kachel ist ein `CheckInIntent` (läuft in der
+Erweiterung, ohne Netz in den Postausgang) und zeigt sofort „erledigt"; Foto-
+Pflicht öffnet stattdessen `cohabit://cohabit/{id}/checkin`. Die Ansichten
+liegen in `CohabitShared/`, damit die App sie mit `COCKPIT_TAB=widget` zeigen
+kann.
+
 ## Was ausserhalb der Oberfläche läuft
 
 Zwei Dinge passieren, ohne dass jemand die App offen hat — und beide brauchen
@@ -135,9 +204,10 @@ App, wenn ein neuer Gewichtswert geschrieben wird. Ein Anker merkt sich, was
 schon geholt wurde, und wird erst **nach** erfolgreichem Senden gespeichert —
 sonst gingen Werte verloren, wenn der Server gerade nicht erreichbar war.
 
-**Die Kacheln.** Eine Erweiterung mit zwei Widgets: Kalorien (Homebildschirm
-klein/mittel, Sperrbildschirm als Ring und Rechteck) und Habits (klein/mittel,
-ein Tipp öffnet über `widgetURL` den Habits-Tab). Eigener Prozess, eigener
+**Die Kacheln.** Healthy hat die Kalorien (Homebildschirm klein/mittel,
+Sperrbildschirm als Ring und Rechteck), Fokus den Countdown der Session (ohne
+Session den Stand von heute aus der App-Gruppe); die Habits-Kachel ist mit den
+Habits nach coHabit umgezogen (siehe oben). Eigener Prozess, eigener
 Container.
 Sie holt sich `/api/food/day` **selbst** und liest das Token aus der geteilten
 Keychain-Gruppe — die Vorgabegruppe der App, in der es ohnehin schon liegt.
@@ -162,7 +232,9 @@ App-Gruppe (`FocusShared/FocusHandoff`), nicht in den UserDefaults der App.
 Die App legt ihn zusätzlich bei jedem Vordergrund noch einmal. Die laufende Session liegt in den UserDefaults; sobald
 die App danach wieder aktiv ist (`ForestStore.reconcile`, beim Start und bei
 jedem Vordergrund), nimmt sie den Schild sicherheitshalber selbst weg, meldet
-den Baum an den Habits-Dienst. Abbrechen gibt es nicht: keinen Knopf, keinen
+den Baum an den Habits-Dienst (`/habits/api/focus/sessions`, unverändert seit
+dem Umzug der Habits). Das Tagesziel für „Heute" holt der Wald aus dem
+coHabit-Co-Habit mit der Quelle FOCUS (`FocusGoal`, mit dem Privat-Cookie). Abbrechen gibt es nicht: keinen Knopf, keinen
 Weg über die App. Den Fokus-Modus (Sperrbildschirm, Mitteilungen) schaltet
 nicht die App (das darf sie nicht), sondern Felix' Kurzbefehl „Fokus an", den
 die App beim Pflanzen per x-callback-URL mit der Restdauer in Minuten
@@ -184,9 +256,11 @@ Hintergrund, Dynamic Island klein. Sie braucht keine Aktualisierung — Anfang
 und Ende stehen fest, Countdown und Balken zählen aus dem `timerInterval`.
 Beenden kann nur die App; bis dahin markiert `staleDate` das Ende.
 
-**Push.** Zwei Dienste melden sich von selbst: der Kalorienzähler an
+**Push.** Mehrere Dienste melden sich von selbst: der Kalorienzähler an
 **Healthy** (Topic `com.fherrmann.cockpit`), die Notenübersicht an **Vault**
-(Topic `com.fherrmann.vault`). Derselbe APNs-Schlüssel, aber zwei Apps und
+(Topic `com.fherrmann.vault`), der To-Do-Dienst an **Fokus**
+(`com.fherrmann.fokus`) und coHabit an **coHabit** (`com.fherrmann.cohabit`,
+Weiche über den `link` der Meldung statt über `kind`). Derselbe APNs-Schlüssel, aber zwei Apps und
 damit zwei Gerätekennungen; jeder Dienst hält seine eigene Liste und
 verschickt selbst. `NotificationDelegate` in `Core` zeigt an und meldet
 `kind` an die App, die daraus ihren Tab wählt.
@@ -209,7 +283,8 @@ und Fokus finden sie danach ohne Eingabe. Nur das Noten-Passwort wandert
 nicht: es liegt hinter Face ID, und eine Abfrage beim Start einer App, die
 es gar nicht braucht, wäre Unsinn.
 
-**Zugang ist ein Blatt, kein Tab.** Mit Habits gibt es fünf Dienste — und
+**Zugang ist ein Blatt, kein Tab** (in coHabit gibt es keins: dort ist der
+Zugang ein eingefügter Link). Mit Habits gab es fünf Dienste — und
 iOS zeigt höchstens fünf Tabs, alles darüber landet unter „Mehr". Zugang wird
 selten gebraucht: ein Zahnrad in der Leiste der nativen Tabs (bei Essen und
 Gewicht im „…"-Menü, weil dort die Leiste voll ist) öffnet dasselbe Blatt.

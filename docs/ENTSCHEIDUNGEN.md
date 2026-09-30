@@ -3,6 +3,113 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-30 — coHabit: fünfte App im Repo, eigener Client mit Bearer
+coHabit ist ein weiteres Target (`coHabit` + `coHabitWidget`) in diesem Repo,
+mit eigenem Ordner `CohabitShared/` für das, was App und Kachel teilen. Es
+spricht die API nicht über `APIClient`, sondern über `CohabitAPI`: der Token
+der Person geht als `Authorization: Bearer` mit, Cookies bleiben aus.
+**Warum:** Der Vertrag (scratchpad/cohabit/CONTRACT.md §1.3) legt das Ziel
+hier fest, und Tools, Harness, `Shared/` und `Core/` gibt es schon. Der
+vorhandene Client ist auf die Cookie-Dienste zugeschnitten: alles außer 2xx
+heißt dort „Zugang prüfen", 403 wird zu `notAuthorised`, Fehlertext ist
+Klartext. coHabit antwortet sauber (401 = nicht angemeldet, 403/409/429 mit
+`{"message"}`), und diese Meldungen sollen auf den Bildschirm. Den
+`OfflineCache` benutzt coHabit mit, den Rest nicht. **Verworfen:** (a)
+`APIClient` um Bearer und JSON-Meldungen erweitern (hätte das Verhalten von
+Healthy, Vault und Fokus mitverändert); (b) ein eigenes Repo (Tools, Harness,
+Keychain-Hülle doppelt).
+
+## 2026-09-30 — coHabit: eigener Postausgang in der App-Gruppe
+Einträge, Nachrichten und Reaktionen warten ohne Netz in `CohabitOutbox`,
+einer Liste typisierter Aufträge in `group.com.fherrmann.cohabit` - ein Haken
+mit Foto heißt dort „erst das Foto hochladen (mit Idempotenz-Schlüssel), dann
+den Eintrag mit dessen Kennung schicken". **Warum:** Der `Outbox` der anderen
+Apps spielt rohe Anfragen ohne Kopfzeilen nach (Cookies aus dem gemeinsamen
+Speicher) und kennt kein Multipart; coHabit braucht Bearer beim Nachsenden
+und eine Reihenfolge Foto → Eintrag. In der App-Gruppe liegt er, weil auch
+der Abhak-Knopf der Kachel ohne Netz dort ablegt. Doppelt entsteht nichts:
+Einträge und Nachrichten tragen ihre Kennung von der App, das Foto seinen
+Schlüssel - bei jedem Versuch derselbe (Test `OutboxTests`). Nachgerechnet
+wird nichts: der Knopf zeigt eine Uhr, bis der Dienst geantwortet hat.
+**Verworfen:** (a) den geteilten `Outbox` erweitern (andere Apps mitbetroffen,
+Multipart dort fremd); (b) Fotos ohne Netz gar nicht erlauben (Beweisfoto im
+Funkloch ist genau der Fall).
+
+## 2026-09-30 — coHabit: Token in eigener Keychain-Gruppe, nie `fh_private`
+Der coHabit-Token liegt in `ZWFV263P59.com.fherrmann.cohabit`, die nur App und
+Kachel tragen, nicht in der geteilten Gruppe der anderen Apps.
+**Warum:** Keine andere App braucht ihn, und der Vertrag schließt aus, dass
+coHabit den Master-Token bekommt (§1.2) - Felix meldet sich wie alle über
+einen App-Link an. Die Kachel liest ihn bei gesperrtem Gerät
+(`AfterFirstUnlockThisDeviceOnly`, wie die anderen Token). **Verworfen:** die
+geteilte Gruppe (jede App sähe den Token; und ein vorhandenes `fh_private`
+läge verführerisch daneben).
+
+## 2026-09-30 — coHabit: eigene untere Leiste über einer versteckten TabView
+Die Leiste aus den Entwürfen (weiße Kapsel, großes violettes „+" in der Mitte)
+ist selbst gezeichnet und liegt über einer `TabView`, deren Systemleiste
+versteckt ist; auf geschobenen Seiten verschwindet sie. **Warum:** So sieht es
+aus wie entworfen, und die `TabView` hält trotzdem den Zustand jedes Bereichs
+(Scrollstand, geladene Daten). „+" ist kein Bereich, es öffnet das Anlegen.
+**Verworfen:** (a) die sichtbare Systemleiste (kein großes „+", anderer Stil);
+(b) ein eigener Umschalter ohne `TabView` (jeder Wechsel baute den Bereich neu
+und lud alles noch einmal).
+
+## 2026-09-30 — coHabit zeigt „Du" statt des eigenen Namens
+In Ranglisten, Wochenraster, Beiträgen, Podest und Avataren steht für die
+angemeldete Person „Du" (Avatar in Tinte), wie in den Entwürfen; das Profil
+zeigt den echten Namen. **Warum:** Man sucht sich in einer Liste schneller als
+„Du" als unter dem eigenen Namen, und die Entwürfe zeigen es durchgängig so.
+Die Texte des Dienstes („Lena & Max heute schon") bleiben unverändert.
+**Verworfen:** überall den Anzeigenamen (so steht man in der eigenen Rangliste
+als „Felix").
+
+## 2026-09-30 — Beweisfoto-Blatt mit eigener Kamera-Vorschau
+Das Blatt zeigt die Kamera selbst (`AVCaptureSession` mit Vorschau, Auslöser,
+Kamerawechsel), die Galerie über `PhotosPicker`. **Warum:** So steht es im
+Entwurf (S. 15): Vorschau im Blatt, Caption darunter, „Posten & abhaken" in
+einem Zug. Ohne Kamera (Simulator) steht dort ein gestreifter Platzhalter, die
+Galerie geht trotzdem. Hochgeladen wird aufrecht neu gezeichnet (≤ 2048 px,
+JPEG 0,85), weil der Dienst EXIF nicht auswertet. **Verworfen:** der
+`CameraPicker` aus Healthy (`UIImagePickerController`, Vollbild - ein
+Umweg mehr pro Beweisfoto).
+
+## 2026-09-30 — Health in coHabit: nur beim Öffnen, nur was sich änderte
+Welche Co-Habits Health wollen (Metrik + Einwilligung), merkt sich die App
+aus jedem geladenen Detail; abgeglichen wird beim Start und bei jedem
+Vordergrund, höchstens alle zehn Minuten, je Tag ein Wert und nur, wenn er
+sich seit dem letzten Senden geändert hat. **Warum:** „Heute" kennt die Metrik
+nicht, und bei jedem Start alle Details zu holen kostete je Co-Habit eine
+Anfrage. Hintergrund-Wecken wie beim Gewicht in Healthy lohnt nicht: iOS
+deckelt Schritte auf stündlich, und die Zahl ist eine Stunde später wieder
+überholt (dieselbe Abwägung wie bei den Schritten in Healthy). **Verworfen:**
+(a) `HKObserverQuery` mit Hintergrundzustellung; (b) alle Details bei jedem
+Start.
+
+## 2026-09-30 — Wald-Tagesziel aus coHabit statt ohne Ziel
+Der Wald zeigt bei „Heute" weiter „2:15/4:00 h". Das Ziel kommt jetzt aus dem
+Co-Habit mit der Quelle FOCUS (`config.auto.focusMinutesGoal`), gefragt mit
+dem Privat-Cookie, den Fokus ohnehin hat; die Kennung des Co-Habits merkt sich
+Fokus. **Warum:** Mit dem Umzug antwortet `/habits/api/habits` mit 410 - ohne
+Ersatz verlöre Felix das Tagesziel im Wald, und der Vertrag verspricht
+„verlustfrei". Ein zweites, in Fokus einstellbares Ziel wäre eine zweite
+Wahrheit neben dem Co-Habit. **Verworfen:** (a) Ziel weglassen; (b) Ziel in
+Fokus einstellen; (c) die vollen coHabit-Modelle nach `Shared/` ziehen (drei
+Felder genügen, `FocusGoal`).
+
+## 2026-09-30 — „{frei} von 8 Plätzen frei" im Einladungsdialog
+Der Chip nennt die freien Plätze und sagt das dazu. **Warum:** Der Vertrag
+verlangt `{frei}` (§5.2.16), der Entwurf zeigt „2 von 8 Plätzen" mit zwei
+Mitgliedern, also die belegten. „6 von 8 Plätzen" allein läse jeder als
+belegt. **Verworfen:** die belegten zeigen (widerspräche dem Vertrag).
+
+## 2026-09-30 — Anlegen: der Einladungslink legt das Co-Habit schon an
+Wer in Schritt 3 auf „Teilen" tippt, bekommt das Co-Habit sofort angelegt -
+der Link braucht ein bestehendes (`POST /cohabits/{id}/invite-link`). „Co-Habit
+starten" schickt danach nur noch die Einladungen an die gewählten Freunde.
+**Verworfen:** den Link erst nach „Starten" anbieten (Schritt 3 zeigt ihn
+laut Entwurf oben).
+
 ## 2026-09-26 — To-Do-Links: nur beim Anlegen, in der App ein eigener Pfeil
 Aufgaben haben ein optionales `link`, gesetzt nur mit `POST /api/todos`;
 `PUT` lässt es stehen. In Fokus öffnet ein Pfeil neben dem Titel den Link in

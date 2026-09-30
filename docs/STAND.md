@@ -1,6 +1,20 @@
 # Stand
 
-> **Nächster Schritt:** Felix prüft auf dem Gerät: die Karten im Essen-Tab
+> **Nächster Schritt (coHabit, 30.09.):** Branch `cohabit` ist gebaut, aber
+> nichts davon ist ausgerollt. Reihenfolge für Felix (Vertrag §1.5): erst den
+> Dienst (`../habits`, Branch `cohabit`) mergen und ausrollen
+> (`update-habits.sh`, dann `setup-cohabit.sh` mit TTY), **dann** Fokus neu
+> aufs iPhone (`tools/install-device.sh Fokus` — ohne Habits-Tab, der Wald holt
+> sein Tagesziel jetzt aus coHabit) und coHabit installieren
+> (`tools/install-device.sh coHabit`; neue Bundle-ID mit Push, App-Gruppe und
+> HealthKit - das Profil legt `-allowProvisioningUpdates` an, solange Xcode
+> angemeldet ist). In der App: im Web unter „Profil › App verbinden" einen
+> App-Link erzeugen und einfügen. Die alte Habits-Kachel auf dem
+> Homebildschirm verschwindet mit dem neuen Fokus-Build (von Hand entfernen).
+> Auf dem Gerät prüfen: Kamera im Beweisfoto-Blatt, Health-Dialog und -Werte,
+> Push (Stupser, Beweisfoto), der Abhak-Knopf auf der kleinen Kachel.
+>
+> **Davor offen (unverändert):** Felix prüft auf dem Gerät: die Karten im Essen-Tab
 > (Diagramm-Ziehgeste und Umschalter-Reihe im Pager), die Automation für den
 > Fokus-Modus über „Fokus-Restminuten", und ob nach einem Neustart der Schild
 > zurückkommt. Habits und To-Do sind ausgerollt (22.09.), die vier
@@ -21,6 +35,58 @@
 > übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+
+## coHabit — eigene App · **gebaut, nicht ausgerollt** (2026-09-30)
+
+Felix' Feature-Katalog F0–F15 als fünfte App, nach dem Vertrag
+`scratchpad/cohabit/CONTRACT.md` (Backend `../habits` Branch `cohabit`, Web im
+selben Repo, Android `../cohabit-android`). Ziele `coHabit`
+(`com.fherrmann.cohabit`) und `coHabitWidget` (`…cohabit.widget`), App-Gruppe
+`group.com.fherrmann.cohabit`, eigene Keychain-Gruppe, Push
+(`aps-environment development`), HealthKit lesend, Kamera/Fotos,
+URL-Schema `cohabit`, iOS 18.
+
+**Bildschirme (Vertrag §5.2):** Heute als Dashboard (große Karten für Streak
+und Abstinenz, kleine paarweise für Ziel und Challenge) und als Liste („Offen
+heute" / „Läuft", Wochenpunkte, Balken, „n neue Beweisfotos"), Stupser-Banner
+mit „Zurückstupsen", offene Einladungen als Karte · Timeline mit Filter je
+Co-Habit, Tagesabschnitten, Foto-Karten, Reaktionen und „Antworten" ·
+Statistik (Woche/Monat/Jahr, Erfüllungsquote, längste Serie, Heatmap als
+Kalender/Zeile/12 Monate, Balken je Co-Habit) · Profil mit Zahlenkacheln,
+Benachrichtigungen, Health-Verbindung, Freunde & Einladungen (Suche, Anfragen,
+Freundes-Link, Blockierte, „Link einfügen"), Archiv, Export (ZIP teilen), App
+verbinden (App-Links erzeugen/widerrufen), Rechtliches, Abmelden, Account
+löschen (zweistufig mit „LÖSCHEN") · Detail je Typ (Streak mit Wochenraster,
+Kacheln, Regeln; Abstinenz mit Tagen, Mitgliedern, Serien; Ziel mit Beiträgen
+und Health-Karte; Challenge mit Rangliste, Einsatz, Wertung, früheren Runden),
+Menü mit Bearbeiten, Mitglieder (Stupsen, Admin, Entfernen), Pausen, Einladen,
+Benachrichtigungen, eigene Einträge, Archivieren, Verlassen, Löschen · Chat mit
+Check-in-Posts, Blasen, Systemmeldungen, Reaktionen, Foto anhängen, Löschen,
+Melden, Blockieren, „Abhaken" im Eingabebereich · Anlegen in drei Schritten
+(Typ, Einstellungen samt „Automatisch" für Felix' Quellen, wer mitmacht mit
+Einladungslink) · Beweisfoto-Blatt mit Kamera-Vorschau, Galerie,
+Kamerawechsel, Caption · Einladungsdialog (auch ohne Zugang mit Anmeldung) ·
+Abschlussdialog mit Podest, „Gratulieren" setzt „Stark" · Start mit „Link
+einfügen" (Setup-, Healthy-, Einladungslink, auch mitten im Text).
+
+**Dahinter:** eigener Client mit Bearer (`CohabitAPI`), letzter Stand ohne Netz
+mit „Offline · Stand: …", Postausgang mit Fotos (`CohabitOutbox`, App-Gruppe),
+Push-Anmeldung (`POST /devices`) und Weiche über den `link` der Meldung, Deep
+Links nach Vertrag §4, Health-Abgleich (Schritte, Distanz, Trainings, je Tag
+ein Wert in der Zone des Co-Habits). **Kacheln:** klein und rund
+(konfigurierbar, Haken direkt / Kamera öffnet das Blatt), mittel „Heute", groß
+Challenge-Rangliste + Teamziel + offener Streak, rechteckig Challenge-Platz.
+
+**Fokus ohne Habits (Vertrag §7.2):** Habits-Tab, Editor, Verlauf, Store, die
+Habits-Kachel und `HabitsAPI`/`HabitsModels`/`HabitsWidgetView` sind weg;
+To-Do steht vorn. Der Wald meldet weiter an `/habits/api/focus/sessions`
+(`FocusSessionsAPI`), sein Tagesziel kommt aus dem coHabit-Co-Habit mit der
+Quelle FOCUS (`FocusGoal`), die Countdown-Kachel zeigt ohne Session wieder den
+Stand von heute.
+
+**Geprüft:** `tools/verify.sh` baut alle fünf, Unit-Tests grün (Healthy 90
+XCTest + 31 Swift Testing, coHabit 47: alle Vertrags-JSONs, Kodierung mit
+`null`, Link-Erkennung, Client, Postausgang, Kachel-Daten, Eingaben, Health-Tage).
 
 ## To-Do: Links an Aufgaben · **gebaut** (2026-09-26)
 

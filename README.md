@@ -1,18 +1,20 @@
-# Cockpit — Healthy, Vault, Fokus, Einkaufsliste
+# Cockpit — Healthy, Vault, Fokus, Einkaufsliste, coHabit
 
-Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
+Fünf iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
 bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
 | **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker), Einkaufsliste | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
-| **Fokus** | Habits, To-Do | `com.fherrmann.fokus` | – |
+| **Fokus** | To-Do, Wald | `com.fherrmann.fokus` | – |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
+| **coHabit** | Habits gemeinsam mit Freunden: Heute, Timeline, Statistik, Profil | `com.fherrmann.cohabit` | – |
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
 Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
-eine geteilte Keychain-Gruppe in allen Apps.
+eine geteilte Keychain-Gruppe in allen Apps — außer coHabit: dort hat jede
+Person ihren eigenen Token, eingefügt als Link.
 
 ## Was die Apps können
 
@@ -38,10 +40,18 @@ Fortschritt. Für offene Module lässt sich eine Note **annehmen**, um zu sehen,
 was sie ausmacht. Ebenfalls hinter **Face ID** — und wenn eine neue Note
 eingetragen wird, meldet sich das Handy von selbst: „Neue Note 1,7".
 
-**Habits** — Gewohnheiten mit Flamme und Sträh­ne. Aufbauen (abhaken),
-Lassen (zählt von selbst, ein Rückfall setzt zurück), Track food (aus dem
-Kalorienzähler) und Schritte pro Woche (aus Apple Health, „30/70k", Woche ab
-Montag). Heute darf offen sein — die Sträh­ne reißt erst um Mitternacht.
+**coHabit** — Gewohnheiten gemeinsam mit Freunden (früher der Habits-Tab in
+Fokus). Vier Typen: Streak (täglich, Wochentage, x-mal pro Woche oder Monat,
+Intervall), Abstinenz, Ziel (allein oder als Team) und Challenge; bis zu acht
+Mitglieder, je Co-Habit ein Chat mit Beweisfotos, Reaktionen und Stupsern.
+Felix' automatische Habits (Track food, Schritte pro Woche, Fokus-Zeit) laufen
+als automatische Co-Habits weiter. Zugang über einen Link (App-Link aus dem
+Web, Healthy-Link oder eine Einladung); Kacheln klein, mittel, groß und auf dem
+Sperrbildschirm. Dieselben Co-Habits im Browser unter `fherrmann.com/cohabit/`.
+
+**Wald** — eine Fokus-Session pflanzt einen Baum, alle anderen Apps sind so
+lange gesperrt; die Bäume stehen auf einer Insel in 3D, das Tagesziel kommt
+aus dem Fokus-Co-Habit in coHabit.
 
 **To-Do** — Aufgaben in Bereichen (Privat, Uni, Server, beliebig mehr), jeder
 Bereich eine Seite zum Wischen. Unteraufgaben eine Ebene tief; Erledigtes
@@ -77,8 +87,10 @@ und der nächste Empfang holt den Stand des Dienstes.
 **Widgets** — die heute noch übrigen Kalorien auf dem Homescreen, klein
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros), und auf dem
 **Sperrbildschirm** als Ring neben der Uhr oder als Rechteck mit Balken und
-Makros. Dazu die **Habits** auf dem Homescreen, klein (drei) oder mittel
-(vier) mit Flamme, Sträh­ne und dem Stand von heute.
+Makros. Dazu in Fokus der Countdown der laufenden Session (ohne Session der
+Stand von heute) und in coHabit die Co-Habits: klein mit Abhak-Knopf, mittel
+„Heute", groß Challenge und Ziele, auf dem Sperrbildschirm Streak und
+Challenge-Platz.
 
 | | |
 |---|---|
@@ -94,8 +106,8 @@ Makros. Dazu die **Habits** auf dem Homescreen, klein (drei) oder mittel
 
 ```bash
 tools/bootstrap.sh                        # erzeugt Cockpit.xcodeproj aus project.yml
-tools/verify.sh                           # alle drei bauen + Unit-Tests; tools/verify.sh Vault für eine
-tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle drei
+tools/verify.sh                           # alle fünf bauen + Unit-Tests; tools/verify.sh Vault für eine
+tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle fünf
 ```
 
 Zum Ansehen im Simulator und zum automatisierten Durchklicken — immer mit der
@@ -135,7 +147,8 @@ Mac und iPhone im selben WLAN sind und der Bildschirm entsperrt ist.
 ## Erste Einrichtung auf einem Gerät
 
 Beim ersten Start öffnet die App das Blatt **Zugang** (später: Zahnrad) und
-fragt nach den Token. Habits braucht keinen eigenen — es nimmt `fh_private`. Sie landen im
+fragt nach den Token (coHabit nicht — dort fügt man beim ersten Start einen
+Link ein). Sie landen im
 Keychain und werden von da an als Cookies gesetzt:
 
 | Token | Wofür | Wo er steht (auf dem Server) |

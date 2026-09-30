@@ -1,12 +1,14 @@
 # Arbeitsregeln für `cockpit-ios`
 
-Vier iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
+Fünf iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
 `weight.fherrmann.com`, Einkaufsliste `fherrmann.com/shopping-list`),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
-`finanzen.fherrmann.com`), **Fokus** (Habits `fherrmann.com/habits`, To-Do
-`fherrmann.com/todo`, Wald — Fokus-Sessions, ebenfalls beim Habits-Dienst) und **Einkaufsliste** (nur die Einkaufsliste — für das Handy
-von Joana, deren Token nur diesen einen Dienst öffnet).
+`finanzen.fherrmann.com`), **Fokus** (To-Do `fherrmann.com/todo`, Wald —
+Fokus-Sessions beim Habits-Dienst), **Einkaufsliste** (nur die Einkaufsliste — für das Handy
+von Joana, deren Token nur diesen einen Dienst öffnet) und **coHabit**
+(Habits gemeinsam mit Freunden, `fherrmann.com/cohabit` — der frühere
+Habits-Dienst; eigener Token je Person, eigene Kacheln).
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
@@ -23,10 +25,12 @@ Tagessummen); die Apps zeigen.
 | `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
+| `coHabit/` | nur coHabit | alles |
+| `CohabitShared/` | coHabit **und** `coHabitWidget` | API-Client mit Bearer, Modelle, Postausgang, App-Gruppe `group.com.fherrmann.cohabit`, App-Intents und die Kachel-Ansichten — nichts, das es in einer Erweiterung nicht gibt |
 | `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei plus `FocusShared/`, kein `Shared/`: legt beim Intervallstart den Schild (neu), nimmt ihn am Ende weg und ersetzt die Ende-Meldung durch „Apps wieder frei", sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
-`tools/verify.sh` immer alle vier. `TabSelection` und `Router` gibt es je App;
+`tools/verify.sh` immer alle fünf. `TabSelection` und `Router` gibt es je App;
 sie werden nicht geteilt.
 
 ## Vor dem ersten Handgriff
@@ -63,18 +67,27 @@ Routen wirklich aufmachen.
 
 ```bash
 tools/bootstrap.sh                 # einmalig + nach Änderungen an project.yml
-tools/verify.sh                    # baut alle vier fuer den Simulator, Unit-Tests in Healthy
+tools/verify.sh                    # baut alle fuenf fuer den Simulator, Unit-Tests in Healthy und coHabit
 tools/verify.sh Vault              # nur eine
 tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
-tools/install-device.sh all --launch             # alle vier aufs iPhone (oder eine)
+tools/install-device.sh all --launch             # alle fuenf aufs iPhone (oder eine)
 tools/testflight.sh Einkaufsliste                # archivieren + zu TestFlight hochladen (API-Schluessel noetig)
 tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkaufsliste`). Tabs: Healthy `food|weight|shopping|widget`, Vault
-`grades|finance`, Fokus `habits|todo|forest|widget`, Einkaufsliste hat nur die eine Seite;
-`setup` öffnet das Zugang-Blatt. Der Einkaufs-Token kommt wie die anderen aus
+`Fokus`, `Einkaufsliste`, `coHabit`). Tabs: Healthy `food|weight|shopping|widget`, Vault
+`grades|finance`, Fokus `todo|forest|widget`, Einkaufsliste hat nur die eine Seite,
+coHabit `today|timeline|stats|profile|new|widget`;
+`setup` öffnet das Zugang-Blatt (nicht in coHabit — dort ist der Zugang ein
+eingefügter Link).
+
+**coHabit läuft gegen einen lokal gestarteten Dienst** (Backend-Repo
+`../habits`, Demo-Daten laut dessen README): `COCKPIT_URL_COHABIT` und
+`COCKPIT_COHABIT_TOKEN` (Token einer Demo-Person) für `run-simulator.sh`, dazu
+`COCKPIT_COHABIT_OTHER_TOKEN` (eine zweite Person, die einlädt) für
+`uitest.sh coHabit`. Die Unit-Tests von coHabit hängen an coHabit als Wirt
+(`CohabitTests/`), nicht an Healthy. Der Einkaufs-Token kommt wie die anderen aus
 dem Schlüsselbund (`shopping_token`, freiwillig — ohne ihn fehlt der Tab).
 
 `run-simulator.sh` startet die App im Simulator **mit echten Daten** und legt
@@ -149,7 +162,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `habits`); `setup` öffnet das Zugang-Blatt |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
@@ -163,7 +176,11 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
-| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
+| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
+| `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden |
+| `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
+| `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |
+| `COCKPIT_TEST_PHOTO=1` | der Galerie-Knopf im Beweisfoto-Blatt liefert ein erzeugtes Bild statt der Mediathek - nur falls ein UI-Test die Mediathek nicht erreicht |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
 
@@ -228,5 +245,8 @@ sag das dann auch so.
   Wer offline eine lokale Sträh­nen-Logik einbaut, baut die Regel ein zweites
   Mal. Nur Änderungen, die später genauso gelten (mit Datum im Rumpf oder
   Pfad), dürfen `queueWhenOffline: true` bekommen.
-- **Kein Multi-User, keine Registrierung.** Wie in den Backends: eine Person,
-  ein Gerät, ein geteiltes Geheimnis.
+- **Kein Multi-User, keine Registrierung** — außer in coHabit. Healthy,
+  Vault, Fokus und Einkaufsliste bleiben bei einer Person, einem Gerät, einem
+  geteilten Geheimnis. coHabit hat Personen mit eigenem Token (App-Link,
+  Healthy-Link oder beim Annehmen einer Einladung ausgestellt); den
+  Master-Token `fh_private` bekommt es nie.
