@@ -290,9 +290,6 @@ struct FriendsView: View {
             .tint(Ink.ink)
         }
         .onSubmit(openPasted)
-        .onChange(of: pasted) { _, _ in
-            if LinkParser.find(in: pasted) != nil { openPasted() }
-        }
     }
 
     private func openPasted() {

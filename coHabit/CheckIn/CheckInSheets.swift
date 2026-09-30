@@ -41,6 +41,9 @@ struct PhotoCheckInSheet: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Ink.muted)
                     .fixedSize(horizontal: false, vertical: true)
+                if let message = CheckInController.shared.lastError {
+                    ErrorLine(message: message)
+                }
             }
             .padding(Metrics.gutter)
         }
@@ -62,6 +65,7 @@ struct PhotoCheckInSheet: View {
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(submitting)
         .task {
+            CheckInController.shared.clearError()
             cameraRunning = await camera.start()
         }
         .onDisappear { camera.stop() }
@@ -247,6 +251,9 @@ struct ValueEntrySheet: View {
                     OtherDayPicker(isOn: $otherDay, day: $day, from: from, to: target.today, zone: target.zone,
                                    forced: target.valueUnit == nil && !isBreak)
                 }
+                if let message = CheckInController.shared.lastError {
+                    ErrorLine(message: message)
+                }
             }
             .padding(Metrics.gutter)
         }
@@ -266,8 +273,16 @@ struct ValueEntrySheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .onAppear {
-            // Ohne Wert heisst das Blatt nur „Anderer Tag" - dann gleich an.
-            if target.valueUnit == nil && !isBreak { otherDay = true }
+            CheckInController.shared.clearError()
+            // Ohne Wert (und bei einer Unterbrechung, die ueber „Anderer Tag …"
+            // kommt) heisst das Blatt nur „anderer Tag" - dann gleich an, und
+            // gestern ist der naheliegende.
+            if target.valueUnit == nil || isBreak {
+                otherDay = true
+                if let from = target.backfillFrom, target.today.adding(days: -1) >= from {
+                    day = target.today.adding(days: -1).startOfDay(in: target.zone)
+                }
+            }
         }
     }
 

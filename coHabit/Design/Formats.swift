@@ -7,11 +7,22 @@ enum Formats {
 
     private static let locale = Locale(identifier: "de_DE")
 
-    private static func formatter(_ format: String, zone: TimeZone = .current) -> DateFormatter {
+    /// Einmal je Format - ein `DateFormatter` ist teuer, und Chat und
+    /// Timeline formatieren je Zeile. Die Zeitzone ist die des Geraets zum
+    /// Zeitpunkt des Anlegens; wechselt sie, stimmt die Uhrzeit bis zum
+    /// naechsten Start nicht ganz - fuer eine Anzeige hinnehmbar.
+    nonisolated(unsafe) private static var cache: [String: DateFormatter] = [:]
+    private static let lock = NSLock()
+
+    private static func formatter(_ format: String) -> DateFormatter {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached = cache[format] { return cached }
         let formatter = DateFormatter()
         formatter.locale = locale
-        formatter.timeZone = zone
+        formatter.timeZone = .current
         formatter.dateFormat = format
+        cache[format] = formatter
         return formatter
     }
 

@@ -74,8 +74,15 @@ final class CheckInController {
     var breakTarget: CheckInTarget?
     /// Laeuft gerade ein Haken? Dann dreht der Knopf.
     private(set) var busy: Set<String> = []
+    /// Die Ablehnung des Dienstes - im offenen Blatt gezeigt, nicht nur als
+    /// Meldung oben.
+    private(set) var lastError: String?
 
     private init() {}
+
+    func clearError() {
+        lastError = nil
+    }
 
     func start(_ target: CheckInTarget) {
         guard !busy.contains(target.id) else { return }
@@ -103,6 +110,7 @@ final class CheckInController {
     func submit(_ target: CheckInTarget, request: CheckinRequest, photo: UIImage? = nil) async -> Bool {
         busy.insert(target.id)
         defer { busy.remove(target.id) }
+        lastError = nil
         let api = Session.shared.api()
         var request = request
         var jpeg: Data?
@@ -132,6 +140,7 @@ final class CheckInController {
             return true
         } catch {
             if await Session.shared.handle(error) { return false }
+            lastError = error.localizedDescription
             Toast.shared.show(error)
             return false
         }

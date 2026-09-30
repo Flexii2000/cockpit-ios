@@ -18,14 +18,20 @@ struct RootView: View {
                 WelcomeView()
                     .transition(.opacity)
             }
-            ToastView()
         }
         .environment(\.meId, session.meId)
         .tint(Ink.accent)
-        .animation(.spring(duration: 0.3), value: Toast.shared.message)
         .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)
         .task {
+            ToastWindow.install()
             await CohabitOutbox.shared.refreshStatus()
+            #if DEBUG
+            // Wie in den anderen Apps: fuer tools/pushtest.sh nach der
+            // Erlaubnis fragen, ohne eine Kennung anzumelden.
+            if ProcessInfo.processInfo.environment["COCKPIT_ASK_PUSH"] == "1" {
+                await Notifications.requestPermission()
+            }
+            #endif
             guard session.isSignedIn else { return }
             await session.refreshMe()
             await Notifications.registerForPushIfAllowed()

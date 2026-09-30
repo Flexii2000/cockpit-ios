@@ -50,17 +50,22 @@ struct CohabitAPI: Sendable {
     /// Ob Lesen ohne Netz auf den letzten Stand zurueckfaellt. Die Kachel und
     /// die Tests schalten das ab, wo es stoert.
     var usesCache: Bool
+    /// Ob eine erfolgreiche Antwort den Postausgang anstoesst. Nicht in der
+    /// Kachel: deren Zeitbudget reicht fuer ein Foto nicht, das schickt die App.
+    var replaysOutbox: Bool
 
     init(token: String? = CohabitToken.load(),
          baseURL: URL = Backend.cohabit.url,
          timeout: TimeInterval = 30,
          session: URLSession = .shared,
-         usesCache: Bool = true) {
+         usesCache: Bool = true,
+         replaysOutbox: Bool = true) {
         self.token = token
         self.baseURL = baseURL
         self.timeout = timeout
         self.session = session
         self.usesCache = usesCache
+        self.replaysOutbox = replaysOutbox
     }
 
     // MARK: - Lesen und Schreiben
@@ -180,7 +185,7 @@ struct CohabitAPI: Sendable {
             if cacheable, usesCache, let url = request.url { OfflineCache.store(data, for: url) }
         }
         // Der Dienst hat geantwortet, also ist Netz da - was wartet, darf raus.
-        if await CohabitOutbox.shared.hasPending() {
+        if replaysOutbox, await CohabitOutbox.shared.hasPending() {
             let api = self
             Task { await CohabitOutbox.shared.replay(using: api) }
         }

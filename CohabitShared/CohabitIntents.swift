@@ -26,7 +26,7 @@ enum WidgetLoader {
 
     static func load(timeout: TimeInterval = 12) async -> CohabitWidgetState {
         guard let token = CohabitToken.load() else { return .noAccess }
-        let api = CohabitAPI(token: token, timeout: timeout, usesCache: false)
+        let api = CohabitAPI(token: token, timeout: timeout, usesCache: false, replaysOutbox: false)
         do {
             let data: WidgetData = try await api.get("/widget")
             CohabitGroup.saveWidgetData(data)
@@ -105,7 +105,7 @@ struct CheckInIntent: AppIntent {
         // Heute in der Zone des Co-Habits - die App legt sie beim Laden ab.
         let zone = CohabitGroup.zone(for: cohabitId) ?? TimeZone(identifier: "Europe/Berlin") ?? .current
         let request = CheckinRequest(date: .today(in: zone))
-        let api = CohabitAPI(token: token, timeout: 15, usesCache: false)
+        let api = CohabitAPI(token: token, timeout: 15, usesCache: false, replaysOutbox: false)
         do {
             try await api.sendIgnoringResponse("POST", "/cohabits/\(cohabitId)/checkins", body: request)
         } catch CohabitError.offline {

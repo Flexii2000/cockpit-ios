@@ -79,13 +79,19 @@ struct CohabitDetailView: View {
 
     @ViewBuilder
     private func content(_ detail: CohabitDetail) -> some View {
-        ZStack {
+        // Der Kopf reicht bis unter die Statusleiste; wie hoch die ist,
+        // haengt am Geraet (Dynamic Island, Home-Taste) - daher gemessen.
+        GeometryReader { proxy in
+            let top = proxy.safeAreaInsets.top
+            ZStack {
             VStack(spacing: 0) {
                 if section == .overview {
                     ScrollView {
                         VStack(spacing: 14) {
-                            DetailHeader(detail: detail, section: $section, compact: false,
+                            DetailHeader(detail: detail, section: $section, compact: false, topInset: top,
                                          back: { dismiss() }, menu: { menu(detail) })
+                            SyncLine()
+                                .padding(.horizontal, Metrics.gutter)
                             overview(detail)
                                 .padding(.horizontal, Metrics.gutter)
                             Color.clear.frame(height: 90)
@@ -96,7 +102,7 @@ struct CohabitDetailView: View {
                     .refreshable { await store.load() }
                     .safeAreaInset(edge: .bottom) { bottomAction(detail) }
                 } else {
-                    DetailHeader(detail: detail, section: $section, compact: true,
+                    DetailHeader(detail: detail, section: $section, compact: true, topInset: top,
                                  back: { dismiss() }, menu: { menu(detail) })
                         .ignoresSafeArea(edges: .top)
                     ChatView(detail: detail)
@@ -114,6 +120,7 @@ struct CohabitDetailView: View {
                                        Task { await ChatStore.congratulate(cohabitId: detail.id, dialog: dialog) }
                                    })
                     .transition(.opacity)
+            }
             }
         }
         .sheet(item: $sheet) { sheet in
@@ -157,6 +164,19 @@ struct CohabitDetailView: View {
                 Button("Einladen", systemImage: "person.badge.plus") { sheet = .invite }
             }
             Button("Benachrichtigungen", systemImage: "bell") { sheet = .notifications }
+            if let from = detail.backfillFrom, !detail.summary.archived, detail.config.auto == nil,
+               from < CheckInTarget(detail: detail, meId: meId).today {
+                // Auch wenn heute schon erledigt ist und der Knopf deshalb aus ist.
+                Button(detail.ref.type == .abstinence ? "Unterbrechung nachtragen …" : "Nachtragen …",
+                       systemImage: "calendar.badge.plus") {
+                    let target = CheckInTarget(detail: detail, meId: meId)
+                    if detail.ref.type == .abstinence {
+                        CheckInController.shared.valueTarget = target
+                    } else {
+                        CheckInController.shared.startBackfill(target)
+                    }
+                }
+            }
             if !detail.myCheckins.isEmpty {
                 Button("Meine Einträge", systemImage: "list.bullet") { sheet = .entries }
             }
@@ -249,6 +269,7 @@ struct DetailHeader<MenuContent: View>: View {
     let detail: CohabitDetail
     @Binding var section: DetailSection
     let compact: Bool
+    var topInset: CGFloat = 52
     let back: () -> Void
     @ViewBuilder let menu: () -> MenuContent
 
@@ -280,7 +301,7 @@ struct DetailHeader<MenuContent: View>: View {
                 .accessibilityIdentifier("detailSegments")
         }
         .padding(.horizontal, Metrics.gutter)
-        .padding(.top, 60)
+        .padding(.top, topInset + 6)
         .padding(.bottom, 18)
         .background {
             ZStack {

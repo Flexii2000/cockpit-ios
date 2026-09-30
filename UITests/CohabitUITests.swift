@@ -21,6 +21,7 @@ final class CohabitUITests: XCTestCase {
                       "COCKPIT_URL_COHABIT und COCKPIT_COHABIT_TOKEN fehlen - siehe tools/uitest.sh")
     }
 
+    @MainActor
     private func launch(tab: String = "today", extra: [String: String] = [:]) -> XCUIApplication {
         start(tab: tab, extra: [
             "COCKPIT_URL_COHABIT": baseURL,
@@ -34,6 +35,7 @@ final class CohabitUITests: XCTestCase {
 
     // MARK: - Anlegen
 
+    @MainActor
     func testCreateAStreakInThreeSteps() {
         let app = launch()
         let plus = app.buttons["tab-new"]
@@ -66,6 +68,7 @@ final class CohabitUITests: XCTestCase {
 
     // MARK: - Abhaken mit Foto aus der Galerie
 
+    @MainActor
     func testCheckInWithAPhotoFromTheGallery() throws {
         let name = unique("Foto UI")
         let id = try createCohabit(name: name, photoRequired: true, token: token)
@@ -105,6 +108,7 @@ final class CohabitUITests: XCTestCase {
 
     /// Die Mediathek ist ein eigener Prozess; ihre Bilder erreicht XCUITest
     /// trotzdem ueber die App. Sonst: der Schalter COCKPIT_TEST_PHOTO.
+    @MainActor
     private func pickFirstPhoto(in app: XCUIApplication) throws {
         let photo = app.scrollViews.images.firstMatch
         if photo.waitForExistence(timeout: 10) {
@@ -118,6 +122,7 @@ final class CohabitUITests: XCTestCase {
 
     // MARK: - Chat
 
+    @MainActor
     func testWriteAChatMessage() throws {
         let name = unique("Chat UI")
         let id = try createCohabit(name: name, photoRequired: false, token: token)
@@ -141,6 +146,7 @@ final class CohabitUITests: XCTestCase {
 
     // MARK: - Einladung annehmen
 
+    @MainActor
     func testAcceptAnInvitation() throws {
         try XCTSkipIf(otherToken.isEmpty, "COCKPIT_COHABIT_OTHER_TOKEN fehlt - niemand, der einladen koennte")
         let meId = try me(token: token)
@@ -160,6 +166,36 @@ final class CohabitUITests: XCTestCase {
         accept.tap()
         XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 15), "nach dem Annehmen fehlt die Detailseite")
         shoot(app, "einladung-angenommen")
+    }
+
+    // MARK: - Push
+
+    /// Eine Meldung antippen fuehrt dorthin, wohin ihr `link` zeigt - und die
+    /// App ueberlebt es (siehe CLAUDE.md: Completion-Handler statt `async`).
+    /// Nur mit tools/pushtest.sh coHabit, das die Meldung von aussen zustellt.
+    @MainActor
+    func testTappingAPushNotificationDoesNotCrashTheApp() throws {
+        try XCTSkipIf(environment["COCKPIT_PUSH_TEST"] != "1", "nur mit tools/pushtest.sh")
+        let app = launch(extra: ["COCKPIT_ASK_PUSH": "1"])
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons["Allow"].exists ? springboard.buttons["Allow"]
+                                                         : springboard.buttons["Erlauben"]
+        if allow.waitForExistence(timeout: 10) { allow.tap() }
+        XCTAssertTrue(app.buttons["tab-new"].waitForExistence(timeout: 20))
+        app.buttons["tab-Profil"].tap()
+        XCUIDevice.shared.press(.home)
+
+        let title = environment["COCKPIT_PUSH_TITLE"] ?? "Lena hat dich angestupst"
+        let banner = springboard.staticTexts[title]
+        XCTAssertTrue(banner.waitForExistence(timeout: 90), "keine Benachrichtigung angekommen")
+        shoot(app, "push-banner")
+        banner.tap()
+
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15),
+                      "App laeuft nach dem Tipp nicht im Vordergrund (Zustand \(app.state.rawValue))")
+        XCTAssertTrue(app.staticTexts["todayHeadline"].waitForExistence(timeout: 10),
+                      "der Link cohabit://today fuehrt nicht nach „Heute“")
+        shoot(app, "push-getippt")
     }
 
     // MARK: - API
