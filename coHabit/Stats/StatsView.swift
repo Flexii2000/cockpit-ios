@@ -113,6 +113,7 @@ struct StatsView: View {
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, minHeight: 124, alignment: .topLeading)
         .card(Color(hex: 0x5B3FD9), circle: .white.opacity(0.1), circleSize: 110, padding: 18)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("statsRate")
     }
 
@@ -172,6 +173,7 @@ struct HeatmapCard: View {
             }
         }
         .card(padding: 18)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("heatmap")
     }
 

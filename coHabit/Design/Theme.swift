@@ -298,6 +298,7 @@ struct SyncLine: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(Ink.accentSoft, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("syncLine")
         }
     }

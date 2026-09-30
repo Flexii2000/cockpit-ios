@@ -298,6 +298,7 @@ struct DetailHeader<MenuContent: View>: View {
             CapsuleSegments(options: [(DetailSection.overview, "Übersicht", nil),
                                       (DetailSection.chat, "Chat", detail.unreadMessages)],
                             selection: $section, height: 52)
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("detailSegments")
         }
         .padding(.horizontal, Metrics.gutter)

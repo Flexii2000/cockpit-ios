@@ -360,6 +360,7 @@ struct MessageRow: View {
         }
         .padding(message.mine ? .leading : .trailing, 60)
         .frame(maxWidth: .infinity, alignment: message.mine ? .trailing : .leading)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("message-\(message.id)")
     }
 }

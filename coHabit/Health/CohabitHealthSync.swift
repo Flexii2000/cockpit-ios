@@ -117,14 +117,19 @@ final class CohabitHealthSync {
         for subscription in subscriptions where cohabitId == nil || subscription.cohabitId == cohabitId {
             let zone = TimeZone(identifier: subscription.zone) ?? CheckInTarget.defaultZone
             for day in Self.days(backfillHours: subscription.backfillHours, zone: zone) {
-                guard let value = await value(subscription.metric, on: day, zone: zone), value > 0 else { continue }
                 let key = "\(subscription.cohabitId)|\(day.iso)"
+                // Kein Wert an einem Tag, fuer den schon einer ging (in Health
+                // geloescht): 0 schicken - das loescht den Eintrag beim Dienst.
+                // Nie gesendete leere Tage bleiben leer.
+                let measured = await value(subscription.metric, on: day, zone: zone) ?? 0
+                if measured <= 0 && (sent[key] ?? 0) <= 0 { continue }
+                let value = max(0, measured)
                 if let previous = sent[key], abs(previous - value) < 0.0001 { continue }
                 do {
                     let _: CohabitDetail = try await api.send(
                         "PUT", "/cohabits/\(subscription.cohabitId)/health/\(day.iso)",
                         body: HealthValue(value: value))
-                    sent[key] = value
+                    sent[key] = value > 0 ? value : nil
                     changed = true
                 } catch CohabitError.offline {
                     UserDefaults.standard.set(sent, forKey: sentKey)

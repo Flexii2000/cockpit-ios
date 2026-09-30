@@ -177,7 +177,7 @@ struct InvitationCardContent<Extra: View>: View {
                         .background(Color(hex: 0x5B3FD9), in: Circle())
                         .overlay(Circle().strokeBorder(Ink.surface, lineWidth: 3))
                 }
-                Text("\(from.displayName) lädt dich zu „\(cohabit.ref.name)“ ein")
+                Text("\(from.shortLabel(me: nil)) lädt dich zu „\(cohabit.ref.name)“ ein")
                     .font(.heading(26))
                     .foregroundStyle(Ink.ink)
                     .multilineTextAlignment(.center)
@@ -225,6 +225,8 @@ struct InvitationCardContent<Extra: View>: View {
             .background(Ink.surface)
         }
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        // .contain: sonst ueberschriebe die Kennung die der Knoepfe darin.
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("invitationDialog")
     }
 }

@@ -77,6 +77,7 @@ struct FinishedDialogView: View {
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
             .padding(.horizontal, 22)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("finishedDialog")
     }
 }

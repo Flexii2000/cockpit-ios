@@ -72,6 +72,7 @@ struct WeekGrid: View {
             }
         }
         .card(padding: 18)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("weekGrid")
     }
 }

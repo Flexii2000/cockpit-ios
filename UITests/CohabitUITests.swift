@@ -107,17 +107,15 @@ final class CohabitUITests: XCTestCase {
     }
 
     /// Die Mediathek ist ein eigener Prozess; ihre Bilder erreicht XCUITest
-    /// trotzdem ueber die App. Sonst: der Schalter COCKPIT_TEST_PHOTO.
+    /// trotzdem ueber die App. Sie heissen „Foto, 30. September, 15:34" - ein
+    /// blosses `images.firstMatch` traefe ein Symbol der App hinter dem Blatt.
     @MainActor
     private func pickFirstPhoto(in app: XCUIApplication) throws {
-        let photo = app.scrollViews.images.firstMatch
-        if photo.waitForExistence(timeout: 10) {
-            photo.tap()
-            return
-        }
-        let anyImage = app.images.matching(NSPredicate(format: "identifier != 'chosenPhoto'")).firstMatch
-        XCTAssertTrue(anyImage.waitForExistence(timeout: 5), "keine Bilder in der Mediathek - simctl addmedia?")
-        anyImage.tap()
+        let photo = app.images.matching(NSPredicate(
+            format: "identifier == 'PXGGridLayout-Info' OR label BEGINSWITH 'Foto,'")).firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 15), "keine Bilder in der Mediathek - simctl addmedia?")
+        shoot(app, "galerie")
+        photo.tap()
     }
 
     // MARK: - Chat

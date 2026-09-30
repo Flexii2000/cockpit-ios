@@ -448,18 +448,22 @@ struct NudgeBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             AvatarView(person: nudge.from, size: 40, ring: nil)
-            Text("\(Text(nudge.from.displayName).fontWeight(.heavy)) hat dich angestupst: \(nudge.text)")
+            Text("\(Text(nudge.from.shortLabel(me: nil)).fontWeight(.heavy)) hat dich angestupst: \(nudge.text)")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 4)
-            Button("Zurückstupsen", action: back)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(Color(hex: 0x1C1B2E))
-                .padding(.horizontal, 16)
-                .frame(height: 44)
-                .background(.white, in: Capsule())
-                .accessibilityIdentifier("nudgeBack-\(nudge.id)")
+            Button(action: back) {
+                Text("Zurückstupsen")
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(Color(hex: 0x1C1B2E))
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .background(.white, in: Capsule())
+            .accessibilityIdentifier("nudgeBack-\(nudge.id)")
         }
         .padding(16)
         .background(Color(hex: 0x5B3FD9), in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
@@ -478,7 +482,7 @@ struct InvitationCard: View {
         Button(action: open) {
             HStack(spacing: 12) {
                 AvatarView(person: invitation.from, size: 40, ring: nil)
-                Text("\(Text(invitation.from.displayName).fontWeight(.heavy)) lädt dich zu „\(invitation.cohabit.ref.name)“ ein")
+                Text("\(Text(invitation.from.shortLabel(me: nil)).fontWeight(.heavy)) lädt dich zu „\(invitation.cohabit.ref.name)“ ein")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Ink.ink)
                     .multilineTextAlignment(.leading)

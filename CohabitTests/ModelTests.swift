@@ -156,6 +156,23 @@ final class ModelTests: XCTestCase {
         XCTAssertNotNil(checkin.createdAt)
     }
 
+    /// Was das Backend ueber den Vertrag hinaus liefert (BACKEND-NOTES.md):
+    /// eingeladene und pausierte Mitglieder, Abschlussdialog fuer Ziele mit
+    /// dem Ziel fuer „Gratulieren".
+    func testBackendAdditions() throws {
+        let invited = try decode(Member.self, #"{"person":\#(Fixtures.lena),"role":"MEMBER","state":"INVITED","joinedAt":null}"#)
+        XCTAssertNil(invited.joinedAt)
+        XCTAssertEqual(MembersSheet.stateText(invited.state), " · eingeladen")
+        let paused = try decode(Member.self, #"{"person":\#(Fixtures.lena),"role":"MEMBER","state":"PAUSED","joinedAt":"2026-09-02T10:00:00Z"}"#)
+        XCTAssertEqual(MembersSheet.stateText(paused.state), " · pausiert")
+        XCTAssertEqual(MembersSheet.stateText("SOMETHING_NEW"), "")
+
+        let goal = try decode(FinishedDialog.self, #"{"id":"goal-1","kind":"GOAL","title":"Ziel erreicht","podium":[],"stakeText":null,"nextText":null,"reactionTarget":"message:m9"}"#)
+        XCTAssertFalse(goal.isChallenge)
+        XCTAssertEqual(goal.reactionTarget, "message:m9")
+        XCTAssertTrue(goal.podium.isEmpty)
+    }
+
     // MARK: - Kodieren
 
     func testConfigSendsEveryKeyWithNulls() throws {

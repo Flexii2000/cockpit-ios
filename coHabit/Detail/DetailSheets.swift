@@ -54,6 +54,16 @@ struct MembersSheet: View {
         }
     }
 
+    /// `ACTIVE`, `INVITED` (Einladung offen), `PAUSED` (Pause laeuft) - was der
+    /// Dienst sonst noch schickt, bleibt ohne Zusatz.
+    nonisolated static func stateText(_ state: String) -> String {
+        switch state {
+        case "INVITED": " · eingeladen"
+        case "PAUSED": " · pausiert"
+        default: ""
+        }
+    }
+
     private func row(_ member: Member, detail: CohabitDetail) -> some View {
         let isMe = member.person.id == meId
         let openToday = (detail.ref.type == .streak || detail.ref.type == .challenge)
@@ -66,7 +76,7 @@ struct MembersSheet: View {
                     .font(.system(size: 17, weight: .heavy))
                     .foregroundStyle(Ink.ink)
                 Text("@\(member.person.username)" + (member.role == .admin ? " · Admin" : "")
-                     + (member.state == "ACTIVE" ? "" : " · eingeladen"))
+                     + Self.stateText(member.state))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Ink.muted)
             }
@@ -83,7 +93,8 @@ struct MembersSheet: View {
                             Task { await store.makeAdmin(member.person) }
                         }
                     }
-                    Button("Entfernen", systemImage: "person.fill.xmark", role: .destructive) {
+                    Button(member.state == "INVITED" ? "Einladung zurückziehen" : "Entfernen",
+                           systemImage: "person.fill.xmark", role: .destructive) {
                         removeTarget = member.person
                     }
                 } label: {
