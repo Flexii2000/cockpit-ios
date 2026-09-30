@@ -120,10 +120,15 @@ struct CohabitDetailView: View {
                     .refreshable { await store.load() }
                     .safeAreaInset(edge: .bottom) { bottomAction(detail) }
                 } else {
-                    DetailHeader(detail: detail, section: $section, compact: true, topInset: top,
-                                 back: { dismiss() }, menu: { menu(detail) })
-                        .ignoresSafeArea(edges: .top)
-                    ChatView(detail: detail)
+                    // Kopf und Chat gemeinsam ab Bildschirmoberkante: ignoriert nur
+                    // der Kopf die Leiste, haelt der Stapel ihm trotzdem die volle
+                    // Hoehe ab der sicheren Zone frei - eine Luecke von Leistenhoehe.
+                    VStack(spacing: 0) {
+                        DetailHeader(detail: detail, section: $section, compact: true, topInset: top,
+                                     back: { dismiss() }, menu: { menu(detail) })
+                        ChatView(detail: detail)
+                    }
+                    .ignoresSafeArea(edges: .top)
                 }
             }
             // Am VStack, nicht an der ScrollView: der liegt innerhalb der
