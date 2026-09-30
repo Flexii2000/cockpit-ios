@@ -99,7 +99,9 @@ führt nach „Heute"; mit erteilter Erlaubnis meldet die App ihre Kennung per
 `POST /devices` an (in den Daten des Dienstes nachgesehen). Der Rundgang
 (`COCKPIT_TOUR=1 tools/uitest.sh coHabit CohabitTourUITests/testTourOfAllScreens`)
 fotografiert jeden Bildschirm hell und dunkel, samt Menü, Blättern, Dialogen
-und Kachel-Vorschau. **Nur auf dem Gerät prüfbar:** Kamera, Health-Werte,
+und Kachel-Vorschau. Fokus: beide UI-Tests grün gegen denselben lokalen
+Dienst (Start auf To-Do ohne Habits-Tab; der Wald zeigt „1 Baum · 0:50 h"
+aus `/habits/api/focus/sessions`). **Nur auf dem Gerät prüfbar:** Kamera, Health-Werte,
 Push, den der Dienst über APNs schickt, die Kacheln auf dem Homebildschirm
 samt Abhak-Knopf.
 
