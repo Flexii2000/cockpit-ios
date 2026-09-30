@@ -8,7 +8,7 @@ coHabit ist ein weiteres Target (`coHabit` + `coHabitWidget`) in diesem Repo,
 mit eigenem Ordner `CohabitShared/` für das, was App und Kachel teilen. Es
 spricht die API nicht über `APIClient`, sondern über `CohabitAPI`: der Token
 der Person geht als `Authorization: Bearer` mit, Cookies bleiben aus.
-**Warum:** Der Vertrag (scratchpad/cohabit/CONTRACT.md §1.3) legt das Ziel
+**Warum:** Der Vertrag (../habits/docs/COHABIT-CONTRACT.md §1.3) legt das Ziel
 hier fest, und Tools, Harness, `Shared/` und `Core/` gibt es schon. Der
 vorhandene Client ist auf die Cookie-Dienste zugeschnitten: alles außer 2xx
 heißt dort „Zugang prüfen", 403 wird zu `notAuthorised`, Fehlertext ist

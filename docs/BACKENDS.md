@@ -450,7 +450,7 @@ also an Healthy.
 Quelle: `../habits`, Branch `cohabit` (Controller unter
 `src/main/java/com/fherrmann/habits/cohabit/`, Antwortformen in
 `cohabit/api/*.java`), verbindlich beschrieben im Vertrag
-`scratchpad/cohabit/CONTRACT.md` §3. Stand 2026-09-30: **nicht ausgerollt** —
+`../habits/docs/COHABIT-CONTRACT.md` §3. Stand 2026-09-30: **nicht ausgerollt** —
 bis `update-habits.sh` und `setup-cohabit.sh` gelaufen sind, gibt es
 `fherrmann.com/cohabit/` nicht.
 
@@ -520,7 +520,7 @@ fehlender Schlüssel sonst womöglich „nicht ändern".
 ohne Netz abgelegte Haken bekommen deshalb ein ausdrückliches Datum in dieser
 Zone (die App merkt sich die Zone je Co-Habit in der App-Gruppe).
 
-⚠️ **Wo das Backend vom Vertrag abweicht** (scratchpad/cohabit/BACKEND-NOTES.md,
+⚠️ **Wo das Backend vom Vertrag abweicht** (../habits/docs/COHABIT-CONTRACT.md, Anhang,
 für die Clients verbindlich):
 - `FinishedDialog.reactionTarget` (`message:<id>`) nennt die Systemmeldung zum
   Ende - „Gratulieren" setzt dort ein „Stark"; `kind` ist `CHALLENGE` oder `GOAL`.

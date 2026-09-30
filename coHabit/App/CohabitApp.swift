@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Habits gemeinsam mit Freunden (Vertrag: scratchpad/cohabit/CONTRACT.md).
+/// Habits gemeinsam mit Freunden (Vertrag: ../habits/docs/COHABIT-CONTRACT.md).
 @main
 struct CohabitApp: App {
 

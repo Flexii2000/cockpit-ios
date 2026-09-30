@@ -319,7 +319,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Einkaufsliste
 
   # ---------------------------------------------------------------- coHabit
-  # Habits gemeinsam mit Freunden (Vertrag: scratchpad/cohabit/CONTRACT.md,
+  # Habits gemeinsam mit Freunden (Vertrag: ../habits/docs/COHABIT-CONTRACT.md,
   # Dienst ../habits unter fherrmann.com/cohabit). Anders als die uebrigen
   # Apps kein Privat-Cookie: jede Person hat ihren eigenen Token, der als
   # Bearer an jede Anfrage geht (CohabitShared/CohabitAPI.swift).

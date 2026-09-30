@@ -136,7 +136,7 @@ mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
 ## coHabit: eine App mit Personen
 
 coHabit ist die eine App, hinter der **mehrere Personen** stehen (Vertrag:
-scratchpad/cohabit/CONTRACT.md). Der Dienst ist der frühere Habits-Dienst
+../habits/docs/COHABIT-CONTRACT.md). Der Dienst ist der frühere Habits-Dienst
 unter `fherrmann.com/cohabit/api`; die Weboberfläche daneben hat denselben
 Funktionsumfang, Android kommt aus `../cohabit-android`. Gerechnet wird nur im
 Dienst - Serien, Quoten, Ränge, alle Texte der Kennzahlen kommen fertig an,

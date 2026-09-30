@@ -39,7 +39,7 @@
 ## coHabit — eigene App · **gebaut, nicht ausgerollt** (2026-09-30)
 
 Felix' Feature-Katalog F0–F15 als fünfte App, nach dem Vertrag
-`scratchpad/cohabit/CONTRACT.md` (Backend `../habits` Branch `cohabit`, Web im
+`../habits/docs/COHABIT-CONTRACT.md` (Backend `../habits` Branch `cohabit`, Web im
 selben Repo, Android `../cohabit-android`). Ziele `coHabit`
 (`com.fherrmann.cohabit`) und `coHabitWidget` (`…cohabit.widget`), App-Gruppe
 `group.com.fherrmann.cohabit`, eigene Keychain-Gruppe, Push
