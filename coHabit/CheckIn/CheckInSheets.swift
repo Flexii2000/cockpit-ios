@@ -294,7 +294,7 @@ struct ValueEntrySheet: View {
 
     // MARK: - Zahlen
 
-    static func unitTitle(_ unit: String?) -> String {
+    nonisolated static func unitTitle(_ unit: String?) -> String {
         switch unit?.uppercased() {
         case "COUNT": "Anzahl"
         case "MINUTES": "Minuten"
@@ -307,7 +307,7 @@ struct ValueEntrySheet: View {
     /// Liest eine deutsch geschriebene Zahl: „8.200" Schritte, „5,2" km.
     /// Ein einzelner Punkt ist bei Schritten und Anzahl ein Tausender, bei
     /// km und Minuten ein Komma - so tippt man es jeweils.
-    static func number(_ text: String, unit: String? = nil) -> Double? {
+    nonisolated static func number(_ text: String, unit: String? = nil) -> Double? {
         var raw = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
         guard !raw.isEmpty else { return nil }
         let hasComma = raw.contains(",")
@@ -324,7 +324,7 @@ struct ValueEntrySheet: View {
     }
 
     /// „8200", „5,2".
-    static func format(_ value: Double) -> String {
+    nonisolated static func format(_ value: Double) -> String {
         if value.rounded() == value { return String(Int(value)) }
         return String(value).replacingOccurrences(of: ".", with: ",")
     }

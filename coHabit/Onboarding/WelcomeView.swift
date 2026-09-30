@@ -193,7 +193,7 @@ struct JoinView: View {
     }
 
     /// 3–20 Zeichen `[a-z0-9._]`, beginnt mit Buchstabe (Vertrag §3.2).
-    static func isValidUsername(_ name: String) -> Bool {
+    nonisolated static func isValidUsername(_ name: String) -> Bool {
         name.range(of: "^[a-z][a-z0-9._]{2,19}$", options: .regularExpression) != nil
     }
 

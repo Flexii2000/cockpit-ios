@@ -149,7 +149,7 @@ final class CohabitHealthSync {
     }
 
     /// Heute und gestern immer, weiter zurueck so weit die Nachtragsfrist reicht.
-    static func days(backfillHours: Int, zone: TimeZone, now: Date = Date()) -> [CalendarDate] {
+    nonisolated static func days(backfillHours: Int, zone: TimeZone, now: Date = Date()) -> [CalendarDate] {
         let today = CalendarDate(date: now, in: zone)
         let earliest = CalendarDate(date: now.addingTimeInterval(-Double(backfillHours) * 3600), in: zone)
         var days: [CalendarDate] = []
@@ -164,7 +164,7 @@ final class CohabitHealthSync {
     }
 
     /// Nur die letzten drei Wochen merken - mehr liest ohnehin niemand nach.
-    private static func prune(_ sent: [String: Double]) -> [String: Double] {
+    nonisolated private static func prune(_ sent: [String: Double]) -> [String: Double] {
         let cutoff = CalendarDate.today().adding(days: -21).iso
         return sent.filter { key, _ in
             guard let date = key.split(separator: "|").last else { return false }

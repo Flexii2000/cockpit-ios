@@ -307,7 +307,7 @@ struct ChallengeWidgetRow: View {
         .foregroundStyle(Ink.ink)
     }
 
-    static func score(_ value: Double) -> String {
+    nonisolated static func score(_ value: Double) -> String {
         value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value).replacingOccurrences(of: ".", with: ",")
     }
 }
@@ -338,7 +338,7 @@ struct CircularCohabitView: View {
 
     /// „6W", „23T", „#2", „68%". Ein Kuerzel der Einheit ist Formatieren,
     /// kein Rechnen.
-    static func compact(_ item: WidgetData.Item) -> String {
+    nonisolated static func compact(_ item: WidgetData.Item) -> String {
         let value = item.value
         guard !item.unit.isEmpty, value.allSatisfy({ $0.isNumber }) else { return value }
         let unit = item.unit.lowercased()

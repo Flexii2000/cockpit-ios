@@ -199,7 +199,7 @@ struct CohabitSettingsForm: View {
         }
     }
 
-    static func sourceTitle(_ source: String) -> String {
+    nonisolated static func sourceTitle(_ source: String) -> String {
         switch source {
         case "FOOD": "Track food"
         case "STEPS_WEEKLY": "Schritte / Woche"
@@ -431,7 +431,7 @@ struct CohabitSettingsForm: View {
         }
     }
 
-    static func backfillTitle(_ hours: Int) -> String {
+    nonisolated static func backfillTitle(_ hours: Int) -> String {
         switch hours {
         case 0: "keine"
         case 168: "7 Tage"
@@ -465,7 +465,7 @@ struct CohabitSettingsForm: View {
     }
 
     /// Was einem „Weiter" im Weg steht - `nil`, wenn alles passt.
-    static func problem(_ config: CohabitConfig) -> String? {
+    nonisolated static func problem(_ config: CohabitConfig) -> String? {
         let name = config.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if name.isEmpty || name.count > 40 { return "Name fehlt" }
         switch config.type {
