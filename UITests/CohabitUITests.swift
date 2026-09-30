@@ -100,7 +100,7 @@ final class CohabitUITests: XCTestCase {
         XCTAssertTrue(waitFor(done, toReadAgain: "Heute erledigt"), "nach dem Posten steht nicht „Heute erledigt“")
         shoot(app, "beweisfoto-erledigt")
 
-        app.buttons["Chat"].tap()
+        app.buttons["segment-Chat"].tap()
         XCTAssertTrue(app.staticTexts["Regenlauf zählt doppelt."].waitForExistence(timeout: 10),
                       "der Check-in-Post fehlt im Chat")
         shoot(app, "beweisfoto-im-chat")
@@ -130,7 +130,7 @@ final class CohabitUITests: XCTestCase {
         let card = app.buttons["card-\(id)"]
         XCTAssertTrue(card.waitForExistence(timeout: 20))
         card.tap()
-        let chat = app.buttons["Chat"]
+        let chat = app.buttons["segment-Chat"]
         XCTAssertTrue(chat.waitForExistence(timeout: 10))
         chat.tap()
 
@@ -166,6 +166,78 @@ final class CohabitUITests: XCTestCase {
         accept.tap()
         XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 15), "nach dem Annehmen fehlt die Detailseite")
         shoot(app, "einladung-angenommen")
+    }
+
+    // MARK: - Zugang
+
+    /// Start ohne Zugang: ein App-Link mitten in kopiertem Text genuegt.
+    @MainActor
+    func testSignInWithAnAppLinkInsideText() throws {
+        let created = try request("POST", "/me/app-links", body: ["label": "UI-Test"], token: token)
+        let setupUrl = try XCTUnwrap(created["setupUrl"] as? String)
+        let app = launch(extra: ["COCKPIT_COHABIT_TOKEN": "none"])
+        let field = app.textFields["linkField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 15), "kein Start ohne Zugang")
+        shoot(app, "start")
+        field.tap()
+        field.typeText("Hier dein Link: \(setupUrl) Viel Spaß!")
+        shoot(app, "start-link")
+        app.buttons["welcomeNext"].tap()
+        XCTAssertTrue(app.buttons["tab-new"].waitForExistence(timeout: 15), "nach dem Link nicht angemeldet")
+        shoot(app, "start-angemeldet")
+    }
+
+    /// Einladungslink ohne Zugang = Registrierung (Vertrag §1.2): Anzeigename,
+    /// Nutzername, Zustimmung - danach ist die neue Person im Co-Habit.
+    @MainActor
+    func testJoinWithoutAccessRegisters() throws {
+        let name = unique("Beitritt UI")
+        let id = try createCohabit(name: name, photoRequired: false, token: token)
+        let link = try request("POST", "/cohabits/\(id)/invite-link", body: [:], token: token)
+        let url = try XCTUnwrap(link["url"] as? String)
+        let app = launch(extra: ["COCKPIT_COHABIT_TOKEN": "none"])
+        let field = app.textFields["linkField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 15), "kein Start ohne Zugang")
+        field.tap()
+        field.typeText(url)
+        app.buttons["welcomeNext"].tap()
+
+        let displayName = app.textFields["joinDisplayName"]
+        XCTAssertTrue(displayName.waitForExistence(timeout: 10), "keine Anmeldung zur Einladung")
+        displayName.tap()
+        displayName.typeText("Jonas")
+        let username = app.textFields["joinUsername"]
+        username.tap()
+        username.typeText("jonas\(Int.random(in: 1000...9999))")
+        shoot(app, "beitritt-ohne-zugang")
+        XCTAssertFalse(app.buttons["inviteAccept"].isEnabled, "ohne Zustimmung kein Beitritt")
+        app.buttons["joinTerms"].tap()
+        XCTAssertTrue(app.buttons["inviteAccept"].isEnabled)
+        app.buttons["inviteAccept"].tap()
+
+        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 15), "nach dem Beitritt fehlt das Co-Habit")
+        shoot(app, "beitritt-fertig")
+    }
+
+    // MARK: - Ohne Netz
+
+    /// Nur mit angehaltenem Dienst (COCKPIT_OFFLINE_TEST=1): der letzte Stand
+    /// steht mit „Offline · Stand", ein Haken wartet mit Uhr im Postausgang.
+    /// Ob er nach dem Neustart des Dienstes ankommt, prueft das Skript danach
+    /// ueber die API.
+    @MainActor
+    func testOfflineCheckInWaitsInTheOutbox() throws {
+        try XCTSkipIf(environment["COCKPIT_OFFLINE_TEST"] != "1", "nur mit angehaltenem Dienst")
+        let app = launch()
+        let sync = app.otherElements["syncLine"]
+        XCTAssertTrue(sync.waitForExistence(timeout: 20), "keine Offline-Leiste")
+        shoot(app, "offline-heute")
+        let check = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'check-' AND label == 'Abhaken'")).firstMatch
+        XCTAssertTrue(check.waitForExistence(timeout: 5), "kein offener Haken ohne Foto")
+        check.tap()
+        let waiting = app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'wartet'")).firstMatch
+        XCTAssertTrue(waiting.waitForExistence(timeout: 10), "der Haken liegt nicht im Postausgang")
+        shoot(app, "offline-haken-wartet")
     }
 
     // MARK: - Push

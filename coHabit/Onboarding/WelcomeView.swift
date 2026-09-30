@@ -211,8 +211,7 @@ struct JoinView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Ink.muted)
             }
-            .toggleStyle(CheckboxToggleStyle())
-            .accessibilityIdentifier("joinTerms")
+            .toggleStyle(CheckboxToggleStyle(identifier: "joinTerms"))
         }
     }
 
@@ -256,6 +255,8 @@ struct JoinRequest: Encodable {
 
 /// Ein Kaestchen statt eines Schalters - fuer die Zustimmungszeile.
 struct CheckboxToggleStyle: ToggleStyle {
+    var identifier: String?
+
     func makeBody(configuration: Configuration) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Button {
@@ -266,6 +267,9 @@ struct CheckboxToggleStyle: ToggleStyle {
                     .foregroundStyle(configuration.isOn ? Ink.accent : Ink.muted)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Zustimmen")
+            .accessibilityValue(configuration.isOn ? "an" : "aus")
+            .accessibilityIdentifier(identifier ?? "checkbox")
             configuration.label
         }
     }

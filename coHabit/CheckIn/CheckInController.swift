@@ -26,7 +26,7 @@ struct CheckInTarget: Identifiable, Hashable {
         photoRequired = summary.photoRequired
         valueUnit = summary.valueUnit
         label = summary.checkInLabel ?? "Abhaken"
-        otherMembers = summary.members.filter { $0.id != meId }.map(\.displayName)
+        otherMembers = summary.members.filter { $0.id != meId }.map { $0.shortLabel(me: nil) }
         backfillFrom = nil
         zone = CohabitGroup.zone(for: summary.ref.id) ?? Self.defaultZone
     }
@@ -39,7 +39,7 @@ struct CheckInTarget: Identifiable, Hashable {
         photoRequired = detail.config.photoRequired
         valueUnit = detail.summary.valueUnit ?? (detail.config.tracking.isValue ? detail.config.tracking.unit : nil)
         label = detail.summary.checkInLabel ?? "Abhaken"
-        otherMembers = detail.members.map(\.person).filter { $0.id != meId }.map(\.displayName)
+        otherMembers = detail.members.map(\.person).filter { $0.id != meId }.map { $0.shortLabel(me: nil) }
         backfillFrom = detail.backfillFrom
         zone = TimeZone(identifier: detail.config.timezone) ?? Self.defaultZone
     }

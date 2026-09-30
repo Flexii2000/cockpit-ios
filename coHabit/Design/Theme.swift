@@ -186,6 +186,8 @@ struct CapsuleSegments<Value: Hashable>: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
+                // Fest, auch wenn die Beschriftung ein Zaehler ergaenzt („Chat, 2").
+                .accessibilityIdentifier("segment-\(option.title)")
             }
         }
         .padding(4)

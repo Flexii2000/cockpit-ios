@@ -68,6 +68,7 @@ export TEST_RUNNER_COCKPIT_COHABIT_TOKEN="${COCKPIT_COHABIT_TOKEN:-}"
 export TEST_RUNNER_COCKPIT_COHABIT_OTHER_TOKEN="${COCKPIT_COHABIT_OTHER_TOKEN:-}"
 # Der Rundgang fuer die Bildschirmfotos laeuft nur auf ausdruecklichen Wunsch.
 export TEST_RUNNER_COCKPIT_TOUR="${COCKPIT_TOUR:-}"
+export TEST_RUNNER_COCKPIT_OFFLINE_TEST="${COCKPIT_OFFLINE_TEST:-}"
 
 tools/bootstrap.sh > /dev/null
 rm -rf build/uitest.xcresult build/screenshots

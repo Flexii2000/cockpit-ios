@@ -26,12 +26,20 @@ enum CohabitToken {
 
     #if DEBUG
     /// Nur fuer Simulator und UI-Tests: `COCKPIT_COHABIT_TOKEN` legt den
-    /// Token ab, als waere ein Link eingefuegt worden. Auf dem Geraet setzt
-    /// niemand Umgebungsvariablen.
-    static func seedFromEnvironment() {
-        if let value = ProcessInfo.processInfo.environment["COCKPIT_COHABIT_TOKEN"], !value.isEmpty {
+    /// Token ab, als waere ein Link eingefuegt worden; `none` nimmt ihn weg
+    /// (Start ohne Zugang - der Schluesselbund ueberlebt sonst jede
+    /// Neuinstallation). Auf dem Geraet setzt niemand Umgebungsvariablen.
+    /// - Returns: ob sich der Token dadurch geaendert hat.
+    @discardableResult
+    static func seedFromEnvironment() -> Bool {
+        guard let value = ProcessInfo.processInfo.environment["COCKPIT_COHABIT_TOKEN"], !value.isEmpty else { return false }
+        let before = load()
+        if value == "none" {
+            clear()
+        } else {
             save(value)
         }
+        return load() != before
     }
     #endif
 }

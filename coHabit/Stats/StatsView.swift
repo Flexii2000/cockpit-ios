@@ -246,7 +246,9 @@ struct HeatmapCard: View {
 
     private var yearGrid: some View {
         let year = stats.heatmap.from.year
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+        // Oben ausgerichtet: Monate mit sechs Wochenzeilen sind hoeher, und
+        // mittig stuenden die Namen sonst auf verschiedener Hoehe.
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 12, alignment: .top), count: 3)
         return LazyVGrid(columns: columns, spacing: 14) {
             ForEach(1...12, id: \.self) { month in
                 monthBlock(year: year, month: month)

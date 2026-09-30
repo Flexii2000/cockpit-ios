@@ -106,6 +106,9 @@ struct Podium: View {
             VStack(spacing: 2) {
                 Text(entry.scoreText ?? "")
                     .font(.figure(first ? 32 : 26))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.45)
+                    .padding(.horizontal, 6)
                 Text("Platz \(entry.rank)")
                     .font(.system(size: 12, weight: .medium))
             }

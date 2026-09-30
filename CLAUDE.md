@@ -86,7 +86,9 @@ eingefügter Link).
 `../habits`, Demo-Daten laut dessen README): `COCKPIT_URL_COHABIT` und
 `COCKPIT_COHABIT_TOKEN` (Token einer Demo-Person) für `run-simulator.sh`, dazu
 `COCKPIT_COHABIT_OTHER_TOKEN` (eine zweite Person, die einlädt) für
-`uitest.sh coHabit`. Die Unit-Tests von coHabit hängen an coHabit als Wirt
+`uitest.sh coHabit`. `COCKPIT_TOUR=1 tools/uitest.sh coHabit
+CohabitTourUITests/testTourOfAllScreens` tippt sich durch jeden Bildschirm und
+nimmt ihn hell und dunkel auf (`XCUIDevice.shared.appearance`). Die Unit-Tests von coHabit hängen an coHabit als Wirt
 (`CohabitTests/`), nicht an Healthy. Der Einkaufs-Token kommt wie die anderen aus
 dem Schlüsselbund (`shopping_token`, freiwillig — ohne ihn fehlt der Tab).
 
@@ -177,7 +179,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
-| `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden |
+| `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann |
 | `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
 | `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |

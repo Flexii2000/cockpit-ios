@@ -22,11 +22,18 @@ final class Session {
     var meId: String? { me?.person.id }
 
     private init() {
+        var switched = false
         #if DEBUG
-        CohabitToken.seedFromEnvironment()
+        switched = CohabitToken.seedFromEnvironment()
         #endif
         token = CohabitToken.load()
-        if token != nil {
+        if switched {
+            // Eine andere Person (Debug-Schalter): deren Vorgaenger soll man
+            // nicht mehr sehen, auch nicht ohne Netz.
+            OfflineCache.clear()
+            CohabitGroup.defaults.removeObject(forKey: Self.meKey)
+        }
+        if token != nil && !switched {
             // Der letzte bekannte Stand, damit „Du" und der Avatar sofort
             // stimmen - frisch geholt wird gleich danach.
             me = try? APIClient.decoder().decode(MeView.self, from: CohabitGroup.defaults.data(forKey: Self.meKey) ?? Data())

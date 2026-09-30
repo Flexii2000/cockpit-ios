@@ -291,10 +291,12 @@ struct ChallengeWidgetRow: View {
             Text("\(entry.rank)")
                 .font(.system(size: 13, weight: .heavy).monospacedDigit())
                 .frame(width: 14, alignment: .leading)
-            Text(entry.me ? "Du" : entry.name)
+            // Vorname - „Lena Kraus" passte nur als „Lena…" in die Spalte.
+            Text(entry.me ? "Du" : (entry.name.split(separator: " ").first.map(String.init) ?? entry.name))
                 .font(.system(size: 13, weight: .heavy))
                 .lineLimit(1)
-                .frame(width: 52, alignment: .leading)
+                .minimumScaleFactor(0.8)
+                .frame(width: 58, alignment: .leading)
             GeometryReader { proxy in
                 Capsule()
                     .fill(entry.me ? Ink.ink : color.colors.accent)

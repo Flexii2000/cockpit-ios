@@ -497,14 +497,17 @@ mit dem Status.
 | GET/POST | `/me/invitations` · `/invitations/{id}/accept\|decline` | offene Einladungen |
 | POST/DELETE | `/devices[/{token}]` | `{"token","platform":"ios"}` — Push-Kennung |
 
-⚠️ **Kennungen vergibt die App** für Einträge, Nachrichten und Uploads (UUID
-klein geschrieben); dieselbe noch einmal liefert das bestehende Objekt. Darauf
-baut der Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht
-nach einem Neustart mitten im Nachsenden.
+⚠️ **Kennungen vergibt die App** für Einträge und Nachrichten (UUID klein
+geschrieben); dieselbe noch einmal liefert das bestehende Objekt. Bei Fotos
+vergibt der **Dienst** die Kennung (Antwort von `POST /photos`), wiederholbar
+macht das Hochladen der `Idempotency-Key` - er gilt je Person. Darauf baut der
+Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht nach einem
+Neustart mitten im Nachsenden.
 
 ⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG,
 höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` → `{"id","width","height"}`;
-danach steht die `id` im Eintrag oder in der Nachricht. Der Dienst dreht
+danach steht die `id` im Eintrag oder in der Nachricht. `GET /photos/{id}` ohne
+`size` liefert `full`. Der Dienst dreht
 **nicht** nach EXIF — die App zeichnet das Bild aufrecht neu (≤ 2048 px, JPEG
 0,85, `PhotoEncoding`). Abrufen nur mit Token (`PhotoLoader`, kein
 `AsyncImage`); Fotos ändern sich nie und bleiben im Cache.
@@ -517,9 +520,23 @@ fehlender Schlüssel sonst womöglich „nicht ändern".
 ohne Netz abgelegte Haken bekommen deshalb ein ausdrückliches Datum in dieser
 Zone (die App merkt sich die Zone je Co-Habit in der App-Gruppe).
 
-⚠️ **Mehr Felder als im Vertrag:** `FinishedDialog.reactionTarget` nennt die
-Systemmeldung zum Ende einer Challenge — „Gratulieren" setzt dort ein „Stark".
-Die App dekodiert es optional.
+⚠️ **Wo das Backend vom Vertrag abweicht** (scratchpad/cohabit/BACKEND-NOTES.md,
+für die Clients verbindlich):
+- `FinishedDialog.reactionTarget` (`message:<id>`) nennt die Systemmeldung zum
+  Ende - „Gratulieren" setzt dort ein „Stark"; `kind` ist `CHALLENGE` oder `GOAL`.
+  Die App dekodiert `reactionTarget` optional.
+- Mitglieder im Detail haben `state` `ACTIVE`, `INVITED` (`joinedAt: null`)
+  oder `PAUSED`; `DELETE …/members/{id}` auf eine eingeladene Person zieht die
+  Einladung zurück.
+- Ein Health-Wert ≤ 0 in `PUT …/health/{date}` löscht den Health-Eintrag des
+  Tages - die App schickt 0, wenn ein Tag in Health leer geworden ist, für den
+  sie schon einen Wert geschickt hatte. Ein manueller STREAK-Eintrag an einem
+  Tag mit Health-Eintrag ist ein 409.
+- „Zurückstupsen" geht immer, auch wenn der Absender heute schon fertig ist.
+- `POST /friends/requests` antwortet 200, nicht 201; `fulfillmentRate` der
+  Statistik ist 0 statt null, wenn nichts fällig war.
+- `typeLine` hat die Form „Streak · 3× pro Woche"; die Zeile oben auf den
+  Dashboard-Karten („Laufen · Streak") setzt die App selbst zusammen.
 
 **Push** (Vertrag §4): APNs mit Topic `com.fherrmann.cohabit`, Sandbox; die
 Nutzlast trägt `kind` und `link` (`cohabit://…`), die App folgt dem Link.

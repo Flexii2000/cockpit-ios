@@ -48,15 +48,22 @@ final class CohabitTourUITests: XCTestCase {
         _ = close.waitForNonExistence(timeout: 3)
     }
 
+    /// Oeffnet das Menue der Detailseite und tippt einen Eintrag. Ein Tipp
+    /// „irgendwohin" zum Schliessen traefe in der Bildmitte womoeglich selbst
+    /// einen Eintrag - deshalb nur an den linken Rand.
     @MainActor
-    private func openMenu(_ app: XCUIApplication, _ item: String) -> Bool {
+    private func openMenu(_ app: XCUIApplication, _ item: String, snapMenu: String? = nil) -> Bool {
         let menu = app.buttons["detailMenu"]
-        guard menu.waitForExistence(timeout: 5) else { return false }
+        guard menu.waitForExistence(timeout: 5), menu.isHittable else { return false }
         menu.tap()
         let entry = app.buttons[item]
         guard entry.waitForExistence(timeout: 3) else {
-            app.tap()
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.5)).tap()
             return false
+        }
+        if let snapMenu {
+            Thread.sleep(forTimeInterval: 0.5)
+            snap(app, snapMenu)
         }
         entry.tap()
         return true
@@ -89,14 +96,10 @@ final class CohabitTourUITests: XCTestCase {
             XCTAssertTrue(app.buttons["detailMenu"].waitForExistence(timeout: 15))
             Thread.sleep(forTimeInterval: 1)
             snap(app, "detail-streak")
-            app.buttons["detailMenu"].tap()
-            Thread.sleep(forTimeInterval: 0.6)
-            snap(app, "detail-menue")
-            app.tap()
             for (item, name) in [("Mitglieder", "blatt-mitglieder"), ("Pausen", "blatt-pausen"),
                                  ("Einladen", "blatt-einladen"), ("Benachrichtigungen", "blatt-benachrichtigungen"),
                                  ("Meine Einträge", "blatt-eintraege"), ("Bearbeiten", "blatt-bearbeiten")] {
-                if openMenu(app, item) {
+                if openMenu(app, item, snapMenu: item == "Mitglieder" ? "detail-menue" : nil) {
                     Thread.sleep(forTimeInterval: 1.2)
                     snap(app, name)
                     closeSheet(app)
@@ -111,7 +114,7 @@ final class CohabitTourUITests: XCTestCase {
                     closeSheet(app)
                 }
             }
-            app.buttons["Chat"].tap()
+            app.buttons["segment-Chat"].tap()
             Thread.sleep(forTimeInterval: 1.5)
             snap(app, "chat")
         }
@@ -186,13 +189,13 @@ final class CohabitTourUITests: XCTestCase {
         // Statistik: Woche, Monat, Jahr.
         app.terminate()
         app = launch(tab: "stats")
-        XCTAssertTrue(app.buttons["Woche"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["segment-Woche"].waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 1.5)
         snap(app, "statistik-monat")
-        app.buttons["Woche"].tap()
+        app.buttons["segment-Woche"].tap()
         Thread.sleep(forTimeInterval: 1.5)
         snap(app, "statistik-woche")
-        app.buttons["Jahr"].tap()
+        app.buttons["segment-Jahr"].tap()
         Thread.sleep(forTimeInterval: 1.5)
         snap(app, "statistik-jahr")
 
