@@ -50,7 +50,9 @@ struct StatsView: View {
                     Text("Statistik")
                         .font(.heading(34))
                         .foregroundStyle(Ink.ink)
-                    Spacer()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Spacer(minLength: 8)
                     CapsuleSegments(options: StatsRange.allCases.map { ($0, $0.title, nil) },
                                     selection: $store.range, height: 44, compact: true)
                 }
@@ -72,7 +74,8 @@ struct StatsView: View {
                                 .font(.system(size: 16, weight: .heavy))
                                 .foregroundStyle(Ink.ink)
                                 .lineLimit(1)
-                                .frame(width: 120, alignment: .leading)
+                                .minimumScaleFactor(0.75)
+                                .frame(width: 130, alignment: .leading)
                             ProgressTrack(fraction: row.fraction, fill: Ink.ink, track: Ink.track, height: 8)
                             Text(row.progressText)
                                 .font(.system(size: 15, weight: .semibold).monospacedDigit())

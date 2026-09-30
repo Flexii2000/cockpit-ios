@@ -76,6 +76,12 @@ extension PersonView {
     func label(me: String?) -> String {
         id == me ? "Du" : displayName
     }
+
+    /// Der Vorname - fuer schmale Spalten (Wochenraster, Ranglisten), wo
+    /// „Lena Kraus" nur als „Lena…" hineinpasste. Der Entwurf zeigt dort Vornamen.
+    func shortLabel(me: String?) -> String {
+        id == me ? "Du" : (displayName.split(separator: " ").first.map(String.init) ?? displayName)
+    }
 }
 
 /// Wer angemeldet ist - fuer „Du" in Listen und Avataren.

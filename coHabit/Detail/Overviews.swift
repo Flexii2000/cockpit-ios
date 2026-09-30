@@ -21,6 +21,8 @@ struct StreakOverview: View {
                      caption: detail.streak?.record?.person.map { "Rekord · \($0.label(me: meId))" } ?? "Rekord")
                 Tile(value: "\(detail.seats.used) / \(detail.seats.max)", caption: "Mitglieder")
             }
+            // Gleich hoch, auch wenn eine Beschriftung zweizeilig wird.
+            .fixedSize(horizontal: false, vertical: true)
             if let group = detail.streak?.group {
                 Tile(value: "\(group.current) \(group.unitLabel)", caption: "Gruppen-Streak")
             }
@@ -55,10 +57,11 @@ struct WeekGrid: View {
                 }
                 ForEach(week.rows) { row in
                     GridRow {
-                        Text(row.person.label(me: meId))
+                        Text(row.person.shortLabel(me: meId))
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(Ink.ink)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                             .frame(width: 58, alignment: .leading)
                         ForEach(Array(row.cells.enumerated()), id: \.offset) { index, cell in
                             WeekCellView(cell: cell, color: color, mine: row.person.id == meId)
@@ -180,23 +183,28 @@ struct SeriesCard: View {
             Text("Deine Serien")
                 .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(Ink.ink)
-            ForEach(Array(series.enumerated()), id: \.offset) { _, entry in
-                HStack(spacing: 12) {
-                    Text(entry.label)
-                        .font(.system(size: 15, weight: entry.current ? .heavy : .medium))
-                        .foregroundStyle(Ink.ink)
-                        .frame(width: 64, alignment: .leading)
-                        .lineLimit(1)
-                    GeometryReader { proxy in
-                        Capsule()
-                            .fill(entry.current ? Ink.ink : color.colors.accent.opacity(entry.days == longest ? 1 : 0.55))
-                            .frame(width: max(10, proxy.size.width * Double(entry.days) / Double(longest)))
+            // Ein Raster, damit die Balken buendig beginnen, auch wenn ein
+            // Monatsname laenger ist als „Mai".
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 12) {
+                ForEach(Array(series.enumerated()), id: \.offset) { _, entry in
+                    GridRow {
+                        Text(entry.label)
+                            .font(.system(size: 15, weight: entry.current ? .heavy : .medium))
+                            .foregroundStyle(Ink.ink)
+                            .lineLimit(1)
+                            .fixedSize()
+                        GeometryReader { proxy in
+                            Capsule()
+                                .fill(entry.current ? Ink.ink : color.colors.accent.opacity(entry.days == longest ? 1 : 0.55))
+                                .frame(width: max(10, proxy.size.width * Double(entry.days) / Double(longest)))
+                        }
+                        .frame(height: 12)
+                        Text("\(entry.days) T")
+                            .font(.system(size: 14, weight: .heavy).monospacedDigit())
+                            .foregroundStyle(Ink.ink)
+                            .fixedSize()
+                            .gridColumnAlignment(.trailing)
                     }
-                    .frame(height: 12)
-                    Text("\(entry.days) T")
-                        .font(.system(size: 14, weight: .heavy).monospacedDigit())
-                        .foregroundStyle(Ink.ink)
-                        .frame(width: 44, alignment: .trailing)
                 }
             }
         }
@@ -222,11 +230,12 @@ struct GoalOverview: View {
                     ForEach(goal.contributions) { contribution in
                         let mine = contribution.person.id == meId
                         HStack(spacing: 12) {
-                            Text(contribution.person.label(me: meId))
+                            Text(contribution.person.shortLabel(me: meId))
                                 .font(.system(size: 15, weight: .heavy))
                                 .foregroundStyle(Ink.ink)
                                 .frame(width: 58, alignment: .leading)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             ProgressTrack(fraction: contribution.fraction,
                                           fill: mine ? Ink.ink : detail.ref.color.colors.accent,
                                           track: Ink.track, height: 10)
@@ -300,7 +309,7 @@ struct ChallengeOverview: View {
                 VStack(spacing: 6) {
                     ForEach(challenge.leaderboard) { entry in
                         LeaderboardRow(entry: entry, mine: entry.person.id == meId,
-                                       color: detail.ref.color, name: entry.person.label(me: meId))
+                                       color: detail.ref.color, name: entry.person.shortLabel(me: meId))
                     }
                 }
                 .padding(8)
@@ -312,6 +321,7 @@ struct ChallengeOverview: View {
                     }
                     Tile(value: challenge.scoringText, caption: "Wertung", captionFirst: true, valueSize: 16)
                 }
+                .fixedSize(horizontal: false, vertical: true)
 
                 if !challenge.pastRounds.isEmpty || challenge.recurrence != "NONE" {
                     VStack(alignment: .leading, spacing: 10) {
@@ -320,7 +330,7 @@ struct ChallengeOverview: View {
                             .foregroundStyle(Ink.muted)
                         FlowLayout(spacing: 8) {
                             ForEach(challenge.pastRounds) { round in
-                                Chip(text: "\(round.label) · \(round.winners.map { $0.label(me: meId) }.joined(separator: ", "))",
+                                Chip(text: "\(round.label) · \(round.winners.map { $0.shortLabel(me: meId) }.joined(separator: ", "))",
                                      fill: detail.ref.color.colors.surface, weight: .bold)
                             }
                         }
@@ -350,7 +360,8 @@ struct LeaderboardRow: View {
             Text(name)
                 .font(.system(size: 17, weight: .heavy))
                 .lineLimit(1)
-                .frame(width: 64, alignment: .leading)
+                .minimumScaleFactor(0.8)
+                .frame(width: 72, alignment: .leading)
             ProgressTrack(fraction: entry.fraction, fill: color.colors.accent,
                           track: Color.clear, height: 12)
             Text(entry.scoreText)
@@ -394,11 +405,11 @@ struct Tile: View {
                 Text(caption)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Ink.muted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .card(padding: 14)
     }
 }

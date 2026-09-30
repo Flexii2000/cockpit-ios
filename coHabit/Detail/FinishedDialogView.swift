@@ -98,7 +98,7 @@ struct Podium: View {
 
     private func column(_ entry: PodiumEntry, first: Bool) -> some View {
         VStack(spacing: 8) {
-            Text(entry.person.label(me: meId))
+            Text(entry.person.shortLabel(me: meId))
                 .font(.system(size: 15, weight: .heavy))
                 .foregroundStyle(Ink.ink)
                 .lineLimit(1)

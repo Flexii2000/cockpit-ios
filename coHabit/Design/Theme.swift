@@ -164,6 +164,8 @@ struct CapsuleSegments<Value: Hashable>: View {
                     HStack(spacing: 6) {
                         Text(option.title)
                             .font(.system(size: compact ? 14 : 15, weight: .bold))
+                            .lineLimit(1)
+                            .fixedSize()
                         if let badge = option.badge, badge > 0 {
                             Text("\(badge)")
                                 .font(.system(size: 11, weight: .bold))

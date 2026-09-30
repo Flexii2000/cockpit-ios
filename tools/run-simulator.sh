@@ -19,7 +19,8 @@
 #
 # COCKPIT_TODAY_MODE=list zeigt „Heute" als Liste, COCKPIT_STATS_RANGE=week|year
 # die Statistik fuer eine Woche oder ein Jahr; COCKPIT_TEST_PHOTO=1 laesst den
-# Galerie-Knopf im Beweisfoto-Blatt ein erzeugtes Bild liefern (UI-Tests).
+# Galerie-Knopf im Beweisfoto-Blatt ein erzeugtes Bild liefern (UI-Tests);
+# COCKPIT_LINK=cohabit://cohabit/<id> oeffnet beim Start einen Deep Link.
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -149,6 +150,7 @@ SIMCTL_CHILD_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}" \
 SIMCTL_CHILD_COCKPIT_TODAY_MODE="${COCKPIT_TODAY_MODE:-}" \
 SIMCTL_CHILD_COCKPIT_STATS_RANGE="${COCKPIT_STATS_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_TEST_PHOTO="${COCKPIT_TEST_PHOTO:-}" \
+SIMCTL_CHILD_COCKPIT_LINK="${COCKPIT_LINK:-}" \
     xcrun simctl launch "$DEVICE" "$BUNDLE" > /dev/null
 
 if [ -n "$SHOT" ]; then

@@ -281,7 +281,7 @@ struct MessageRow: View {
             HStack(spacing: 10) {
                 if let author = message.author {
                     AvatarView(person: author, size: 32, ring: nil)
-                    Text("\(Text(author.label(me: meId)).fontWeight(.heavy)) · hat abgehakt")
+                    Text("\(Text(author.shortLabel(me: meId)).fontWeight(.heavy)) · hat abgehakt")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Ink.ink)
                         .lineLimit(1)
@@ -328,7 +328,7 @@ struct MessageRow: View {
         VStack(alignment: message.mine ? .trailing : .leading, spacing: 4) {
             VStack(alignment: .leading, spacing: 6) {
                 if !message.mine, showsAuthor, let author = message.author {
-                    Text(author.label(me: meId))
+                    Text(author.shortLabel(me: meId))
                         .font(.system(size: 15, weight: .heavy))
                         .foregroundStyle(Ink.ink)
                 }

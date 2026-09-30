@@ -334,7 +334,7 @@ struct DetailHeader<MenuContent: View>: View {
                     .font(.heading(24))
                     .foregroundStyle(Ink.ink)
                     .lineLimit(1)
-                Text(detail.members.map { $0.person.label(me: meId) }.joined(separator: ", "))
+                Text(detail.members.map { $0.person.shortLabel(me: meId) }.joined(separator: ", "))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Ink.ink)
                     .lineLimit(1)

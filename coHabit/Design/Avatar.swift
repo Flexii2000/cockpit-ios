@@ -31,15 +31,20 @@ struct AvatarView: View {
     }
 }
 
-/// Bis zu drei Avatare uebereinander, dahinter „+n".
+/// Bis zu drei Avatare uebereinander, dahinter „+n". „Du" steht zuletzt und
+/// damit obenauf - wie im Entwurf („LK MB Du").
 struct AvatarStack: View {
     let people: [PersonView]
     var total: Int? = nil
     var size: CGFloat = 32
     var limit = 3
 
+    @Environment(\.meId) private var meId
+
     var body: some View {
-        let shown = Array(people.prefix(limit))
+        let others = people.filter { $0.id != meId }
+        let me = people.filter { $0.id == meId }
+        let shown = Array(others.prefix(limit - me.count)) + me
         let rest = (total ?? people.count) - shown.count
         HStack(spacing: -size * 0.28) {
             ForEach(shown) { person in

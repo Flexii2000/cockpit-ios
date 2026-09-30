@@ -33,6 +33,13 @@ struct RootView: View {
             }
             #endif
             guard session.isSignedIn else { return }
+            #if DEBUG
+            // COCKPIT_LINK=cohabit://… oeffnet einen Link beim Start - simctl
+            // openurl zeigt bei eigenem Schema einen Dialog, den es nicht tippen kann.
+            if let raw = ProcessInfo.processInfo.environment["COCKPIT_LINK"], let url = URL(string: raw) {
+                Router.shared.open(url)
+            }
+            #endif
             await session.refreshMe()
             await Notifications.registerForPushIfAllowed()
             await PushRegistration.registerStoredDevice()
@@ -194,6 +201,9 @@ struct MainTabBar: View {
         .padding(.horizontal, 8)
         .frame(height: 72)
         .background(Ink.surface, in: Capsule())
+        // Im Dunkeln traegt der Schatten nicht - die feine Linie hebt die
+        // Leiste von Karten gleicher Farbe dahinter ab.
+        .overlay(Capsule().strokeBorder(Ink.track, lineWidth: 1))
         .shadow(color: .black.opacity(0.08), radius: 16, y: 4)
         .padding(.horizontal, Metrics.gutter)
         .padding(.bottom, 4)

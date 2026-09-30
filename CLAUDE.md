@@ -178,6 +178,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden |
+| `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann |
 | `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
 | `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |
 | `COCKPIT_TEST_PHOTO=1` | der Galerie-Knopf im Beweisfoto-Blatt liefert ein erzeugtes Bild statt der Mediathek - nur falls ein UI-Test die Mediathek nicht erreicht |
