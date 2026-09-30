@@ -155,7 +155,9 @@ Kachel tragen. Eine 401 irgendwo heißt: lokal alles löschen, zurück zum Start
 (Bearer, JSON-Fehlermeldungen des Dienstes, Fotos als Multipart mit
 Idempotenz-Schlüssel), je Bildschirm ein `…Store`, Views ohne Rechnerei.
 `Session` hält, wer angemeldet ist, `Router` den Bereich, geschobene Seiten und
-Deep Links (`cohabit://…`, Vertrag §4), `CheckInController` das Abhaken von
+Deep Links (`cohabit://…`, Vertrag §4; ohne Sitzung meldet ein Link mit Token
+sofort an, ein Einladungslink öffnet die Registrierung, nur der Rest wartet in
+`pendingLink`), `CheckInController` das Abhaken von
 überall (Karte, Zeile, Detail, Chat) - mit Foto-Blatt, Wert-Blatt oder direkt.
 `DataBus` zählt hoch, wenn sich etwas geändert hat; offene Bildschirme laden
 dann neu.

@@ -13,6 +13,10 @@
 > Homebildschirm verschwindet mit dem neuen Fokus-Build (von Hand entfernen).
 > Auf dem Gerät prüfen: Kamera im Beweisfoto-Blatt, Health-Dialog und -Werte,
 > Push (Stupser, Beweisfoto), der Abhak-Knopf auf der kleinen Kachel.
+> **Neu seit dem Abend des 30.09.:** die klassische Liste (Schalter im Profil;
+> braucht den Dienst ab `4acd5a7`) und Links, die ohne Anmeldung sofort
+> anmelden - auf dem Gerät den Knopf „In der App öffnen" der Weboberfläche,
+> Langdruck samt Haptik und Wischen in der klassischen Liste prüfen.
 >
 > **Davor offen (unverändert):** Felix prüft auf dem Gerät: die Karten im Essen-Tab
 > (Diagramm-Ziehgeste und Umschalter-Reihe im Pager), die Automation für den
@@ -35,6 +39,32 @@
 > übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+
+## coHabit: Links ohne Anmeldung melden an · **gebaut, nicht ausgerollt** (2026-09-30)
+
+Auf Felix' iPhone verpuffte ein Setup-Link, der coHabit ohne Anmeldung
+öffnete: `Router.open` legte ohne Sitzung jeden Link nur in `pendingLink` ab,
+der Start sah dort nie hin, und nach einer Anmeldung holte er Links mit Token
+ausdrücklich nicht nach. Jetzt meldet ein Link mit Token ohne Sitzung sofort
+an - `cohabit://setup?token=…` (so öffnet „In der App öffnen" der
+Weboberfläche die App), `…/cohabit/setup?token=…` und der Healthy-Setup-Link -,
+mit derselben Anmeldung wie „Link einfügen" (`Session.signIn(withLinkToken:)`);
+bei 401 steht „Link ungültig" auf dem Start. `cohabit://join/{code}` öffnet die
+Registrierung (`JoinView`, jetzt über `Router.joinCode`). Solche Links landen
+nie mehr in `pendingLink`, nichts läuft doppelt; was erst mit Sitzung etwas
+bedeutet (Tab, Co-Habit), wartet wie bisher und geht nach der Anmeldung auf.
+`COCKPIT_LINK` wirkt jetzt auch ohne Sitzung.
+
+**Geprüft:** `tools/verify.sh`, UI-Tests gegen den lokalen Dienst:
+`testAnAppLinkOpenedWithoutAccessSignsIn` (Start ohne Zugang, App-Link über
+`onOpenURL`, danach „Heute"), `testAnInvalidAppLinkWithoutAccessSaysSo` („Link
+ungültig" auf dem Start) und `testAJoinLinkOpenedWithoutAccessShowsTheRegistration`;
+die ganze Sammlung `tools/uitest.sh coHabit` danach 11 grün, 3 übersprungen
+(Offline, Push, Rundgang - die laufen nur mit ihrem Schalter). UI-Tests laufen
+im eigenen Simulator „coHabit Test" (`DEVICE="coHabit Test"`); auf „iPhone 17"
+kam der Testläufer zweimal nicht an die Bedienungshilfen („Timed out while
+loading Accessibility"). **Auf dem Gerät prüfen:** der Knopf „In der App
+öffnen" in Safari.
 
 ## coHabit: klassische Liste · **gebaut, nicht ausgerollt** (2026-09-30)
 

@@ -190,6 +190,66 @@ final class CohabitUITests: XCTestCase {
         shoot(app, "start-angemeldet")
     }
 
+    /// Ohne Zugang geoeffnet, meldet ein App-Link sofort an - so oeffnet der
+    /// Knopf „In der App öffnen" der Weboberflaeche die App. Bis 2026-09-30 lag
+    /// der Link dann nur bereit, und niemand sah hin (auf Felix' iPhone passiert).
+    @MainActor
+    func testAnAppLinkOpenedWithoutAccessSignsIn() throws {
+        let created = try request("POST", "/me/app-links", body: ["label": "UI-Test Link"], token: token)
+        let appToken = try XCTUnwrap(created["token"] as? String)
+        if let linkId = created["id"] as? String { cleanUp("DELETE", "/me/app-links/\(linkId)", token: token) }
+        let app = launch(extra: ["COCKPIT_COHABIT_TOKEN": "none"])
+        XCTAssertTrue(app.textFields["linkField"].waitForExistence(timeout: 15), "kein Start ohne Zugang")
+        shoot(app, "link-start")
+        // Der Weg, den ein Tipp auf den Link nimmt: iOS reicht ihn an onOpenURL.
+        app.open(URL(string: "cohabit://setup?token=\(appToken)")!)
+        confirmOpenInApp()
+        XCTAssertTrue(app.staticTexts["todayHeadline"].waitForExistence(timeout: 20),
+                      "der Link hat nicht angemeldet - „Heute“ fehlt")
+        shoot(app, "link-angemeldet")
+    }
+
+    /// Ein Link mit einem Token, den der Dienst nicht kennt: „Link ungültig"
+    /// auf dem Start, statt still nichts zu tun.
+    @MainActor
+    func testAnInvalidAppLinkWithoutAccessSaysSo() {
+        let app = launch(extra: ["COCKPIT_COHABIT_TOKEN": "none",
+                                 "COCKPIT_LINK": "cohabit://setup?token=gibtesnicht0000"])
+        let error = app.staticTexts["welcomeError"]
+        XCTAssertTrue(error.waitForExistence(timeout: 15), "kein Hinweis auf dem Start")
+        shoot(app, "link-ungueltig")
+        XCTAssertEqual(error.label, "Link ungültig")
+        XCTAssertTrue(app.textFields["linkField"].exists, "ohne gueltigen Link bleibt der Start")
+    }
+
+    /// Ein Einladungslink ohne Zugang oeffnet gleich die Registrierung.
+    @MainActor
+    func testAJoinLinkOpenedWithoutAccessShowsTheRegistration() throws {
+        let name = unique("Link UI")
+        let id = try createCohabit(name: name, photoRequired: false, token: token)
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
+        let link = try request("POST", "/cohabits/\(id)/invite-link", body: [:], token: token)
+        let code = try XCTUnwrap(link["code"] as? String)
+        let app = launch(extra: ["COCKPIT_COHABIT_TOKEN": "none", "COCKPIT_LINK": "cohabit://join/\(code)"])
+        let displayName = app.textFields["joinDisplayName"]
+        XCTAssertTrue(displayName.waitForExistence(timeout: 15), "keine Registrierung zum Einladungslink")
+        shoot(app, "link-einladung")
+        // „Felix lädt dich zu „Name“ ein" - der Name steht im Satz.
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch.exists,
+                      "die Einladung nennt das Co-Habit nicht")
+    }
+
+    /// Ein Link mit eigenem Schema: iOS fragt womoeglich erst, ob er in der App
+    /// aufgehen soll.
+    @MainActor
+    private func confirmOpenInApp() {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for label in ["Öffnen", "Open"] where springboard.buttons[label].waitForExistence(timeout: 2) {
+            springboard.buttons[label].tap()
+            return
+        }
+    }
+
     /// Einladungslink ohne Zugang = Registrierung (Vertrag §1.2): Anzeigename,
     /// Nutzername, Zustimmung - danach ist die neue Person im Co-Habit.
     @MainActor

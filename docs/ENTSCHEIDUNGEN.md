@@ -3,6 +3,19 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-09-30 — coHabit: ein Link ohne Anmeldung meldet sofort an
+Öffnet ein Link mit Token (App-, Setup-, Healthy-Link) die App, während niemand
+angemeldet ist, meldet sie damit sofort an - dieselbe Anmeldung wie „Link
+einfügen", bei einem 401 steht „Link ungültig" auf dem Start. Ein
+Einladungslink öffnet die Registrierung. Nur Links, die erst mit Sitzung etwas
+bedeuten, warten in `pendingLink`. **Warum:** Der Knopf „In der App öffnen" der
+Weboberfläche ist genau dafür da; ein Link, der nur bereitliegt, bis jemand
+etwas einfügt, sieht aus wie ein kaputter Knopf (auf Felix' iPhone passiert).
+Geprüft wird der Token ohnehin, bevor er gespeichert wird (`GET /me`).
+**Verworfen:** (a) den Link ins Feld „Link einfügen" legen und auf „Weiter"
+warten (ein Tipp mehr, der nichts prüft, was die Anmeldung nicht schon prüft);
+(b) wie bisher in `pendingLink` warten lassen (dort sah niemand hin).
+
 ## 2026-09-30 — Klassische Liste: Schalter im Profil, „Heute" zeigt dann die alte Liste
 Felix mochte die Habit-Liste der Fokus-App lieber als das neue Design. coHabit
 hat im Profil den Schalter „Klassische Liste" (je Gerät,

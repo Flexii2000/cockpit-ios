@@ -31,15 +31,14 @@ struct RootView: View {
             if ProcessInfo.processInfo.environment["COCKPIT_ASK_PUSH"] == "1" {
                 await Notifications.requestPermission()
             }
-            #endif
-            guard session.isSignedIn else { return }
-            #if DEBUG
             // COCKPIT_LINK=cohabit://… oeffnet einen Link beim Start - simctl
-            // openurl zeigt bei eigenem Schema einen Dialog, den es nicht tippen kann.
+            // openurl zeigt bei eigenem Schema einen Dialog, den es nicht tippen
+            // kann. Auch ohne Sitzung: dann meldet ein Setup-Link an.
             if let raw = ProcessInfo.processInfo.environment["COCKPIT_LINK"], let url = URL(string: raw) {
                 Router.shared.open(url)
             }
             #endif
+            guard session.isSignedIn else { return }
             await session.refreshMe()
             await Notifications.registerForPushIfAllowed()
             await PushRegistration.registerStoredDevice()

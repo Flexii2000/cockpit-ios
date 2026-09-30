@@ -20,7 +20,8 @@
 # COCKPIT_TODAY_MODE=list zeigt „Heute" als Liste, COCKPIT_STATS_RANGE=week|year
 # die Statistik fuer eine Woche oder ein Jahr; COCKPIT_TEST_PHOTO=1 laesst den
 # Galerie-Knopf im Beweisfoto-Blatt ein erzeugtes Bild liefern (UI-Tests);
-# COCKPIT_LINK=cohabit://cohabit/<id> oeffnet beim Start einen Deep Link.
+# COCKPIT_LINK=cohabit://cohabit/<id> oeffnet beim Start einen Deep Link - auch
+# ohne Zugang: cohabit://setup?token=… meldet dann an.
 # COCKPIT_CLASSIC=1 legt den Schalter „Klassische Liste" (Profil) beim Start
 # um - „Heute" zeigt dann die alte Habit-Liste der Fokus-App; 0 schaltet ihn
 # aus. Ohne die Variable bleibt er, wie er war (er ueberlebt jeden Start).

@@ -69,8 +69,17 @@ final class Router {
     /// Ein Co-Habit, dessen Abhaken sich oeffnen soll, sobald seine
     /// Detailseite geladen ist (`cohabit://cohabit/{id}/checkin`).
     var pendingCheckIn: String?
-    /// Ein Link, der ankam, bevor jemand angemeldet war.
+    /// Ein Link, der ankam, bevor jemand angemeldet war - einer, der erst mit
+    /// Sitzung etwas bedeutet (ein Co-Habit, ein Tab).
     private(set) var pendingLink: DeepLink?
+    /// Ohne Sitzung: die Registrierung zu einem Einladungslink, die der Start
+    /// zeigt (`JoinView`) - aus „Link einfügen" oder aus einem geoeffneten Link.
+    var joinCode: String?
+    /// Ohne Sitzung: warum ein geoeffneter Link nicht anmelden konnte - steht
+    /// auf dem Start wie ein Fehler bei „Link einfügen".
+    var linkError: String?
+    /// Ohne Sitzung meldet gerade ein geoeffneter Link an.
+    private(set) var isSigningIn = false
 
     private init() {
         #if DEBUG
@@ -96,7 +105,7 @@ final class Router {
 
     func open(_ link: DeepLink) {
         guard Session.shared.isSignedIn else {
-            pendingLink = link
+            openWithoutSession(link)
             return
         }
         showsCreate = false
@@ -137,6 +146,31 @@ final class Router {
         }
     }
 
+    /// Ohne Sitzung: ein Link mit Token meldet sofort an (der Knopf „In der App
+    /// öffnen" der Weboberflaeche, ein App- oder Healthy-Link), ein
+    /// Einladungslink oeffnet die Registrierung - beides wie „Link einfügen"
+    /// auf dem Start. Nur was erst mit Sitzung etwas bedeutet, wartet in
+    /// `pendingLink`; ein Link mit Token landet dort nie, sonst liefe nach der
+    /// Anmeldung noch eine zweite.
+    private func openWithoutSession(_ link: DeepLink) {
+        if let token = link.token {
+            Task { await signIn(withLinkToken: token) }
+        } else if case .join(let code) = link {
+            linkError = nil
+            joinCode = code
+        } else {
+            pendingLink = link
+        }
+    }
+
+    private func signIn(withLinkToken token: String) async {
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        defer { isSigningIn = false }
+        linkError = nil
+        linkError = await Session.shared.signIn(withLinkToken: token)
+    }
+
     /// Nach der Anmeldung nachholen, was vorher angeklopft hat.
     func consumePendingLink() {
         guard let link = pendingLink else { return }
@@ -168,6 +202,8 @@ final class Router {
         showsCreate = false
         invitation = nil
         pendingCheckIn = nil
+        joinCode = nil
+        linkError = nil
     }
 }
 

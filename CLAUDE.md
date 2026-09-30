@@ -139,7 +139,15 @@ offensichtlich sind und je einen halben Anlauf gekostet haben:
   `run-simulator.sh` im Keychain liegen.
 * **Was die App sich merkt, ueberlebt den Testlauf.** Die angenommenen Noten
   liegen in den UserDefaults; ein Test, der gegen eine Abschlussnote misst,
-  muss sie erst wegraeumen (`clearAssumptions`).
+  muss sie erst wegraeumen (`clearAssumptions`). Ebenso der Schalter
+  „Klassische Liste" in coHabit - die coHabit-Tests setzen `COCKPIT_CLASSIC=0`.
+* **„Timed out while loading Accessibility"**: der Testlaeufer kommt nicht an
+  den Simulator heran, und xcodebuild haengt danach in `simctl diagnose`
+  (abbrechen). Ein anderer Simulator hilft - coHabit laeuft im eigenen
+  (`DEVICE="coHabit Test" tools/uitest.sh coHabit …`, 30.09.).
+* **Aufraeumen per `addTeardownBlock`, nicht per `defer`.** Schlaegt eine
+  Pruefung fehl, bricht XCTest die Methode ab, ohne `defer` auszufuehren - was
+  der Test im Dienst angelegt hat, bliebe liegen.
 
 Was der Harness **nicht** kann: Systemdialoge (Health, Face ID) bedienen —
 dafür sind die Debug-Schalter da. Den Benachrichtigungs-Dialog kann er
@@ -180,7 +188,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
-| `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann |
+| `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann. Wirkt auch ohne Zugang: ein Setup-Link (`cohabit://setup?token=…`) meldet dann an, ein Einladungslink oeffnet die Registrierung |
 | `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
 | `COCKPIT_CLASSIC=1` | legt in coHabit den Schalter „Klassische Liste" (Profil) beim Start um: „Heute" zeigt die alte Habit-Liste der Fokus-App; `0` schaltet ihn aus (der Schalter überlebt jeden Start - die UI-Tests setzen deshalb immer `0`, außer sie wollen die Liste) |
 | `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |

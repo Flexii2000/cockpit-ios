@@ -61,6 +61,20 @@ final class Session {
         return me
     }
 
+    /// Meldet mit dem Token eines Links an - aus „Link einfügen" auf dem Start
+    /// oder aus einem Link, der die App ohne Sitzung oeffnet.
+    /// - Returns: warum es nicht ging (401 heisst „Link ungültig"), sonst `nil`.
+    func signIn(withLinkToken token: String) async -> String? {
+        do {
+            try await signIn(token: token)
+            return nil
+        } catch CohabitError.unauthorized {
+            return "Link ungültig"
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     /// Ein Setup-Link, waehrend schon jemand angemeldet ist.
     func switchAccount(to token: String) async {
         guard token != self.token else { return }

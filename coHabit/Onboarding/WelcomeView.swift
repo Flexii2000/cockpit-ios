@@ -8,10 +8,12 @@ struct WelcomeView: View {
     @State private var text = ""
     @State private var busy = false
     @State private var errorMessage: String?
-    @State private var joinCode: String?
     @FocusState private var focused: Bool
 
     private var session: Session { Session.shared }
+    /// Haelt die Registrierung zu einem Einladungslink und den Fehler eines
+    /// geoeffneten Links - beides kann auch von ausserhalb kommen (Router).
+    private var router: Router { Router.shared }
 
     var body: some View {
         ZStack {
@@ -36,7 +38,7 @@ struct WelcomeView: View {
                     .tint(Ink.ink)
                     .accessibilityIdentifier("pasteLink")
                 }
-                if let message = errorMessage ?? session.signedOutReason {
+                if let message = errorMessage ?? router.linkError ?? session.signedOutReason {
                     Text(message)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Ink.danger)
@@ -45,10 +47,10 @@ struct WelcomeView: View {
                 Button {
                     Task { await submit() }
                 } label: {
-                    if busy { ProgressView().tint(Ink.onInk) } else { Text("Weiter") }
+                    if busy || router.isSigningIn { ProgressView().tint(Ink.onInk) } else { Text("Weiter") }
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                .disabled(busy || text.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(busy || router.isSigningIn || text.trimmingCharacters(in: .whitespaces).isEmpty)
                 .accessibilityIdentifier("welcomeNext")
                 Spacer().frame(height: 24)
             }
@@ -56,12 +58,15 @@ struct WelcomeView: View {
         }
         .screenBackground()
         .fullScreenCover(item: Binding(
-            get: { joinCode.map { JoinTarget(code: $0) } },
-            set: { joinCode = $0?.code })) { target in
+            get: { router.joinCode.map { JoinTarget(code: $0) } },
+            set: { router.joinCode = $0?.code })) { target in
             JoinView(code: target.code)
                 .presentationBackground(.clear)
         }
-        .onChange(of: text) { _, _ in errorMessage = nil }
+        .onChange(of: text) { _, _ in
+            errorMessage = nil
+            router.linkError = nil
+        }
     }
 
     private var circles: some View {
@@ -88,7 +93,7 @@ struct WelcomeView: View {
             return
         }
         if case .join(let code) = link {
-            joinCode = code
+            router.joinCode = code
             return
         }
         guard let token = link.token else {
@@ -97,13 +102,10 @@ struct WelcomeView: View {
         }
         busy = true
         defer { busy = false }
-        do {
-            try await session.signIn(token: token)
+        if let message = await session.signIn(withLinkToken: token) {
+            errorMessage = message
+        } else {
             text = ""
-        } catch CohabitError.unauthorized {
-            errorMessage = "Link ungültig"
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 }
