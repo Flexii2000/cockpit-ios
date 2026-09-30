@@ -181,7 +181,19 @@ final class CohabitTourUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.5)
         snap(app, "timeline")
         if let laufen = ids["Laufen"], app.buttons["filter-\(laufen)"].exists {
-            app.buttons["filter-\(laufen)"].tap()
+            // Die Chips liegen in einer waagrechten Liste; mit den Co-Habits
+            // frueherer Testlaeufe steht „Laufen" rechts ausserhalb des Bildes.
+            let chip = app.buttons["filter-\(laufen)"]
+            let row = app.buttons["filter-all"].frame.midY
+            let origin = app.coordinate(withNormalizedOffset: .zero)
+            var drags = 0
+            // Nach dem Rahmen, nicht isHittable - das bricht ausserhalb des Bildes ab.
+            while !app.frame.contains(chip.frame) && drags < 12 {
+                origin.withOffset(CGVector(dx: app.frame.width * 0.85, dy: row))
+                    .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: app.frame.width * 0.25, dy: row)))
+                drags += 1
+            }
+            chip.tap()
             Thread.sleep(forTimeInterval: 1.5)
             snap(app, "timeline-filter")
         }

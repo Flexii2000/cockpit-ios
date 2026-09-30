@@ -30,6 +30,7 @@ struct Subpage<Content: View>: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .screenBackground()
+        .statusBarScrim()
         .toolbarVisibility(.hidden, for: .navigationBar)
     }
 }

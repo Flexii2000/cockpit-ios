@@ -74,6 +74,7 @@ struct ProfileView: View {
         }
         .scrollIndicators(.hidden)
         .screenBackground()
+        .statusBarScrim()
         .toolbarVisibility(.hidden, for: .navigationBar)
         .refreshable { await session.refreshMe() }
         .task {

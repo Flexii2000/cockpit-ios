@@ -33,6 +33,21 @@ extension View {
     func screenBackground() -> some View {
         background(Ink.background.ignoresSafeArea())
     }
+
+    /// Ein Streifen hinter der Statusleiste - beim Scrollen liefe der Inhalt
+    /// sonst unter Uhr und Akku durch. In der Hintergrundfarbe ist er in Ruhe
+    /// unsichtbar, oben hat der Bildschirm ohnehin diese Farbe.
+    func statusBarScrim(_ visible: Bool = true, color: Color = Ink.background) -> some View {
+        overlay(alignment: .top) {
+            if visible {
+                color
+                    .ignoresSafeArea(edges: .top)
+                    .frame(height: 0)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+            }
+        }
+    }
 }
 
 /// Voll breit unten, Tinte gefuellt.

@@ -324,15 +324,22 @@ struct ChallengeOverview: View {
                 }
                 .fixedSize(horizontal: false, vertical: true)
 
-                if !challenge.pastRounds.isEmpty || challenge.recurrence != "NONE" {
+                let recurrence = challenge.recurrence != "NONE" ? challenge.recurrenceText ?? "" : ""
+                if !challenge.pastRounds.isEmpty || !recurrence.isEmpty {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(["Frühere Runden", challenge.recurrenceText].compactMap { $0 }.joined(separator: " · "))
+                        // In der ersten Runde gibt es noch keine frueheren -
+                        // dann steht nur, dass es weitergeht.
+                        Text(challenge.pastRounds.isEmpty
+                             ? recurrence.prefix(1).uppercased() + recurrence.dropFirst()
+                             : ["Frühere Runden", recurrence].filter { !$0.isEmpty }.joined(separator: " · "))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Ink.muted)
-                        FlowLayout(spacing: 8) {
-                            ForEach(challenge.pastRounds) { round in
-                                Chip(text: "\(round.label) · \(round.winners.map { $0.shortLabel(me: meId) }.joined(separator: ", "))",
-                                     fill: detail.ref.color.colors.surface, weight: .bold)
+                        if !challenge.pastRounds.isEmpty {
+                            FlowLayout(spacing: 8) {
+                                ForEach(challenge.pastRounds) { round in
+                                    Chip(text: "\(round.label) · \(round.winners.map { $0.shortLabel(me: meId) }.joined(separator: ", "))",
+                                         fill: detail.ref.color.colors.surface, weight: .bold)
+                                }
                             }
                         }
                     }

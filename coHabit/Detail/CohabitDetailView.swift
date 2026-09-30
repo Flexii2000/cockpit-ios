@@ -12,6 +12,14 @@ struct CohabitDetailView: View {
     @State private var confirmLeave = false
     @State private var confirmDelete = false
     @State private var dialogDismissed: Set<String> = []
+    /// Hoehe des Kopfs und was gerade unter der Statusleiste liegt.
+    @State private var headerHeight: CGFloat = 0
+    @State private var scrim = Scrim.none
+
+    /// Der Streifen hinter der Statusleiste: in Ruhe keiner (der Kopf reicht
+    /// mit seinem Kreis bis oben), beim Scrollen in der Farbe des Kopfs,
+    /// sobald der ganz durch ist in der des Hintergrunds.
+    private enum Scrim: Equatable { case none, header, page }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.meId) private var meId
 
@@ -83,6 +91,8 @@ struct CohabitDetailView: View {
         // haengt am Geraet (Dynamic Island, Home-Taste) - daher gemessen.
         GeometryReader { proxy in
             let top = proxy.safeAreaInsets.top
+            // Wie weit man scrollen muss, bis der Kopf unter der Leiste durch ist.
+            let headerLeft = headerHeight - top
             ZStack {
             VStack(spacing: 0) {
                 if section == .overview {
@@ -90,6 +100,7 @@ struct CohabitDetailView: View {
                         VStack(spacing: 14) {
                             DetailHeader(detail: detail, section: $section, compact: false, topInset: top,
                                          back: { dismiss() }, menu: { menu(detail) })
+                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
                             SyncLine()
                                 .padding(.horizontal, Metrics.gutter)
                             overview(detail)
@@ -99,6 +110,13 @@ struct CohabitDetailView: View {
                     }
                     .scrollIndicators(.hidden)
                     .ignoresSafeArea(edges: .top)
+                    .onScrollGeometryChange(for: Scrim.self) { geometry in
+                        let offset = geometry.contentOffset.y + geometry.contentInsets.top
+                        if offset <= 1 { return .none }
+                        return headerLeft > 0 && offset > headerLeft ? .page : .header
+                    } action: { _, phase in
+                        withAnimation(.easeOut(duration: 0.15)) { scrim = phase }
+                    }
                     .refreshable { await store.load() }
                     .safeAreaInset(edge: .bottom) { bottomAction(detail) }
                 } else {
@@ -108,6 +126,10 @@ struct CohabitDetailView: View {
                     ChatView(detail: detail)
                 }
             }
+            // Am VStack, nicht an der ScrollView: der liegt innerhalb der
+            // sicheren Zone, so reicht der Streifen genau bis unter die Leiste.
+            .statusBarScrim(scrim != .none && section == .overview,
+                            color: scrim == .page ? Ink.background : detail.ref.color.colors.surface)
             if let dialog = detail.dialog, !dialogDismissed.contains(dialog.id) {
                 FinishedDialogView(dialog: dialog, color: detail.ref.color,
                                    toTimeline: {

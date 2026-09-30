@@ -115,6 +115,7 @@ struct TimelineView: View {
         }
         .scrollIndicators(.hidden)
         .screenBackground()
+        .statusBarScrim()
         .toolbarVisibility(.hidden, for: .navigationBar)
         .refreshable { await store.load() }
         .task { await store.load() }
