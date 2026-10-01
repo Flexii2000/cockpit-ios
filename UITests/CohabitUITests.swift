@@ -461,6 +461,189 @@ final class CohabitUITests: XCTestCase {
         XCTAssertEqual(after?["kind"] as? String, "CHALLENGE")
     }
 
+    // MARK: - Fokus-Habits nach Kategorie
+
+    /// Fokus-Habit mit Kategorie anlegen: Streak, Automatisch, Fokus-Zeit, pro
+    /// Woche, eine Kategorie aus dem Wald. Beim Dienst kommen Kategorie und
+    /// Zeitraum an, die Detailseite zeigt seine Typzeile („… Min. Bachelorarbeit
+    /// pro Woche"). Nur als Felix - nur er hat Fokus-Zeit und Baeume.
+    @MainActor
+    func testCreateAFocusHabitWithACategory() throws {
+        let category = try focusCategory()
+        let categoryName = try XCTUnwrap(category["name"] as? String)
+        let name = unique("Fokus UI")
+
+        let app = launch()
+        let plus = app.buttons["tab-new"]
+        XCTAssertTrue(plus.waitForExistence(timeout: 20), "keine untere Leiste")
+        plus.tap()
+        app.buttons["createType-STREAK"].tap()
+        let field = app.textFields["createName"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "Schritt 2 fehlt")
+        field.tap()
+        // Mit Zeilenschaltung: die Tastatur geht weg und verdeckt die Felder im Bild nicht.
+        field.typeText(name + "\n")
+        app.buttons["choice-Automatisch"].tap()
+        let focus = app.buttons["choice-Fokus-Zeit"]
+        XCTAssertTrue(focus.waitForExistence(timeout: 5), "keine Quelle Fokus-Zeit")
+        focus.tap()
+        let weekly = app.buttons["Pro Woche"]
+        reveal(weekly, in: app)
+        weekly.tap()
+        XCTAssertTrue(app.staticTexts["4:00 h pro Woche"].waitForExistence(timeout: 5),
+                      "die Minuten gelten nicht je Woche")
+        let chip = app.buttons["choice-\(categoryName)"]
+        reveal(chip, in: app)
+        XCTAssertTrue(app.buttons["choice-Alle Bäume"].isSelected, "vorbelegt sind nicht alle Baeume")
+        chip.tap()
+        XCTAssertTrue(chip.isSelected, "die Kategorie ist nicht gewaehlt")
+        snap(app, "fokus-habit-anlegen")
+        app.buttons["createNext"].tap()
+        let start = app.buttons["createStart"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5), "Schritt 3 fehlt")
+        start.tap()
+
+        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 15), "Detailseite zeigt das neue Co-Habit nicht")
+        let created = try requestList("GET", "/cohabits", token: token).first {
+            ($0["ref"] as? [String: Any])?["name"] as? String == name
+        }
+        let id = try XCTUnwrap((created?["ref"] as? [String: Any])?["id"] as? String, "beim Dienst nicht angelegt")
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
+        let detail = try request("GET", "/cohabits/\(id)", body: nil, token: token)
+        let auto = (detail["config"] as? [String: Any])?["auto"] as? [String: Any]
+        XCTAssertEqual(auto?["source"] as? String, "FOCUS")
+        XCTAssertEqual(auto?["focusCategoryId"] as? String, category["id"] as? String)
+        XCTAssertEqual(auto?["focusCategoryName"] as? String, categoryName)
+        XCTAssertEqual(auto?["focusPeriod"] as? String, "WEEK")
+        XCTAssertEqual(auto?["focusMinutesGoal"] as? Int, 240)
+
+        let typeLine = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "\(categoryName) pro Woche"))
+            .firstMatch
+        XCTAssertTrue(typeLine.waitForExistence(timeout: 5), "die Detailseite nennt Kategorie und Zeitraum nicht")
+        snap(app, "fokus-habit-detail")
+
+        // Bearbeiten: nur die Minuten - Kategorie und Zeitraum muessen bleiben
+        // (der Dienst liest ein fehlendes Feld als „alle Baeume", „je Tag").
+        app.buttons["detailMenu"].tap()
+        app.buttons["Bearbeiten"].tap()
+        let more = app.buttons["Mehr"].firstMatch
+        XCTAssertTrue(app.staticTexts["4:00 h pro Woche"].waitForExistence(timeout: 5), "Minuten je Woche nicht vorbelegt")
+        XCTAssertTrue(app.buttons["choice-\(categoryName)"].isSelected, "Kategorie nicht vorbelegt")
+        more.tap()
+        XCTAssertTrue(app.staticTexts["5:00 h pro Woche"].waitForExistence(timeout: 5))
+        snap(app, "fokus-habit-bearbeiten")
+        app.buttons["Sichern"].tap()
+        XCTAssertTrue(app.buttons["Sichern"].waitForNonExistence(timeout: 10), "das Blatt bleibt offen")
+        let edited = (try request("GET", "/cohabits/\(id)", body: nil, token: token)["config"] as? [String: Any])?["auto"]
+            as? [String: Any]
+        XCTAssertEqual(edited?["focusMinutesGoal"] as? Int, 300)
+        XCTAssertEqual(edited?["focusCategoryId"] as? String, category["id"] as? String, "Kategorie beim Bearbeiten verloren")
+        XCTAssertEqual(edited?["focusPeriod"] as? String, "WEEK", "Zeitraum beim Bearbeiten verloren")
+    }
+
+    /// Die klassische Liste: ein Fokus-Habit nur fuer eine Kategorie, je Woche,
+    /// traegt die Kategorie im Untertitel und den Stand der Woche rechts; das
+    /// Kalorienziel im Wochenmittel steht als „Track food" in Wochen mit „Ø".
+    /// Der Editor ist mit Zeitraum und Kategorie vorbelegt.
+    @MainActor
+    func testClassicListShowsFocusCategoryAndTheWeeklyMean() throws {
+        let category = try focusCategory()
+        let categoryName = try XCTUnwrap(category["name"] as? String)
+        let focusName = unique("Fokus Woche UI")
+        let focus = try request("POST", "/classic/habits", body: [
+            "name": focusName, "kind": "FOCUS", "focusMinutesGoal": 600,
+            "focusCategoryId": category["id"] as? String ?? "", "focusPeriod": "WEEK",
+        ], token: token)
+        let focusId = try XCTUnwrap(focus["id"] as? String)
+        cleanUp("DELETE", "/classic/habits/\(focusId)", token: token)
+        XCTAssertEqual((focus["focus"] as? [String: Any])?["period"] as? String, "WEEK")
+        XCTAssertEqual(focus["unit"] as? String, "WEEKS")
+
+        let meanName = unique("Kalorienziel UI")
+        let meanId = try createAutoStreak(name: meanName, source: "FOOD_TARGET_WEEKLY")
+        cleanUp("DELETE", "/cohabits/\(meanId)", confirm: true, token: token)
+
+        let app = launch(extra: ["COCKPIT_CLASSIC": "1"])
+        XCTAssertTrue(app.navigationBars["Habits"].waitForExistence(timeout: 20), "keine klassische Liste")
+        let row = app.staticTexts[focusName]
+        reveal(row, in: app)
+        let subtitle = app.staticTexts.matching(NSPredicate(format: "label ENDSWITH %@", "Wochen · \(categoryName)"))
+            .firstMatch
+        XCTAssertTrue(subtitle.waitForExistence(timeout: 10), "kein Untertitel mit der Kategorie")
+        let progress = app.staticTexts["focus-\(focusId)"]
+        XCTAssertTrue(progress.label.hasSuffix("/10:00 h"), "kein Wochenstand: \(progress.label)")
+        let mean = app.staticTexts["kcal-\(meanId)"]
+        reveal(mean, in: app)
+        XCTAssertTrue(mean.waitForExistence(timeout: 10), "das Kalorienziel im Wochenmittel fehlt")
+        XCTAssertTrue(mean.label.hasPrefix("Ø "), "der Wochenschnitt sieht aus wie heute: \(mean.label)")
+        snap(app, "klassisch-fokus-woche")
+
+        reveal(row, in: app)
+        row.tap()
+        let minutes = app.textFields["focusMinutes"]
+        XCTAssertTrue(minutes.waitForExistence(timeout: 5), "als Admin oeffnet der Name nicht den Editor")
+        XCTAssertEqual(minutes.value as? String, "600")
+        XCTAssertTrue(app.buttons["Pro Woche"].isSelected, "Zeitraum nicht vorbelegt")
+        let picker = app.descendants(matching: .any).matching(identifier: "focusCategory").firstMatch
+        XCTAssertTrue(picker.exists, "keine Auswahl der Kategorie")
+        let shown = picker.label + " " + ((picker.value as? String) ?? "")
+        XCTAssertTrue(shown.contains(categoryName), "Kategorie nicht vorbelegt: \(shown)")
+        XCTAssertTrue(app.staticTexts["Wochenziel in Minuten"].exists || app.staticTexts["WOCHENZIEL IN MINUTEN"].exists,
+                      "Ueberschrift nicht je Woche")
+        snap(app, "klassisch-fokus-editor")
+        app.buttons["Abbrechen"].tap()
+    }
+
+    /// Eine Kategorie aus dem Wald - gibt es noch keine, legt der Test eine an
+    /// (beim Habits-Dienst neben coHabit, mit demselben Token) und raeumt sie weg.
+    @MainActor
+    private func focusCategory() throws -> [String: Any] {
+        let sources = (try request("GET", "/me", body: nil, token: token)["sources"] as? [String]) ?? []
+        try XCTSkipIf(!sources.contains("FOCUS"), "nur als Felix (COCKPIT_COHABIT_TOKEN=local-private) - nur er hat Baeume")
+        if let first = try requestList("GET", "/focus/categories", token: token).first { return first }
+        let forest = baseURL.replacingOccurrences(of: "/cohabit/api", with: "/habits/api/focus")
+        var request = URLRequest(url: URL(string: forest + "/categories")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(#"{"name":"Bachelorarbeit"}"#.utf8)
+        let done = expectation(description: "Kategorie")
+        nonisolated(unsafe) var created: [String: Any]?
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            created = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            done.fulfill()
+        }.resume()
+        wait(for: [done], timeout: 20)
+        let category = try XCTUnwrap(created, "keine Kategorie im Wald und keine anzulegen")
+        let id = try XCTUnwrap(category["id"] as? String)
+        let url = URL(string: forest + "/categories/\(id)")!
+        let token = token
+        addTeardownBlock {
+            var request = URLRequest(url: url)
+            request.httpMethod = "DELETE"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            _ = try? await URLSession.shared.data(for: request)
+        }
+        return category
+    }
+
+    /// Ein automatisches Streak - nur die Person hier.
+    private func createAutoStreak(name: String, source: String) throws -> String {
+        let body: [String: Any] = [
+            "type": "STREAK", "name": name, "color": "aqua", "timezone": "Europe/Berlin",
+            "tracking": ["mode": "CHECK"], "photoRequired": false, "backfillHours": 48,
+            "reminderTime": NSNull(), "membersCanInvite": false,
+            "streak": ["rhythm": ["kind": "TIMES_PER_WEEK", "times": 1], "groupStreak": false],
+            "abstinence": NSNull(), "goal": NSNull(), "challenge": NSNull(), "health": NSNull(),
+            "auto": ["source": source, "weeklyStepGoal": NSNull(), "focusMinutesGoal": NSNull()],
+            "invitePersonIds": [String](),
+        ]
+        let detail = try request("POST", "/cohabits", body: body, token: token)
+        let summary = try XCTUnwrap(detail["summary"] as? [String: Any])
+        let ref = try XCTUnwrap(summary["ref"] as? [String: Any])
+        return try XCTUnwrap(ref["id"] as? String)
+    }
+
     /// kcal aus Healthy: die Health-Karte ist ein Schalter - einschalten
     /// stimmt beim Dienst zu (ohne Apple-Health-Abfrage), ausschalten widerruft.
     @MainActor

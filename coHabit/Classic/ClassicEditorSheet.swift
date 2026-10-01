@@ -4,10 +4,11 @@ import SwiftUI
 /// Ziele vorbelegt, und die Art steht fest (aus einem Aufbauen ein Lassen zu
 /// machen kehrte jeden Eintrag um; der Dienst laesst es nicht zu).
 ///
-/// Das Formular der Fokus-App, unveraendert - bis auf zwei Dinge aus coHabit:
+/// Das Formular der Fokus-App, unveraendert - bis auf drei Dinge aus coHabit:
 /// einen Rhythmus, den es nicht kennt (Wochentage, „alle n Tage"), blendet es
-/// aus und laesst ihn stehen, und lehnt der Dienst ab, steht seine Meldung im
-/// Blatt statt dahinter.
+/// aus und laesst ihn stehen, lehnt der Dienst ab, steht seine Meldung im
+/// Blatt statt dahinter, und Fokus-Zeit gilt je Tag oder Woche und auf Wunsch
+/// nur fuer eine Kategorie aus dem Wald (seit 2026-10-01).
 struct ClassicEditorSheet: View {
 
     let store: ClassicStore
@@ -20,6 +21,10 @@ struct ClassicEditorSheet: View {
     @State private var goalText = "70000"
     /// Fokus-Zeit in Minuten je Tag - vier Stunden, so hat Felix es bestellt.
     @State private var focusMinutesText = "240"
+    @State private var focusPeriod: ClassicHabit.FocusPeriod = .day
+    /// nil: alle Baeume.
+    @State private var focusCategoryId: String?
+    @State private var focusCategories: [FocusCategory] = []
     /// Nur beim Aufbauen: jeden Tag, oder so-und-so-oft je Woche oder Monat.
     @State private var period: ClassicHabit.Period = .day
     @State private var timesPerPeriod = 1
@@ -44,6 +49,13 @@ struct ClassicEditorSheet: View {
             && !isSaving
     }
 
+    /// Die Kategorien zur Wahl - mit der des Habits, auch wenn sie im Wald
+    /// inzwischen geloescht ist.
+    private var categoryChoices: [FocusCategory] {
+        FocusCategoryChoices.merged(focusCategories, keeping: focusCategoryId,
+                                    name: editing?.focus?.categoryName)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -66,7 +78,7 @@ struct ClassicEditorSheet: View {
                         .pickerStyle(.inline)
                         .labelsHidden()
                     } else {
-                        LabeledContent("Art", value: kind.label)
+                        LabeledContent("Art", value: editing?.kindLabel ?? kind.label)
                     }
                 } footer: {
                     Text(explanation)
@@ -95,9 +107,26 @@ struct ClassicEditorSheet: View {
                     }
                 }
                 if kind == .focus {
-                    Section("Tagesziel in Minuten") {
+                    Section(focusPeriod == .day ? "Tagesziel in Minuten" : "Wochenziel in Minuten") {
+                        Picker("Zeitraum", selection: $focusPeriod) {
+                            ForEach(ClassicHabit.FocusPeriod.allCases, id: \.self) { period in
+                                Text(period.label).tag(period)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("focusPeriod")
                         TextField("Minuten", text: $focusMinutesText)
                             .keyboardType(.numberPad)
+                            .accessibilityIdentifier("focusMinutes")
+                    }
+                    Section {
+                        Picker("Kategorie", selection: $focusCategoryId) {
+                            Text("Alle Bäume").tag(String?.none)
+                            ForEach(categoryChoices) { category in
+                                Text(category.name).tag(Optional(category.id))
+                            }
+                        }
+                        .accessibilityIdentifier("focusCategory")
                     }
                 }
             }
@@ -114,6 +143,10 @@ struct ClassicEditorSheet: View {
                 }
             }
             .onAppear(perform: prefill)
+            .task(id: kind) {
+                guard kind == .focus, focusCategories.isEmpty else { return }
+                focusCategories = await store.focusCategories()
+            }
         }
         .tint(nil as Color?)
     }
@@ -131,6 +164,8 @@ struct ClassicEditorSheet: View {
         }
         period = editing.rhythm
         timesPerPeriod = editing.timesPerPeriod ?? 1
+        focusPeriod = editing.focus?.period ?? .day
+        focusCategoryId = editing.focus?.categoryId
     }
 
     private var explanation: String {
@@ -146,9 +181,15 @@ struct ClassicEditorSheet: View {
                 "Abhaken an den Tagen, an denen du es getan hast. Die Straehne zaehlt Wochen bzw. Monate, in denen es oft genug war."
             }
         case .quit:    "Etwas, das du lassen willst. Zaehlt von selbst; ein eingetragener Rückfall setzt auf null."
-        case .food:    "Gilt als erledigt, wenn 80 % des kcal-Ziels erreicht sind oder Frühstück, Mittag und Abend je einen Eintrag haben."
+        case .food:
+            editing?.isWeeklyFoodTarget == true
+                ? "Eine Woche zählt, wenn der Schnitt der getrackten Tage höchstens beim kcal-Ziel liegt."
+                : "Gilt als erledigt, wenn 80 % des kcal-Ziels erreicht sind oder Frühstück, Mittag und Abend je einen Eintrag haben."
         case .steps:   "Erreicht, sobald die Schritte der Woche (ab Montag 0:00) das Ziel schaffen. Kommt aus Apple Health."
-        case .focus:   "Erreicht, sobald die Fokus-Sessions des Tages zusammen das Ziel schaffen. Kommt aus dem Wald."
+        case .focus:
+            focusPeriod == .day
+                ? "Erreicht, sobald die Fokus-Sessions des Tages zusammen das Ziel schaffen. Kommt aus dem Wald."
+                : "Erreicht, sobald die Fokus-Sessions der Woche (ab Montag 0:00) zusammen das Ziel schaffen. Kommt aus dem Wald."
         case .goal, .challenge, .unknown: ""
         }
     }
@@ -161,7 +202,9 @@ struct ClassicEditorSheet: View {
                                       stepGoal: goal,
                                       focusMinutes: focusMinutes,
                                       period: showsRhythm ? period : nil,
-                                      timesPerPeriod: timesPerPeriod)
+                                      timesPerPeriod: timesPerPeriod,
+                                      focusCategoryId: focusCategoryId,
+                                      focusPeriod: focusPeriod)
         let rejection: String?
         if let editing {
             rejection = await store.update(editing, draft)

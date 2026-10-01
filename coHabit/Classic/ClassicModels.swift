@@ -15,11 +15,14 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
         /// Etwas, das man lassen will - zaehlt von selbst, ein Rueckfall setzt
         /// zurueck. In coHabit eine Abstinenz.
         case quit = "QUIT"
-        /// „Track food" - der Kalorienzaehler entscheidet.
+        /// „Track food" - der Kalorienzaehler entscheidet. Mit Einheit WEEKS
+        /// das Kalorienziel im Wochenmittel (seit 2026-10-01): Schnitt der
+        /// getrackten Tage gegen das Ziel, entschieden nach Sonntag.
         case food = "FOOD"
         /// Schritte je Woche - der Weight Tracker entscheidet.
         case steps = "STEPS"
-        /// Fokus-Zeit je Tag - der Wald der Fokus-App entscheidet.
+        /// Fokus-Zeit je Tag oder Woche, auf Wunsch nur eine Kategorie - der
+        /// Wald der Fokus-App entscheidet.
         case focus = "FOCUS"
         /// Ein Ziel aus coHabit - die alte App kannte es nicht; was die Zeile
         /// zeigt, steht in `summary`.
@@ -110,12 +113,52 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
         }
     }
 
+    /// Wofuer die Minuten eines Fokus-Habits gelten: je Tag oder je Woche
+    /// (Montag bis Sonntag, wie die Schritte).
+    enum FocusPeriod: String, Codable, Sendable, CaseIterable {
+        case day = "DAY"
+        case week = "WEEK"
+
+        var label: String {
+            switch self {
+            case .day:  "Täglich"
+            case .week: "Pro Woche"
+            }
+        }
+    }
+
+    /// Nur bei Fokus-Zeit: welche Baeume zaehlen und fuer welchen Zeitraum.
+    struct Focus: Decodable, Sendable, Equatable {
+        /// nil: alle Baeume.
+        let categoryId: String?
+        let categoryName: String?
+        let period: FocusPeriod
+
+        init(categoryId: String? = nil, categoryName: String? = nil, period: FocusPeriod = .day) {
+            self.categoryId = categoryId
+            self.categoryName = categoryName
+            self.period = period
+        }
+
+        /// Nachsichtig wie der Rest: ein unbekannter Zeitraum gilt als Tag.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            categoryId = try? c.decodeIfPresent(String.self, forKey: .categoryId)
+            categoryName = try? c.decodeIfPresent(String.self, forKey: .categoryName)
+            period = (try? c.decodeIfPresent(FocusPeriod.self, forKey: .period)) ?? .day
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case categoryId, categoryName, period
+        }
+    }
+
     let id: String
     let name: String
     let kind: Kind
     let unit: Unit
     let weeklyStepGoal: Int?
-    /// Nur bei Fokus-Zeit: das Tagesziel in Minuten.
+    /// Nur bei Fokus-Zeit: das Ziel in Minuten - je Tag oder je Woche (`focus`).
     let focusMinutesGoal: Int?
     /// Bei „Aufbauen" der Rhythmus; `nil` heisst: einer, den das alte
     /// Formular nicht zeigen kann.
@@ -145,6 +188,9 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
     let backfillFrom: CalendarDate?
     /// Nur bei Ziel und Challenge: die Zusammenfassung wie in `GET /cohabits`.
     let summary: CohabitSummary?
+    /// Nur bei Fokus-Zeit: Kategorie und Zeitraum. Ein Dienst von vor dem
+    /// 01.10.2026 schickt nichts - dann alle Baeume, je Tag.
+    let focus: Focus?
 
     func isMarked(_ day: CalendarDate) -> Bool {
         markedDays.contains(day)
@@ -162,6 +208,31 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
 
     /// Der Rhythmus, mit Vorgabe taeglich.
     var rhythm: Period { period ?? .day }
+
+    /// Das Kalorienziel im Wochenmittel - in der Liste eine Art „Track food",
+    /// nur in Wochen.
+    var isWeeklyFoodTarget: Bool { kind == .food && unit == .weeks }
+
+    /// Rechts in der Zeile bei Track food: „1.470/1.840 kcal", im Wochenmittel
+    /// mit „Ø" davor - sonst saehe der Schnitt aus wie der Stand von heute.
+    var kcalText: String? {
+        guard let progress else { return nil }
+        return isWeeklyFoodTarget ? "Ø \(progress.kcalText)" : progress.kcalText
+    }
+
+    /// „Track food" bzw. „Kalorienziel im Wochenmittel" - fuer den Editor.
+    var kindLabel: String {
+        isWeeklyFoodTarget ? "Kalorienziel im Wochenmittel" : kind.label
+    }
+
+    /// Was unter dem Namen steht: „3 Tage", bei Fokus-Zeit mit Kategorie
+    /// „3 Tage · Bachelorarbeit", gefaehrdet dazu „heute noch offen".
+    var subtitleText: String {
+        var parts = [streakText]
+        if kind == .focus, let category = focus?.categoryName { parts.append(category) }
+        if atRisk { parts.append(openText) }
+        return parts.joined(separator: " · ")
+    }
 
     /// Ob das ein Habit zum Aufbauen mit Wochen- oder Monatsrhythmus ist -
     /// dann zaehlt `progress` die Haken im laufenden Zeitraum.
@@ -245,12 +316,13 @@ extension ClassicHabit: Decodable {
         admin = (try? c.decodeIfPresent(Bool.self, forKey: .admin)) ?? false
         backfillFrom = try? c.decodeIfPresent(CalendarDate.self, forKey: .backfillFrom)
         summary = try? c.decodeIfPresent(CohabitSummary.self, forKey: .summary)
+        focus = try? c.decodeIfPresent(Focus.self, forKey: .focus)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, kind, unit, weeklyStepGoal, focusMinutesGoal, period, timesPerPeriod,
              streak, doneToday, atRisk, progress, recent, unavailable, markedDays, createdAt,
-             photoRequired, shared, admin, backfillFrom, summary
+             photoRequired, shared, admin, backfillFrom, summary, focus
     }
 }
 
@@ -293,7 +365,7 @@ struct ClassicProgress: Decodable, Sendable, Equatable {
         "\(value.formatted())/\(goal.formatted()) kcal"
     }
 
-    /// „2:15/4:00 h" - Fokus-Minuten des Tages gegen das Ziel.
+    /// „2:15/4:00 h" - Fokus-Minuten des Tages (bzw. der Woche) gegen das Ziel.
     var focusText: String {
         "\(ClassicProgress.hours(value))/\(ClassicProgress.hours(goal)) h"
     }
@@ -306,8 +378,10 @@ struct ClassicProgress: Decodable, Sendable, Equatable {
 /// Was das alte Formular beim Anlegen (`POST /classic/habits`) und Bearbeiten
 /// (`PUT /classic/habits/{id}`) schickt.
 ///
-/// Alle Schluessel stehen da, leere als `null` - wie ueberall in coHabit.
-/// `period: null` heisst beim Bearbeiten „Rhythmus nicht anfassen".
+/// Die alten Schluessel stehen immer da, leere als `null` - wie ueberall in
+/// coHabit. `period: null` heisst beim Bearbeiten „Rhythmus nicht anfassen".
+/// Die beiden Fokus-Schluessel nur bei Fokus-Zeit: fehlt `focusCategoryId`,
+/// bleibt die Kategorie, wie sie ist; `""` heisst alle Baeume.
 struct ClassicHabitDraft: Encodable, Sendable, Equatable {
     let name: String
     let kind: ClassicHabit.Kind
@@ -315,28 +389,38 @@ struct ClassicHabitDraft: Encodable, Sendable, Equatable {
     var focusMinutesGoal: Int?
     var period: ClassicHabit.Period?
     var timesPerPeriod: Int?
+    var focusCategoryId: String?
+    var focusPeriod: ClassicHabit.FocusPeriod?
 
     init(name: String, kind: ClassicHabit.Kind, weeklyStepGoal: Int? = nil, focusMinutesGoal: Int? = nil,
-         period: ClassicHabit.Period? = nil, timesPerPeriod: Int? = nil) {
+         period: ClassicHabit.Period? = nil, timesPerPeriod: Int? = nil,
+         focusCategoryId: String? = nil, focusPeriod: ClassicHabit.FocusPeriod? = nil) {
         self.name = name
         self.kind = kind
         self.weeklyStepGoal = weeklyStepGoal
         self.focusMinutesGoal = focusMinutesGoal
         self.period = period
         self.timesPerPeriod = timesPerPeriod
+        self.focusCategoryId = focusCategoryId
+        self.focusPeriod = focusPeriod
     }
 
     /// Was das Formular aus seinen Feldern macht: Ziele nur bei ihrer Art,
     /// Rhythmus nur beim Aufbauen und nur, wenn das Formular ihn zeigt
-    /// (`period` sonst `nil`), die Haeufigkeit nur bei Woche und Monat.
+    /// (`period` sonst `nil`), die Haeufigkeit nur bei Woche und Monat. Bei
+    /// Fokus-Zeit Kategorie und Zeitraum immer ausdruecklich - „alle Baeume"
+    /// als `""`, sonst setzte ein Bearbeiten die Kategorie nicht zurueck.
     init(form name: String, kind: ClassicHabit.Kind, stepGoal: Int?, focusMinutes: Int?,
-         period: ClassicHabit.Period?, timesPerPeriod: Int) {
+         period: ClassicHabit.Period?, timesPerPeriod: Int,
+         focusCategoryId: String? = nil, focusPeriod: ClassicHabit.FocusPeriod = .day) {
         let rhythm = kind == .build ? period : nil
         self.init(name: name, kind: kind,
                   weeklyStepGoal: kind == .steps ? stepGoal : nil,
                   focusMinutesGoal: kind == .focus ? focusMinutes : nil,
                   period: rhythm,
-                  timesPerPeriod: rhythm == .week || rhythm == .month ? timesPerPeriod : nil)
+                  timesPerPeriod: rhythm == .week || rhythm == .month ? timesPerPeriod : nil,
+                  focusCategoryId: kind == .focus ? (focusCategoryId ?? "") : nil,
+                  focusPeriod: kind == .focus ? focusPeriod : nil)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -347,10 +431,12 @@ struct ClassicHabitDraft: Encodable, Sendable, Equatable {
         try c.encode(focusMinutesGoal, forKey: .focusMinutesGoal)
         try c.encode(period, forKey: .period)
         try c.encode(timesPerPeriod, forKey: .timesPerPeriod)
+        try c.encodeIfPresent(focusCategoryId, forKey: .focusCategoryId)
+        try c.encodeIfPresent(focusPeriod, forKey: .focusPeriod)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case name, kind, weeklyStepGoal, focusMinutesGoal, period, timesPerPeriod
+        case name, kind, weeklyStepGoal, focusMinutesGoal, period, timesPerPeriod, focusCategoryId, focusPeriod
     }
 }
 

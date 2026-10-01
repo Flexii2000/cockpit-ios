@@ -298,9 +298,11 @@ final class ClassicModelTests: XCTestCase {
         XCTAssertNil(unknownRhythm.period)
         XCTAssertNil(unknownRhythm.timesPerPeriod)
 
+        // Fokus-Zeit: Kategorie („" = alle Baeume) und Zeitraum stehen immer da.
         let focus = ClassicHabitDraft(form: "Fokus", kind: .focus, stepGoal: 70_000, focusMinutes: 240,
                                       period: .week, timesPerPeriod: 2)
-        XCTAssertEqual(focus, ClassicHabitDraft(name: "Fokus", kind: .focus, focusMinutesGoal: 240))
+        XCTAssertEqual(focus, ClassicHabitDraft(name: "Fokus", kind: .focus, focusMinutesGoal: 240,
+                                                focusCategoryId: "", focusPeriod: .day))
     }
 
     /// Die Kennung passt in das, was der Dienst annimmt (8-64 Zeichen aus

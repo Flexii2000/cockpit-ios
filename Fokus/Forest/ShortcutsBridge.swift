@@ -61,7 +61,13 @@ enum ShortcutsBridge {
     /// Aus, wenn der Kurzbefehl (noch) nicht existiert - sonst meldet die
     /// Kurzbefehle-App bei jeder Session einen Fehler.
     static var isEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
+        get {
+            #if DEBUG
+            // UI-Tests: kein Sprung in die Kurzbefehle-App mitten im Ablauf.
+            if ProcessInfo.processInfo.environment["COCKPIT_NO_SHORTCUTS"] == "1" { return false }
+            #endif
+            return UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
+        }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
     }
 

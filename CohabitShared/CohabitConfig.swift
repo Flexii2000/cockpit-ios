@@ -102,16 +102,35 @@ struct CohabitConfig: Codable, Hashable, Sendable {
     }
 
     struct Auto: Codable, Hashable, Sendable {
-        /// `FOOD`, `STEPS_WEEKLY`, `FOCUS`.
+        /// `FOOD`, `FOOD_TARGET_WEEKLY` (seit 2026-10-01: das kcal-Ziel im
+        /// Wochenmittel, ohne eigene Ziele), `STEPS_WEEKLY`, `FOCUS` - und was
+        /// der Dienst spaeter noch erfindet: als Text, damit nichts kippt.
         var source: String
         var weeklyStepGoal: Int?
+        /// FOCUS: Minuten je Tag oder je Woche (`focusPeriod`).
         var focusMinutesGoal: Int?
+        /// FOCUS: nur Baeume dieser Wald-Kategorie; nil = alle Baeume.
+        var focusCategoryId: String? = nil
+        /// Ihr Name - traegt der Dienst ein, gesendet wird er nicht.
+        var focusCategoryName: String? = nil
+        /// FOCUS: `DAY` (Vorgabe) oder `WEEK`.
+        var focusPeriod: String? = nil
 
+        /// Fokus-Minuten je Woche statt je Tag.
+        var isWeeklyFocus: Bool { source == "FOCUS" && focusPeriod == "WEEK" }
+
+        /// Zaehlt je Woche (Montag bis Sonntag) statt je Tag.
+        var isWeekly: Bool { source == "STEPS_WEEKLY" || source == "FOOD_TARGET_WEEKLY" || isWeeklyFocus }
+
+        /// Kategorie und Zeitraum stehen immer im Rumpf: der Dienst liest
+        /// beim Bearbeiten ein fehlendes Feld als „alle Baeume" bzw. „je Tag".
         func encode(to encoder: Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(source, forKey: .source)
             try c.encode(weeklyStepGoal, forKey: .weeklyStepGoal)
             try c.encode(focusMinutesGoal, forKey: .focusMinutesGoal)
+            try c.encode(source == "FOCUS" ? focusCategoryId : nil, forKey: .focusCategoryId)
+            try c.encode(source == "FOCUS" ? (focusPeriod ?? "DAY") : nil, forKey: .focusPeriod)
         }
     }
 

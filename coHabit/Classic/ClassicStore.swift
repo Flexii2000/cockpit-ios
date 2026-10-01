@@ -170,6 +170,11 @@ final class ClassicStore {
         }
     }
 
+    /// Die Kategorien aus dem Wald fuer den Editor (Fokus-Zeit).
+    func focusCategories() async -> [FocusCategory] {
+        await FocusCategoryChoices.load(api: makeAPI())
+    }
+
     /// Allein: loeschen. Geteilt: verlassen - das entscheidet der Dienst.
     func delete(_ habit: ClassicHabit) async {
         do {

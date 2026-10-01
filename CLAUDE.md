@@ -105,7 +105,12 @@ Kopf von `run-simulator.sh`, Schalter `COCKPIT_URL_GRADES`).
 Die Token dafür stehen im **macOS-Schlüsselbund** unter dem Konto
 `cockpit-ios` (Dienste `fh_private` und `weight_app_token`) — nicht im Repo,
 nicht in einer Datei. Wie sie dort hinkommen, steht im Kopf des Skripts. Die
-App liest sie nur im Debug-Build (`Access.seedFromEnvironment`).
+App liest sie nur im Debug-Build (`Access.seedFromEnvironment`). Gesetzte
+`COCKPIT_FH_PRIVATE_TOKEN`/`COCKPIT_WEIGHT_TOKEN` gehen in `run-simulator.sh`
+und `uitest.sh` dem Schlüsselbund vor - gegen einen lokalen Dienst gilt dessen
+Token (`local-private`), nicht der vom Server. So läuft der Wald-Test, der
+wirklich einen Baum von einer Minute pflanzt:
+`COCKPIT_URL_HABITS=http://127.0.0.1:<port>/habits COCKPIT_URL_COHABIT=http://127.0.0.1:<port>/cohabit/api COCKPIT_FH_PRIVATE_TOKEN=local-private COCKPIT_WEIGHT_TOKEN=local-weight DEVICE="coHabit Test" tools/uitest.sh Fokus testPlantATreeWithACategory`.
 
 Erscheinungsbild umschalten: `xcrun simctl ui booted appearance dark|light`.
 **Beide anschauen**, bevor etwas als fertig gilt.
@@ -183,6 +188,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_ASK_PUSH=1` | fragt trotzdem nach der Benachrichtigungs-Erlaubnis (ohne sie zeigt der Simulator nichts an), meldet aber weiterhin keine Kennung an — fuer `pushtest.sh` |
 | `COCKPIT_TODO_AREA=Uni` | öffnet im To-Do-Tab eine bestimmte Seite - wischen kann der Simulator nicht |
 | `COCKPIT_NO_SCREENTIME=1` | Wald-Tab ohne Bildschirmzeit: kein Erlaubnis-Dialog, kein Schild, keine DeviceActivity — im Simulator gibt es das alles nicht, und so lässt sich eine Session trotzdem pflanzen |
+| `COCKPIT_NO_SHORTCUTS=1` | Wald-Tab ohne den Sprung in die Kurzbefehle-App beim Pflanzen - sonst verlässt die App mitten im UI-Test den Vordergrund |
 | `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |

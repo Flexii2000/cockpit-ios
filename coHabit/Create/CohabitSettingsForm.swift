@@ -9,6 +9,8 @@ struct CohabitSettingsForm: View {
     let editing: Bool
 
     @State private var showsZones = false
+    /// Die Kategorien aus dem Wald - erst geladen, wenn Fokus-Zeit gewaehlt ist.
+    @State private var focusCategories: [FocusCategory] = []
 
     var body: some View {
         VStack(spacing: 14) {
@@ -129,15 +131,30 @@ struct CohabitSettingsForm: View {
     }
 
     private func applyAuto(_ source: String) {
+        let focus = source == "FOCUS"
         config.auto = CohabitConfig.Auto(source: source,
                                          weeklyStepGoal: source == "STEPS_WEEKLY" ? (config.auto?.weeklyStepGoal ?? 70_000) : nil,
-                                         focusMinutesGoal: source == "FOCUS" ? (config.auto?.focusMinutesGoal ?? 240) : nil)
+                                         focusMinutesGoal: focus ? (config.auto?.focusMinutesGoal ?? 240) : nil,
+                                         focusCategoryId: focus ? config.auto?.focusCategoryId : nil,
+                                         focusPeriod: focus ? (config.auto?.focusPeriod ?? "DAY") : nil)
         // Wie die bisherigen automatischen Habits (Vertrag §7.1): Schritte
-        // zaehlen je Woche, Essen und Fokus je Tag.
-        config.streak?.rhythm = source == "STEPS_WEEKLY" ? .init(kind: "TIMES_PER_WEEK", times: 1) : .daily
+        // und das Kalorienziel im Wochenmittel zaehlen je Woche, Essen je
+        // Tag, Fokus je Tag oder Woche. Der Dienst setzt es ohnehin so.
+        config.streak?.rhythm = config.auto?.isWeekly == true ? .init(kind: "TIMES_PER_WEEK", times: 1) : .daily
         config.tracking = .check
         config.photoRequired = false
         config.health = nil
+    }
+
+    /// Je Tag oder je Woche. Die Minuten bleiben, soweit sie in den neuen
+    /// Bereich passen - wie im Web-Formular.
+    private func setFocusPeriod(_ period: String) {
+        guard var auto = config.auto, auto.source == "FOCUS" else { return }
+        auto.focusPeriod = period
+        let range = FocusCategoryChoices.range(weekly: auto.isWeeklyFocus)
+        auto.focusMinutesGoal = min(range.upperBound, max(range.lowerBound, auto.focusMinutesGoal ?? 240))
+        config.auto = auto
+        config.streak?.rhythm = auto.isWeeklyFocus ? .init(kind: "TIMES_PER_WEEK", times: 1) : .daily
     }
 
     private var weekdayPicker: some View {
@@ -190,11 +207,46 @@ struct CohabitSettingsForm: View {
                                increase: { config.auto?.weeklyStepGoal = goal + 5_000 })
             }
             if config.auto?.source == "FOCUS" {
-                let minutes = config.auto?.focusMinutesGoal ?? 240
-                StepperCapsule(text: String(format: "%d:%02d h am Tag", minutes / 60, minutes % 60),
-                               canDecrease: minutes > 15, canIncrease: minutes < 960,
-                               decrease: { config.auto?.focusMinutesGoal = minutes - 15 },
-                               increase: { config.auto?.focusMinutesGoal = minutes + 15 })
+                focusFields
+            }
+        }
+        .task(id: config.auto?.source) {
+            guard config.auto?.source == "FOCUS" else { return }
+            focusCategories = await FocusCategoryChoices.load(api: Session.shared.api())
+        }
+    }
+
+    /// Fokus-Zeit: je Tag oder Woche, wie viele Minuten, und welche Baeume -
+    /// alle oder nur die einer Kategorie aus dem Wald.
+    private var focusFields: some View {
+        let weekly = config.auto?.isWeeklyFocus ?? false
+        let minutes = config.auto?.focusMinutesGoal ?? 240
+        let range = FocusCategoryChoices.range(weekly: weekly)
+        let step = FocusCategoryChoices.step(weekly: weekly)
+        let categories = FocusCategoryChoices.merged(focusCategories, keeping: config.auto?.focusCategoryId,
+                                                     name: config.auto?.focusCategoryName)
+        return VStack(alignment: .leading, spacing: 10) {
+            CapsuleSegments(options: [("DAY", "Täglich", nil), ("WEEK", "Pro Woche", nil)],
+                            selection: Binding(
+                                get: { config.auto?.focusPeriod ?? "DAY" },
+                                set: { setFocusPeriod($0) }), fill: Ink.track)
+            StepperCapsule(text: FocusCategoryChoices.minutesText(minutes, weekly: weekly),
+                           canDecrease: minutes - step >= range.lowerBound,
+                           canIncrease: minutes + step <= range.upperBound,
+                           decrease: { config.auto?.focusMinutesGoal = minutes - step },
+                           increase: { config.auto?.focusMinutesGoal = minutes + step })
+            FieldLabel(text: "Kategorie")
+            FlowLayout(spacing: 8) {
+                choiceChip("Alle Bäume", selected: config.auto?.focusCategoryId == nil) {
+                    config.auto?.focusCategoryId = nil
+                    config.auto?.focusCategoryName = nil
+                }
+                ForEach(categories) { category in
+                    choiceChip(category.name, selected: config.auto?.focusCategoryId == category.id) {
+                        config.auto?.focusCategoryId = category.id
+                        config.auto?.focusCategoryName = category.name
+                    }
+                }
             }
         }
     }
@@ -202,6 +254,7 @@ struct CohabitSettingsForm: View {
     nonisolated static func sourceTitle(_ source: String) -> String {
         switch source {
         case "FOOD": "Track food"
+        case "FOOD_TARGET_WEEKLY": "Kalorienziel im Wochenmittel"
         case "STEPS_WEEKLY": "Schritte / Woche"
         case "FOCUS": "Fokus-Zeit"
         default: source

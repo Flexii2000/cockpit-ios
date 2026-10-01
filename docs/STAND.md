@@ -18,7 +18,12 @@
 > anmelden - auf dem Gerät den Knopf „In der App öffnen" der Weboberfläche,
 > Langdruck samt Haptik und Wischen in der klassischen Liste prüfen. Seit dem
 > 01.10. der Timeline-Filter als Abhak-Liste (braucht den Dienst ab `c536f66`,
-> sonst ignoriert ein älterer Dienst `exclude` und zeigt alles).
+> sonst ignoriert ein älterer Dienst `exclude` und zeigt alles). Ebenfalls seit
+> dem 01.10.: Wald-Kategorien und Fokus-Habits nach Kategorie/Woche (Dienst ab
+> `10536d7`) und das Kalorienziel im Wochenmittel (ab `f0f69c6`) - also erst
+> den Dienst ausrollen, dann Fokus **und** coHabit neu aufs Gerät; dort eine
+> Kategorie anlegen, einen Baum mit ihr pflanzen und Langdruck/Wischen im
+> Kategorie-Blatt prüfen.
 >
 > **Davor offen (unverändert):** Felix prüft auf dem Gerät: die Karten im Essen-Tab
 > (Diagramm-Ziehgeste und Umschalter-Reihe im Pager), die Automation für den
@@ -41,6 +46,59 @@
 > übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+
+## Fokus-Kategorien im Wald und in coHabit · **gebaut, nicht ausgerollt** (2026-10-01)
+
+Felix will im Wald jedem Baum eine Kategorie geben und in coHabit Fokus-Habits,
+die nur eine Kategorie zählen - je Tag oder je Woche (Dienst ab `10536d7`).
+
+- **Fokus, Wald:** über „Baum pflanzen" ein Knopf mit der Kategorie (vorbelegt
+  die zuletzt benutzte, je Gerät; sonst „Ohne Kategorie"). Er öffnet ein Blatt:
+  wählen, eine neue anlegen (ist dann gewählt), umbenennen/löschen per
+  Langdruck oder Wischen. Der Baum trägt `categoryId` mit, auch aus dem
+  Postausgang; Kategorien anlegen/ändern nur mit Netz (ENTSCHEIDUNGEN). Die
+  laufende Session zeigt die Kategorie, die Tageszeile darunter
+  „Bachelorarbeit 1:30 · Uni 0:45". Der Wald selbst ist unverändert. Das
+  Tagesziel kommt nur noch aus einem Fokus-Habit über alle Bäume je Tag.
+- **coHabit, Anlegen/Bearbeiten** (Automatisch › Fokus-Zeit): „Täglich | Pro
+  Woche", Minuten je Tag (bis 16 h) oder Woche (bis 168 h), Kategorie als Chips
+  („Alle Bäume" + `GET /focus/categories`). Kategorie und Zeitraum gehen immer
+  mit, beim Bearbeiten bleiben sie so erhalten.
+- **Klassische Liste:** der alte Editor hat bei „Fokus-Zeit" dieselben drei
+  Felder (vorbelegt aus `focus`, `""` = alle Bäume); die Zeile nennt die
+  Kategorie im Untertitel („0 Wochen · Bachelorarbeit"), Wochenziele zeigen
+  den Wochenstand wie die Schritte.
+- **Kalorienziel im Wochenmittel** (`FOOD_TARGET_WEEKLY`, Dienst ab `f0f69c6`):
+  Chip „Kalorienziel im Wochenmittel" im Formular, keine eigenen Felder; in der
+  klassischen Liste „Track food" in Wochen mit „Ø 2.191/2.300 kcal", der
+  Editor nennt die Art und die Wochenregel. Die neue Liste und die Detailseite
+  zeigen die Texte des Dienstes („bisher im Ziel").
+- **Nebenbei behoben:** im Kopf der Detailseite brach eine dreistellige
+  Strähne neben einem langen Namen um („10" / „3" bei 103 Wochen) - die Zahl
+  bleibt jetzt in einer Zeile, der Name wird kleiner.
+
+**Geprüft:** `tools/verify.sh` grün (Healthy 94 XCTest + 31 Swift Testing,
+davon 4 neu: Kategorie dekodieren, Rumpf mit/ohne `categoryId`, zuletzt
+benutzte merken, Tageszeile; coHabit 110, davon 10 neu: `auto` mit Kategorie,
+Zeitraum und ohne Namen im Rumpf, `focus` der klassischen Liste samt
+Untertitel, Entwurf mit `""`/weggelassen, gelöschte Kategorie bleibt wählbar,
+Minutenbereiche, Kalorienziel-Quelle und -Zeile, unbekannte Quellen). UI-Tests
+gegen den lokalen Dienst (`f0f69c6` mit einer Kalorienzähler-Attrappe):
+`FokusUITests/testPlantATreeWithACategory` (Kategorie im Blatt anlegen, Baum
+von einer Minute, laufende Session und Tageszeile zeigen sie, der Dienst hat
+den Baum mit `categoryId`), `testCreateAFocusHabitWithACategory` (anlegen pro
+Woche mit Kategorie, Typzeile, Bearbeiten der Minuten lässt Kategorie und
+Zeitraum stehen), `testClassicListShowsFocusCategoryAndTheWeeklyMean`,
+`FokusUITests/testRenameAndDeleteACategory` (Langdruck › Umbenennen, Wischen ›
+Löschen); `testForestShowsTheSummary` weiter grün, die ganze Sammlung
+`tools/uitest.sh coHabit` 16 grün, 3 übersprungen (Offline, Push, Rundgang).
+Bilder hell und dunkel von Knopf, Blatt, Kontextmenü, Wischen, laufender
+Session, Tageszeile, Formular, Detail, Bearbeiten, klassischer Zeile und Editor
+angesehen. Für die Tests gehen jetzt `COCKPIT_FH_PRIVATE_TOKEN` und
+`COCKPIT_WEIGHT_TOKEN` aus der Umgebung dem Schlüsselbund vor, und
+`COCKPIT_NO_SHORTCUTS=1` lässt den Sprung in die Kurzbefehle-App aus (CLAUDE.md).
+**Nicht prüfbar im Simulator:** wie sich Langdruck und Wischen auf dem Gerät
+anfühlen, der echte Kalorienzähler.
 
 ## coHabit: kcal aus Healthy als Wert · **gebaut, nicht ausgerollt** (2026-10-01)
 

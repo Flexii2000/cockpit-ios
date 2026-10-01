@@ -55,6 +55,8 @@
 # HABITS genauso umleitbar (COCKPIT_URL_HABITS=http://127.0.0.1:48190/habits),
 # z. B. auf einen lokal mit ./gradlew bootRun gestarteten Dienst; der
 # Privat-Token wird dann auch fuer diesen Rechner als Cookie gesetzt.
+# COCKPIT_FH_PRIVATE_TOKEN (und COCKPIT_WEIGHT_TOKEN) gehen dem Schluesselbund
+# vor - ein lokaler Dienst kennt nur seinen eigenen, z. B. local-private.
 #
 # COCKPIT_NO_HEALTH=1 laesst die Health-Anbindung aus. Ohne das verdeckt der
 # Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken laesst
@@ -68,6 +70,7 @@
 #
 # COCKPIT_NO_SCREENTIME=1 laesst im Wald-Tab (Fokus) die Bildschirmzeit aus -
 # im Simulator gibt es keine; so laesst sich eine Session trotzdem pflanzen.
+# COCKPIT_NO_SHORTCUTS=1 laesst dabei den Sprung in die Kurzbefehle-App aus.
 # COCKPIT_FOREST_RUNNING=45 zeigt dort eine laufende Session mit 45 Minuten Rest.
 # COCKPIT_FOREST_RANGE=month stellt den Wald auf einen Ausschnitt (today, week, month, year).
 # COCKPIT_FOREST_HOUR=19.5 stellt die Uhr der Insel (Stunde in UTC) - Daemmerung, Nacht.
@@ -103,11 +106,16 @@ if [ "$APP" = "coHabit" ]; then
     [ -n "$COHABIT" ] || echo "Kein coHabit-Token - die App zeigt den Start mit „Link einfügen“." >&2
 else
     COHABIT=""
-    PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
+    # Aus der Umgebung vor dem Schluesselbund - gegen einen lokal gestarteten
+    # Dienst gilt dessen Token (COCKPIT_FH_PRIVATE_TOKEN=local-private), nicht
+    # der vom Server.
+    PRIVATE="${COCKPIT_FH_PRIVATE_TOKEN:-}"
+    [ -n "$PRIVATE" ] || PRIVATE=$(security find-generic-password -a cockpit-ios -s fh_private -w) || {
         echo "Kein fh_private im Schluesselbund - siehe Kopf dieses Skripts." >&2
         exit 1
     }
-    WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) || {
+    WEIGHT="${COCKPIT_WEIGHT_TOKEN:-}"
+    [ -n "$WEIGHT" ] || WEIGHT=$(security find-generic-password -a cockpit-ios -s weight_app_token -w) || {
         echo "Kein weight_app_token im Schluesselbund - siehe Kopf dieses Skripts." >&2
         exit 1
     }
@@ -145,6 +153,7 @@ SIMCTL_CHILD_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}" \
 SIMCTL_CHILD_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}" \
 SIMCTL_CHILD_COCKPIT_TODO_AREA="${COCKPIT_TODO_AREA:-}" \
 SIMCTL_CHILD_COCKPIT_NO_SCREENTIME="${COCKPIT_NO_SCREENTIME:-}" \
+SIMCTL_CHILD_COCKPIT_NO_SHORTCUTS="${COCKPIT_NO_SHORTCUTS:-}" \
 SIMCTL_CHILD_COCKPIT_FOREST_RUNNING="${COCKPIT_FOREST_RUNNING:-}" \
 SIMCTL_CHILD_COCKPIT_FOREST_RANGE="${COCKPIT_FOREST_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_FOREST_HOUR="${COCKPIT_FOREST_HOUR:-}" \

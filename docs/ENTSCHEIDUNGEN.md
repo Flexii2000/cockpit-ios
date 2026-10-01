@@ -3,6 +3,78 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-01 — Wald-Kategorien: ein Knopf über „Baum pflanzen", ein Blatt für alles
+Felix will im Wald jedem Baum eine Kategorie geben (Dienst ab `10536d7`). Über
+„Baum pflanzen" steht ein grauer Knopf mit der gewählten Kategorie („Ohne
+Kategorie" bei keiner); er öffnet ein Blatt mit „Ohne Kategorie", den
+Kategorien und darunter einem Feld „Neue Kategorie". Antippen wählt und
+schließt, eine neu angelegte ist sofort gewählt (und das Blatt geht zu);
+Umbenennen und Löschen per Langdruck oder Wischen (kein Vollwischen, damit
+nichts aus Versehen verschwindet). Vorbelegt ist die zuletzt benutzte - je
+Gerät, mit Namen gemerkt, damit der Knopf schon vor dem Laden stimmt; ein
+Testbaum zählt dabei nicht. Die laufende Session zeigt die Kategorie unter dem
+Countdown, die Tageszeile darunter die Kategorien mit ihren Minuten
+(„Bachelorarbeit 1:30 · Uni 0:45", Bäume ohne als „Ohne Kategorie"); ohne jede
+Kategorie sieht die Zeile aus wie vorher. Der Wald bleibt, wie er war.
+**Warum:** Felix; ein Knopf im Stil des Pflanzen-Knopfs passt in die Karte, und
+ein Blatt hat Platz für Anlegen, Umbenennen und Löschen, ohne dass eine eigene
+Verwaltungsseite nötig wird. **Verworfen:** (a) ein Menü statt des Blatts
+(schneller beim Wählen, aber Anlegen und Umbenennen bräuchten dann je einen
+Dialog und Löschen ein Untermenü); (b) Kategorien als Chips direkt in der
+Karte (bei mehr als drei sprengen sie die Karte über dem Rad); (c) jeden Baum
+einzeln in der Liste (die Liste zeigt seit jeher Tage; die Minuten je
+Kategorie sind das, was Felix wissen will); (d) eine Rückfrage vor dem Löschen
+(gelöscht wird nur aus der Auswahl, Bäume und Habits behalten den Namen).
+
+## 2026-10-01 — Wald-Kategorien ohne Netz: nur wählen, nicht anlegen
+Ein Baum geht mit `categoryId` raus, auch aus dem Postausgang. Kategorien
+anlegen, umbenennen und löschen geht dagegen nur mit Netz (sonst „Kein
+Netz."); ohne Netz steht die zuletzt geladene Liste zur Wahl. **Warum:** eine
+offline angelegte Kategorie, die beim Nachsenden scheitert (Name inzwischen
+vergeben → 409), hätte jeden Baum mit ihr mitgenommen - der Dienst lehnt eine
+unbekannte Kategorie ab, und ein abgelehnter Baum ist verloren. Neue
+Kategorien legt man selten an, Bäume pflanzt man oft. **Verworfen:** Anlegen
+mit eigener Kennung in den Postausgang (der Dienst würde es annehmen, aber
+der Fehlerfall träfe ausgerechnet die Bäume). Ebenso entschieden: Das
+Tagesziel des Waldes nimmt nur ein Fokus-Habit über alle Bäume und je Tag
+(`FocusGoal`) - „1 h Bachelorarbeit" oder „10 h pro Woche" gegen die Summe
+aller Bäume von heute zu stellen wäre ein falscher Balken; gibt es nur
+solche, zeigt der Wald die Summe ohne Ziel.
+
+## 2026-10-01 — Fokus-Habits: Zeitraum, Minuten, Kategorie im Formular
+Anlegen und Bearbeiten eines automatischen Fokus-Habits zeigen unter der
+Quelle drei Dinge: „Täglich | Pro Woche" (Segmente wie bei „Zählt"), die
+Minuten als Stepper („4:00 h am Tag" in Viertelstunden bis 16 h wie bisher,
+„10:00 h pro Woche" in Stunden bis 168 h) und „Kategorie" als Chips („Alle
+Bäume" + die Kategorien aus `GET /focus/categories`). Der Titel bleibt frei.
+Beim Wechsel des Zeitraums bleiben die Minuten, soweit sie passen, wie im
+Web-Formular. Die App schickt `focusCategoryId` und `focusPeriod` immer, den
+Namen nie (den trägt der Dienst ein). Eine im Wald gelöschte Kategorie, die ein
+Habit noch hat, bleibt als Chip stehen. Im alten Editor der klassischen Liste
+dasselbe in dessen Stil (Segmente, Zahlenfeld, Picker), vorbelegt aus
+`focus`; die Zeile nennt die Kategorie im Untertitel („3 Tage ·
+Bachelorarbeit"). **Warum:** Felix; dieselben drei Felder wie im Web, im Stil
+des jeweiligen Formulars. **Verworfen:** (a) beim Wechsel auf „Pro Woche" die
+Minuten mal sieben nehmen (aus 4 h am Tag würden 28 h pro Woche - weit weg von
+dem, was man pro Woche üblicherweise einstellt, und viele Taps zurück); (b) ein
+Picker statt Chips im neuen Formular (das Formular wählt überall per Chip);
+(c) die Kategorie im Namen der Zeile statt im Untertitel (der Name ist frei
+und oft schon die Kategorie).
+
+## 2026-10-01 — Kalorienziel im Wochenmittel: nur ein Chip, in der alten Liste mit „Ø"
+Neue automatische Quelle `FOOD_TARGET_WEEKLY` (Dienst ab `f0f69c6`): im
+Formular der Chip „Kalorienziel im Wochenmittel" ohne weitere Felder,
+Rhythmus einmal pro Woche. In der klassischen Liste kommt sie als Art FOOD in
+Wochen; die Zeile schreibt den Wochenschnitt mit „Ø" davor („Ø 2.191/2.300
+kcal"), der Editor nennt die Art beim Namen und erklärt die Wochenregel statt
+der von „Track food". **Warum:** ohne „Ø" sähe der Schnitt der Woche aus wie
+der Stand von heute, und die alte Erklärung („80 % des kcal-Ziels …") wäre
+falsch. **Verworfen:** eine eigene Zeilenart in der klassischen Liste (der
+Dienst liefert FOOD/WEEKS mit allem, was die Zeile braucht); die Quelle im
+alten Editor zum Anlegen anbieten (nicht verlangt, das Formular kennt nur die
+fünf alten Arten). Unbekannte Quellen bleiben Text und stehen mit ihrem Namen
+als Chip da.
+
 ## 2026-10-01 — kcal aus Healthy: ein Schalter statt der Apple-Health-Abfrage
 Felix wollte „kcal aus Healthy" als Wert in Co-Habits. Die Werte holt der
 Dienst selbst aus dem Kalorienzähler (`source: HEALTHY`); die App bietet beim

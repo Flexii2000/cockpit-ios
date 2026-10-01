@@ -16,6 +16,7 @@ final class ForestStore {
 
     private let api = FocusSessionsAPI()
     private let screenTime = ScreenTimeGuard()
+    private let categoryMemory = FocusCategoryMemory()
 
     /// Der Baum, der gerade waechst. Nil, wenn keine Session laeuft.
     private(set) var active: ActiveSession?
@@ -26,6 +27,12 @@ final class ForestStore {
     private(set) var unsynced: [FocusSession] = []
     /// Das Tagesziel aus dem Co-Habit „Fokus-Zeit" (coHabit) - ohne keins.
     private(set) var dailyGoal: Int? = FocusGoal.cached
+    /// Die Kategorien zur Auswahl vor dem Pflanzen. Nil, solange sie nie
+    /// geladen wurden - ohne Netz kommt der letzte Stand (OfflineCache).
+    private(set) var categories: [FocusCategory]?
+    /// Die Kategorie fuer den naechsten Baum; nil heisst „Ohne Kategorie".
+    /// Vorbelegt mit der zuletzt benutzten.
+    var category: FocusCategory?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var isAccessProblem = false
@@ -66,6 +73,7 @@ final class ForestStore {
         #endif
         active = FocusHandoff.loadSession()
         unsynced = Self.read([FocusSession].self, key: Self.unsyncedKey) ?? []
+        category = categoryMemory.preselection(from: nil)
         #if DEBUG
         // Nur fuers Bild: eine Session, die vor zehn Minuten begann. Ohne
         // Schild - im Simulator gibt es keinen - und ohne Baum am Ende.
@@ -120,8 +128,10 @@ final class ForestStore {
         do {
             async let list = api.sessions(from: CalendarDate(date: fromDate), to: today)
             async let goal = FocusGoal.load()
+            async let kinds = loadCategories()
             sessions = try await list
             dailyGoal = await goal
+            await kinds
             errorMessage = nil
             isAccessProblem = false
             await syncPending()
@@ -138,6 +148,76 @@ final class ForestStore {
     func plant(minutes: Int) async {
         let clamped = min(SessionLength.maximum, max(SessionLength.customMinimum, minutes))
         await start(seconds: Double(clamped) * 60, test: false)
+    }
+
+    // MARK: - Kategorien
+
+    /// Ohne Antwort bleibt die Liste, wie sie war - auch bei einem Dienst,
+    /// der die Kategorien noch nicht kennt.
+    private func loadCategories() async {
+        guard let list = try? await api.categories() else { return }
+        categories = list
+        // Woanders umbenannt: der neue Name. Geloescht: „Ohne Kategorie".
+        if let chosen = category {
+            category = list.first { $0.id == chosen.id }
+        }
+    }
+
+    /// Legt eine Kategorie an und waehlt sie. Liefert die Meldung, wenn es
+    /// nicht ging - „Diese Kategorie gibt es schon." kommt vom Dienst.
+    func createCategory(named raw: String) async -> String? {
+        let name = Self.categoryName(raw)
+        guard !name.isEmpty else { return nil }
+        do {
+            let created = try await api.createCategory(name: name)
+            var list = categories ?? []
+            if !list.contains(where: { $0.id == created.id }) { list.append(created) }
+            categories = list
+            category = created
+            return nil
+        } catch {
+            return Self.explain(error)
+        }
+    }
+
+    func renameCategory(_ old: FocusCategory, to raw: String) async -> String? {
+        let name = Self.categoryName(raw)
+        guard !name.isEmpty, name != old.name else { return nil }
+        do {
+            let renamed = try await api.renameCategory(id: old.id, name: name)
+            categories = categories?.map { $0.id == renamed.id ? renamed : $0 }
+            if category?.id == renamed.id { category = renamed }
+            if categoryMemory.lastUsed?.id == renamed.id { categoryMemory.lastUsed = renamed }
+            return nil
+        } catch {
+            return Self.explain(error)
+        }
+    }
+
+    /// Nur aus der Auswahl - die Baeume mit ihr behalten ihren Namen.
+    func deleteCategory(_ doomed: FocusCategory) async -> String? {
+        do {
+            try await api.deleteCategory(id: doomed.id)
+            categories?.removeAll { $0.id == doomed.id }
+            if category?.id == doomed.id { category = nil }
+            if categoryMemory.lastUsed?.id == doomed.id { categoryMemory.lastUsed = nil }
+            return nil
+        } catch {
+            return Self.explain(error)
+        }
+    }
+
+    /// Wie der Dienst: Leerraum zusammengezogen, hoechstens 40 Zeichen.
+    static func categoryName(_ raw: String) -> String {
+        let words = raw.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return String(words.prefix(40))
+    }
+
+    /// Ohne Netz geht hier nichts in den Postausgang - die Meldung fuers
+    /// Lesen („noch nichts gespeichert") passte nicht.
+    private static func explain(_ error: Error) -> String {
+        if let apiError = error as? APIError, case .offline = apiError { return "Kein Netz." }
+        return error.localizedDescription
     }
 
     /// Der Testbaum: derselbe Ablauf - Erlaubnis, Schild, Meldung, Kurzbefehle -
@@ -166,7 +246,11 @@ final class ForestStore {
         let session = ActiveSession(id: UUID().uuidString.lowercased(),
                                     start: now,
                                     end: now.addingTimeInterval(seconds),
-                                    test: test)
+                                    test: test,
+                                    categoryId: category?.id,
+                                    categoryName: category?.name)
+        // Der Testbaum zaehlt nirgends - auch nicht als „zuletzt benutzt".
+        if !test { categoryMemory.lastUsed = category }
         active = session
         FocusHandoff.save(session)
         await scheduleEndNotification(session)
@@ -246,7 +330,9 @@ final class ForestStore {
             // der Baum nicht weg, sondern wartet.
             unsynced.append(FocusSession(id: session.id, start: session.start, end: session.end,
                                          minutes: session.minutes,
-                                         day: CalendarDate(date: session.start)))
+                                         day: CalendarDate(date: session.start),
+                                         categoryId: session.categoryId,
+                                         categoryName: session.categoryName))
             persistUnsynced()
             await syncPending()
         }
@@ -266,7 +352,8 @@ final class ForestStore {
         for tree in unsynced {
             do {
                 let planted = try await api.plant(
-                    FocusSessionDraft(id: tree.id, start: tree.start, end: tree.end))
+                    FocusSessionDraft(id: tree.id, start: tree.start, end: tree.end,
+                                      categoryId: tree.categoryId))
                 unsynced.removeAll { $0.id == tree.id }
                 if !sessions.contains(where: { $0.id == planted.id }) {
                     sessions.insert(planted, at: 0)

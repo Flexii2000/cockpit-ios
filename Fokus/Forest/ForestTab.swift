@@ -17,6 +17,7 @@ struct ForestTab: View {
     /// „Eigene Dauer": ein Zahlenfeld fuer alles, was das Rad nicht hat.
     @State private var askingCustom = false
     @State private var customMinutes = ""
+    @State private var choosingCategory = false
 
     var body: some View {
         @Bindable var store = store
@@ -92,7 +93,11 @@ struct ForestTab: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityIdentifier("forestMenu")
                 }
+            }
+            .sheet(isPresented: $choosingCategory) {
+                ForestCategorySheet(store: store)
             }
             // Apples eigenes Blatt statt eines selbstgebauten: der Picker ist
             // eine entfernte Ansicht eines Systemprozesses.
@@ -138,6 +143,16 @@ struct ForestTab: View {
             .pickerStyle(.wheel)
             .frame(height: 110)
             .accessibilityIdentifier("sessionLength")
+            Button {
+                choosingCategory = true
+            } label: {
+                Label(store.category?.name ?? ForestCategorySheet.none, systemImage: "tag")
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(.primary)
+            .accessibilityIdentifier("forestCategory")
             Button {
                 Task { await store.plant(minutes: minutes) }
             } label: {
@@ -215,6 +230,12 @@ struct RunningSessionCard: View {
             Text(timerInterval: session.start...session.end, countsDown: true)
                 .font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit())
                 .accessibilityIdentifier("sessionCountdown")
+            if let category = session.categoryName {
+                Label(category, systemImage: "tag")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("sessionCategory")
+            }
             Text("bis \(Self.clock.string(from: session.end))")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -232,23 +253,32 @@ struct RunningSessionCard: View {
     }()
 }
 
-/// Ein Tag im Ausschnitt: Name, Baeume, Minuten.
+/// Ein Tag im Ausschnitt: Name, Baeume, Minuten - und darunter, wofuer,
+/// sobald ein Baum des Tages eine Kategorie hat.
 struct ForestDayRow: View {
 
     let day: ForestDay
 
     var body: some View {
-        HStack {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-            Text(day.sessions.count == 1 ? "1 Baum" : "\(day.sessions.count) Bäume")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(FocusMinutes.hours(day.minutes) + " h")
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 64, alignment: .trailing)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(day.sessions.count == 1 ? "1 Baum" : "\(day.sessions.count) Bäume")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(FocusMinutes.hours(day.minutes) + " h")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 64, alignment: .trailing)
+            }
+            if let categories = FocusCategoryBreakdown.text(day.sessions) {
+                Text(categories)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("dayCategories")
+            }
         }
         .padding(.vertical, 4)
     }

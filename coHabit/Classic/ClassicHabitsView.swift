@@ -259,14 +259,11 @@ struct ClassicHabitRow: View {
             Text(habit.summary?.listLine ?? habit.summary?.subline ?? "")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        } else if habit.atRisk {
-            Text("\(habit.streakText) · \(habit.openText)")
-                .font(.caption)
-                .foregroundStyle(.orange)
         } else {
-            Text(habit.streakText)
+            // „3 Tage", bei Fokus-Zeit mit Kategorie „3 Tage · Bachelorarbeit".
+            Text(habit.subtitleText)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(habit.atRisk ? Color.orange : Color.secondary)
         }
     }
 
@@ -327,13 +324,14 @@ struct ClassicHabitRow: View {
                     .accessibilityIdentifier("toggle-\(habit.id)")
             }
         case .food:
-            if let progress = habit.progress {
+            if let kcal = habit.kcalText {
                 VStack(alignment: .trailing, spacing: 2) {
                     Image(systemName: habit.doneToday ? "checkmark.circle.fill" : "circle.dashed")
                         .foregroundStyle(habit.doneToday ? Color.green : Color.secondary)
-                    Text(progress.kcalText)
+                    Text(kcal)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("kcal-\(habit.id)")
                 }
             }
         case .steps:

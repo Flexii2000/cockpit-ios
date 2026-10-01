@@ -407,6 +407,9 @@ struct DetailHeader<MenuContent: View>: View {
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(Ink.ink)
                 }
+                // Die Zahl bricht nie um („10" / „3" bei 103 Wochen neben einem
+                // langen Namen) - eher wird der Name kleiner.
+                .fixedSize()
                 .accessibilityIdentifier("streakFigure")
             }
         case .abstinence:

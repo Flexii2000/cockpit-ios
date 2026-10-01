@@ -9,6 +9,11 @@ import Foundation
 /// Felix. Die Kennung des gefundenen Co-Habits wird gemerkt, damit es beim
 /// naechsten Mal eine Anfrage ist statt einer Suche. Ohne ein solches
 /// Co-Habit gibt es kein Ziel, wie frueher ohne das Habit.
+///
+/// Seit es Kategorien gibt (2026-10-01), taugt nur ein Fokus-Habit ueber
+/// alle Baeume und je Tag als Tagesziel des Waldes: „1 h Bachelorarbeit"
+/// oder „10 h pro Woche" gegen die Summe aller Baeume von heute zu stellen,
+/// waere ein falscher Balken.
 enum FocusGoal {
 
     private static let idKey = "forest.focusCohabitId"
@@ -49,8 +54,23 @@ enum FocusGoal {
 
     private static func goal(of id: String, client: APIClient) async -> Int? {
         guard let detail: DetailStub = try? await client.get("/cohabits/\(id)"),
-              let auto = detail.config.auto, auto.source == "FOCUS" else { return nil }
+              let auto = detail.config.auto else { return nil }
+        return dailyGoal(of: auto)
+    }
+
+    /// Das Tagesziel eines automatischen Co-Habits - nur Fokus ueber alle
+    /// Baeume und je Tag.
+    static func dailyGoal(of auto: Auto) -> Int? {
+        guard auto.source == "FOCUS", auto.focusCategoryId == nil,
+              (auto.focusPeriod ?? "DAY") == "DAY" else { return nil }
         return auto.focusMinutesGoal ?? 240
+    }
+
+    struct Auto: Decodable {
+        let source: String
+        let focusMinutesGoal: Int?
+        var focusCategoryId: String? = nil
+        var focusPeriod: String? = nil
     }
 
     // Nur die paar Felder, die hier zaehlen - die ganzen coHabit-Modelle
@@ -66,10 +86,6 @@ enum FocusGoal {
 
     private struct DetailStub: Decodable {
         struct Config: Decodable {
-            struct Auto: Decodable {
-                let source: String
-                let focusMinutesGoal: Int?
-            }
             let auto: Auto?
         }
         let config: Config

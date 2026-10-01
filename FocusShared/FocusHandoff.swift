@@ -114,17 +114,26 @@ struct ActiveSession: Codable, Sendable, Equatable {
     /// Der Testbaum: gleicher Ablauf, aber am Ende kein Baum und keine
     /// Minuten - er zaehlt nirgends.
     let test: Bool
+    /// Die vor dem Pflanzen gewaehlte Kategorie - geht am Ende mit dem Baum
+    /// an den Dienst. Der Name steht dabei, damit die Karte ihn zeigt. Zwei
+    /// Felder statt `FocusCategory`: FokusMonitor hat kein Shared/.
+    var categoryId: String? = nil
+    var categoryName: String? = nil
 
-    init(id: String, start: Date, end: Date, shielded: Bool = false, test: Bool = false) {
+    init(id: String, start: Date, end: Date, shielded: Bool = false, test: Bool = false,
+         categoryId: String? = nil, categoryName: String? = nil) {
         self.id = id
         self.start = start
         self.end = end
         self.shielded = shielded
         self.test = test
+        self.categoryId = categoryId
+        self.categoryName = categoryName
     }
 
-    /// `shielded` und `test` duerfen fehlen: eine Session aus einem Stand,
-    /// der die Felder noch nicht kannte, gilt als geschuetzt und echt.
+    /// `shielded`, `test` und die Kategorie duerfen fehlen: eine Session aus
+    /// einem Stand, der die Felder noch nicht kannte, gilt als geschuetzt,
+    /// echt und ohne Kategorie.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
@@ -132,6 +141,8 @@ struct ActiveSession: Codable, Sendable, Equatable {
         end = try container.decode(Date.self, forKey: .end)
         shielded = try container.decodeIfPresent(Bool.self, forKey: .shielded) ?? true
         test = try container.decodeIfPresent(Bool.self, forKey: .test) ?? false
+        categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
+        categoryName = try container.decodeIfPresent(String.self, forKey: .categoryName)
     }
 
     var minutes: Int { Int(end.timeIntervalSince(start) / 60) }

@@ -497,6 +497,7 @@ mit dem Status.
 | GET/POST | `/invite-links/{code}` · `/accept` | Einladungslink - ohne Zugang mit Anzeigename, Nutzername, `acceptTerms` |
 | GET/POST | `/me/invitations` · `/invitations/{id}/accept\|decline` | offene Einladungen |
 | POST/DELETE | `/devices[/{token}]` | `{"token","platform":"ios"}` — Push-Kennung |
+| GET | `/focus/categories` | → `[{"id","name"}]`: die Kategorien aus dem Wald zur Auswahl für Fokus-Habits; nur für Felix, sonst `[]` (seit 2026-10-01) |
 
 ⚠️ **Kennungen vergibt die App** für Einträge und Nachrichten (UUID klein
 geschrieben); dieselbe noch einmal liefert das bestehende Objekt. Bei Fotos
@@ -516,6 +517,33 @@ Healthy-Zugang.“, `PUT …/health/{date}` bei KCAL → 400. Die App liest für
 `HEALTHY` nichts aus Apple Health, fragt nicht nach einer Erlaubnis
 (`CohabitHealthSync.readsFromDevice`) und zeigt statt „Verbinden“ den Schalter
 (`HealthyCard`, `PUT …/settings/me {healthConsent}`), gesperrt ohne `FOOD`.
+
+⚠️ **Fokus-Habits nach Kategorie und Zeitraum (seit 2026-10-01, `../habits`
+Commit `10536d7`):** `config.auto` hat bei `FOCUS` drei Felder mehr:
+`focusCategoryId` (nur Bäume dieser Wald-Kategorie, `null` = alle),
+`focusCategoryName` (trägt der **Dienst** aus dem Wald ein und zieht ihn bei
+Umbenennung nach - was ein Client schickt, gilt nicht) und `focusPeriod`
+(`DAY` Vorgabe, `WEEK` = Summe Mo–So, bis 10.080 Minuten, Streak dann in Wochen
+wie bei den Schritten). Eine Kategorie, die nicht zur Auswahl steht → 400
+„Unbekannte Kategorie.“; eine inzwischen gelöschte darf ein bestehendes
+Co-Habit behalten. ⚠️ Beim Bearbeiten liest der Dienst ein fehlendes Feld als
+`null` - die App schickt `focusCategoryId` und `focusPeriod` deshalb immer
+(`CohabitConfig.Auto.encode`), den Namen nie. Typzeile und Regel kommen fertig
+(„Streak · 60 Min. Bachelorarbeit täglich“, „Automatisch: 240 Min.
+Bachelorarbeit/Woche“). Das Formular zeigt Zeitraum, Minuten (je Tag 15 bis
+960 in Viertelstunden wie bisher, je Woche 60 bis 10.080 in Stunden) und die
+Kategorie als Chips („Alle Bäume“ + `GET /focus/categories`, eine gelöschte des
+Habits bleibt wählbar, `FocusCategoryChoices`).
+
+⚠️ **Kalorienziel im Wochenmittel (seit 2026-10-01, `../habits` Commit
+`f0f69c6`):** Quelle `FOOD_TARGET_WEEKLY` in `MeView.sources` für alle mit
+Healthy-Zugang (Reihenfolge FOOD, FOOD_TARGET_WEEKLY, STEPS_WEEKLY, FOCUS). Eine
+Woche zählt, wenn der Schnitt der getrackten Tage höchstens beim kcal-Ziel
+liegt; entschieden wird nach Sonntag (Status `RUNNING`, `listLine` „Ø 2.250 von
+2.300 kcal“, darunter „bisher im Ziel“/„bisher über dem Ziel“). Keine eigenen
+Ziele - im Formular nur der Chip „Kalorienziel im Wochenmittel“, Rhythmus
+einmal pro Woche (setzt der Dienst ohnehin). Quellen sind in der App Text, kein
+Enum: eine unbekannte steht mit ihrem Namen da und kippt nichts.
 
 ⚠️ **Timeline-Filter (seit 2026-10-01, `../habits` Commit `c536f66`):**
 `exclude` nimmt die Co-Habits, die der Filter ausblendet - kommagetrennt oder
@@ -579,8 +607,8 @@ coHabit-Aufrufe (Bearer, 4xx mit `{"message"}`); die App spricht es über
 | Methode | Pfad | Rumpf → Antwort |
 |---|---|---|
 | GET | `/classic/habits` | → `[ClassicHabit]`: **alle** aktiven Co-Habits der Person, **auch geteilte**, seit 2026-10-01 (`../habits` `21f20d8`) auch Ziele und Challenges, in Anlegereihenfolge — sortiert (`classicOrder`) wird in der App |
-| POST | `/classic/habits` | `{"name","kind","weeklyStepGoal","focusMinutesGoal","period","timesPerPeriod"}` (das alte `HabitDraft`, `kind` BUILD\|QUIT\|FOOD\|STEPS\|FOCUS) → 201 `ClassicHabit`; allein, Europe/Berlin, Nachtragsfrist 336 h; fremde Quelle → 403 „Diese Quelle hast du nicht." |
-| PUT | `/classic/habits/{id}` | gleicher Rumpf → `ClassicHabit`; nur Admin; andere Art → 400; `period: null` lässt den Rhythmus, wie er ist; Farbe, Erinnerung, Foto-Pflicht, Frist, Health bleiben. Bei Ziel und Challenge 400 „Ziele und Challenges trägst du im Co-Habit ein.“ |
+| POST | `/classic/habits` | `{"name","kind","weeklyStepGoal","focusMinutesGoal","period","timesPerPeriod"}` (das alte `HabitDraft`, `kind` BUILD\|QUIT\|FOOD\|STEPS\|FOCUS), bei FOCUS dazu `"focusCategoryId"` und `"focusPeriod":"DAY\|WEEK"` (seit 2026-10-01) → 201 `ClassicHabit`; allein, Europe/Berlin, Nachtragsfrist 336 h; fremde Quelle → 403 „Diese Quelle hast du nicht." |
+| PUT | `/classic/habits/{id}` | gleicher Rumpf → `ClassicHabit`; nur Admin; andere Art → 400; `period: null` lässt den Rhythmus, wie er ist; Farbe, Erinnerung, Foto-Pflicht, Frist, Health bleiben. Fokus: `focusCategoryId` weglassen = unverändert, `""` = alle Bäume, sonst die Kategorie; `focusPeriod` weglassen = unverändert. Bei Ziel und Challenge 400 „Ziele und Challenges trägst du im Co-Habit ein.“ |
 | DELETE | `/classic/habits/{id}` | → 204; allein: löschen, geteilt: **verlassen** (die anderen behalten es) — für jede Art |
 | POST | `/classic/habits/{id}/marks` | `{"date":"yyyy-MM-dd","id":"<8–64 Zeichen [A-Za-z0-9-]>"}` → `ClassicHabit`; BUILD = Haken, QUIT = Rückfall; Foto-Pflicht 400, außerhalb der Frist 400, Tag schon erledigt 409, automatisch 403, Ziel/Challenge 400; **dieselbe `id` noch einmal → 200, nichts Neues** |
 | DELETE | `/classic/habits/{id}/marks/{date}` | → `ClassicHabit`; nimmt den eigenen Eintrag des Tages zurück, ohne Eintrag unverändert (wiederholbar) |
@@ -594,8 +622,21 @@ ClassicHabit  das alte HabitStatus: id (= Co-Habit-ID "c-…"), name,
               markedDays [letzte 31 Tage; BUILD Haken, QUIT Rückfälle; leer bei automatischen],
               createdAt (Start bzw. eigener Beitritt)
               + photoRequired, shared (mehr als ein Mitglied), admin, backfillFrom,
-              summary (nur GOAL/CHALLENGE: das CohabitSummary wie in GET /cohabits, sonst null)
+              summary (nur GOAL/CHALLENGE: das CohabitSummary wie in GET /cohabits, sonst null),
+              focus (nur FOCUS: {categoryId, categoryName, period DAY|WEEK}, sonst null; seit 2026-10-01)
 ```
+
+⚠️ **Fokus-Zeit je Woche** (`focus.period` WEEK): `unit` WEEKS, `progress` die
+Minuten der Woche gegen das Ziel, `atRisk` nie - wie die Schritte. Die Zeile
+zeigt die Kategorie im Untertitel („3 Tage · Bachelorarbeit“, `subtitleText`).
+Der Editor schickt bei Fokus-Zeit `focusCategoryId` immer (`""` für alle Bäume)
+und `focusPeriod`; bei den anderen Arten fehlen beide Schlüssel.
+
+⚠️ **Das Kalorienziel im Wochenmittel** (`FOOD_TARGET_WEEKLY`) steht hier als
+Art FOOD mit `unit` WEEKS: `progress` ist der Wochenschnitt gegen das Ziel
+(die Zeile schreibt „Ø 2.191/2.300 kcal“, `kcalText`), `doneToday` und `atRisk`
+sind immer `false`. Der Editor nennt die Art „Kalorienziel im Wochenmittel“;
+anlegen lässt sie sich nur in coHabit selbst.
 
 ⚠️ **Ziele und Challenges** (seit 2026-10-01): die alten Felder stehen
 neutral (`unit` DAYS, `streak` 0, leere Listen, `doneToday` = heute schon
@@ -706,13 +747,28 @@ die App spricht es über `FocusSessionsAPI` (`Shared/FocusAPI.swift`).
 
 | Methode | Pfad | Was |
 |---|---|---|
-| POST | `/api/focus/sessions` | `{id, start, end}` → 201; **dieselbe Id noch einmal → 200**, nichts ändert sich |
+| POST | `/api/focus/sessions` | `{id, start, end, categoryId?}` → 201; **dieselbe Id noch einmal → 200**, nichts ändert sich; unbekannte Kategorie → 400 „Unbekannte Kategorie.“ (eine inzwischen gelöschte gilt) |
 | GET | `/api/focus/sessions?from=&to=` | Sessions, deren `day` im Zeitraum liegt, neueste zuerst |
+| GET | `/api/focus/categories` | `[{id, name}]` zur Auswahl, in der Reihenfolge des Anlegens (seit 2026-10-01, `../habits` `10536d7`) |
+| POST | `/api/focus/categories` | `{id?, name}` → 201; dieselbe Id noch einmal → 200; Name schon da (ohne Groß/klein) → 409 „Diese Kategorie gibt es schon.“; Name 1–40 Zeichen |
+| PUT | `/api/focus/categories/{id}` | `{name}` → `{id, name}`; coHabit zieht den Namen in seinen Fokus-Habits nach |
+| DELETE | `/api/focus/categories/{id}` | → 204, nur aus der Auswahl: Bäume und Co-Habits behalten den Namen |
 
 ```
 FocusSession  id, start, end (Instant, ISO-8601 mit Z), minutes,
-              day (yyyy-MM-dd: der Tag des BEGINNS in Europe/Berlin)
+              day (yyyy-MM-dd: der Tag des BEGINNS in Europe/Berlin),
+              categoryId, categoryName (null bei Bäumen ohne Kategorie - alle vor dem 01.10.2026)
 ```
+
+⚠️ **Kategorien:** vor dem Pflanzen gewählt (Knopf über „Baum pflanzen“, Blatt
+`ForestCategorySheet`), vorbelegt mit der zuletzt benutzten (je Gerät,
+`FocusCategoryMemory`). `categoryId` geht mit dem Baum - auch aus dem
+Postausgang. Anlegen, Umbenennen und Löschen nur mit Netz und **ohne**
+Postausgang: eine offline angelegte Kategorie, die beim Nachsenden scheitert
+(Name inzwischen vergeben), nähme jeden Baum mit ihr mit. Ohne Netz bleibt die
+Auswahl aus dem `OfflineCache`. Die App schickt keine eigene Kennung beim
+Anlegen. Der Wald selbst bleibt, wie er war - keine Farben je Kategorie; die
+Tageszeile nennt darunter die Kategorien mit ihren Minuten.
 
 ⚠️ **Die Id vergibt die App** (`FocusSessionDraft`), damit ein Nachsenden aus
 dem Postausgang keinen zweiten Baum pflanzt — deshalb darf `plant` mit

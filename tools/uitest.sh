@@ -12,7 +12,13 @@
 # steht dort in manifest.json.
 #
 # Die Zugangstoken kommen wie beim Simulator-Skript aus dem Schluesselbund und
-# werden ueber launchEnvironment durchgereicht - im Repo steht keins.
+# werden ueber launchEnvironment durchgereicht - im Repo steht keins. Gesetzte
+# COCKPIT_FH_PRIVATE_TOKEN/COCKPIT_WEIGHT_TOKEN gehen vor (lokaler Dienst):
+#
+#   COCKPIT_URL_HABITS=http://127.0.0.1:48860/habits \
+#   COCKPIT_URL_COHABIT=http://127.0.0.1:48860/cohabit/api \
+#   COCKPIT_FH_PRIVATE_TOKEN=local-private COCKPIT_WEIGHT_TOKEN=- \
+#   DEVICE="coHabit Test" tools/uitest.sh Fokus testPlantATreeWithACategory
 #
 # ⚠️ Sie muessen mit TEST_RUNNER_ davor exportiert werden. xcodebuild reicht
 # NUR so praefixierte Variablen an den Testlaeufer weiter und streicht das
@@ -45,8 +51,14 @@ if [ "$APP" = "coHabit" ]; then
     TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=""
     TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=""
 else
-    TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
-    TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
+    # Aus der Umgebung vor dem Schluesselbund: gegen einen lokal gestarteten
+    # Dienst (COCKPIT_URL_HABITS) gilt dessen Token, etwa local-private.
+    TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN="${COCKPIT_FH_PRIVATE_TOKEN:-}"
+    [ -n "$TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN" ] || \
+        TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=$(security find-generic-password -a cockpit-ios -s fh_private -w)
+    TEST_RUNNER_COCKPIT_WEIGHT_TOKEN="${COCKPIT_WEIGHT_TOKEN:-}"
+    [ -n "$TEST_RUNNER_COCKPIT_WEIGHT_TOKEN" ] || \
+        TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=$(security find-generic-password -a cockpit-ios -s weight_app_token -w)
 fi
 # Freiwillig: ohne Einkaufs-Token ueberspringt sich der Einkaufs-Test.
 export TEST_RUNNER_COCKPIT_SHOPPING_TOKEN
