@@ -54,7 +54,7 @@ final class ClassicStore {
         isLoading = habits.isEmpty
         defer { isLoading = false }
         do {
-            habits = try await api.list().manualFirst
+            habits = try await api.list().classicOrder
             errorMessage = nil
             publish(.loaded)
         } catch {
@@ -62,30 +62,37 @@ final class ClassicStore {
         }
     }
 
-    /// Was der Knopf am Habit tut - je nach Art etwas anderes.
+    /// Was der Knopf am Habit tut - je nach Art etwas anderes (`ClassicHabit.action`).
     ///
     /// Aufbauen: Haken setzen oder zuruecknehmen; mit Foto-Pflicht oeffnet der
     /// Haken das Beweisfoto-Blatt. Lassen: Rueckfall eintragen oder
-    /// zuruecknehmen - „erledigt" heisst dort: kein Rueckfall.
+    /// zuruecknehmen - „erledigt" heisst dort: kein Rueckfall. Ziel und
+    /// Challenge: eintragen wie in der neuen Liste.
     func toggleToday(_ habit: ClassicHabit) async {
-        switch habit.kind {
-        case .build:
-            if habit.needsPhoto && !habit.doneToday {
-                await startPhotoCheckIn(habit)
-            } else {
-                await setMarked(habit, day: habit.today, marked: !habit.doneToday)
-            }
-        case .quit:
-            await setMarked(habit, day: habit.today, marked: habit.doneToday)
-        case .food, .steps, .focus, .unknown:
+        switch habit.action {
+        case .mark:
+            await setMarked(habit, day: habit.today, marked: habit.kind == .quit ? habit.doneToday : !habit.doneToday)
+        case .proofPhoto:
+            await startPhotoCheckIn(habit)
+        case .checkIn:
+            startCheckIn(habit)
+        case .none:
             return
         }
+    }
+
+    /// Ziel und Challenge: derselbe Weg wie der Eintragen-Knopf der neuen
+    /// Liste und der Detailseite - ob Wert, +1 oder Beweisfoto, entscheidet
+    /// `CheckInController` aus der Zusammenfassung, nicht die Liste.
+    func startCheckIn(_ habit: ClassicHabit) {
+        guard let summary = habit.summary, summary.canCheckIn else { return }
+        CheckInController.shared.start(CheckInTarget(summary: summary, meId: Session.shared.meId))
     }
 
     /// Einen Tag abhaken oder den Haken nehmen - bei „Lassen" heisst der
     /// Eintrag Rueckfall. Nur fuer Habits, die man selbst abhakt.
     func setMarked(_ habit: ClassicHabit, day: CalendarDate, marked: Bool) async {
-        guard !habit.kind.isAutomatic else { return }
+        guard habit.kind.takesMarks else { return }
         let api = self.api
         let isToday = day == habit.today
         if marked {
@@ -140,7 +147,7 @@ final class ClassicStore {
     func create(_ draft: ClassicHabitDraft) async -> String? {
         do {
             let created = try await api.create(draft)
-            habits = (habits + [created]).manualFirst
+            habits = (habits + [created]).classicOrder
             errorMessage = nil
             announce(.updated(created.id))
             return nil

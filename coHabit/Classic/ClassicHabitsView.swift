@@ -142,12 +142,17 @@ struct ClassicHabitsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        // Die Knoepfe in den Zeilen („Doch nicht", „Eintragen") im Systemblau
+        // der Fokus-App - der zurueckgesetzte Tint unten wirkt nur auf die
+        // Leistenknoepfe, sonst erbten sie das Violett von coHabit.
+        .tint(.blue)
     }
 
     /// Tipp auf den Namen: als Admin der alte Editor, sonst die Detailseite in
-    /// coHabit - dort steht, was ein Mitglied tun kann.
+    /// coHabit - dort steht, was ein Mitglied tun kann. Ziele und Challenges
+    /// kennt der alte Editor nicht, sie gehen immer zur Detailseite.
     private func edit(_ habit: ClassicHabit) {
-        if habit.admin && habit.kind != .unknown {
+        if habit.opensEditor {
             editingHabit = habit
         } else {
             Router.shared.push(.cohabit(habit.id, .overview))
@@ -175,7 +180,11 @@ struct ClassicHabitRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 12) {
-                flame
+                if habit.kind.usesSummary {
+                    metric
+                } else {
+                    flame
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.name)
                         .font(.body.weight(.medium))
@@ -186,11 +195,15 @@ struct ClassicHabitRow: View {
                 Spacer(minLength: 8)
                 trailing
             }
-            if habit.unavailable == nil {
+            if habit.unavailable == nil && !habit.kind.usesSummary {
                 ClassicRecentDots(recent: habit.recent, unit: habit.unit)
             }
             if habit.kind == .steps || habit.kind == .focus, let progress = habit.progress {
                 ClassicProgressBar(fraction: progress.fraction, reached: habit.doneToday)
+            }
+            // Ziele haben einen Stand, Challenges nicht (dort zaehlt der Platz).
+            if habit.kind.usesSummary, let progress = habit.summary?.progress {
+                ClassicProgressBar(fraction: progress.fraction, reached: progress.fraction >= 1)
             }
         }
         .padding(.vertical, 6)
@@ -214,6 +227,23 @@ struct ClassicHabitRow: View {
         .opacity(habit.unavailable == nil ? 1 : 0.3)
     }
 
+    /// Ziel und Challenge an der Stelle der Flamme: Pokal bzw. Zielflagge mit
+    /// der Kennzahl der neuen Liste darunter („#1", „30%").
+    private var metric: some View {
+        VStack(spacing: 0) {
+            Image(systemName: habit.kind == .challenge ? "trophy.fill" : "flag.checkered")
+                .font(.title2)
+                .foregroundStyle(.orange)
+            Text(habit.summary?.headline.value ?? "")
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .accessibilityIdentifier("metric-\(habit.id)")
+        }
+        .frame(width: 40)
+        .opacity(habit.unavailable == nil ? 1 : 0.3)
+    }
+
     private var flameColor: Color {
         guard habit.streak > 0 else { return .secondary }
         return habit.atRisk ? .orange.opacity(0.45) : .orange
@@ -225,6 +255,10 @@ struct ClassicHabitRow: View {
             Text(unavailable)
                 .font(.caption)
                 .foregroundStyle(.red)
+        } else if habit.kind.usesSummary {
+            Text(habit.summary?.listLine ?? habit.summary?.subline ?? "")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         } else if habit.atRisk {
             Text("\(habit.streakText) · \(habit.openText)")
                 .font(.caption)
@@ -316,8 +350,34 @@ struct ClassicHabitRow: View {
                     .foregroundStyle(habit.doneToday ? Color.green : Color.primary)
                     .accessibilityIdentifier("focus-\(habit.id)")
             }
+        case .goal, .challenge:
+            summaryTrailing
         case .unknown:
             EmptyView()
+        }
+    }
+
+    /// Ziel und Challenge: „Eintragen" im Stil des alten „Rückfall"-Knopfs -
+    /// was er oeffnet (Wert, +1, Beweisfoto), entscheidet `CheckInController`.
+    /// Ohne Eintragen (etwa Health-Werte) ein Haken, wenn heute schon etwas steht.
+    @ViewBuilder
+    private var summaryTrailing: some View {
+        if habit.summary?.canCheckIn == true {
+            if isBusy {
+                ProgressView()
+            } else {
+                Button("Eintragen", action: toggle)
+                    .font(.caption)
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel(habit.summary?.checkInLabel ?? "Eintragen")
+                    .accessibilityValue(habit.doneToday ? "heute eingetragen" : "offen")
+                    .accessibilityIdentifier("toggle-\(habit.id)")
+            }
+        } else if habit.doneToday {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title)
+                .foregroundStyle(Color.green)
+                .accessibilityLabel("heute eingetragen")
         }
     }
 }

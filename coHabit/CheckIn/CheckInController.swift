@@ -84,16 +84,33 @@ final class CheckInController {
         lastError = nil
     }
 
+    /// Was ein Tipp auf „Abhaken"/„Eintragen" oeffnet - von ueberall gleich
+    /// (Karte, Zeile, Detailseite, klassische Liste).
+    enum Step: Equatable {
+        /// Abstinenz: erst die Rueckfrage zur Unterbrechung.
+        case confirmBreak
+        /// Foto-Pflicht: das Beweisfoto-Blatt.
+        case photo
+        /// Ein Wert (km, Schritte, Minuten …): das Wert-Blatt.
+        case value
+        /// Ja/Nein bzw. +1: gleich eintragen.
+        case submit
+    }
+
+    nonisolated static func step(for target: CheckInTarget) -> Step {
+        if target.type == .abstinence { return .confirmBreak }
+        if target.photoRequired { return .photo }
+        if target.valueUnit != nil { return .value }
+        return .submit
+    }
+
     func start(_ target: CheckInTarget) {
         guard !busy.contains(target.id) else { return }
-        if target.type == .abstinence {
-            breakTarget = target
-        } else if target.photoRequired {
-            photoTarget = target
-        } else if target.valueUnit != nil {
-            valueTarget = target
-        } else {
-            Task { await submit(target, request: CheckinRequest(date: target.today)) }
+        switch Self.step(for: target) {
+        case .confirmBreak: breakTarget = target
+        case .photo: photoTarget = target
+        case .value: valueTarget = target
+        case .submit: Task { await submit(target, request: CheckinRequest(date: target.today)) }
         }
     }
 

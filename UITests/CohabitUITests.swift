@@ -434,6 +434,56 @@ final class CohabitUITests: XCTestCase {
         shoot(app, "klassisch-detail")
     }
 
+    /// Eine Challenge in der klassischen Liste eintragen: „Eintragen" tut, was
+    /// der Knopf der neuen Liste tut - hier +1, weil die Challenge Eintraege
+    /// zaehlt -, danach steht „heute eingetragen" und der Dienst kennt den Eintrag.
+    @MainActor
+    func testAChallengeCanBeEnteredInTheClassicList() throws {
+        let name = unique("Challenge UI")
+        let id = try createChallenge(name: name)
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
+
+        let app = launch(extra: ["COCKPIT_CLASSIC": "1"])
+        XCTAssertTrue(app.navigationBars["Habits"].waitForExistence(timeout: 20), "keine klassische Liste")
+        let enter = app.buttons["toggle-\(id)"]
+        reveal(enter, in: app)
+        XCTAssertTrue(enter.exists && enter.isHittable, "kein „Eintragen“ an der Challenge")
+        XCTAssertEqual(app.staticTexts["metric-\(id)"].label, "#1", "keine Kennzahl unter dem Pokal")
+        shoot(app, "klassisch-challenge")
+        XCTAssertEqual(enter.value as? String, "offen")
+
+        enter.tap()
+        XCTAssertTrue(waitFor(enter, toHaveValue: "heute eingetragen"),
+                      "nach dem Eintragen steht \(enter.value as? String ?? "nichts")")
+        shoot(app, "klassisch-challenge-eingetragen")
+        let after = try requestList("GET", "/classic/habits", token: token).first { $0["id"] as? String == id }
+        XCTAssertEqual(after?["doneToday"] as? Bool, true, "der Dienst kennt den Eintrag nicht")
+        XCTAssertEqual(after?["kind"] as? String, "CHALLENGE")
+    }
+
+    /// Eine Challenge „meiste Eintraege", die heute beginnt - nur die Person hier.
+    private func createChallenge(name: String) throws -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Europe/Berlin")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let start = formatter.string(from: Date())
+        let end = formatter.string(from: Date().addingTimeInterval(7 * 86_400))
+        let body: [String: Any] = [
+            "type": "CHALLENGE", "name": name, "color": "butter", "timezone": "Europe/Berlin",
+            "tracking": ["mode": "CHECK"], "photoRequired": false, "backfillHours": 48,
+            "reminderTime": NSNull(), "membersCanInvite": false,
+            "streak": NSNull(), "abstinence": NSNull(), "goal": NSNull(),
+            "challenge": ["start": start, "end": end, "scoring": "MOST_ENTRIES", "target": NSNull(),
+                          "stake": NSNull(), "recurrence": "NONE"],
+            "health": NSNull(), "auto": NSNull(), "invitePersonIds": [String](),
+        ]
+        let detail = try request("POST", "/cohabits", body: body, token: token)
+        let summary = try XCTUnwrap(detail["summary"] as? [String: Any])
+        let ref = try XCTUnwrap(summary["ref"] as? [String: Any])
+        return try XCTUnwrap(ref["id"] as? String)
+    }
+
     /// Ein Co-Habit der anderen Person mit Foto-Pflicht, dem die Person hier
     /// beigetreten ist - so ist es geteilt, und Admin ist die andere.
     private func sharedCohabit(name: String) throws -> String {

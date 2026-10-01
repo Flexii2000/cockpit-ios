@@ -21,6 +21,11 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
         case steps = "STEPS"
         /// Fokus-Zeit je Tag - der Wald der Fokus-App entscheidet.
         case focus = "FOCUS"
+        /// Ein Ziel aus coHabit - die alte App kannte es nicht; was die Zeile
+        /// zeigt, steht in `summary`.
+        case goal = "GOAL"
+        /// Eine Challenge aus coHabit, ebenso mit `summary`.
+        case challenge = "CHALLENGE"
         /// Eine Art, die diese App noch nicht kennt: Name, Flamme und Punkte
         /// stehen da, aber nichts zum Antippen - wie bei den automatischen.
         case unknown = "UNKNOWN"
@@ -29,19 +34,44 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
         /// Was sich anlegen laesst - dieselben fuenf wie frueher.
         static let creatable: [Kind] = [.build, .quit, .food, .steps, .focus]
 
-        /// Ob die Quelle woanders liegt und hier nichts abzuhaken ist.
-        var isAutomatic: Bool { self != .build && self != .quit }
+        /// Hakt man in der Liste selbst ab (`…/marks`): Haken bzw. Rueckfall.
+        var takesMarks: Bool { self == .build || self == .quit }
+
+        /// Ziel oder Challenge: Kennzahl, Text und Eintragen kommen aus `summary`.
+        var usesSummary: Bool { self == .goal || self == .challenge }
+
+        /// Ob die Quelle woanders liegt und hier nichts einzutragen ist.
+        var isAutomatic: Bool { !takesMarks && !usesSummary }
+
+        /// Die Gruppe in der Liste: erst Aufbauen und Lassen, dann Ziele und
+        /// Challenges, dann die automatischen.
+        var order: Int { takesMarks ? 0 : usesSummary ? 1 : 2 }
 
         var label: String {
             switch self {
-            case .build:   "Aufbauen"
-            case .quit:    "Lassen"
-            case .food:    "Track food"
-            case .steps:   "Schritte / Woche"
-            case .focus:   "Fokus-Zeit"
-            case .unknown: "Unbekannt"
+            case .build:     "Aufbauen"
+            case .quit:      "Lassen"
+            case .food:      "Track food"
+            case .steps:     "Schritte / Woche"
+            case .focus:     "Fokus-Zeit"
+            case .goal:      "Ziel"
+            case .challenge: "Challenge"
+            case .unknown:   "Unbekannt"
             }
         }
+    }
+
+    /// Was der Knopf rechts in der Zeile ausloest.
+    enum Action: Equatable {
+        /// Aufbauen: Haken setzen oder nehmen. Lassen: Rueckfall eintragen oder nehmen.
+        case mark
+        /// Aufbauen mit Foto-Pflicht, heute noch offen: das Beweisfoto-Blatt.
+        case proofPhoto
+        /// Ziel, Challenge: eintragen wie der Knopf der neuen Liste - Wert, +1
+        /// oder Beweisfoto entscheidet `CheckInController`.
+        case checkIn
+        /// Automatisch, oder gerade nichts einzutragen.
+        case none
     }
 
     enum Unit: String, LenientEnum {
@@ -113,6 +143,8 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
     let admin: Bool
     /// Der frueheste Tag, den der Dienst noch annimmt.
     let backfillFrom: CalendarDate?
+    /// Nur bei Ziel und Challenge: die Zusammenfassung wie in `GET /cohabits`.
+    let summary: CohabitSummary?
 
     func isMarked(_ day: CalendarDate) -> Bool {
         markedDays.contains(day)
@@ -155,7 +187,20 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
 
     /// Langdruck: fruehere Tage nachtragen. Nur, was man selbst abhakt, und
     /// nicht mit Foto-Pflicht - zu jedem Tag gehoerte dann ein Foto.
-    var canBackfill: Bool { !kind.isAutomatic && !needsPhoto }
+    var canBackfill: Bool { kind.takesMarks && !needsPhoto }
+
+    /// Tipp auf den Namen: der alte Editor nur als Admin und nur fuer die
+    /// fuenf alten Arten - sonst die Detailseite.
+    var opensEditor: Bool { admin && Kind.creatable.contains(kind) }
+
+    var action: Action {
+        switch kind {
+        case .build: needsPhoto && !doneToday ? .proofPhoto : .mark
+        case .quit: .mark
+        case .goal, .challenge: summary?.canCheckIn == true ? .checkIn : .none
+        case .food, .steps, .focus, .unknown: .none
+        }
+    }
 
     /// Heute in der Zone des Co-Habits wie beim Abhaken in coHabit
     /// (`CheckInTarget.today`), nicht in der des Geraets.
@@ -199,22 +244,26 @@ extension ClassicHabit: Decodable {
         shared = (try? c.decodeIfPresent(Bool.self, forKey: .shared)) ?? false
         admin = (try? c.decodeIfPresent(Bool.self, forKey: .admin)) ?? false
         backfillFrom = try? c.decodeIfPresent(CalendarDate.self, forKey: .backfillFrom)
+        summary = try? c.decodeIfPresent(CohabitSummary.self, forKey: .summary)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, kind, unit, weeklyStepGoal, focusMinutesGoal, period, timesPerPeriod,
              streak, doneToday, atRisk, progress, recent, unavailable, markedDays, createdAt,
-             photoRequired, shared, admin, backfillFrom
+             photoRequired, shared, admin, backfillFrom, summary
     }
 }
 
 extension Array where Element == ClassicHabit {
-    /// Erst, was man selbst abhakt (Aufbauen, Lassen), dann, was von selbst
-    /// zaehlt (Track food, Schritte, Fokus-Zeit) - der Dienst liefert in
-    /// Anlegereihenfolge, die bleibt innerhalb der Gruppen erhalten. Felix'
-    /// Wunsch vom 2026-09-23, wie frueher.
-    var manualFirst: [ClassicHabit] {
-        filter { !$0.kind.isAutomatic } + filter { $0.kind.isAutomatic }
+    /// Erst, was man selbst abhakt (Aufbauen, Lassen), dann Ziele und
+    /// Challenges, dann, was von selbst zaehlt (Track food, Schritte,
+    /// Fokus-Zeit) - der Dienst liefert in Anlegereihenfolge, die bleibt
+    /// innerhalb der Gruppen erhalten. Wie frueher `manualFirst` (Felix,
+    /// 2026-09-23), seit 2026-10-01 mit Zielen und Challenges in der Mitte.
+    var classicOrder: [ClassicHabit] {
+        enumerated()
+            .sorted { ($0.element.kind.order, $0.offset) < ($1.element.kind.order, $1.offset) }
+            .map(\.element)
     }
 }
 

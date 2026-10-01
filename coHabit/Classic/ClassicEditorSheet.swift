@@ -149,7 +149,7 @@ struct ClassicEditorSheet: View {
         case .food:    "Gilt als erledigt, wenn 80 % des kcal-Ziels erreicht sind oder Frühstück, Mittag und Abend je einen Eintrag haben."
         case .steps:   "Erreicht, sobald die Schritte der Woche (ab Montag 0:00) das Ziel schaffen. Kommt aus Apple Health."
         case .focus:   "Erreicht, sobald die Fokus-Sessions des Tages zusammen das Ziel schaffen. Kommt aus dem Wald."
-        case .unknown: ""
+        case .goal, .challenge, .unknown: ""
         }
     }
 

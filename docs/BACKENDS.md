@@ -566,23 +566,34 @@ coHabit-Aufrufe (Bearer, 4xx mit `{"message"}`); die App spricht es über
 
 | Methode | Pfad | Rumpf → Antwort |
 |---|---|---|
-| GET | `/classic/habits` | → `[ClassicHabit]`: aktive Streaks und Abstinenz der Person, **auch geteilte**, in Anlegereihenfolge — sortiert (`manualFirst`) wird in der App. Ziele und Challenges liefert der Dienst nicht |
+| GET | `/classic/habits` | → `[ClassicHabit]`: **alle** aktiven Co-Habits der Person, **auch geteilte**, seit 2026-10-01 (`../habits` `21f20d8`) auch Ziele und Challenges, in Anlegereihenfolge — sortiert (`classicOrder`) wird in der App |
 | POST | `/classic/habits` | `{"name","kind","weeklyStepGoal","focusMinutesGoal","period","timesPerPeriod"}` (das alte `HabitDraft`, `kind` BUILD\|QUIT\|FOOD\|STEPS\|FOCUS) → 201 `ClassicHabit`; allein, Europe/Berlin, Nachtragsfrist 336 h; fremde Quelle → 403 „Diese Quelle hast du nicht." |
-| PUT | `/classic/habits/{id}` | gleicher Rumpf → `ClassicHabit`; nur Admin; andere Art → 400; `period: null` lässt den Rhythmus, wie er ist; Farbe, Erinnerung, Foto-Pflicht, Frist, Health bleiben |
-| DELETE | `/classic/habits/{id}` | → 204; allein: löschen, geteilt: **verlassen** (die anderen behalten es) |
-| POST | `/classic/habits/{id}/marks` | `{"date":"yyyy-MM-dd","id":"<8–64 Zeichen [A-Za-z0-9-]>"}` → `ClassicHabit`; BUILD = Haken, QUIT = Rückfall; Foto-Pflicht 400, außerhalb der Frist 400, Tag schon erledigt 409, automatisch 403; **dieselbe `id` noch einmal → 200, nichts Neues** |
+| PUT | `/classic/habits/{id}` | gleicher Rumpf → `ClassicHabit`; nur Admin; andere Art → 400; `period: null` lässt den Rhythmus, wie er ist; Farbe, Erinnerung, Foto-Pflicht, Frist, Health bleiben. Bei Ziel und Challenge 400 „Ziele und Challenges trägst du im Co-Habit ein.“ |
+| DELETE | `/classic/habits/{id}` | → 204; allein: löschen, geteilt: **verlassen** (die anderen behalten es) — für jede Art |
+| POST | `/classic/habits/{id}/marks` | `{"date":"yyyy-MM-dd","id":"<8–64 Zeichen [A-Za-z0-9-]>"}` → `ClassicHabit`; BUILD = Haken, QUIT = Rückfall; Foto-Pflicht 400, außerhalb der Frist 400, Tag schon erledigt 409, automatisch 403, Ziel/Challenge 400; **dieselbe `id` noch einmal → 200, nichts Neues** |
 | DELETE | `/classic/habits/{id}/marks/{date}` | → `ClassicHabit`; nimmt den eigenen Eintrag des Tages zurück, ohne Eintrag unverändert (wiederholbar) |
 
 ```
 ClassicHabit  das alte HabitStatus: id (= Co-Habit-ID "c-…"), name,
-              kind (BUILD|QUIT|FOOD|STEPS|FOCUS), unit (DAYS|WEEKS|MONTHS|WINDOWS),
+              kind (BUILD|QUIT|FOOD|STEPS|FOCUS|GOAL|CHALLENGE), unit (DAYS|WEEKS|MONTHS|WINDOWS),
               weeklyStepGoal, focusMinutesGoal, period (DAY|WEEK|MONTH|null),
               timesPerPeriod, streak, doneToday, atRisk, progress {value, goal} | null,
               recent [7 × bool, älteste zuerst; leer bei unavailable], unavailable,
               markedDays [letzte 31 Tage; BUILD Haken, QUIT Rückfälle; leer bei automatischen],
               createdAt (Start bzw. eigener Beitritt)
-              + photoRequired, shared (mehr als ein Mitglied), admin, backfillFrom
+              + photoRequired, shared (mehr als ein Mitglied), admin, backfillFrom,
+              summary (nur GOAL/CHALLENGE: das CohabitSummary wie in GET /cohabits, sonst null)
 ```
+
+⚠️ **Ziele und Challenges** (seit 2026-10-01): die alten Felder stehen
+neutral (`unit` DAYS, `streak` 0, leere Listen, `doneToday` = heute schon
+eingetragen, `unavailable` = `summary.unavailableText`); was die Zeile zeigt,
+steht in `summary` - Kennzahl (`headline.value`: „#1“, „30%“), `listLine`,
+`progress` (nur Ziele; Challenges haben einen Platz, keinen Stand),
+`canCheckIn`, `valueUnit`, `checkInLabel`. Eingetragen wird nicht über
+`…/marks`, sondern wie in der neuen Liste über `POST /cohabits/{id}/checkins`
+(`CheckInController`: Wert-Blatt bei `valueUnit`, Beweisfoto bei
+`photoRequired`, sonst gleich +1).
 
 ⚠️ **`id` ist die Kennung des Co-Habits.** Deshalb gehen Beweisfoto
 (`POST /cohabits/{id}/checkins` über das Blatt von coHabit) und Detailseite

@@ -134,7 +134,7 @@ final class ClassicModelTests: XCTestCase {
     /// Selbst abgehakte zuerst, automatische danach, sonst nichts umsortiert.
     func testManualHabitsComeBeforeAutomaticOnes() throws {
         let habits = try decode(Self.oldShape)
-        XCTAssertEqual(habits.manualFirst.map(\.id), ["b1", "s1", "f1"])
+        XCTAssertEqual(habits.classicOrder.map(\.id), ["b1", "s1", "f1"])
     }
 
     /// Ein Habit je Woche oder Monat: Rhythmus, Einheit und der Stand des
@@ -215,7 +215,7 @@ final class ClassicModelTests: XCTestCase {
         XCTAssertNil(habits[0].period)
         XCTAssertEqual(habits[0].markedDays, [])
         XCTAssertNil(habits[0].createdAt)
-        XCTAssertEqual(habits.manualFirst.map(\.id), ["b1", "u1"])
+        XCTAssertEqual(habits.classicOrder.map(\.id), ["b1", "u1"])
         XCTAssertFalse(ClassicHabit.Kind.creatable.contains(.unknown))
     }
 
@@ -315,6 +315,121 @@ final class ClassicModelTests: XCTestCase {
         XCTAssertEqual(body["id"] as? String, request.id)
         XCTAssertEqual(ClassicMarkRequest.path(habitId: "c-1"), "/classic/habits/c-1/marks")
         XCTAssertEqual(ClassicMarkRequest.path(habitId: "c-1", date: day), "/classic/habits/c-1/marks/2026-09-30")
+    }
+}
+
+/// Ziele und Challenges in der klassischen Liste (seit 2026-10-01): die alten
+/// Felder neutral, dazu `summary` wie in `GET /cohabits`.
+final class ClassicGoalChallengeTests: XCTestCase {
+
+    static func summaryJSON(id: String, name: String, type: String, headline: String, listLine: String,
+                            progress: String, canCheckIn: Bool = true, photoRequired: Bool = false,
+                            valueUnit: String = "null", label: String) -> String {
+        """
+        {"ref":{"id":"\(id)","name":"\(name)","color":"periwinkle","type":"\(type)"},"archived":false,
+         "headline":{"value":"\(headline)","unit":"","short":"\(headline)"},"typeLine":"\(type)",
+         "subline":"Teamziel · 4 machen mit","listLine":"\(listLine)","status":"RUNNING","section":"RUNNING",
+         "unavailableText":null,"canCheckIn":\(canCheckIn),"photoRequired":\(photoRequired),"valueUnit":\(valueUnit),
+         "checkInLabel":"\(label)","members":[\(Fixtures.felix)],"memberCount":4,"doneTodayBy":[],
+         "progress":\(progress),"rank":null,"unreadMessages":0}
+        """
+    }
+
+    static func habitJSON(id: String, kind: String, summary: String = "null", doneToday: Bool = true) -> String {
+        """
+        {"id":"\(id)","name":"Habit \(id)","kind":"\(kind)","unit":"DAYS","weeklyStepGoal":null,"streak":0,
+         "doneToday":\(doneToday),"atRisk":false,"progress":null,"recent":[],"unavailable":null,
+         "focusMinutesGoal":null,"period":null,"timesPerPeriod":null,"markedDays":[],"createdAt":"2026-09-16",
+         "photoRequired":false,"shared":true,"admin":true,"backfillFrom":"2026-09-28","summary":\(summary)}
+        """
+    }
+
+    static let goal = summaryJSON(id: "c-goal", name: "1 Mio. Schritte", type: "GOAL", headline: "30%",
+                                  listLine: "308.700 von 1.000.000 · noch 31 Tage",
+                                  progress: #"{"done":308700,"goal":1000000,"fraction":0.31}"#,
+                                  valueUnit: #""STEPS""#, label: "Schritte manuell eintragen")
+    static let challenge = summaryJSON(id: "c-chal", name: "Wer kocht öfter?", type: "CHALLENGE", headline: "#1",
+                                       listLine: "Challenge · endet in 30 Tagen · gleichauf mit Torben",
+                                       progress: "null", label: "+1 Wer kocht öfter? eintragen")
+
+    private func decode(_ items: [String]) throws -> [ClassicHabit] {
+        try APIClient.decoder().decode([ClassicHabit].self, from: Fixtures.data("[" + items.joined(separator: ",") + "]"))
+    }
+
+    func testDecodesGoalsAndChallengesWithTheirSummary() throws {
+        let habits = try decode([Self.habitJSON(id: "c-goal", kind: "GOAL", summary: Self.goal),
+                                 Self.habitJSON(id: "c-chal", kind: "CHALLENGE", summary: Self.challenge)])
+        XCTAssertEqual(habits[0].kind, .goal)
+        XCTAssertEqual(habits[0].summary?.headline.value, "30%")
+        XCTAssertEqual(habits[0].summary?.listLine, "308.700 von 1.000.000 · noch 31 Tage")
+        XCTAssertEqual(habits[0].summary?.progress?.fraction, 0.31)
+        XCTAssertEqual(habits[0].summary?.valueUnit, "STEPS")
+        XCTAssertEqual(habits[1].kind, .challenge)
+        XCTAssertEqual(habits[1].summary?.headline.value, "#1")
+        XCTAssertNil(habits[1].summary?.progress, "Challenges haben keinen Stand, nur einen Platz")
+        XCTAssertTrue(habits[1].kind.usesSummary)
+        XCTAssertFalse(habits[1].kind.isAutomatic)
+        XCTAssertFalse(habits[1].kind.takesMarks)
+    }
+
+    /// Erst Aufbauen und Lassen, dann Ziele und Challenges, dann die
+    /// automatischen - innerhalb der Gruppen die Anlegereihenfolge.
+    func testOrderManualThenGoalsAndChallengesThenAutomatic() throws {
+        let habits = try decode([
+            Self.habitJSON(id: "f1", kind: "FOOD"),
+            Self.habitJSON(id: "g1", kind: "GOAL", summary: Self.goal),
+            Self.habitJSON(id: "b1", kind: "BUILD"),
+            Self.habitJSON(id: "c1", kind: "CHALLENGE", summary: Self.challenge),
+            Self.habitJSON(id: "q1", kind: "QUIT"),
+            Self.habitJSON(id: "s1", kind: "STEPS"),
+            Self.habitJSON(id: "b2", kind: "BUILD"),
+        ])
+        XCTAssertEqual(habits.classicOrder.map(\.id), ["b1", "q1", "b2", "g1", "c1", "f1", "s1"])
+    }
+
+    /// Welcher Knopf was ausloest.
+    func testWhichActionTheButtonTriggers() throws {
+        let photo = Self.habitJSON(id: "p1", kind: "BUILD", doneToday: false)
+            .replacingOccurrences(of: #""photoRequired":false"#, with: #""photoRequired":true"#)
+        let habits = try decode([
+            Self.habitJSON(id: "b1", kind: "BUILD", doneToday: false),
+            photo,
+            Self.habitJSON(id: "q1", kind: "QUIT"),
+            Self.habitJSON(id: "g1", kind: "GOAL", summary: Self.goal),
+            Self.habitJSON(id: "c1", kind: "CHALLENGE",
+                           summary: Self.challenge.replacingOccurrences(of: #""canCheckIn":true"#,
+                                                                       with: #""canCheckIn":false"#)),
+            Self.habitJSON(id: "f1", kind: "FOOD"),
+            Self.habitJSON(id: "u1", kind: "MEDITATE"),
+        ])
+        XCTAssertEqual(habits.map(\.action), [.mark, .proofPhoto, .mark, .checkIn, .none, .none, .none])
+    }
+
+    /// Eintragen bei Ziel und Challenge laeuft ueber `CheckInController` wie in
+    /// der neuen Liste: Wert-Blatt mit `valueUnit`, Beweisfoto bei Foto-Pflicht,
+    /// sonst gleich +1.
+    func testCheckInFollowsTheNewList() throws {
+        let photoGoal = Self.goal.replacingOccurrences(of: #""photoRequired":false"#, with: #""photoRequired":true"#)
+        let habits = try decode([
+            Self.habitJSON(id: "c-goal", kind: "GOAL", summary: Self.goal),
+            Self.habitJSON(id: "c-chal", kind: "CHALLENGE", summary: Self.challenge),
+            Self.habitJSON(id: "c-goal", kind: "GOAL", summary: photoGoal),
+        ])
+        let summaries = try habits.map { try XCTUnwrap($0.summary) }
+        let steps = summaries.map { CheckInController.step(for: CheckInTarget(summary: $0, meId: "felix")) }
+        XCTAssertEqual(steps, [.value, .submit, .photo])
+        XCTAssertEqual(CheckInTarget(summary: summaries[1], meId: "felix").label, "+1 Wer kocht öfter? eintragen")
+    }
+
+    /// Ziele und Challenges: Tipp auf den Namen immer zur Detailseite, kein
+    /// Nachtragen per Langdruck, und der Editor legt weiter nur die alten fuenf an.
+    func testGoalsAndChallengesOpenTheDetailAndAreNotCreatable() throws {
+        let habits = try decode([Self.habitJSON(id: "g1", kind: "GOAL", summary: Self.goal),
+                                 Self.habitJSON(id: "b1", kind: "BUILD")])
+        XCTAssertFalse(habits[0].opensEditor, "auch als Admin")
+        XCTAssertTrue(habits[1].opensEditor)
+        XCTAssertFalse(habits[0].canBackfill)
+        XCTAssertEqual(ClassicHabit.Kind.creatable, [.build, .quit, .food, .steps, .focus])
     }
 }
 
@@ -438,6 +553,18 @@ final class ClassicStoreTests: XCTestCase {
         await store.toggleToday(store.habits[0])
         await store.setMarked(store.habits[0], day: today, marked: true)
         XCTAssertEqual(StubServer.requests.count, before)
+    }
+
+    /// Ziele und Challenges nehmen keine Haken - eingetragen wird ueber das
+    /// Co-Habit, nicht ueber `…/marks`.
+    func testGoalsAndChallengesSendNoMarks() async {
+        let store = await loadedStore([
+            ClassicGoalChallengeTests.habitJSON(id: "g1", kind: "GOAL", summary: ClassicGoalChallengeTests.goal),
+        ])
+        let before = StubServer.requests.count
+        await store.setMarked(store.habits[0], day: today, marked: true)
+        XCTAssertEqual(StubServer.requests.count, before)
+        XCTAssertEqual(store.habits[0].action, .checkIn)
     }
 
     /// Ohne Netz: Haken und Ruecknahme warten im Postausgang - mit derselben

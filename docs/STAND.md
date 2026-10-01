@@ -42,6 +42,29 @@
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
 
+## coHabit: klassische Liste mit Zielen und Challenges · **gebaut, nicht ausgerollt** (2026-10-01)
+
+Felix will in der klassischen Liste alles sehen, was die neue zeigt - seine
+Challenges „Joggen" und „Schritte" fehlten ihm. `GET /classic/habits` liefert
+jetzt alle aktiven Co-Habits (Dienst ab `21f20d8`), Ziele und Challenges mit
+`summary` wie in `GET /cohabits`. In der Liste im alten Stil: Pokal bzw.
+Zielflagge mit der Kennzahl („#1", „30%"), Untertitel aus `listLine`, bei
+Zielen der alte Balken, keine Punkte; rechts „Eintragen" (öffnet über
+`CheckInController` genau das, was der Eintragen-Knopf der neuen Liste öffnet:
+Wert, +1, Beweisfoto), ohne Eintragen ein Haken für „heute eingetragen". Name
+→ immer Detailseite, kein Langdruck, Wischen wie bei den anderen; Reihenfolge
+Aufbauen/Lassen, Ziele und Challenges, automatische (`classicOrder`). Der
+Editor legt weiter nur die fünf alten Arten an. Nebenbei: „Doch nicht" und
+„Eintragen" sind jetzt systemblau wie in Fokus - sie hatten das Violett von
+coHabit geerbt.
+
+**Geprüft:** `tools/verify.sh` (Unit-Tests coHabit 96, davon 6 neu: Dekodieren
+mit `summary`, Reihenfolge, welcher Knopf was auslöst, Eintragen über
+`CheckInController.step`, Detailseite statt Editor, keine Haken für Ziele).
+Bilder hell und dunkel gegen den lokalen Dienst mit Demo-Daten (ein Ziel, zwei
+Challenges); UI-Test `testAChallengeCanBeEnteredInTheClassicList` („Eintragen"
+an einer Challenge, danach „heute eingetragen", der Dienst kennt den Eintrag).
+
 ## coHabit: Timeline-Filter als Abhak-Liste · **gebaut, nicht ausgerollt** (2026-10-01)
 
 Felix fand die seitlich scrollenden Habit-Chips oben in der Timeline

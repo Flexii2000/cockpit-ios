@@ -3,6 +3,32 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-01 — Klassische Liste: Ziele und Challenges in der alten Zeile
+Felix will in der klassischen Liste alles sehen, was die neue zeigt - seine
+Challenges fehlten ihm. Sie stehen jetzt dort im alten Stil: statt der Flamme
+ein Pokal (Challenge) bzw. eine Zielflagge (Ziel) mit der Kennzahl der neuen
+Liste darunter („#1", „30%"), Untertitel aus `listLine`, bei Zielen der alte
+Balken, keine sieben Punkte; rechts „Eintragen" im Stil des alten
+„Rückfall"-Knopfs, ohne Eintragen ein Haken für „heute eingetragen". Der Knopf
+öffnet über `CheckInController` genau das, was der Eintragen-Knopf der neuen
+Liste öffnet (Wert-Blatt, +1, Beweisfoto) - die Liste hat keine eigene Logik.
+Der Name führt immer zur Detailseite, Langdruck-Nachtragen gibt es nicht,
+Wischen wie bei den anderen. Reihenfolge: Aufbauen/Lassen, dann Ziele und
+Challenges, dann die automatischen (`classicOrder`). Der Editor legt weiter nur
+die fünf alten Arten an. **Warum:** Felix; die alte Zeile hat genau drei
+Plätze (Kennzahl links, Text in der Mitte, Knopf rechts), in die die
+Zusammenfassung passt. Auf dem Knopf steht „Eintragen" und nicht
+`checkInLabel`: „+1 Wer kocht öfter? eintragen" sprengt den kleinen Knopf;
+der volle Text ist das VoiceOver-Label. **Verworfen:** (a) Ziele und
+Challenges weglassen (der bisherige Stand - genau das fehlte Felix); (b) sie als
+Karten der neuen Liste einbetten (bräche das alte Aussehen); (c) ein eigener
+Abschnitt „Ziele & Challenges" (die alte Liste hat keine Abschnitte); (d) ein
+eigenes Eintragen-Blatt in der Liste (zweite Logik neben `CheckInController`).
+Dabei aufgefallen: Die Knöpfe in den Zeilen („Doch nicht", jetzt „Eintragen")
+erbten das Violett von coHabit, weil der zurückgesetzte Tint nur die
+Leistenknöpfe erreicht - die Liste setzt jetzt ausdrücklich Systemblau wie in
+Fokus.
+
 ## 2026-10-01 — Timeline-Filter: ein Knopf und eine Abhak-Liste statt Chips
 Felix fand die seitlich scrollenden Habit-Chips oben in der Timeline
 unübersichtlich; die letzten verschwanden am Rand. Jetzt steht dort ein Knopf
