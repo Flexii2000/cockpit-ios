@@ -3,6 +3,38 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-01 — Timeline-Filter: ein Knopf und eine Abhak-Liste statt Chips
+Felix fand die seitlich scrollenden Habit-Chips oben in der Timeline
+unübersichtlich; die letzten verschwanden am Rand. Jetzt steht dort ein Knopf
+mit dem aktuellen Filter und ▾ („Alle Habits", bei genau einem sichtbaren
+dessen Name, sonst „n von m Habits"; gefiltert in Tinte wie früher der gewählte
+Chip). Er öffnet ein Blatt (halb/ganz) mit „Alle" als Umschalter und jedem
+aktiven Co-Habit mit Farbpunkt, Name und Haken; Mehrfachauswahl, jede Änderung
+wirkt sofort. Gemerkt wird je Gerät die Menge der **ausgeblendeten** Kennungen
+(`timeline.hidden`), geladen mit `GET /timeline?exclude=`. Kennungen, die es
+unter den aktiven nicht mehr gibt, zählen nicht und werden nicht ausgeblendet.
+Ist alles aus, steht „0 von m Habits" und darunter „Keine Habits ausgewählt".
+**Warum:** Felix' Entscheidung. Ausblenden statt auswählen, damit ein neues
+Co-Habit von selbst erscheint; nur aktive zählen, weil im Blatt nur sie stehen -
+was dort nicht abzuwählen ist (archiviert), darf nicht unsichtbar weggefiltert
+bleiben. **Verworfen:** (a) die Chips behalten (unübersichtlich, die letzten
+verschwinden am Rand, nur eins auf einmal); (b) eine aufklappbare Liste oben in
+der Timeline (schiebt die Einträge weg und steht beim Scrollen im Weg, ein
+Blatt ist der Ort für eine Auswahl); (c) die gewählten Kennungen merken (ein
+neues Co-Habit bliebe unsichtbar, bis man es von Hand anhakt).
+
+## 2026-10-01 — Timeline-Filter: als gesehen gilt das neueste Ereignis überhaupt
+Wer in die Timeline schaut, setzt „neue Beweisfotos" auf „Heute" zurück
+(`POST /timeline/seen`). Ungefiltert meldet die App wie bisher das oberste
+Ereignis der Liste; ist etwas ausgeblendet, fragt sie das neueste Ereignis ohne
+Filter nach (`limit=1`) und meldet dieses. **Warum:** Der Filter ist jetzt
+gemerkt, und der Dienst zählt die Fotos ohne ihn zu kennen. **Verworfen:** (a)
+nur ungefiltert melden, wie bei den Chips (mit einem dauerhaft ausgeblendeten
+Habit stünde „n neue Beweisfotos" für immer da); (b) das oberste sichtbare
+Ereignis melden (neuere Fotos ausgeblendeter Habits hingen fest, bis etwas
+Sichtbares neuer ist). Die Folge: Fotos ausgeblendeter Habits gelten mit dem
+nächsten Blick in die Timeline als gesehen, auch wenn sie dort nicht stehen.
+
 ## 2026-09-30 — coHabit: ein Link ohne Anmeldung meldet sofort an
 Öffnet ein Link mit Token (App-, Setup-, Healthy-Link) die App, während niemand
 angemeldet ist, meldet sie damit sofort an - dieselbe Anmeldung wie „Link

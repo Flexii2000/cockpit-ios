@@ -489,7 +489,7 @@ mit dem Status.
 | POST/DELETE | `/reactions` | `{"target":"event:…\|message:…","reaction"}` |
 | POST | `/cohabits/{id}/nudges` · `/nudges/{id}/seen` | Stupsen, Stupser gesehen |
 | POST | `/cohabits/{id}/dialogs/{dialogId}/seen` | Abschlussdialog gesehen |
-| GET | `/timeline` · POST `/timeline/seen` | Timeline, „neue Beweisfotos" zurücksetzen |
+| GET | `/timeline?exclude=<id>,<id>&before=&limit=30` · POST `/timeline/seen` | Timeline ohne die Co-Habits, die der Filter ausblendet; „neue Beweisfotos" zurücksetzen (siehe unten) |
 | GET | `/stats?range=WEEK\|MONTH\|YEAR&anchor=` | Statistik |
 | GET | `/widget` | die Kacheln (holen sie selbst) |
 | POST | `/photos` · GET `/photos/{id}?size=thumb\|full` | Fotos (siehe unten) |
@@ -504,6 +504,19 @@ vergibt der **Dienst** die Kennung (Antwort von `POST /photos`), wiederholbar
 macht das Hochladen der `Idempotency-Key` - er gilt je Person. Darauf baut der
 Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht nach einem
 Neustart mitten im Nachsenden.
+
+⚠️ **Timeline-Filter (seit 2026-10-01, `../habits` Commit `c536f66`):**
+`exclude` nimmt die Co-Habits, die der Filter ausblendet - kommagetrennt oder
+mehrfach, unbekannte Kennungen stören nicht, `before` blättert auch gefiltert.
+Ausblenden statt auswählen, damit neue Co-Habits von selbst erscheinen;
+`cohabitId` (genau eines) gibt es im Dienst weiter, die App schickt es nicht
+mehr. Die App schickt nur die ausgeblendeten unter den aktiven (`GET /cohabits`)
+und sortiert sie (dieselbe Auswahl, dieselbe Adresse im `OfflineCache`); ist
+alles ausgeblendet, fragt sie gar nicht. `POST /timeline/seen {lastEventId}`
+setzt „neue Beweisfotos" auf „Heute" zurück - der Dienst zählt die Fotos der
+anderen nach diesem Ereignis, **ohne den Filter zu kennen**. Gefiltert meldet
+die App deshalb das neueste Ereignis überhaupt (`GET /timeline?limit=1` ohne
+`exclude`), ungefiltert wie bisher das oberste der Liste.
 
 ⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG,
 höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` → `{"id","width","height"}`;

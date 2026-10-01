@@ -1,51 +1,121 @@
 import SwiftUI
 
-/// Was die Timeline zeigt (`GET /timeline`, Vertrag §3.7).
+/// Was die Timeline zeigt (`GET /timeline`, Vertrag §3.7) - ohne die
+/// Co-Habits, die der Filter ausblendet (`exclude`).
 @MainActor
 @Observable
 final class TimelineStore {
 
     private(set) var items: [TimelineItem] = []
     private(set) var hasMore = false
+    /// Die aktiven Co-Habits der Person - die Liste im Filter-Blatt.
     private(set) var cohabits: [CohabitRef] = []
+    /// Ob `cohabits` schon geladen ist. Vorher laesst sich nicht sagen, welche
+    /// der gemerkten Ausblendungen noch gelten.
+    private(set) var knowsCohabits = false
     private(set) var errorMessage: String?
     private(set) var isLoading = false
-    var filter: String? {
-        didSet { if filter != oldValue { Task { await load() } } }
+    private(set) var filter: TimelineFilter
+    /// Zaehlt jedes Laden - eine Antwort, die ein spaeteres Laden ueberholt hat
+    /// (schnell hintereinander abgewaehlt), wird verworfen.
+    private var generation = 0
+
+    private let makeAPI: @MainActor () -> CohabitAPI
+    private let defaults: UserDefaults
+
+    init(makeAPI: @escaping @MainActor () -> CohabitAPI = { Session.shared.api() },
+         defaults: UserDefaults = .standard) {
+        self.makeAPI = makeAPI
+        self.defaults = defaults
+        filter = TimelineFilter.load(from: defaults)
     }
 
-    private var api: CohabitAPI { Session.shared.api() }
+    /// Was beim Laden ausgeblendet wird: die ausgeblendeten unter den aktiven.
+    /// Solange die Liste fehlt, alle gemerkten - unbekannte ignoriert der Dienst.
+    var excluded: Set<String> {
+        knowsCohabits ? filter.excluded(from: cohabits) : filter.hidden
+    }
+
+    var isFiltered: Bool { !filter.allVisible(cohabits) }
+
+    var filterLabel: String { filter.label(for: cohabits) }
+
+    /// Alles ausgeblendet - dann gibt es nichts zu laden.
+    var nothingSelected: Bool {
+        knowsCohabits && !cohabits.isEmpty && filter.visibleCount(of: cohabits) == 0
+    }
+
+    /// Wirkt sofort: der Haken springt um, gemerkt wird gleich, dann laedt die
+    /// Timeline dahinter neu.
+    func toggle(_ id: String) async {
+        filter.toggle(id)
+        await filterChanged()
+    }
+
+    func toggleAll() async {
+        filter.toggleAll(cohabits)
+        await filterChanged()
+    }
+
+    private func filterChanged() async {
+        filter.save(to: defaults)
+        await load()
+    }
 
     func load() async {
+        generation += 1
+        let current = generation
         isLoading = items.isEmpty
-        defer { isLoading = false }
-        var query = [URLQueryItem(name: "limit", value: "30")]
-        if let filter { query.append(URLQueryItem(name: "cohabitId", value: filter)) }
+        defer { if current == generation { isLoading = false } }
+        let api = makeAPI()
         do {
-            async let pageRequest: TimelinePage = api.get("/timeline", query: query)
+            let guess = excluded
             async let listRequest: [CohabitSummary] = api.get("/cohabits")
-            let page = try await pageRequest
-            items = page.items
-            hasMore = page.hasMore
-            if let list = try? await listRequest { cohabits = list.map(\.ref) }
-            errorMessage = nil
-            if filter == nil, let first = items.first {
-                // „neue Beweisfotos" auf „Heute" gelten damit als gesehen.
-                try? await api.sendIgnoringResponse("POST", "/timeline/seen", body: SeenRequest(lastEventId: first.id))
+            var page: TimelinePage? = nothingSelected
+                ? nil : try await api.get("/timeline", query: TimelineFilter.query(exclude: guess))
+            if let list = try? await listRequest {
+                cohabits = list.map(\.ref)
+                knowsCohabits = true
             }
+            if nothingSelected {
+                page = nil
+            } else if page == nil || excluded != guess {
+                // Die Liste kam erst jetzt - mit dem, was wirklich gilt, noch einmal.
+                page = try await api.get("/timeline", query: TimelineFilter.query(exclude: excluded))
+            }
+            guard current == generation else { return }
+            items = page?.items ?? []
+            hasMore = page?.hasMore ?? false
+            errorMessage = nil
+            if !nothingSelected { await markSeen(api: api, excluded: excluded) }
         } catch {
             if await Session.shared.handle(error) { return }
+            guard current == generation else { return }
             errorMessage = error.localizedDescription
         }
     }
 
     func loadMore() async {
         guard hasMore, let last = items.last else { return }
-        var query = [URLQueryItem(name: "limit", value: "30"), URLQueryItem(name: "before", value: last.id)]
-        if let filter { query.append(URLQueryItem(name: "cohabitId", value: filter)) }
-        guard let page: TimelinePage = try? await api.get("/timeline", query: query) else { return }
+        let current = generation
+        let query = TimelineFilter.query(exclude: excluded, before: last.id)
+        guard let page: TimelinePage = try? await makeAPI().get("/timeline", query: query),
+              current == generation else { return }
         items += page.items.filter { item in !items.contains { $0.id == item.id } }
         hasMore = page.hasMore
+    }
+
+    /// „neue Beweisfotos" auf „Heute" gelten mit dem Blick in die Timeline als
+    /// gesehen. Ist etwas ausgeblendet, zaehlt das neueste Ereignis ueberhaupt:
+    /// sonst stuende auf „Heute" fuer immer, was der Filter nie zeigt.
+    private func markSeen(api: CohabitAPI, excluded: Set<String>) async {
+        var newest = items.first
+        if !excluded.isEmpty {
+            let page: TimelinePage? = try? await api.get("/timeline", query: [URLQueryItem(name: "limit", value: "1")])
+            newest = page?.items.first
+        }
+        guard let newest else { return }
+        try? await api.sendIgnoringResponse("POST", "/timeline/seen", body: SeenRequest(lastEventId: newest.id))
     }
 
     func toggle(_ reaction: ReactionKind, on item: TimelineItem) async {
@@ -69,11 +139,12 @@ extension TimelineItem {
     }
 }
 
-/// Die Timeline (Entwurf S. 3): Filter je Co-Habit, Abschnitte je Tag,
+/// Die Timeline (Entwurf S. 3): oben der Filter, Abschnitte je Tag,
 /// Beweisfotos gross, der Rest kompakt.
 struct TimelineView: View {
 
     @State private var store = TimelineStore()
+    @State private var showsFilter = false
 
     var body: some View {
         ScrollView {
@@ -83,7 +154,16 @@ struct TimelineView: View {
                     .foregroundStyle(Ink.ink)
                     .padding(.top, 8)
                     .padding(.horizontal, Metrics.gutter)
-                chips
+                VStack(alignment: .leading, spacing: 10) {
+                    filterButton
+                    if store.nothingSelected {
+                        Text("Keine Habits ausgewählt")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Ink.muted)
+                            .accessibilityIdentifier("noHabitsSelected")
+                    }
+                }
+                .padding(.horizontal, Metrics.gutter)
                 VStack(alignment: .leading, spacing: 12) {
                     SyncLine()
                     if let message = store.errorMessage, store.items.isEmpty {
@@ -102,7 +182,7 @@ struct TimelineView: View {
                             .frame(maxWidth: .infinity)
                             .onAppear { Task { await store.loadMore() } }
                     }
-                    if store.items.isEmpty && !store.isLoading && store.errorMessage == nil {
+                    if store.items.isEmpty && !store.isLoading && store.errorMessage == nil && !store.nothingSelected {
                         EmptyState(text: "Noch nichts passiert")
                     }
                     if store.isLoading {
@@ -120,35 +200,33 @@ struct TimelineView: View {
         .refreshable { await store.load() }
         .task { await store.load() }
         .onChange(of: DataBus.shared.revision) { Task { await store.load() } }
-    }
-
-    private var chips: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                filterChip(title: "Alle", id: nil, color: nil)
-                ForEach(store.cohabits) { ref in
-                    filterChip(title: ref.name, id: ref.id, color: ref.color)
-                }
-            }
-            .padding(.horizontal, Metrics.gutter)
+        .sheet(isPresented: $showsFilter) {
+            TimelineFilterSheet(store: store)
         }
-        .scrollIndicators(.hidden)
     }
 
-    private func filterChip(title: String, id: String?, color: PaletteKey?) -> some View {
-        let selected = store.filter == id
+    /// Der aktuelle Filter als Knopf - „Alle Habits", ein Name oder „2 von 5
+    /// Habits". Gefiltert in Tinte, wie frueher der gewaehlte Chip.
+    private var filterButton: some View {
+        let filtered = store.isFiltered
         return Button {
-            store.filter = id
+            showsFilter = true
         } label: {
-            Text(title)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(selected ? Ink.onInk : Ink.ink)
-                .padding(.horizontal, 18)
-                .frame(height: 44)
-                .background(selected ? Ink.ink : (color?.colors.surface ?? Ink.surface), in: Capsule())
+            HStack(spacing: 8) {
+                Text(store.filterLabel)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .heavy))
+                    .accessibilityHidden(true)
+            }
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(filtered ? Ink.onInk : Ink.ink)
+            .padding(.horizontal, 18)
+            .frame(height: 44)
+            .background(filtered ? Ink.ink : Ink.surface, in: Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("filter-\(id ?? "all")")
+        .accessibilityIdentifier("timelineFilter")
     }
 }
 

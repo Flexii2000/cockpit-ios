@@ -482,6 +482,93 @@ final class CohabitUITests: XCTestCase {
         return XCTWaiter.wait(for: [expectation], timeout: 10) == .completed
     }
 
+    // MARK: - Timeline-Filter
+
+    /// Der Filter als Abhak-Liste: ein Habit abwaehlen, seine Eintraege
+    /// verschwinden, nach dem Neustart gilt dieselbe Auswahl. Dazwischen alles
+    /// aus („0 von … Habits", „Keine Habits ausgewählt"). Knopf und Blatt hell
+    /// und dunkel.
+    @MainActor
+    func testTimelineFilterHidesAHabitAndKeepsTheChoice() throws {
+        let name = unique("Filter UI")
+        let id = try createCohabit(name: name, photoRequired: false, token: token)
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
+        // Ein Eintrag, damit das Co-Habit in der Timeline steht - ganz oben.
+        _ = try request("POST", "/cohabits/\(id)/checkins",
+                        body: ["id": UUID().uuidString.lowercased(), "kind": "DONE"], token: token)
+        let total = try requestList("GET", "/cohabits", token: token).count
+        let filtered = "\(total - 1) von \(total) Habits"
+
+        var app = launch(tab: "timeline", extra: ["COCKPIT_TIMELINE_HIDDEN": "none"])
+        let button = app.buttons["timelineFilter"]
+        XCTAssertTrue(button.waitForExistence(timeout: 20), "kein Filter-Knopf")
+        let event = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch
+        XCTAssertTrue(event.waitForExistence(timeout: 10), "der Eintrag des neuen Habits fehlt")
+        snap(app, "timeline-filter-knopf")
+        XCTAssertEqual(button.label, "Alle Habits")
+
+        button.tap()
+        let row = app.buttons["filterRow-\(id)"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "das neue Habit fehlt im Blatt")
+        XCTAssertEqual(row.value as? String, "an", "ein neues Co-Habit ist von selbst angehakt")
+        snap(app, "timeline-filter-blatt")
+        row.tap()
+        XCTAssertTrue(waitFor(row, toHaveValue: "aus"), "der Haken geht nicht weg")
+        app.buttons["sheetClose"].tap()
+        XCTAssertTrue(waitFor(button, toReadAgain: filtered), "der Knopf zeigt \(button.label)")
+        XCTAssertTrue(event.waitForNonExistence(timeout: 10), "die Eintraege des abgewaehlten Habits stehen noch da")
+        snap(app, "timeline-gefiltert")
+
+        // Alles aus - „Alle" schaltet erst alle an, dann alle aus.
+        button.tap()
+        let all = app.buttons["filterAll"]
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        all.tap()
+        XCTAssertTrue(waitFor(all, toHaveValue: "an"), "nicht alle an - „Alle“ schaltet alle an")
+        all.tap()
+        XCTAssertTrue(waitFor(all, toHaveValue: "aus"), "alle an - „Alle“ schaltet alle aus")
+        XCTAssertEqual(row.value as? String, "aus")
+        app.buttons["sheetClose"].tap()
+        XCTAssertTrue(app.staticTexts["noHabitsSelected"].waitForExistence(timeout: 10),
+                      "keine Zeile „Keine Habits ausgewählt“")
+        XCTAssertTrue(waitFor(button, toReadAgain: "0 von \(total) Habits"))
+        snap(app, "timeline-keine")
+
+        // Wieder alle an, nur das neue aus - dann neu starten.
+        button.tap()
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        all.tap()
+        XCTAssertTrue(waitFor(all, toHaveValue: "an"))
+        row.tap()
+        XCTAssertTrue(waitFor(row, toHaveValue: "aus"))
+        app.buttons["sheetClose"].tap()
+        XCTAssertTrue(waitFor(button, toReadAgain: filtered))
+
+        app.terminate()
+        app = launch(tab: "timeline")
+        let again = app.buttons["timelineFilter"]
+        XCTAssertTrue(again.waitForExistence(timeout: 20))
+        XCTAssertTrue(waitFor(again, toReadAgain: filtered), "nach dem Neustart steht \(again.label)")
+        // Erst wenn die Timeline steht, sagt das Fehlen des Eintrags etwas.
+        let other = app.otherElements.matching(NSPredicate(format: "identifier BEGINSWITH 'event-'")).firstMatch
+        XCTAssertTrue(other.waitForExistence(timeout: 15), "die Timeline laedt nicht")
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", name)).firstMatch.exists,
+                       "nach dem Neustart ist das abgewaehlte Habit wieder da")
+        shoot(app, "timeline-nach-neustart")
+    }
+
+    /// Hell und dunkel - der Wechsel braucht einen Augenblick zum Neuzeichnen.
+    @MainActor
+    private func snap(_ app: XCUIApplication, _ name: String) {
+        XCUIDevice.shared.appearance = .light
+        Thread.sleep(forTimeInterval: 0.8)
+        shoot(app, name + "-hell")
+        XCUIDevice.shared.appearance = .dark
+        Thread.sleep(forTimeInterval: 0.8)
+        shoot(app, name + "-dunkel")
+        XCUIDevice.shared.appearance = .light
+    }
+
     // MARK: - Push
 
     /// Eine Meldung antippen fuehrt dorthin, wohin ihr `link` zeigt - und die

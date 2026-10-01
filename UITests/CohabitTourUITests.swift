@@ -177,26 +177,28 @@ final class CohabitTourUITests: XCTestCase {
 
         // Timeline, mit und ohne Filter.
         app.terminate()
-        app = launch(tab: "timeline")
-        XCTAssertTrue(app.buttons["filter-all"].waitForExistence(timeout: 15))
+        app = launch(tab: "timeline", extra: ["COCKPIT_TIMELINE_HIDDEN": "none"])
+        let filter = app.buttons["timelineFilter"]
+        XCTAssertTrue(filter.waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 1.5)
         snap(app, "timeline")
-        if let laufen = ids["Laufen"], app.buttons["filter-\(laufen)"].exists {
-            // Die Chips liegen in einer waagrechten Liste; mit den Co-Habits
-            // frueherer Testlaeufe steht „Laufen" rechts ausserhalb des Bildes.
-            let chip = app.buttons["filter-\(laufen)"]
-            let row = app.buttons["filter-all"].frame.midY
-            let origin = app.coordinate(withNormalizedOffset: .zero)
-            var drags = 0
-            // Nach dem Rahmen, nicht isHittable - das bricht ausserhalb des Bildes ab.
-            while !app.frame.contains(chip.frame) && drags < 12 {
-                origin.withOffset(CGVector(dx: app.frame.width * 0.85, dy: row))
-                    .press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: app.frame.width * 0.25, dy: row)))
-                drags += 1
+        filter.tap()
+        let all = app.buttons["filterAll"]
+        if all.waitForExistence(timeout: 5) {
+            Thread.sleep(forTimeInterval: 0.5)
+            snap(app, "timeline-filter-blatt")
+            // Nur „Laufen": alle aus, dann Laufen an.
+            all.tap()
+            if let laufen = ids["Laufen"], app.buttons["filterRow-\(laufen)"].exists {
+                app.buttons["filterRow-\(laufen)"].tap()
             }
-            chip.tap()
+            closeSheet(app)
             Thread.sleep(forTimeInterval: 1.5)
             snap(app, "timeline-filter")
+            // Wieder alle - der Rundgang hinterlaesst keinen Filter.
+            filter.tap()
+            if all.waitForExistence(timeout: 5) { all.tap() }
+            closeSheet(app)
         }
 
         // Statistik: Woche, Monat, Jahr.

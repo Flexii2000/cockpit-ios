@@ -11,6 +11,7 @@ struct CohabitApp: App {
         #if DEBUG
         // Vor der ersten View: sonst laese „Heute" noch den alten Stand des Schalters.
         ClassicList.applyEnvironment()
+        TimelineFilter.applyEnvironment()
         #endif
     }
 

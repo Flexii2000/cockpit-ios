@@ -191,6 +191,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann. Wirkt auch ohne Zugang: ein Setup-Link (`cohabit://setup?token=…`) meldet dann an, ein Einladungslink oeffnet die Registrierung |
 | `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
 | `COCKPIT_CLASSIC=1` | legt in coHabit den Schalter „Klassische Liste" (Profil) beim Start um: „Heute" zeigt die alte Habit-Liste der Fokus-App; `0` schaltet ihn aus (der Schalter überlebt jeden Start - die UI-Tests setzen deshalb immer `0`, außer sie wollen die Liste) |
+| `COCKPIT_TIMELINE_HIDDEN=c-1,c-2` | blendet diese Co-Habits im Timeline-Filter von coHabit beim Start aus, `none` keins; ohne Wert bleibt die gemerkte Auswahl (sie ueberlebt jeden Start) |
 | `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |
 | `COCKPIT_TEST_PHOTO=1` | der Galerie-Knopf im Beweisfoto-Blatt liefert ein erzeugtes Bild statt der Mediathek - nur falls ein UI-Test die Mediathek nicht erreicht |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |

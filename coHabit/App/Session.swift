@@ -132,6 +132,7 @@ final class Session {
         PhotoLoader.shared.clear()
         CohabitSync.shared.reset()
         CohabitHealthSync.shared.forget()
+        TimelineFilter.clear()
         WidgetCenter.shared.reloadAllTimelines()
         Router.shared.reset()
         signedOutReason = reason

@@ -16,7 +16,9 @@
 > **Neu seit dem Abend des 30.09.:** die klassische Liste (Schalter im Profil;
 > braucht den Dienst ab `4acd5a7`) und Links, die ohne Anmeldung sofort
 > anmelden - auf dem Gerät den Knopf „In der App öffnen" der Weboberfläche,
-> Langdruck samt Haptik und Wischen in der klassischen Liste prüfen.
+> Langdruck samt Haptik und Wischen in der klassischen Liste prüfen. Seit dem
+> 01.10. der Timeline-Filter als Abhak-Liste (braucht den Dienst ab `c536f66`,
+> sonst ignoriert ein älterer Dienst `exclude` und zeigt alles).
 >
 > **Davor offen (unverändert):** Felix prüft auf dem Gerät: die Karten im Essen-Tab
 > (Diagramm-Ziehgeste und Umschalter-Reihe im Pager), die Automation für den
@@ -39,6 +41,39 @@
 > übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+
+## coHabit: Timeline-Filter als Abhak-Liste · **gebaut, nicht ausgerollt** (2026-10-01)
+
+Felix fand die seitlich scrollenden Habit-Chips oben in der Timeline
+unübersichtlich - die letzten verschwanden am Rand. Die Chip-Leiste ist weg;
+oben steht ein Knopf mit dem aktuellen Filter und ▾: „Alle Habits", bei genau
+einem sichtbaren dessen Name, sonst „n von m Habits" (m = aktive Co-Habits);
+gefiltert in Tinte. Er öffnet ein Blatt (halb/ganz) mit „Alle" als Umschalter
+(alle an → alle aus, sonst alle an) und jedem aktiven Co-Habit mit Farbpunkt,
+Name und Haken; Mehrfachauswahl, jede Änderung wirkt sofort. Gemerkt wird je
+Gerät die Menge der **ausgeblendeten** Kennungen (`timeline.hidden`, beim
+Abmelden weg) - neue Co-Habits sind so von selbst angehakt, verschwundene
+zählen nicht. Geladen wird mit `GET /timeline?exclude=…` (Dienst ab
+`c536f66`), auch beim Blättern; ist alles aus, steht „0 von m Habits" und
+„Keine Habits ausgewählt", geladen wird nichts. Gefiltert meldet die App das
+neueste Ereignis überhaupt als gesehen, damit „neue Beweisfotos" auf „Heute"
+nicht hängen bleibt (Entscheidungen vom 2026-10-01). `cohabitId` schickt die
+App nicht mehr - es kam nur aus den Chips; Deep Link, Push, „Zur Timeline" und
+„neue Beweisfotos" öffnen die Timeline wie bisher (mit der gemerkten Auswahl).
+Debug-Schalter `COCKPIT_TIMELINE_HIDDEN=c-1,c-2|none`. Code:
+`coHabit/Timeline/TimelineFilter.swift`, `TimelineFilterSheet.swift`,
+`TimelineStore` in `TimelineView.swift`.
+
+**Geprüft:** `tools/verify.sh` (Unit-Tests coHabit 90, davon 13 neu:
+Knopfbeschriftung, Speichern der Ausblendungen, neues Co-Habit erscheint von
+selbst, unbekannte Kennungen zählen nicht, `exclude` beim Laden und Blättern,
+nichts laden ohne Auswahl, Gesehen-Melden). Im Simulator gegen den lokalen
+Dienst: Knopf ungefiltert, gefiltert und leer, Blatt hell und dunkel; UI-Test
+`testTimelineFilterHidesAHabitAndKeepsTheChoice` (Filter öffnen, ein Habit
+abwählen, seine Einträge verschwinden, alles aus, Auswahl bleibt nach dem
+Neustart) grün. Der Rundgang fotografiert jetzt Knopf und Blatt statt der Chips.
+**Bekannt:** „n neue Beweisfotos" auf „Heute" zählt weiter alle Co-Habits -
+der Dienst kennt den Filter nicht.
 
 ## coHabit: Links ohne Anmeldung melden an · **gebaut, nicht ausgerollt** (2026-09-30)
 
@@ -127,8 +162,8 @@ URL-Schema `cohabit`, iOS 18.
 **Bildschirme (Vertrag §5.2):** Heute als Dashboard (große Karten für Streak
 und Abstinenz, kleine paarweise für Ziel und Challenge) und als Liste („Offen
 heute" / „Läuft", Wochenpunkte, Balken, „n neue Beweisfotos"), Stupser-Banner
-mit „Zurückstupsen", offene Einladungen als Karte · Timeline mit Filter je
-Co-Habit, Tagesabschnitten, Foto-Karten, Reaktionen und „Antworten" ·
+mit „Zurückstupsen", offene Einladungen als Karte · Timeline mit Filter
+(Knopf und Abhak-Liste, seit 01.10.), Tagesabschnitten, Foto-Karten, Reaktionen und „Antworten" ·
 Statistik (Woche/Monat/Jahr, Erfüllungsquote, längste Serie, Heatmap als
 Kalender/Zeile/12 Monate, Balken je Co-Habit) · Profil mit Zahlenkacheln,
 Benachrichtigungen, Health-Verbindung, Freunde & Einladungen (Suche, Anfragen,
