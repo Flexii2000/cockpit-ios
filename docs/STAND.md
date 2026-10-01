@@ -23,7 +23,8 @@
 > `10536d7`) und das Kalorienziel im Wochenmittel (ab `f0f69c6`) - also erst
 > den Dienst ausrollen, dann Fokus **und** coHabit neu aufs Gerät; dort eine
 > Kategorie anlegen, einen Baum mit ihr pflanzen und Langdruck/Wischen im
-> Kategorie-Blatt prüfen.
+> Kategorie-Blatt prüfen. Die sieben Punkte bei Zielen und Challenges in der
+> klassischen Liste kommen erst mit dem Dienst ab `fe93938`.
 >
 > **Davor offen (unverändert):** Felix prüft auf dem Gerät: die Karten im Essen-Tab
 > (Diagramm-Ziehgeste und Umschalter-Reihe im Pager), die Automation für den
@@ -46,6 +47,14 @@
 > übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+
+## coHabit: Punkte bei Zielen und Challenges in der klassischen Liste · **gebaut, nicht ausgerollt** (2026-10-01)
+
+Nach „Eintragen" sah man einer Challenge in der klassischen Liste nichts an.
+Jetzt stehen unter Zielen und Challenges die sieben Punkte wie bei „Track
+food": Tage mit eigenem Eintrag, heute rechts (`recent`, Dienst ab `fe93938`).
+Die Zeile zeigt sie, sobald `recent` nicht leer ist; gegen einen älteren Dienst
+bleibt sie wie bisher. **Geprüft:** `tools/verify.sh coHabit` (110 Tests).
 
 ## Fokus-Kategorien im Wald und in coHabit · **gebaut, nicht ausgerollt** (2026-10-01)
 

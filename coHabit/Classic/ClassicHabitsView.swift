@@ -195,7 +195,10 @@ struct ClassicHabitRow: View {
                 Spacer(minLength: 8)
                 trailing
             }
-            if habit.unavailable == nil && !habit.kind.usesSummary {
+            // Auch bei Zielen und Challenges: die Tage mit eigenem Eintrag - so sieht man nach
+            // "Eintragen", dass heute etwas steht (Felix, 01.10.). Ein aelterer Dienst schickt
+            // dort keine Punkte, dann bleibt die Reihe weg.
+            if habit.unavailable == nil && !habit.recent.isEmpty {
                 ClassicRecentDots(recent: habit.recent, unit: habit.unit)
             }
             if habit.kind == .steps || habit.kind == .focus, let progress = habit.progress {

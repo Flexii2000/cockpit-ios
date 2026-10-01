@@ -3,6 +3,16 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-01 — Klassische Liste: sieben Punkte auch bei Zielen und Challenges
+Nach „Eintragen" änderte sich die Zeile einer Challenge in der klassischen Liste
+nicht sichtbar. Jetzt stehen dort wie bei „Track food" die sieben Punkte: Tage
+mit eigenem Eintrag, ältester zuerst, heute rechts (`recent`, Dienst ab
+`fe93938`). Die App zeigt die Reihe, sobald `recent` nicht leer ist - ein
+älterer Dienst schickt bei Zielen und Challenges `[]`, dann bleibt die Zeile
+wie bisher. **Warum:** Felix („Punkte drunter wie bei Track food"). **Verworfen:**
+ein Haken für „heute eingetragen" neben dem Knopf (mein Vorschlag) - die Punkte
+zeigen dasselbe und dazu die Woche, im Stil, den die Liste schon hat.
+
 ## 2026-10-01 — Wald-Kategorien: ein Knopf über „Baum pflanzen", ein Blatt für alles
 Felix will im Wald jedem Baum eine Kategorie geben (Dienst ab `10536d7`). Über
 „Baum pflanzen" steht ein grauer Knopf mit der gewählten Kategorie („Ohne
@@ -101,7 +111,7 @@ Felix will in der klassischen Liste alles sehen, was die neue zeigt - seine
 Challenges fehlten ihm. Sie stehen jetzt dort im alten Stil: statt der Flamme
 ein Pokal (Challenge) bzw. eine Zielflagge (Ziel) mit der Kennzahl der neuen
 Liste darunter („#1", „30%"), Untertitel aus `listLine`, bei Zielen der alte
-Balken, keine sieben Punkte; rechts „Eintragen" im Stil des alten
+Balken, keine sieben Punkte (seit dem Nachmittag doch, siehe oben); rechts „Eintragen" im Stil des alten
 „Rückfall"-Knopfs, ohne Eintragen ein Haken für „heute eingetragen". Der Knopf
 öffnet über `CheckInController` genau das, was der Eintragen-Knopf der neuen
 Liste öffnet (Wert-Blatt, +1, Beweisfoto) - die Liste hat keine eigene Logik.

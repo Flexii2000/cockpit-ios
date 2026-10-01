@@ -640,7 +640,9 @@ anlegen lässt sie sich nur in coHabit selbst.
 
 ⚠️ **Ziele und Challenges** (seit 2026-10-01): die alten Felder stehen
 neutral (`unit` DAYS, `streak` 0, leere Listen, `doneToday` = heute schon
-eingetragen, `unavailable` = `summary.unavailableText`); was die Zeile zeigt,
+eingetragen, `unavailable` = `summary.unavailableText`) - bis auf `recent`:
+die letzten sieben Tage mit eigenem Eintrag (seit `fe93938`, davor `[]`; die
+App zeigt die Punkte nur, wenn welche kommen). Was die Zeile sonst zeigt,
 steht in `summary` - Kennzahl (`headline.value`: „#1“, „30%“), `listLine`,
 `progress` (nur Ziele; Challenges haben einen Platz, keinen Stand),
 `canCheckIn`, `valueUnit`, `checkInLabel`. Eingetragen wird nicht über
