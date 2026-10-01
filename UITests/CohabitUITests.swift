@@ -461,6 +461,56 @@ final class CohabitUITests: XCTestCase {
         XCTAssertEqual(after?["kind"] as? String, "CHALLENGE")
     }
 
+    /// kcal aus Healthy: die Health-Karte ist ein Schalter - einschalten
+    /// stimmt beim Dienst zu (ohne Apple-Health-Abfrage), ausschalten widerruft.
+    @MainActor
+    func testKcalFromHealthyIsASwitch() throws {
+        let sources = (try request("GET", "/me", body: nil, token: token)["sources"] as? [String]) ?? []
+        try XCTSkipIf(!sources.contains("FOOD"), "die Person hat keinen Healthy-Zugang")
+        let id = try createKcalGoal(name: unique("kcal UI"))
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
+
+        let app = launch(extra: ["COCKPIT_LINK": "cohabit://cohabit/\(id)"])
+        let toggle = app.switches["healthyConsent"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 20), "keine Karte „kcal aus Healthy“")
+        XCTAssertFalse(app.buttons["healthConnect"].exists, "kein „Verbinden“ mit Apple Health")
+        XCTAssertEqual(toggle.value as? String, "0")
+        toggle.tap()
+        XCTAssertTrue(waitFor(toggle, toHaveValue: "1"), "der Schalter laesst sich nicht einschalten")
+        shoot(app, "kcal-zugestimmt")
+        XCTAssertEqual(try consent(id), true, "der Dienst kennt die Zustimmung nicht")
+        toggle.tap()
+        XCTAssertTrue(waitFor(toggle, toHaveValue: "0"))
+        XCTAssertEqual(try consent(id), false, "der Dienst kennt den Widerruf nicht")
+    }
+
+    private func consent(_ cohabitId: String) throws -> Bool? {
+        let detail = try request("GET", "/cohabits/\(cohabitId)", body: nil, token: token)
+        return (detail["mySettings"] as? [String: Any])?["healthConsent"] as? Bool
+    }
+
+    /// Ein Teamziel in kcal aus Healthy - nur die Person hier.
+    private func createKcalGoal(name: String) throws -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Europe/Berlin")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let body: [String: Any] = [
+            "type": "GOAL", "name": name, "color": "mint", "timezone": "Europe/Berlin",
+            "tracking": ["mode": "VALUE", "unit": "KCAL"], "photoRequired": false, "backfillHours": 48,
+            "reminderTime": NSNull(), "membersCanInvite": false,
+            "streak": NSNull(), "abstinence": NSNull(), "challenge": NSNull(), "auto": NSNull(),
+            "goal": ["target": 60000, "start": formatter.string(from: Date()),
+                     "deadline": formatter.string(from: Date().addingTimeInterval(30 * 86_400)),
+                     "counting": "AMOUNT", "mode": "TEAM"],
+            "health": ["metric": "KCAL"], "invitePersonIds": [String](),
+        ]
+        let detail = try request("POST", "/cohabits", body: body, token: token)
+        let summary = try XCTUnwrap(detail["summary"] as? [String: Any])
+        let ref = try XCTUnwrap(summary["ref"] as? [String: Any])
+        return try XCTUnwrap(ref["id"] as? String)
+    }
+
     /// Eine Challenge „meiste Eintraege", die heute beginnt - nur die Person hier.
     private func createChallenge(name: String) throws -> String {
         let formatter = DateFormatter()

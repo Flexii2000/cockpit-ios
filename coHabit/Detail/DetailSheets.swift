@@ -389,6 +389,8 @@ struct CohabitSettingsSheet: View {
                             if detail.ref.type == .abstinence && detail.config.health != nil { FormDivider() }
                             if detail.config.health != nil {
                                 ToggleRow(title: "Health-Werte teilen", isOn: binding.healthConsent)
+                                    // kcal aus Healthy: nur mit Healthy-Zugang.
+                                    .disabled(detail.health?.isFromHealthy == true && !HealthyAccess.isAvailable)
                             }
                         }
                     }
@@ -401,7 +403,7 @@ struct CohabitSettingsSheet: View {
         .onAppear { settings = store.detail?.mySettings }
         .onChange(of: settings) { old, new in
             guard let old, let new, old != new else { return }
-            if new.healthConsent && !old.healthConsent {
+            if new.healthConsent && !old.healthConsent && store.detail?.health?.isFromHealthy != true {
                 Task { await store.enableHealth() }
             } else {
                 Task { await store.save(settings: new) }

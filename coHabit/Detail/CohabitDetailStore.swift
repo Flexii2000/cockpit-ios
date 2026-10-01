@@ -60,9 +60,18 @@ final class CohabitDetailStore {
 
     func save(settings: MySettings) async {
         await change("PUT", "/settings/me", body: settings)
-        if detail?.config.health != nil {
+        if detail?.config.health != nil, detail?.health?.isFromHealthy != true {
             Task { await CohabitHealthSync.shared.sync(only: cohabitId) }
         }
+    }
+
+    /// kcal aus Healthy: zustimmen oder widerrufen - der Dienst holt die Werte
+    /// danach selbst (gleich nach der Zustimmung die ganze Frist). Keine
+    /// Apple-Health-Abfrage; ohne Healthy-Zugang lehnt der Dienst ab.
+    func setHealthyConsent(_ on: Bool) async {
+        guard var settings = detail?.mySettings, settings.healthConsent != on else { return }
+        settings.healthConsent = on
+        await save(settings: settings)
     }
 
     /// Health einschalten: erst der System-Dialog, dann die Einwilligung beim

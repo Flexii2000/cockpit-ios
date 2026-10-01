@@ -234,11 +234,17 @@ struct CohabitDetailView: View {
     @ViewBuilder
     private func overview(_ detail: CohabitDetail) -> some View {
         switch detail.ref.type {
-        case .streak: StreakOverview(detail: detail)
+        case .streak: StreakOverview(detail: detail, setHealthyConsent: setHealthyConsent)
         case .abstinence: AbstinenceOverview(detail: detail)
-        case .goal: GoalOverview(detail: detail, enableHealth: { Task { await store.enableHealth() } })
-        case .challenge: ChallengeOverview(detail: detail)
+        case .goal: GoalOverview(detail: detail, enableHealth: { Task { await store.enableHealth() } },
+                                 setHealthyConsent: setHealthyConsent)
+        case .challenge: ChallengeOverview(detail: detail, setHealthyConsent: setHealthyConsent)
         }
+    }
+
+    /// kcal aus Healthy: nur die Einwilligung beim Dienst, keine Apple-Health-Abfrage.
+    private func setHealthyConsent(_ on: Bool) async {
+        await store.setHealthyConsent(on)
     }
 
     /// Unten fest: der Knopf mit `checkInLabel` (Vertrag §5.3). Bei Abstinenz

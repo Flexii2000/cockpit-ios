@@ -318,13 +318,14 @@ struct ValueEntrySheet: View {
         case "MINUTES": "Minuten"
         case "KM": "Kilometer"
         case "STEPS": "Schritte"
+        case "KCAL": "kcal"
         default: unit ?? "Wert"
         }
     }
 
     /// Liest eine deutsch geschriebene Zahl: „8.200" Schritte, „5,2" km.
-    /// Ein einzelner Punkt ist bei Schritten und Anzahl ein Tausender, bei
-    /// km und Minuten ein Komma - so tippt man es jeweils.
+    /// Ein einzelner Punkt ist bei Schritten, Anzahl und kcal ein Tausender,
+    /// bei km und Minuten ein Komma - so tippt man es jeweils.
     nonisolated static func number(_ text: String, unit: String? = nil) -> Double? {
         var raw = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: " ", with: "")
         guard !raw.isEmpty else { return nil }
@@ -334,7 +335,7 @@ struct ValueEntrySheet: View {
             raw = raw.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: ".")
         } else if hasComma {
             raw = raw.replacingOccurrences(of: ",", with: ".")
-        } else if hasDot, ["STEPS", "COUNT"].contains(unit?.uppercased() ?? "") {
+        } else if hasDot, ["STEPS", "COUNT", "KCAL"].contains(unit?.uppercased() ?? "") {
             raw = raw.replacingOccurrences(of: ".", with: "")
         }
         guard let number = Double(raw), number.isFinite, number > 0 else { return nil }

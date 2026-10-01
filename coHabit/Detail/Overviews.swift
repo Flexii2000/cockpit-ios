@@ -7,6 +7,8 @@ import SwiftUI
 
 struct StreakOverview: View {
     let detail: CohabitDetail
+    /// kcal aus Healthy: die Einwilligung (der Schalter der Health-Karte).
+    var setHealthyConsent: (Bool) async -> Void = { _ in }
 
     @Environment(\.meId) private var meId
 
@@ -27,7 +29,11 @@ struct StreakOverview: View {
                 Tile(value: "\(group.current) \(group.unitLabel)", caption: "Gruppen-Streak")
             }
             if let health = detail.health {
-                HealthCard(health: health, enable: nil)
+                if health.isFromHealthy {
+                    HealthyCard(health: health, setConsent: setHealthyConsent)
+                } else {
+                    HealthCard(health: health, enable: nil)
+                }
             }
             RulesCard(rules: detail.rules)
         }
@@ -218,6 +224,7 @@ struct SeriesCard: View {
 struct GoalOverview: View {
     let detail: CohabitDetail
     let enableHealth: () -> Void
+    var setHealthyConsent: (Bool) async -> Void = { _ in }
 
     @Environment(\.meId) private var meId
 
@@ -250,7 +257,11 @@ struct GoalOverview: View {
                 .card(padding: 18)
             }
             if let health = detail.health {
-                HealthCard(health: health, enable: health.consent ? nil : enableHealth)
+                if health.isFromHealthy {
+                    HealthyCard(health: health, setConsent: setHealthyConsent)
+                } else {
+                    HealthCard(health: health, enable: health.consent ? nil : enableHealth)
+                }
             }
             RulesCard(rules: detail.rules)
         }
@@ -297,10 +308,74 @@ struct HealthCard: View {
     }
 }
 
+/// kcal aus Healthy (`source: HEALTHY`): die Werte holt der Dienst selbst aus
+/// dem Kalorienzaehler - statt der Apple-Health-Abfrage nur die Einwilligung
+/// als Schalter. Ohne Healthy-Zugang ist er gesperrt.
+struct HealthyCard: View {
+    let health: HealthInfo
+    let setConsent: (Bool) async -> Void
+
+    /// Der gewaehlte Stand, solange der Dienst noch nicht geantwortet hat -
+    /// sonst spraenge der Schalter bis dahin zurueck. Lehnt der Dienst ab,
+    /// gilt danach wieder sein Stand.
+    @State private var pending: Bool?
+
+    var body: some View {
+        let access = HealthyAccess.isAvailable
+        HStack(spacing: 14) {
+            Image(systemName: "fork.knife")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Ink.ink)
+                .frame(width: 48, height: 48)
+                .background(PaletteKey.mint.colors.surface, in: Circle())
+            VStack(alignment: .leading, spacing: 3) {
+                Text(health.label)
+                    .font(.system(size: 17, weight: .heavy))
+                    .foregroundStyle(Ink.ink)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Ink.muted)
+                }
+                if !access {
+                    Text("Kein Healthy-Zugang")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Ink.muted)
+                        .accessibilityIdentifier("healthyNoAccess")
+                }
+            }
+            Spacer(minLength: 4)
+            Toggle(health.label, isOn: Binding(get: { pending ?? health.consent }, set: { value in
+                pending = value
+                Task {
+                    await setConsent(value)
+                    pending = nil
+                }
+            }))
+                .labelsHidden()
+                .tint(Ink.accent)
+                .disabled(!access)
+                .accessibilityIdentifier("healthyConsent")
+        }
+        .card(padding: 16)
+    }
+
+    /// „nur die kcal des Tages werden geteilt · zuletzt 14:02".
+    private var subtitle: String {
+        var parts: [String] = []
+        if let share = health.shareText { parts.append(share) }
+        if health.consent, let last = health.lastSyncAt {
+            parts.append("zuletzt " + Formats.relativeStamp(last))
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+
 // MARK: - Challenge
 
 struct ChallengeOverview: View {
     let detail: CohabitDetail
+    var setHealthyConsent: (Bool) async -> Void = { _ in }
 
     @Environment(\.meId) private var meId
 
@@ -347,7 +422,11 @@ struct ChallengeOverview: View {
                 }
             }
             if let health = detail.health {
-                HealthCard(health: health, enable: nil)
+                if health.isFromHealthy {
+                    HealthyCard(health: health, setConsent: setHealthyConsent)
+                } else {
+                    HealthCard(health: health, enable: nil)
+                }
             }
             RulesCard(rules: detail.rules)
         }

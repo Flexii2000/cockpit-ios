@@ -12,6 +12,10 @@ import HealthKit
 /// Welche Co-Habits das sind, merkt sich die App aus jedem geladenen Detail:
 /// „Heute" kennt die Metrik nicht, und alle Details bei jedem Start zu holen
 /// kostete je Co-Habit eine Anfrage.
+///
+/// `KCAL` gehoert nicht dazu: die kcal holt der Dienst selbst aus Healthy
+/// (`source: HEALTHY`) - dafuer liest die App nichts aus Apple Health und
+/// fragt auch nicht nach einer Erlaubnis.
 @MainActor
 final class CohabitHealthSync {
 
@@ -68,15 +72,26 @@ final class CohabitHealthSync {
 
     // MARK: - Welche Co-Habits
 
-    var subscriptions: [Subscription] {
-        guard let data = UserDefaults.standard.data(forKey: subscriptionsKey) else { return [] }
-        return (try? JSONDecoder().decode([Subscription].self, from: data)) ?? []
+    /// Was die App aus Apple Health liest - alles andere (`KCAL`) kommt
+    /// nicht vom Geraet.
+    nonisolated static let deviceMetrics: Set<String> = ["STEPS", "RUNNING_DISTANCE", "WORKOUTS", "WORKOUT_MINUTES"]
+
+    nonisolated static func readsFromDevice(_ metric: String) -> Bool {
+        deviceMetrics.contains(metric)
     }
 
-    /// Aus jedem geladenen Detail: Metrik und Einwilligung nachziehen.
+    var subscriptions: [Subscription] {
+        guard let data = UserDefaults.standard.data(forKey: subscriptionsKey) else { return [] }
+        let list = (try? JSONDecoder().decode([Subscription].self, from: data)) ?? []
+        return list.filter { Self.readsFromDevice($0.metric) }
+    }
+
+    /// Aus jedem geladenen Detail: Metrik und Einwilligung nachziehen. Ein
+    /// Co-Habit mit kcal aus Healthy wird nie abonniert.
     func update(from detail: CohabitDetail) {
         var list = subscriptions.filter { $0.cohabitId != detail.id }
-        if let health = detail.config.health, detail.mySettings.healthConsent, !detail.summary.archived {
+        if let health = detail.config.health, Self.readsFromDevice(health.metric),
+           detail.mySettings.healthConsent, !detail.summary.archived {
             list.append(Subscription(cohabitId: detail.id, metric: health.metric,
                                      zone: detail.config.timezone, backfillHours: detail.config.backfillHours))
         }
@@ -199,6 +214,9 @@ final class CohabitHealthSync {
             return await workouts(predicate: predicate).map { list in
                 (list.reduce(0) { $0 + $1.duration } / 60).rounded()
             }
+        case "KCAL":
+            // Kommt aus Healthy, der Dienst holt es selbst - hier nichts lesen.
+            return nil
         default:
             return nil
         }
@@ -233,5 +251,14 @@ final class CohabitHealthSync {
     /// Nur die Dauer - `HKWorkout` ist nicht versendbar.
     private struct WorkoutSpan: Sendable {
         let duration: TimeInterval
+    }
+}
+
+/// Ob die angemeldete Person einen Healthy-Zugang hat (Quelle `FOOD` in
+/// `MeView.sources`) - nur dann kann sie den kcal aus Healthy zustimmen; der
+/// Dienst lehnt sonst mit 400 ab.
+enum HealthyAccess {
+    @MainActor static var isAvailable: Bool {
+        Session.shared.me?.sources.contains("FOOD") ?? false
     }
 }

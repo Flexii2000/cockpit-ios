@@ -484,7 +484,7 @@ mit dem Status.
 | PUT | `/cohabits/{id}/settings/me` | Stumm, Check-ins/Chat (`null` = wie global), Unterbrechungen teilen, Health-Einwilligung |
 | POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
 | POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen |
-| PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health |
+| PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) |
 | GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat |
 | POST/DELETE | `/reactions` | `{"target":"event:…\|message:…","reaction"}` |
 | POST | `/cohabits/{id}/nudges` · `/nudges/{id}/seen` | Stupsen, Stupser gesehen |
@@ -504,6 +504,18 @@ vergibt der **Dienst** die Kennung (Antwort von `POST /photos`), wiederholbar
 macht das Hochladen der `Idempotency-Key` - er gilt je Person. Darauf baut der
 Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht nach einem
 Neustart mitten im Nachsenden.
+
+⚠️ **kcal aus Healthy (seit 2026-10-01, `../habits` Commit `a5288a5`):** die
+Health-Metrik `KCAL` (Einheit `KCAL`, Text „kcal“) holt der **Dienst** selbst
+aus dem Kalorienzähler (`KcalSync`) - je Mitglied mit `healthConsent` und
+Healthy-Zugang (Quelle `FOOD` in `MeView.sources`), gleich nach der Zustimmung
+für die ganze Frist, danach alle 15 Minuten heute und gestern. Der Health-Block
+im Detail trägt `source`: `DEVICE` (die App liest Apple Health und schickt) oder
+`HEALTHY` (KCAL). Zustimmen ohne Quelle `FOOD` → 400 „Dafür braucht es einen
+Healthy-Zugang.“, `PUT …/health/{date}` bei KCAL → 400. Die App liest für
+`HEALTHY` nichts aus Apple Health, fragt nicht nach einer Erlaubnis
+(`CohabitHealthSync.readsFromDevice`) und zeigt statt „Verbinden“ den Schalter
+(`HealthyCard`, `PUT …/settings/me {healthConsent}`), gesperrt ohne `FOOD`.
 
 ⚠️ **Timeline-Filter (seit 2026-10-01, `../habits` Commit `c536f66`):**
 `exclude` nimmt die Co-Habits, die der Filter ausblendet - kommagetrennt oder

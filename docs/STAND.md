@@ -42,6 +42,31 @@
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
 
+## coHabit: kcal aus Healthy als Wert · **gebaut, nicht ausgerollt** (2026-10-01)
+
+Felix' Wunsch: „kcal aus Healthy" als Wert in Co-Habits. Die kcal holt der
+Dienst selbst aus dem Kalorienzähler (ab `a5288a5`), je Mitglied mit
+Einwilligung und Healthy-Zugang. In der App: beim Anlegen/Bearbeiten die
+Health-Metrik „kcal aus Healthy" (`KCAL`, Einheit `KCAL`); „kcal" steht als
+Einheit in Chips und Wert-Blatt (ein Punkt ist dort ein Tausender). Auf der
+Detailseite (Streak, Ziel, Challenge) zeigt die Health-Karte bei
+`source: HEALTHY` statt „Verbinden" einen Schalter für die Einwilligung (Titel
+`health.label`, darunter `shareText` und „zuletzt …"), ohne Quelle `FOOD`
+gesperrt mit „Kein Healthy-Zugang". `CohabitHealthSync` liest kcal nie aus
+Apple Health und fragt dafür keine Erlaubnis an; dasselbe im Blatt
+„Benachrichtigungen" und auf „Health-Verbindung" im Profil (dort ohne
+Healthy-Zugang gesperrt). Für Apple Health bleibt alles, wie es war.
+
+**Geprüft:** `tools/verify.sh` (Unit-Tests coHabit 100, davon 4 neu:
+`source` dekodieren, kcal nie abonniert und nicht vom Gerät gelesen, Einheit
+beschriftet und gelesen, Formular samt Rumpf). Bilder hell und dunkel der Karte
+gegen den lokalen Dienst: Torben zugestimmt, Lena gesperrt. UI-Test
+`testKcalFromHealthyIsASwitch` (einschalten stimmt beim Dienst zu, ausschalten
+widerruft; kein „Verbinden"); die ganze Sammlung `tools/uitest.sh coHabit`
+gegen diesen Dienst 14 grün, 3 übersprungen (Offline, Push, Rundgang). Lokal
+ist der Kalorienzähler nicht erreichbar -
+dass wirklich kcal ankommen und „zuletzt …" erscheint, zeigt erst der Server.
+
 ## coHabit: klassische Liste mit Zielen und Challenges · **gebaut, nicht ausgerollt** (2026-10-01)
 
 Felix will in der klassischen Liste alles sehen, was die neue zeigt - seine

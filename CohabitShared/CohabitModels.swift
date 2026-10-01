@@ -407,6 +407,13 @@ struct HealthInfo: Codable, Hashable, Sendable {
     let consent: Bool
     let lastSyncAt: Date?
     let shareText: String?
+    /// `DEVICE`: die App liest Apple Health und schickt die Tageswerte.
+    /// `HEALTHY`: der Dienst holt sie selbst aus dem Kalorienzaehler (kcal) -
+    /// die App fragt dann nichts aus Apple Health ab. Fehlt das Feld (aelterer
+    /// Dienst), ist es DEVICE.
+    let source: String?
+
+    var isFromHealthy: Bool { source?.uppercased() == "HEALTHY" }
 }
 
 struct Pause: Codable, Hashable, Sendable, Identifiable {

@@ -12,7 +12,7 @@ struct CohabitConfig: Codable, Hashable, Sendable {
     struct Tracking: Codable, Hashable, Sendable {
         /// `CHECK` oder `VALUE`.
         var mode: String
-        /// `COUNT`, `MINUTES`, `KM`, `STEPS` - nur bei `VALUE`.
+        /// `COUNT`, `MINUTES`, `KM`, `STEPS`, `KCAL` - nur bei `VALUE`.
         var unit: String?
 
         static let check = Tracking(mode: "CHECK", unit: nil)
@@ -96,7 +96,8 @@ struct CohabitConfig: Codable, Hashable, Sendable {
     }
 
     struct Health: Codable, Hashable, Sendable {
-        /// `STEPS`, `RUNNING_DISTANCE`, `WORKOUTS`, `WORKOUT_MINUTES`.
+        /// `STEPS`, `RUNNING_DISTANCE`, `WORKOUTS`, `WORKOUT_MINUTES` aus Apple
+        /// Health; `KCAL` aus Healthy (holt der Dienst selbst).
         var metric: String
     }
 

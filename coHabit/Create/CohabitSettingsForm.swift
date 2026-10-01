@@ -304,7 +304,8 @@ struct CohabitSettingsForm: View {
         }
     }
 
-    static let units = [("COUNT", "Anzahl"), ("MINUTES", "Minuten"), ("KM", "km"), ("STEPS", "Schritte")]
+    static let units = [("COUNT", "Anzahl"), ("MINUTES", "Minuten"), ("KM", "km"), ("STEPS", "Schritte"),
+                        ("KCAL", "kcal")]
 
     // MARK: - Weitere Einstellungen
 
@@ -408,7 +409,8 @@ struct CohabitSettingsForm: View {
     }
 
     static let metrics = [("STEPS", "Schritte"), ("RUNNING_DISTANCE", "Laufdistanz"),
-                          ("WORKOUTS", "Trainings"), ("WORKOUT_MINUTES", "Trainingsminuten")]
+                          ("WORKOUTS", "Trainings"), ("WORKOUT_MINUTES", "Trainingsminuten"),
+                          ("KCAL", "kcal aus Healthy")]
 
     /// Eine Health-Metrik bringt ihre Einheit mit - ein Ziel „100.000
     /// Schritte" zaehlt Mengen, keine Eintraege.
@@ -418,16 +420,21 @@ struct CohabitSettingsForm: View {
             return
         }
         config.health = .init(metric: metric)
-        let unit = switch metric {
-        case "STEPS": "STEPS"
-        case "RUNNING_DISTANCE": "KM"
-        case "WORKOUT_MINUTES": "MINUTES"
-        default: "COUNT"
-        }
-        config.tracking = .init(mode: "VALUE", unit: unit)
+        config.tracking = .init(mode: "VALUE", unit: Self.unit(forHealthMetric: metric))
         if config.type == .goal { config.goal?.counting = "AMOUNT" }
         if config.type == .challenge, config.challenge?.scoring == "MOST_ENTRIES" {
             config.challenge?.scoring = "HIGHEST_SUM"
+        }
+    }
+
+    /// Die Einheit, die eine Health-Metrik mitbringt.
+    nonisolated static func unit(forHealthMetric metric: String) -> String {
+        switch metric {
+        case "STEPS": "STEPS"
+        case "RUNNING_DISTANCE": "KM"
+        case "WORKOUT_MINUTES": "MINUTES"
+        case "KCAL": "KCAL"
+        default: "COUNT"
         }
     }
 

@@ -3,6 +3,27 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-01 — kcal aus Healthy: ein Schalter statt der Apple-Health-Abfrage
+Felix wollte „kcal aus Healthy" als Wert in Co-Habits. Die Werte holt der
+Dienst selbst aus dem Kalorienzähler (`source: HEALTHY`); die App bietet beim
+Anlegen und Bearbeiten die Health-Metrik „kcal aus Healthy" (`KCAL`, Einheit
+`KCAL`) und kennt „kcal" überall, wo Einheiten beschriftet werden. Auf der
+Detailseite steht statt „Health-Sync aus/aktiv" mit „Verbinden" eine Karte mit
+Titel `health.label`, `shareText`, „zuletzt …" und einem Schalter für die
+Einwilligung (`PUT …/settings/me`); ohne Quelle `FOOD` ist er gesperrt, darunter
+„Kein Healthy-Zugang". Für Apple Health bleibt alles, wie es war.
+`CohabitHealthSync` abonniert KCAL ausdrücklich nicht und fragt dafür keine
+HealthKit-Erlaubnis an - auch nicht über das Blatt „Benachrichtigungen" oder
+die Profilseite „Health-Verbindung", die beide sonst beim Einschalten Apple
+Health abfragten. **Warum:** Felix; die Daten liegen beim Kalorienzähler nebenan,
+kein Handy muss etwas schicken. Eine Health-Abfrage dafür hätte nach einer
+Erlaubnis gefragt, die nichts bewirkt. **Verworfen:** (a) die alte Karte mit
+„Verbinden" behalten (öffnete den Apple-Health-Dialog für Daten, die gar nicht
+vom Gerät kommen); (b) die Karte bei KCAL ganz weglassen (dann gäbe es auf der
+Detailseite keinen Weg zur Einwilligung, nur noch im Benachrichtigungs-Blatt);
+(c) „kcal aus Healthy" nur Personen mit Healthy-Zugang zum Anlegen anbieten
+(wer anlegt, ist nicht unbedingt der, der kcal beisteuert).
+
 ## 2026-10-01 — Klassische Liste: Ziele und Challenges in der alten Zeile
 Felix will in der klassischen Liste alles sehen, was die neue zeigt - seine
 Challenges fehlten ihm. Sie stehen jetzt dort im alten Stil: statt der Flamme

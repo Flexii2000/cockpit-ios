@@ -248,6 +248,8 @@ struct HealthConnectionView: View {
                         }
                         .tint(Ink.accent)
                         .frame(minHeight: 60)
+                        // kcal aus Healthy: zustimmen kann nur, wer einen Healthy-Zugang hat.
+                        .disabled(detail.health?.isFromHealthy == true && !HealthyAccess.isAvailable)
                     }
                 }
             }
@@ -274,14 +276,16 @@ struct HealthConnectionView: View {
     }
 
     private func setConsent(_ value: Bool, for detail: CohabitDetail) async {
-        if value { await health.requestAuthorization() }
+        // kcal aus Healthy holt der Dienst - dafuer keine Apple-Health-Abfrage.
+        let fromDevice = !(detail.health?.isFromHealthy ?? false)
+        if value && fromDevice { await health.requestAuthorization() }
         var settings = detail.mySettings
         settings.healthConsent = value
         do {
             let updated: CohabitDetail = try await Session.shared.api().send("PUT", "/cohabits/\(detail.id)/settings/me", body: settings)
             CohabitHealthSync.shared.update(from: updated)
             if let index = details.firstIndex(where: { $0.id == detail.id }) { details[index] = updated }
-            if value { await health.sync(only: detail.id) }
+            if value && fromDevice { await health.sync(only: detail.id) }
             asked = await health.hasAsked()
         } catch {
             Toast.shared.show(error)
