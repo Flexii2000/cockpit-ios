@@ -58,12 +58,13 @@ Als letzter Chip unter dem Gewichtsdiagramm, im Urlaubsblau
 (`Palette.vacation`): aus = keine Bänder und keine Linien, in jedem Zeitraum.
 Je Gerät gemerkt (`UserDefaults` `weight.highlightsShown`, ohne Wert an); die
 Liste im Blatt „Zeiträume" bleibt vollständig. Ohne einen einzigen Eintrag
-fehlt der Chip. ⚠️ Die Chip-Reihe scrollt seitlich und schneidet schon den
-fünften Chip am Rand ab — „Zeiträume" steht dahinter und ist erst nach
-Wischen zu sehen. **Geprüft:** `tools/verify.sh Healthy` (95 Tests, neu
-`testHighlightVisibilityDefaultsOnAndRemembersOff`); im Simulator nur die
-Reihe gesehen, den Chip selbst nicht (liegt außerhalb des Bildes, und
-`run-simulator.sh` kann nicht wischen).
+fehlt der Chip. Die Chip-Reihe bricht jetzt um statt seitlich zu scrollen
+(dort lag schon der fünfte Chip hinter dem Rand); dafür ist `FlowLayout` aus
+`coHabit/Design/` nach `Core/` gezogen - zwei Apps brauchen es, keine
+Erweiterung. **Geprüft:** `tools/verify.sh` (alle fünf; Healthy 95 Tests, neu
+`testHighlightVisibilityDefaultsOnAndRemembersOff`, coHabit 110).
+**Offen:** Die Umschalter-Reihe im Essen-Tab (`FoodTab.swift`) scrollt noch
+seitlich.
 
 ## coHabit: Punkte bei Zielen und Challenges in der klassischen Liste · **gebaut, nicht ausgerollt** (2026-10-01)
 

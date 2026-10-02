@@ -157,31 +157,30 @@ struct WeightTab: View {
                             visible: store.visibleSeries)
 
             // Die Umschalter sind zugleich die Legende - eine zweite Liste
-            // mit denselben Farben waere Wiederholung. Fuenf passen nicht in
-            // eine iPhone-Breite, deshalb seitlich scrollbar.
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(store.range.offeredSeries) { series in
-                        if store.range.availableSeries.contains(series) {
-                            SeriesChip(title: series.title,
-                                       color: series.color,
-                                       isOn: store.visibleSeries.contains(series)) {
-                                if store.visibleSeries.contains(series) {
-                                    store.visibleSeries.remove(series)
-                                } else {
-                                    store.visibleSeries.insert(series)
-                                }
+            // mit denselben Farben waere Wiederholung. Sie passen nicht in
+            // eine iPhone-Breite und brechen deshalb um: seitlich scrollbar
+            // lag der letzte Chip unsichtbar hinter dem Rand.
+            FlowLayout(spacing: 8) {
+                ForEach(store.range.offeredSeries) { series in
+                    if store.range.availableSeries.contains(series) {
+                        SeriesChip(title: series.title,
+                                   color: series.color,
+                                   isOn: store.visibleSeries.contains(series)) {
+                            if store.visibleSeries.contains(series) {
+                                store.visibleSeries.remove(series)
+                            } else {
+                                store.visibleSeries.insert(series)
                             }
                         }
                     }
-                    // Ein Schalter fuer alle Baender und Linien - ohne einen
-                    // einzigen Eintrag gaebe es nichts auszublenden.
-                    if !store.highlights.isEmpty {
-                        SeriesChip(title: "Zeiträume",
-                                   color: Palette.vacation,
-                                   isOn: store.showsHighlights) {
-                            store.showsHighlights.toggle()
-                        }
+                }
+                // Ein Schalter fuer alle Baender und Linien - ohne einen
+                // einzigen Eintrag gaebe es nichts auszublenden.
+                if !store.highlights.isEmpty {
+                    SeriesChip(title: "Zeiträume",
+                               color: Palette.vacation,
+                               isOn: store.showsHighlights) {
+                        store.showsHighlights.toggle()
                     }
                 }
             }

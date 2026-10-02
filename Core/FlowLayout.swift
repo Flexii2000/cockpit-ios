@@ -1,7 +1,10 @@
 import SwiftUI
 
 /// Chips nebeneinander, bei Bedarf in die naechste Zeile - Regeln, Filter,
-/// fruehere Runden.
+/// fruehere Runden in coHabit, die Serien unter dem Gewichtsdiagramm in
+/// Healthy. Statt einer seitlich scrollenden Leiste: was dort am Rand
+/// abgeschnitten ist, findet niemand. In `Core/`, weil zwei Apps es brauchen
+/// und keine Erweiterung.
 struct FlowLayout: Layout {
     var spacing: CGFloat = 8
     var lineSpacing: CGFloat = 8

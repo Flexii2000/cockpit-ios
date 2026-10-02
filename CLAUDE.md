@@ -21,7 +21,7 @@ Tagessummen); die Apps zeigen.
 | Ordner | übersetzt von | darf |
 |---|---|---|
 | `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
-| `Core/` | alle fünf Apps (coHabit nimmt daraus nur `Notifications`; Netz, Fehler- und Offline-Leisten hat es eigene) | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
+| `Core/` | alle fünf Apps (coHabit nimmt daraus nur `Notifications` und `FlowLayout`; Netz, Fehler- und Offline-Leisten hat es eigene) | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
 | `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |

@@ -3,6 +3,18 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-02 — Gewicht-Tab: Serien-Chips brechen um, `FlowLayout` nach `Core/`
+Die Serien-Chips unter dem Gewichtsdiagramm scrollten seitlich; schon der
+fünfte lag hinter dem Rand, der neue Chip „Zeiträume" dahinter. Jetzt brechen
+sie um, mit dem `FlowLayout` aus coHabit, das dafür nach `Core/` zieht.
+**Warum:** Felix will keine seitlich scrollenden Chip-Leisten (was am Rand
+abgeschnitten ist, findet niemand). `Core/` übersetzen genau die fünf Apps und
+keine Erweiterung - und gebraucht wird es von zwei Apps, von keiner Kachel.
+**Verworfen:** (a) `Shared/` - ginge auch, würde aber in jede Erweiterung
+mitübersetzt, die es nie benutzt; (b) eine zweite Fassung in `Healthy/` -
+dieselbe Umbruchrechnung zweimal, und der Rundungsfehler, den die coHabit-
+Fassung schon behoben hat, käme in der Kopie wieder.
+
 ## 2026-10-02 — Zeiträume ausblenden: ein Schalter für alle, je Gerät gemerkt
 Unter dem Gewichtsdiagramm steht als letzter Chip „Zeiträume"; aus blendet
 alle Bänder und Linien aus, in jedem Zeitraum zugleich (anders als die
