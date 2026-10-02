@@ -16,6 +16,17 @@ final class WeightStore {
     private(set) var points: [WeightPoint] = []
     /// Zeitraeume (Baender) und einzelne Tage (Linien) im Diagramm.
     private(set) var highlights: [Highlight] = []
+    /// Der Chip „Zeitraeume" unter dem Diagramm. Gilt fuer jeden Zeitraum,
+    /// anders als die Serien - Urlaub ist in 30 Tagen derselbe wie in einem Jahr.
+    var showsHighlights = HighlightVisibility.load() {
+        didSet { HighlightVisibility.save(showsHighlights) }
+    }
+
+    /// Was das Diagramm zeichnet. Die Liste im Blatt „Zeitraeume" bleibt
+    /// vollstaendig, auch wenn hier nichts steht.
+    var chartHighlights: [Highlight] {
+        showsHighlights ? highlights : []
+    }
     /// Die vollstaendige, geordnete Liste. Frueher standen hier nur die
     /// Zusaetze und vier Kacheln waren fest verdrahtet.
     private(set) var widgets: [WeightWidget] = []

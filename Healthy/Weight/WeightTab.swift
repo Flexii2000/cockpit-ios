@@ -149,7 +149,7 @@ struct WeightTab: View {
             .pickerStyle(.segmented)
 
             WeightChartView(points: store.points,
-                            highlights: store.highlights,
+                            highlights: store.chartHighlights,
                             corridor: store.summary?.activeCorridor,
                             kcalByDay: store.kcalByDay,
                             kcalAverage: store.kcalAverage,
@@ -172,6 +172,15 @@ struct WeightTab: View {
                                     store.visibleSeries.insert(series)
                                 }
                             }
+                        }
+                    }
+                    // Ein Schalter fuer alle Baender und Linien - ohne einen
+                    // einzigen Eintrag gaebe es nichts auszublenden.
+                    if !store.highlights.isEmpty {
+                        SeriesChip(title: "Zeiträume",
+                                   color: Palette.vacation,
+                                   isOn: store.showsHighlights) {
+                            store.showsHighlights.toggle()
                         }
                     }
                 }

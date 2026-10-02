@@ -126,6 +126,21 @@ final class WeightModelTests: XCTestCase {
             XCTAssertEqual(preset.color.hexString, preset.hex, preset.name)
         }
     }
+
+    /// Ohne gemerkten Wert sind Zeitraeume an - so sah das Diagramm immer
+    /// aus. Ausgeschaltet muss es den naechsten Start ueberleben.
+    func testHighlightVisibilityDefaultsOnAndRemembersOff() throws {
+        let suite = "HighlightVisibilityTests"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.removePersistentDomain(forName: suite)
+        addTeardownBlock { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
+
+        XCTAssertTrue(HighlightVisibility.load(from: defaults))
+        HighlightVisibility.save(false, to: defaults)
+        XCTAssertFalse(HighlightVisibility.load(from: defaults))
+        HighlightVisibility.save(true, to: defaults)
+        XCTAssertTrue(HighlightVisibility.load(from: defaults))
+    }
 }
 
 final class WeightWidgetTests: XCTestCase {

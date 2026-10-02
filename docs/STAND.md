@@ -47,6 +47,23 @@
 > übernehmen, To-Do-Dienst ausrollen (`update-todo.sh`), Fokus neu aufs Gerät
 > und dort den Pfeil antippen — und nachsehen, ob Wischen zum Löschen im
 > To-Do-Tab überhaupt geht (im UI-Test nicht, auch ohne die Links).
+>
+> **Healthy, Chip „Zeiträume" (02.10.):** braucht keinen Dienst — beim
+> nächsten `tools/install-device.sh Healthy` mit aufs Gerät, dort den Chip
+> antippen und die App neu starten (er muss aus bleiben).
+
+## Healthy: Chip „Zeiträume" blendet Bänder und Linien aus · **gebaut** (2026-10-02)
+
+Als letzter Chip unter dem Gewichtsdiagramm, im Urlaubsblau
+(`Palette.vacation`): aus = keine Bänder und keine Linien, in jedem Zeitraum.
+Je Gerät gemerkt (`UserDefaults` `weight.highlightsShown`, ohne Wert an); die
+Liste im Blatt „Zeiträume" bleibt vollständig. Ohne einen einzigen Eintrag
+fehlt der Chip. ⚠️ Die Chip-Reihe scrollt seitlich und schneidet schon den
+fünften Chip am Rand ab — „Zeiträume" steht dahinter und ist erst nach
+Wischen zu sehen. **Geprüft:** `tools/verify.sh Healthy` (95 Tests, neu
+`testHighlightVisibilityDefaultsOnAndRemembersOff`); im Simulator nur die
+Reihe gesehen, den Chip selbst nicht (liegt außerhalb des Bildes, und
+`run-simulator.sh` kann nicht wischen).
 
 ## coHabit: Punkte bei Zielen und Challenges in der klassischen Liste · **gebaut, nicht ausgerollt** (2026-10-01)
 

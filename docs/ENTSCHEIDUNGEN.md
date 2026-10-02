@@ -3,6 +3,18 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-02 — Zeiträume ausblenden: ein Schalter für alle, je Gerät gemerkt
+Unter dem Gewichtsdiagramm steht als letzter Chip „Zeiträume"; aus blendet
+alle Bänder und Linien aus, in jedem Zeitraum zugleich (anders als die
+Serien, die „Alles" getrennt merkt - ein Urlaub stört im Jahr wie in 30
+Tagen). Gemerkt in den `UserDefaults` des Geräts, ohne Wert an. Dasselbe in
+Weboberfläche und Android-App. **Warum:** Felix („ein Schalter für alle",
+„pro Gerät"). **Verworfen:** (a) ein Schalter je Eintrag in der Liste
+(Urlaub aus, krank an) - ließe sich später neben dem einen Chip ergänzen,
+ohne ihn zu ändern; (b) beim Dienst in `highlights.json` speichern, damit Web,
+iPhone und Android gleich stehen - braucht einen Umbau und Deploy des Weight
+Trackers für einen Anzeigewunsch.
+
 ## 2026-10-01 — Klassische Liste: sieben Punkte auch bei Zielen und Challenges
 Nach „Eintragen" änderte sich die Zeile einer Challenge in der klassischen Liste
 nicht sichtbar. Jetzt stehen dort wie bei „Track food" die sieben Punkte: Tage

@@ -84,6 +84,22 @@ struct Highlight: Decodable, Identifiable, Equatable, Sendable {
     }
 }
 
+/// Ob das Diagramm Zeitraeume und Linien zeichnet: ein Schalter fuer alle
+/// Eintraege und alle Zeitraum-Ansichten zugleich, je Geraet gemerkt - nicht
+/// beim Dienst (docs/ENTSCHEIDUNGEN.md, 02.10.). Ohne gemerkten Wert: an.
+enum HighlightVisibility {
+
+    static let key = "weight.highlightsShown"
+
+    static func load(from defaults: UserDefaults = .standard) -> Bool {
+        defaults.object(forKey: key) as? Bool ?? true
+    }
+
+    static func save(_ shown: Bool, to defaults: UserDefaults = .standard) {
+        defaults.set(shown, forKey: key)
+    }
+}
+
 enum HighlightKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case band, line
 
