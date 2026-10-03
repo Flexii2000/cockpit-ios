@@ -506,13 +506,20 @@ struct EditCheckinSheet: View {
     @State private var value = ""
     @State private var note = ""
     @State private var caption = ""
+    @State private var minutes = ""
+    @State private var distance = ""
     @State private var saving = false
     @Environment(\.dismiss) private var dismiss
+
+    /// Ein Lauf: Dauer und Distanz statt eines Werts.
+    private var isRun: Bool { checkin.run != nil || store.detail?.summary.isRunEntry == true }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             SheetHeader(title: "Eintrag bearbeiten", subtitle: Formats.dayTitle(checkin.date)) { dismiss() }
-            if checkin.value != nil || store.detail?.config.tracking.isValue == true {
+            if isRun {
+                RunInputFields(minutes: $minutes, distance: $distance)
+            } else if checkin.value != nil || store.detail?.config.tracking.isValue == true {
                 FieldLabel(text: "Wert")
                 InputField(placeholder: "Wert", text: $value, keyboard: .decimalPad)
             }
@@ -526,15 +533,21 @@ struct EditCheckinSheet: View {
             Button("Sichern") {
                 saving = true
                 Task {
-                    let update = CheckinUpdate(value: ValueEntrySheet.number(value),
+                    let update = CheckinUpdate(value: isRun ? nil : ValueEntrySheet.number(value),
                                                note: note.isEmpty ? nil : note,
-                                               caption: caption.isEmpty ? nil : caption)
+                                               caption: caption.isEmpty ? nil : caption,
+                                               durationMinutes: isRun ? RunEntrySheet.minutes(minutes) : nil,
+                                               distanceKm: isRun ? RunEntrySheet.distance(distance) : nil)
                     if await store.update(checkin, update) { dismiss() }
                     saving = false
                 }
             }
             .buttonStyle(PrimaryButtonStyle())
-            .disabled(saving)
+            // Ein Lauf ohne lesbare Dauer oder Distanz: lieber nicht sichern
+            // als still „unveraendert" schicken.
+            .disabled(saving || (isRun && (RunEntrySheet.minutes(minutes) == nil
+                                           || RunEntrySheet.distance(distance) == nil)))
+            .accessibilityIdentifier("checkinSave")
         }
         .padding(Metrics.gutter)
         .screenBackground()
@@ -543,6 +556,8 @@ struct EditCheckinSheet: View {
             value = checkin.value.map { ValueEntrySheet.format($0) } ?? ""
             note = checkin.note ?? ""
             caption = checkin.caption ?? ""
+            minutes = checkin.run?.durationMinutes.map { String($0) } ?? ""
+            distance = checkin.run?.distanceKm.map { ValueEntrySheet.format($0) } ?? ""
         }
     }
 }

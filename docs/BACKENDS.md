@@ -483,7 +483,7 @@ mit dem Status.
 | DELETE · PUT | `/cohabits/{id}/members/{personId\|me}` · `/admin` | Mitglieder, Verlassen, Admin übertragen |
 | PUT | `/cohabits/{id}/settings/me` | Stumm, Check-ins/Chat (`null` = wie global), Unterbrechungen teilen, Health-Einwilligung |
 | POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
-| POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen |
+| POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen; bei Laufpunkten mit `durationMinutes`/`distanceKm` (siehe unten) |
 | PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) |
 | GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat |
 | POST/DELETE | `/reactions` | `{"target":"event:…\|message:…","reaction"}` |
@@ -545,6 +545,32 @@ Ziele - im Formular nur der Chip „Kalorienziel im Wochenmittel“, Rhythmus
 einmal pro Woche (setzt der Dienst ohnehin). Quellen sind in der App Text, kein
 Enum: eine unbekannte steht mit ihrem Namen da und kippt nichts.
 
+⚠️ **Laufpunkte (seit 2026-10-03, `../habits` Commit `259bec7`, Vertrag
+§2.6a):** Challenge-Wertung `RUN_POINTS` - Punkte je Lauf aus Dauer und
+Distanz, gerechnet nur im Dienst (bei jedem Abruf neu). `config.challenge.run`
+= `{"basePoints":10,"pointsPerKm":1,"minutesPerPoint":6,"baseMinMinutes":20,
+"paceLimitSeconds":480}` (die Vorgaben; ein fehlendes Feld bekommt sie, auch in
+der App, `RunScoring`), bei anderen Wertungen `null`. Der Dienst erzwingt
+`tracking: CHECK` und lehnt `health` ab (400 „Laufpunkte trägt man von Hand
+ein.“); Wertung und `run` einer laufenden Runde sind nicht änderbar (400 „Die
+Wertung einer laufenden Runde lässt sich nicht ändern.“). Die App schickt `run`
+bei `RUN_POINTS` immer ausgeschrieben, sonst `null`; `scoring` bleibt in der App
+Text (`ChallengeScoring`). `CohabitSummary.runEntry: true` heißt: das
+Eintragsblatt fragt Dauer und Distanz (`valueUnit` ist dann `null`,
+`checkInLabel` „Lauf eintragen“, in `/widget` `quickCheckIn: false`) - fehlt
+das Feld (älterer Dienst), dekodiert die App `nil`. `POST …/checkins` braucht
+dann `"durationMinutes"` (1–1440) und `"distanceKm"` (0,01–500, der Dienst
+rundet auf zwei Stellen); eine Ø-Pace, die nicht schneller ist als die Grenze,
+lehnt er ab, ohne etwas zu speichern (400 „Ø-Pace 8:30 min/km – zählt nur unter
+8:00 min/km.“). `PUT …/checkins/{id}`: `null` heißt „unverändert“, die App
+schickt beim Bearbeiten eines Laufs beide Werte. `Checkin.run` =
+`{"durationMinutes","distanceKm","paceText","points","pointsText","breakdownText"}`
+oder `null` (die App dekodiert jedes Feld optional), `valueText` eines Laufs
+„5,8 km · 35 Min. · 6:02 min/km · +20 P“; Timeline-Titel „… ist 5,8 km in 35
+Min. gelaufen · +20 P“. ⚠️ Ohne Netz geht ein Lauf in den Postausgang wie jeder
+Eintrag; lehnt der Dienst ihn beim Nachsenden ab, fliegt er raus und die Leiste
+nennt ihn („Lauf 4,1 km in 35 Min. nicht angenommen: …“).
+
 ⚠️ **Timeline-Filter (seit 2026-10-01, `../habits` Commit `c536f66`):**
 `exclude` nimmt die Co-Habits, die der Filter ausblendet - kommagetrennt oder
 mehrfach, unbekannte Kennungen stören nicht, `before` blättert auch gefiltert.
@@ -567,7 +593,7 @@ danach steht die `id` im Eintrag oder in der Nachricht. `GET /photos/{id}` ohne
 `AsyncImage`); Fotos ändern sich nie und bleiben im Cache.
 
 ⚠️ **Leere Felder schickt die App als `null`**, nicht weggelassen
-(`CohabitConfig`, `MySettings`, `CheckinRequest`) — beim Bearbeiten hieße ein
+(`CohabitConfig`, `MySettings`, `CheckinRequest`, `CheckinUpdate`) — beim Bearbeiten hieße ein
 fehlender Schlüssel sonst womöglich „nicht ändern".
 
 ⚠️ **Tage** (`yyyy-MM-dd`) gelten in der Zone des Co-Habits, nicht des Geräts;

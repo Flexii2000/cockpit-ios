@@ -315,19 +315,18 @@ struct CohabitSettingsForm: View {
                 .font(.system(size: 17, weight: .bold))
             FieldLabel(text: "Wertung")
             FlowLayout(spacing: 8) {
-                ForEach([("MOST_ENTRIES", "Meiste Einträge"), ("HIGHEST_SUM", "Höchste Summe"),
-                         ("FIRST_TO_TARGET", "Wer zuerst …")], id: \.0) { scoring, title in
+                ForEach(Self.scorings, id: \.0) { scoring, title in
                     choiceChip(title, selected: config.challenge?.scoring == scoring) {
-                        config.challenge?.scoring = scoring
-                        config.tracking = scoring == "MOST_ENTRIES" ? .check
-                            : .init(mode: "VALUE", unit: config.tracking.unit ?? "COUNT")
+                        selectScoring(scoring)
                     }
                 }
             }
-            if config.challenge?.scoring != "MOST_ENTRIES" {
+            if config.challenge?.isRunPoints == true {
+                runFields
+            } else if config.challenge?.scoring != ChallengeScoring.mostEntries {
                 unitChips
             }
-            if config.challenge?.scoring == "FIRST_TO_TARGET" {
+            if config.challenge?.scoring == ChallengeScoring.firstToTarget {
                 FieldLabel(text: "Zielwert")
                 NumberInput(placeholder: "Zielwert", value: Binding(
                     get: { config.challenge?.target },
@@ -345,6 +344,103 @@ struct CohabitSettingsForm: View {
         }
         .environment(\.locale, Locale(identifier: "de_DE"))
         .card(padding: 16)
+    }
+
+    static let scorings = [(ChallengeScoring.mostEntries, "Meiste Einträge"),
+                           (ChallengeScoring.highestSum, "Höchste Summe"),
+                           (ChallengeScoring.firstToTarget, "Wer zuerst …"),
+                           (ChallengeScoring.runPoints, "Laufpunkte")]
+
+    private func selectScoring(_ scoring: String) {
+        let wasRunPoints = config.challenge?.isRunPoints == true
+        config.challenge?.scoring = scoring
+        switch scoring {
+        case ChallengeScoring.mostEntries:
+            config.tracking = .check
+        case ChallengeScoring.runPoints:
+            // Ein Lauf hat Dauer und Distanz statt eines Werts, und Laufpunkte
+            // traegt man von Hand ein - der Dienst erzwingt beides.
+            config.tracking = .check
+            config.health = nil
+            if config.challenge?.run == nil { config.challenge?.run = .defaults }
+            // Beim Wechsel einmal an (Vertrag §2.6a); abschalten geht danach.
+            if !wasRunPoints { config.photoRequired = true }
+        default:
+            config.tracking = .init(mode: "VALUE", unit: config.tracking.unit ?? "COUNT")
+        }
+        if scoring != ChallengeScoring.runPoints { config.challenge?.run = nil }
+    }
+
+    /// Die fuenf Gewichte der Laufpunkte - gerechnet wird damit im Dienst.
+    private var runFields: some View {
+        VStack(spacing: 10) {
+            runRow("Basis", unit: "P", \.basePoints, identifier: "runBasePoints")
+            runRow("Je km", unit: "P", \.pointsPerKm, identifier: "runPointsPerKm")
+            runRow("1 P je", unit: "Min.", \.minutesPerPoint, identifier: "runMinutesPerPoint")
+            runRow("Basis ab", unit: "Min.", \.baseMinMinutes, identifier: "runBaseMinMinutes")
+            HStack {
+                Text("Pace unter")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Ink.ink)
+                Spacer(minLength: 8)
+                ParsedInput(value: runBinding(\.paceLimitSeconds), unit: "min/km", keyboard: .numbersAndPunctuation,
+                            identifier: "runPaceLimit", format: Self.paceText, parse: Self.paceSeconds)
+                    .frame(width: 150)
+            }
+        }
+    }
+
+    private func runRow(_ title: String, unit: String, _ path: WritableKeyPath<RunScoring, Int?>,
+                        identifier: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Ink.ink)
+            Spacer(minLength: 8)
+            ParsedInput(value: runBinding(path), unit: unit, keyboard: .numberPad, identifier: identifier,
+                        format: { String($0) }, parse: Self.wholeNumber)
+                .frame(width: 150)
+        }
+    }
+
+    /// Ein Gewicht der Laufpunkte - beim Bearbeiten aus `challenge.run`, fehlt
+    /// es, die Vorgaben.
+    private func runBinding(_ path: WritableKeyPath<RunScoring, Int?>) -> Binding<Int?> {
+        Binding(
+            get: { (config.challenge?.run ?? .defaults)[keyPath: path] },
+            set: { value in
+                var run = config.challenge?.run ?? .defaults
+                run[keyPath: path] = value
+                config.challenge?.run = run
+            })
+    }
+
+    /// „10" - eine ganze Zahl ab 0; leer oder unlesbar heisst `nil`.
+    nonisolated static func wholeNumber(_ text: String) -> Int? {
+        guard let value = Int(text.trimmingCharacters(in: .whitespacesAndNewlines)), value >= 0 else { return nil }
+        return value
+    }
+
+    /// 480 → „8:00" - nur fuer das Feld der Pace-Grenze, gesendet werden Sekunden.
+    nonisolated static func paceText(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
+    /// „8:00" → 480, „7:30" → 450, „8" → 480. Sekunden zweistellig unter 60,
+    /// sonst `nil` - der Bereich (1:00 bis 60:00) steht in `RunScoring.problem`.
+    nonisolated static func paceSeconds(_ text: String) -> Int? {
+        let parts = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: ":", omittingEmptySubsequences: false)
+        guard let minutes = parts.first.flatMap({ Int($0) }), minutes >= 0 else { return nil }
+        switch parts.count {
+        case 1:
+            return minutes * 60
+        case 2:
+            guard parts[1].count == 2, let seconds = Int(parts[1]), (0..<60).contains(seconds) else { return nil }
+            return minutes * 60 + seconds
+        default:
+            return nil
+        }
     }
 
     private var unitChips: some View {
@@ -377,7 +473,8 @@ struct CohabitSettingsForm: View {
                 }
                 FormDivider()
             }
-            if config.type != .abstinence && config.auto == nil {
+            // Laufpunkte traegt man von Hand ein (der Dienst lehnt Health ab).
+            if config.type != .abstinence && config.auto == nil && config.challenge?.isRunPoints != true {
                 HStack {
                     Text("Health")
                         .font(.system(size: 17, weight: .bold))
@@ -540,7 +637,8 @@ struct CohabitSettingsForm: View {
         case .challenge:
             guard let challenge = config.challenge else { return "Zeitraum fehlt" }
             if challenge.end < challenge.start { return "Ende liegt vor dem Start" }
-            if challenge.scoring == "FIRST_TO_TARGET", (challenge.target ?? 0) <= 0 { return "Zielwert fehlt" }
+            if challenge.scoring == ChallengeScoring.firstToTarget, (challenge.target ?? 0) <= 0 { return "Zielwert fehlt" }
+            if challenge.isRunPoints, let problem = (challenge.run ?? .defaults).problem { return problem }
             if (challenge.stake?.count ?? 0) > 80 { return "Einsatz zu lang" }
         case .abstinence:
             break
@@ -562,6 +660,26 @@ struct NumberInput: View {
         InputField(placeholder: placeholder, text: $text, keyboard: .decimalPad, identifier: identifier)
             .onAppear { text = value.map { ValueEntrySheet.format($0) } ?? "" }
             .onChange(of: text) { _, new in value = ValueEntrySheet.number(new, unit: unit) }
+    }
+}
+
+/// Ein Zahlenfeld mit Einheit, das seinen Text selbst haelt: was sich nicht
+/// lesen laesst, wird `nil` (dann laesst sich nicht sichern), der getippte
+/// Text bleibt aber stehen.
+struct ParsedInput<Value: Equatable>: View {
+    @Binding var value: Value?
+    let unit: String
+    var keyboard: UIKeyboardType = .numberPad
+    var identifier: String?
+    let format: (Value) -> String
+    let parse: (String) -> Value?
+
+    @State private var text = ""
+
+    var body: some View {
+        UnitInputField(placeholder: "", text: $text, unit: unit, keyboard: keyboard, identifier: identifier)
+            .onAppear { text = value.map(format) ?? "" }
+            .onChange(of: text) { _, new in value = parse(new) }
     }
 }
 

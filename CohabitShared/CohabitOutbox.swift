@@ -139,7 +139,7 @@ actor CohabitOutbox {
                     if status == 409, entry.operation.isEntry {
                         // schon erledigt - genau das sollte der Haken bewirken
                     } else {
-                        lastError = "Nicht angenommen: \(message)"
+                        lastError = entry.operation.rejection(message)
                     }
                     removeFirst(deletingPhoto: entry.photoFile)
                 default:
@@ -246,6 +246,16 @@ extension CohabitOutbox.Entry.Operation {
         case .reaction, .classicMark, .classicUnmark:
             return self
         }
+    }
+
+    /// Was in der Leiste steht, wenn der Dienst beim Nachsenden ablehnt. Ein
+    /// Lauf nennt dazu Distanz und Dauer: abgelehnt ist er weg (meist die
+    /// Pace), und ohne die Angaben wuesste man nicht mehr, was neu einzutragen ist.
+    func rejection(_ message: String) -> String {
+        if case .checkin(_, let request) = self, let run = request.runText {
+            return "Lauf \(run) nicht angenommen: \(message)"
+        }
+        return "Nicht angenommen: \(message)"
     }
 
     /// Ein Eintrag fuer einen Tag - ein 409 darauf heisst „steht schon", also

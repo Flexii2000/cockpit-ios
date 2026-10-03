@@ -12,11 +12,16 @@ struct CheckInTarget: Identifiable, Hashable {
     let photoRequired: Bool
     /// `nil` bei Ja/Nein, sonst die Einheit (`KM`, `STEPS` …).
     let valueUnit: String?
+    /// Laufpunkte: Dauer und Distanz statt eines Werts (`runEntry`).
+    let runEntry: Bool
     let label: String
     /// Wer das Beweisfoto in der Timeline sieht - fuer den Hinweis im Blatt.
     let otherMembers: [String]
     let backfillFrom: CalendarDate?
     let zone: TimeZone
+    /// Ueber „Nachtragen …" geoeffnet - das Lauf-Blatt steht dann gleich auf
+    /// „Anderer Tag".
+    var backfill = false
 
     init(summary: CohabitSummary, meId: String?) {
         id = summary.ref.id
@@ -25,6 +30,7 @@ struct CheckInTarget: Identifiable, Hashable {
         type = summary.ref.type
         photoRequired = summary.photoRequired
         valueUnit = summary.valueUnit
+        runEntry = summary.isRunEntry
         label = summary.checkInLabel ?? "Abhaken"
         otherMembers = summary.members.filter { $0.id != meId }.map { $0.shortLabel(me: nil) }
         backfillFrom = nil
@@ -38,6 +44,7 @@ struct CheckInTarget: Identifiable, Hashable {
         type = detail.ref.type
         photoRequired = detail.config.photoRequired
         valueUnit = detail.summary.valueUnit ?? (detail.config.tracking.isValue ? detail.config.tracking.unit : nil)
+        runEntry = detail.summary.isRunEntry
         label = detail.summary.checkInLabel ?? "Abhaken"
         otherMembers = detail.members.map(\.person).filter { $0.id != meId }.map { $0.shortLabel(me: nil) }
         backfillFrom = detail.backfillFrom
@@ -70,6 +77,8 @@ final class CheckInController {
     var photoTarget: CheckInTarget?
     /// Wert, Notiz, anderer Tag.
     var valueTarget: CheckInTarget?
+    /// Ein Lauf: Dauer, Distanz, Foto, Caption, anderer Tag.
+    var runTarget: CheckInTarget?
     /// Die Rueckfrage vor einer Unterbrechung.
     var breakTarget: CheckInTarget?
     /// Laeuft gerade ein Haken? Dann dreht der Knopf.
@@ -77,6 +86,11 @@ final class CheckInController {
     /// Die Ablehnung des Dienstes - im offenen Blatt gezeigt, nicht nur als
     /// Meldung oben.
     private(set) var lastError: String?
+
+    /// Woher die Anfragen gehen und wohin sie ohne Netz warten - die Tests
+    /// setzen hier einen Stub und einen eigenen Postausgang ein.
+    var makeAPI: @MainActor () -> CohabitAPI = { Session.shared.api() }
+    var outbox: CohabitOutbox = .shared
 
     private init() {}
 
@@ -89,6 +103,9 @@ final class CheckInController {
     enum Step: Equatable {
         /// Abstinenz: erst die Rueckfrage zur Unterbrechung.
         case confirmBreak
+        /// Laufpunkte: das Lauf-Blatt (Dauer, Distanz - und dort auch das
+        /// Beweisfoto, falls Pflicht).
+        case run
         /// Foto-Pflicht: das Beweisfoto-Blatt.
         case photo
         /// Ein Wert (km, Schritte, Minuten …): das Wert-Blatt.
@@ -99,6 +116,8 @@ final class CheckInController {
 
     nonisolated static func step(for target: CheckInTarget) -> Step {
         if target.type == .abstinence { return .confirmBreak }
+        // Vor dem Foto: ein Lauf ohne Dauer und Distanz nimmt der Dienst nicht.
+        if target.runEntry { return .run }
         if target.photoRequired { return .photo }
         if target.valueUnit != nil { return .value }
         return .submit
@@ -108,6 +127,7 @@ final class CheckInController {
         guard !busy.contains(target.id) else { return }
         switch Self.step(for: target) {
         case .confirmBreak: breakTarget = target
+        case .run: runTarget = target
         case .photo: photoTarget = target
         case .value: valueTarget = target
         case .submit: Task { await submit(target, request: CheckinRequest(date: target.today)) }
@@ -116,7 +136,15 @@ final class CheckInController {
 
     /// Fuer „Anderer Tag" - auch bei Ja/Nein-Co-Habits.
     func startBackfill(_ target: CheckInTarget) {
-        if target.photoRequired { photoTarget = target } else { valueTarget = target }
+        if target.runEntry {
+            var target = target
+            target.backfill = true
+            runTarget = target
+        } else if target.photoRequired {
+            photoTarget = target
+        } else {
+            valueTarget = target
+        }
     }
 
     /// Schickt einen Eintrag, mit Foto erst das Foto. Ohne Netz landet beides
@@ -128,7 +156,7 @@ final class CheckInController {
         busy.insert(target.id)
         defer { busy.remove(target.id) }
         lastError = nil
-        let api = Session.shared.api()
+        let api = makeAPI()
         var request = request
         var jpeg: Data?
         if let photo {
@@ -145,12 +173,16 @@ final class CheckInController {
                 request.photoId = upload.id
                 jpeg = nil
             }
-            let _: CheckinResult = try await api.send("POST", "/cohabits/\(target.id)/checkins", body: request)
+            let result: CheckinResult = try await api.send("POST", "/cohabits/\(target.id)/checkins", body: request)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Self.announcePoints(result.checkin)
             finished(target, kind: request.kind)
             return true
         } catch CohabitError.offline {
-            await CohabitOutbox.shared.enqueueCheckin(cohabitId: target.id, request: request, photo: jpeg)
+            // Auch ein Lauf: mit Datum gilt er spaeter genauso. Lehnt der
+            // Dienst ihn dann ab (Pace), steht das mit Distanz und Dauer in
+            // der Leiste (`CohabitOutbox.replay`).
+            await outbox.enqueueCheckin(cohabitId: target.id, request: request, photo: jpeg)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             Toast.shared.show("Kein Netz – geht raus, sobald wieder Netz da ist.")
             if request.kind == .done { WidgetSync.markDone(target.id) }
@@ -161,6 +193,13 @@ final class CheckInController {
             Toast.shared.show(error)
             return false
         }
+    }
+
+    /// Nach einem Lauf: die Punkte gross, die Aufschluesselung darunter -
+    /// beides fertig vom Dienst. Andere Eintraege bleiben still wie bisher.
+    static func announcePoints(_ checkin: Checkin) {
+        guard let run = checkin.run, let points = run.pointsText, !points.isEmpty else { return }
+        Toast.shared.show(points, detail: run.breakdownText.flatMap { $0.isEmpty ? nil : $0 })
     }
 
     private func finished(_ target: CheckInTarget, kind: CheckinKind) {

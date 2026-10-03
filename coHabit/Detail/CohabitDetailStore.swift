@@ -169,6 +169,8 @@ final class CohabitDetailStore {
             let result: CheckinResult = try await api.send("PUT", path + "/checkins/\(checkin.id)", body: update)
             apply(result.cohabit)
             DataBus.shared.changed()
+            // Ein geaenderter Lauf bringt womoeglich andere Punkte.
+            CheckInController.announcePoints(result.checkin)
             return true
         } catch {
             Toast.shared.show(error)

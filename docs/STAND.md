@@ -51,6 +51,60 @@
 > **Healthy, Chip „Zeiträume" (02.10.):** braucht keinen Dienst — beim
 > nächsten `tools/install-device.sh Healthy` mit aufs Gerät, dort den Chip
 > antippen und die App neu starten (er muss aus bleiben).
+>
+> **coHabit, Laufpunkte (03.10.):** braucht den Dienst ab `259bec7` (`../habits`)
+> - erst ihn ausrollen, dann `tools/install-device.sh coHabit`. Auf dem Gerät
+> prüfen: Lauf-Challenge anlegen (Pace-Feld mit Doppelpunkt tippen), einen Lauf
+> mit Foto eintragen (Ziffernblock bei Dauer, Komma bei Distanz), einen zu
+> langsamen (Meldung im Blatt, Eingaben bleiben), die Punkte-Meldung oben,
+> „Meine Einträge › Bearbeiten" und einen Lauf ohne Netz.
+
+## coHabit: Laufpunkte · **gebaut, nicht ausgerollt** (2026-10-03)
+
+Neue Challenge-Wertung „Laufpunkte" (`RUN_POINTS`, Vertrag §2.6a, Dienst ab
+`259bec7`): Punkte je Lauf aus Dauer und Distanz, gerechnet nur im Dienst.
+
+- **Anlegen/Bearbeiten:** vierte Wertung neben „Meiste Einträge", „Höchste
+  Summe", „Wer zuerst …" (Chips brechen um). Gewählt: fünf Felder mit Einheit -
+  „Basis" (P, 10), „Je km" (P, 1), „1 P je" (Min., 6), „Basis ab" (Min., 20),
+  „Pace unter" (`m:ss` min/km, 8:00 → `paceLimitSeconds` 480). Einheit-Chips
+  und Health fallen weg, `tracking` wird CHECK; beim Wechsel auf Laufpunkte geht
+  die Beweisfoto-Pflicht an (abschaltbar). Beim Bearbeiten aus
+  `config.challenge.run`, ohne die Vorgaben. Leere/unlesbare Felder oder Werte
+  außerhalb der Vertragsbereiche sperren „Weiter"/„Sichern" (`RunScoring.problem`).
+- **Lauf-Blatt** (`RunEntrySheet`, bei `summary.runEntry`): Dauer (ganze
+  Minuten, Ziffernblock), Distanz (km, Komma), bei Pflicht die Kamera
+  (`ProofPhotoPicker`, aus dem Beweisfoto-Blatt herausgelöst), Caption,
+  „Anderer Tag" (über „Nachtragen …" gleich an); Knopf = `checkInLabel`. Von
+  überall derselbe Weg (Karte, Detailseite, Chat, klassische Liste, Deep Link
+  der Kachel). Lehnt der Dienst ab (Pace), steht die Meldung im Blatt, die
+  Eingaben bleiben; das Blatt behält seine Eintrags-Kennung, ein zweiter Versuch
+  legt nie zwei Läufe an.
+- **Nach dem Speichern** (auch nach dem Bearbeiten): `pointsText` groß,
+  `breakdownText` klein als Meldung oben (`Toast` mit zweiter Zeile).
+- **Bearbeiten** („Meine Einträge"): bei Läufen Dauer und Distanz statt Wert,
+  `PUT` mit `durationMinutes`/`distanceKm`.
+- **Ohne Netz** wartet ein Lauf im Postausgang; lehnt der Dienst ihn beim
+  Nachsenden ab, fliegt er raus und die Leiste sagt „Lauf 4,1 km in 35 Min.
+  nicht angenommen: Ø-Pace …" (ENTSCHEIDUNGEN).
+- **Kachel:** keine Änderung - der Dienst schickt für Lauf-Challenges
+  `quickCheckIn: false`, der einzige Weg, der ohne Blatt einträgt
+  (`CheckInIntent`), hängt daran; mit Foto-Pflicht führt die Kamera per Deep
+  Link ins Lauf-Blatt.
+- **Listen und Chat** zeigen `valueText` („5,8 km · 35 Min. · 6:02 min/km ·
+  +20 P") schon - Chat-Posts, „Meine Einträge"; die Timeline den Titel des Dienstes.
+
+**Geprüft:** `tools/verify.sh` grün, alle fünf (Healthy 95 XCTest + 31 Swift
+Testing, coHabit 123 Tests, davon 13 neu in
+`RunPointsTests`: `runEntry`/`run` dekodieren, auch ohne die Felder und
+unvollständig; `challenge.run` mit Vorgaben für fehlende Felder, nur bei
+`RUN_POINTS` gesendet; `durationMinutes`/`distanceKm` in Eintrag und
+Bearbeiten, alte Postausgangs-Aufträge; Lauf-Blatt von Karte, Detail und
+klassischer Liste; `m:ss`; Formularprüfung; POST gegen den Stub samt
+Punkte-Meldung; 400 bleibt im Blatt und nicht im Postausgang; Ablehnung beim
+Nachsenden nennt den Lauf). **Nicht geprüft:** im Simulator gegen einen Dienst
+(keiner lief lokal) - Blatt, Formular und Meldung hat noch niemand gesehen,
+weder hell noch dunkel.
 
 ## Healthy: Chip „Zeiträume" blendet Bänder und Linien aus · **gebaut** (2026-10-02)
 

@@ -238,6 +238,9 @@ struct CohabitSummary: Codable, Hashable, Sendable, Identifiable {
     let photoRequired: Bool
     let valueUnit: String?
     let checkInLabel: String?
+    /// Laufpunkte (Vertrag §2.6a): das Eintragsblatt fragt Dauer und Distanz
+    /// statt eines Werts. Fehlt bei einem aelteren Dienst - dann `nil`.
+    let runEntry: Bool?
     let members: [PersonView]
     let memberCount: Int
     let doneTodayBy: [String]
@@ -246,6 +249,7 @@ struct CohabitSummary: Codable, Hashable, Sendable, Identifiable {
     let unreadMessages: Int
 
     var id: String { ref.id }
+    var isRunEntry: Bool { runEntry == true }
 }
 
 enum MemberRole: String, LenientEnum {
@@ -559,6 +563,24 @@ struct Checkin: Codable, Hashable, Sendable, Identifiable {
     let caption: String?
     let source: String
     let editable: Bool
+    /// Nur bei Laufpunkten (Vertrag §2.6a), sonst `nil` - auch bei einem
+    /// aelteren Dienst, der das Feld nicht kennt.
+    let run: CheckinRun?
+}
+
+/// Ein Lauf mit seinen Punkten - alles fertig vom Dienst, die App rechnet
+/// nichts nach. Jedes Feld optional: ein fehlendes soll nicht den ganzen
+/// Eintrag (und mit ihm die Detailseite) unlesbar machen.
+struct CheckinRun: Codable, Hashable, Sendable {
+    let durationMinutes: Int?
+    let distanceKm: Double?
+    /// „6:02 min/km"
+    let paceText: String?
+    let points: Int?
+    /// „+20 P"
+    let pointsText: String?
+    /// „Basis 10 · Distanz 5 · Dauer 5"
+    let breakdownText: String?
 }
 
 struct CheckinResult: Codable, Hashable, Sendable {

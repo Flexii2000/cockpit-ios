@@ -141,6 +141,9 @@ struct MainView: View {
         .sheet(item: $checkIns.valueTarget) { target in
             ValueEntrySheet(target: target)
         }
+        .sheet(item: $checkIns.runTarget) { target in
+            RunEntrySheet(target: target)
+        }
         .confirmationDialog("Unterbrechung eintragen?", isPresented: Binding(
             get: { checkIns.breakTarget != nil },
             set: { if !$0 { checkIns.breakTarget = nil } }
@@ -254,7 +257,27 @@ struct ToastView: View {
     private var toast: Toast { Toast.shared }
 
     var body: some View {
-        if let message = toast.message {
+        if let message = toast.message, let detail = toast.detail {
+            // Gross und klein: die Punkte eines Laufs mit ihrer Aufschluesselung.
+            VStack(spacing: 2) {
+                Text(message)
+                    .font(.figure(30))
+                Text(detail)
+                    .font(.system(size: 13, weight: .semibold))
+                    .opacity(0.8)
+            }
+            .foregroundStyle(Ink.onInk)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background(Ink.ink, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("toast")
+            .zIndex(10)
+        } else if let message = toast.message {
             Text(message)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(toast.isError ? Color.white : Ink.onInk)

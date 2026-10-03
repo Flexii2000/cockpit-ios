@@ -3,6 +3,36 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-03 — coHabit, Laufpunkte: eigenes Lauf-Blatt, Läufe dürfen in den Postausgang
+Eine Challenge mit Wertung „Laufpunkte" (`RUN_POINTS`, Vertrag §2.6a) fragt je
+Eintrag Dauer und Distanz; Punkte und Pace rechnet nur der Dienst.
+- **Ein eigenes Blatt** (`RunEntrySheet`) für alle Wege - Karte, Detailseite,
+  Chat, klassische Liste, Deep Link der Kachel: Dauer, Distanz, bei Pflicht das
+  Beweisfoto (dieselbe Kamera-Vorschau wie im Beweisfoto-Blatt, dafür als
+  `ProofPhotoPicker` herausgelöst), Caption, „Anderer Tag"; der Knopf heißt
+  `checkInLabel`. `runEntry` geht in `CheckInController.step` vor der
+  Foto-Pflicht. **Verworfen:** Dauer und Distanz in Beweisfoto- und Wert-Blatt
+  einbauen - der Lauf wäre über zwei Blätter verteilt, je nachdem ob ein Foto
+  Pflicht ist.
+- **Ohne Netz wartet ein Lauf im Postausgang** wie jeder Eintrag (er trägt sein
+  Datum). Ob die Pace reicht, weiß erst der Dienst; lehnt er beim Nachsenden ab,
+  fliegt der Lauf wie jede Ablehnung raus, und die Leiste nennt ihn:
+  „Lauf 4,1 km in 35 Min. nicht angenommen: Ø-Pace …" - die Eingaben sind dann
+  weg, so weiß man, was neu einzutragen ist. Mit Netz bleibt die Meldung im
+  Blatt und die Eingaben stehen. **Verworfen:** (a) Läufe nur mit Netz - ein
+  Lauf wird draußen eingetragen, oft mit schlechtem Netz, und ginge dann ganz
+  verloren; (b) die Pace in der App vorab prüfen - das wäre die Regel ein
+  zweites Mal (CLAUDE.md: gerechnet wird im Dienst); (c) den abgelehnten Lauf
+  im Postausgang liegen lassen - er würde bei jedem Start erneut abgelehnt.
+- **Die Punkte nach dem Speichern als Meldung oben** (`Toast` mit zweiter
+  Zeile: „+20 P" groß, „Basis 10 · Distanz 5 · Dauer 5" klein), auch nach dem
+  Bearbeiten eines Laufs - so zeigt die App schon jede Bestätigung, und die
+  Meldung liegt im eigenen Fenster über jedem Blatt. **Verworfen:** ein eigener
+  Dialog zum Wegtippen (ein Tipp mehr nach jedem Lauf).
+- **Die Wertung bleibt Text** (`ChallengeScoring` nur als Konstanten), kein
+  `LenientEnum`: ein unbekannter Wert fiele dort auf eine bekannte Wertung
+  zurück, und das Bearbeiten-Formular schickte sie beim Sichern so zurück.
+
 ## 2026-10-02 — Gewicht-Tab: Serien-Chips brechen um, `FlowLayout` nach `Core/`
 Die Serien-Chips unter dem Gewichtsdiagramm scrollten seitlich; schon der
 fünfte lag hinter dem Rand, der neue Chip „Zeiträume" dahinter. Jetzt brechen

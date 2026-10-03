@@ -8,26 +8,20 @@ import UIKit
 struct PhotoCheckInSheet: View {
     let target: CheckInTarget
 
-    @State private var camera = CameraController()
-    @State private var cameraRunning = false
     @State private var photo: UIImage?
-    @State private var pickerItem: PhotosPickerItem?
     @State private var caption = ""
     @State private var value = ""
     @State private var otherDay = false
     @State private var day = Date()
     @State private var submitting = false
-    @State private var capturing = false
     @Environment(\.dismiss) private var dismiss
-
-    private var colors: PaletteColor { target.color.colors }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 SheetHeader(title: "\(target.name) abhaken",
                             subtitle: target.photoRequired ? "Beweisfoto erforderlich" : nil) { dismiss() }
-                preview
+                ProofPhotoPicker(photo: $photo, color: target.color)
                 if target.valueUnit != nil {
                     FieldLabel(text: ValueEntrySheet.unitTitle(target.valueUnit))
                     InputField(placeholder: "Wert", text: $value, keyboard: .decimalPad, identifier: "checkinValue")
@@ -37,10 +31,7 @@ struct PhotoCheckInSheet: View {
                 if let from = target.backfillFrom, from < target.today {
                     OtherDayPicker(isOn: $otherDay, day: $day, from: from, to: target.today, zone: target.zone)
                 }
-                Text(hint)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Ink.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+                PhotoAudienceHint(target: target)
                 if let message = CheckInController.shared.lastError {
                     ErrorLine(message: message)
                 }
@@ -66,25 +57,7 @@ struct PhotoCheckInSheet: View {
         .interactiveDismissDisabled(submitting)
         .task {
             CheckInController.shared.clearError()
-            cameraRunning = await camera.start()
         }
-        .onDisappear { camera.stop() }
-        .onChange(of: pickerItem) { _, item in
-            guard let item else { return }
-            Task {
-                if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                    photo = image
-                }
-                pickerItem = nil
-            }
-        }
-    }
-
-    private var hint: String {
-        if let names = target.membersText {
-            return "Erscheint im Chat von \(target.name) und in der Timeline von \(names)."
-        }
-        return "Erscheint im Chat von \(target.name)."
     }
 
     private var canSubmit: Bool {
@@ -94,7 +67,68 @@ struct PhotoCheckInSheet: View {
         return true
     }
 
-    // MARK: - Vorschau
+    private func submit() async {
+        submitting = true
+        defer { submitting = false }
+        let chosenDay = otherDay ? CalendarDate(date: day, in: target.zone) : target.today
+        let request = CheckinRequest(
+            date: chosenDay,
+            value: target.valueUnit != nil ? ValueEntrySheet.number(value, unit: target.valueUnit) : nil,
+            caption: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : caption)
+        if await CheckInController.shared.submit(target, request: request, photo: photo) {
+            dismiss()
+        }
+    }
+}
+
+/// Der Hinweis, wer das Beweisfoto sieht (Vertrag §5.1 - einer der wenigen
+/// erlaubten Erklaertexte).
+struct PhotoAudienceHint: View {
+    let target: CheckInTarget
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(Ink.muted)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var text: String {
+        if let names = target.membersText {
+            return "Erscheint im Chat von \(target.name) und in der Timeline von \(names)."
+        }
+        return "Erscheint im Chat von \(target.name)."
+    }
+}
+
+/// Kamera-Vorschau mit Ausloeser, Galerie und Kamerawechsel - im
+/// Beweisfoto-Blatt und im Lauf-Blatt. Die Kamera laeuft, solange die
+/// Vorschau zu sehen ist.
+struct ProofPhotoPicker: View {
+    @Binding var photo: UIImage?
+    let color: PaletteKey
+
+    @State private var camera = CameraController()
+    @State private var cameraRunning = false
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var capturing = false
+
+    private var colors: PaletteColor { color.colors }
+
+    var body: some View {
+        preview
+            .task { cameraRunning = await camera.start() }
+            .onDisappear { camera.stop() }
+            .onChange(of: pickerItem) { _, item in
+                guard let item else { return }
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                        photo = image
+                    }
+                    pickerItem = nil
+                }
+            }
+    }
 
     private var preview: some View {
         ZStack(alignment: .bottom) {
@@ -200,19 +234,6 @@ struct PhotoCheckInSheet: View {
         }
     }
     #endif
-
-    private func submit() async {
-        submitting = true
-        defer { submitting = false }
-        let chosenDay = otherDay ? CalendarDate(date: day, in: target.zone) : target.today
-        let request = CheckinRequest(
-            date: chosenDay,
-            value: target.valueUnit != nil ? ValueEntrySheet.number(value, unit: target.valueUnit) : nil,
-            caption: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : caption)
-        if await CheckInController.shared.submit(target, request: request, photo: photo) {
-            dismiss()
-        }
-    }
 }
 
 /// Der Galerie-Knopf in der Kamera-Vorschau.

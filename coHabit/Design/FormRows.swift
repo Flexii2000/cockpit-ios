@@ -120,6 +120,36 @@ struct InputField: View {
     }
 }
 
+/// Ein Zahlenfeld mit der Einheit dahinter - „35 Min.", „5,8 km",
+/// „8:00 min/km". Die Einheit bleibt stehen, waehrend man tippt.
+struct UnitInputField: View {
+    let placeholder: String
+    @Binding var text: String
+    let unit: String
+    var keyboard: UIKeyboardType = .numberPad
+    var identifier: String?
+    var fill: Color = Ink.accentSoft
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField(placeholder, text: $text)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Ink.ink)
+                .keyboardType(keyboard)
+                .autocorrectionDisabled()
+                .accessibilityIdentifier(identifier ?? placeholder)
+            Text(unit)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Ink.muted)
+                .fixedSize()
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 52)
+        .background(fill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Ink.accent.opacity(0.18)))
+    }
+}
+
 /// Minus, Wert, Plus - „3× pro Woche".
 struct StepperCapsule: View {
     let text: String

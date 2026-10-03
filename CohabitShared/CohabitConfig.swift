@@ -77,21 +77,28 @@ struct CohabitConfig: Codable, Hashable, Sendable {
     struct Challenge: Codable, Hashable, Sendable {
         var start: CalendarDate
         var end: CalendarDate
-        /// `MOST_ENTRIES`, `HIGHEST_SUM`, `FIRST_TO_TARGET`.
+        /// `ChallengeScoring` - als Text, siehe dort.
         var scoring: String
         var target: Double?
         var stake: String?
         /// `NONE`, `WEEKLY`, `MONTHLY`.
         var recurrence: String
+        /// Nur bei Laufpunkten (Vertrag §2.6a), sonst `nil`.
+        var run: RunScoring? = nil
+
+        var isRunPoints: Bool { scoring == ChallengeScoring.runPoints }
 
         func encode(to encoder: Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(start, forKey: .start)
             try c.encode(end, forKey: .end)
             try c.encode(scoring, forKey: .scoring)
-            try c.encode(scoring == "FIRST_TO_TARGET" ? target : nil, forKey: .target)
+            try c.encode(scoring == ChallengeScoring.firstToTarget ? target : nil, forKey: .target)
             try c.encode(stake, forKey: .stake)
             try c.encode(recurrence, forKey: .recurrence)
+            // Ausdruecklich die Werte, die das Formular zeigt - auch wenn sie
+            // die Vorgaben sind; bei jeder anderen Wertung null.
+            try c.encode(isRunPoints ? (run ?? .defaults) : nil, forKey: .run)
         }
     }
 
@@ -195,6 +202,88 @@ struct CohabitConfig: Codable, Hashable, Sendable {
     }
 }
 
+/// Die Wertungen einer Challenge (Vertrag §2.6, §2.6a).
+///
+/// Bewusst Text und kein `LenientEnum`: ein unbekannter Wert fiele dort auf
+/// eine bekannte Wertung zurueck - und das Bearbeiten-Formular schickte beim
+/// Sichern diese statt der echten zurueck. Als Text geht er unveraendert hin
+/// und her.
+enum ChallengeScoring {
+    static let mostEntries = "MOST_ENTRIES"
+    static let highestSum = "HIGHEST_SUM"
+    static let firstToTarget = "FIRST_TO_TARGET"
+    /// Punkte aus Dauer und Distanz je Lauf (seit 2026-10-03).
+    static let runPoints = "RUN_POINTS"
+}
+
+/// Die Gewichte einer Lauf-Challenge (`challenge.run`, Vertrag §2.6a).
+/// Gerechnet wird im Dienst - die App zeigt und schickt nur die Zahlen.
+///
+/// Fehlt ein Feld, gilt die Vorgabe; so dekodiert es auch hier. `nil` steht
+/// nur, solange im Formular ein Feld leer oder unlesbar ist - dann laesst
+/// sich nicht sichern (`problem`).
+struct RunScoring: Codable, Hashable, Sendable {
+    /// Basis je Lauf (hoechstens einmal je Person und Tag), 0–1000 P.
+    var basePoints: Int?
+    /// Punkte je volle km, 0–1000.
+    var pointsPerKm: Int?
+    /// 1 Punkt je volle N Minuten, 1–600.
+    var minutesPerPoint: Int?
+    /// Die Basis erst ab N Minuten, 0–600.
+    var baseMinMinutes: Int?
+    /// Die Ø-Pace muss schneller sein als N Sekunden je km, 60–3600.
+    var paceLimitSeconds: Int?
+
+    static let defaults = RunScoring(basePoints: 10, pointsPerKm: 1, minutesPerPoint: 6,
+                                     baseMinMinutes: 20, paceLimitSeconds: 480)
+
+    private enum CodingKeys: String, CodingKey {
+        case basePoints, pointsPerKm, minutesPerPoint, baseMinMinutes, paceLimitSeconds
+    }
+
+    init(basePoints: Int?, pointsPerKm: Int?, minutesPerPoint: Int?, baseMinMinutes: Int?, paceLimitSeconds: Int?) {
+        self.basePoints = basePoints
+        self.pointsPerKm = pointsPerKm
+        self.minutesPerPoint = minutesPerPoint
+        self.baseMinMinutes = baseMinMinutes
+        self.paceLimitSeconds = paceLimitSeconds
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = Self.defaults
+        basePoints = try c.decodeIfPresent(Int.self, forKey: .basePoints) ?? d.basePoints
+        pointsPerKm = try c.decodeIfPresent(Int.self, forKey: .pointsPerKm) ?? d.pointsPerKm
+        minutesPerPoint = try c.decodeIfPresent(Int.self, forKey: .minutesPerPoint) ?? d.minutesPerPoint
+        baseMinMinutes = try c.decodeIfPresent(Int.self, forKey: .baseMinMinutes) ?? d.baseMinMinutes
+        paceLimitSeconds = try c.decodeIfPresent(Int.self, forKey: .paceLimitSeconds) ?? d.paceLimitSeconds
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(basePoints, forKey: .basePoints)
+        try c.encode(pointsPerKm, forKey: .pointsPerKm)
+        try c.encode(minutesPerPoint, forKey: .minutesPerPoint)
+        try c.encode(baseMinMinutes, forKey: .baseMinMinutes)
+        try c.encode(paceLimitSeconds, forKey: .paceLimitSeconds)
+    }
+
+    /// Was dem Sichern im Weg steht - die Bereiche aus dem Vertrag, damit
+    /// ein Tippfehler nicht erst nach „Co-Habit starten" auffaellt.
+    var problem: String? {
+        if !Self.fits(basePoints, 0...1000) { return "Basis fehlt" }
+        if !Self.fits(pointsPerKm, 0...1000) { return "Punkte je km fehlen" }
+        if !Self.fits(minutesPerPoint, 1...600) { return "Minuten je Punkt fehlen" }
+        if !Self.fits(baseMinMinutes, 0...600) { return "Mindestdauer fehlt" }
+        if !Self.fits(paceLimitSeconds, 60...3600) { return "Pace-Grenze fehlt" }
+        return nil
+    }
+
+    private static func fits(_ value: Int?, _ range: ClosedRange<Int>) -> Bool {
+        value.map(range.contains) ?? false
+    }
+}
+
 /// `POST /cohabits`: die Einstellungen plus, wer gleich eingeladen wird.
 struct CreateCohabitRequest: Encodable, Sendable {
     let config: CohabitConfig
@@ -230,6 +319,9 @@ struct UpdateCohabitRequest: Encodable, Sendable {
 /// Ein Eintrag. Die Kennung vergibt die App - noch einmal geschickt (aus dem
 /// Postausgang) antwortet der Dienst mit dem bestehenden Eintrag, nichts
 /// entsteht doppelt.
+///
+/// Liegt auch im Postausgang (App-Gruppe): neue Felder sind optional, damit
+/// ein Auftrag aus einer aelteren Fassung weiter dekodiert.
 struct CheckinRequest: Codable, Hashable, Sendable {
     let id: String
     let kind: CheckinKind
@@ -238,9 +330,14 @@ struct CheckinRequest: Codable, Hashable, Sendable {
     var note: String?
     var photoId: String?
     var caption: String?
+    /// Ein Lauf (Laufpunkte, Vertrag §2.6a): ganze Minuten und km - bei
+    /// `runEntry` Pflicht, sonst ignoriert der Dienst beide.
+    var durationMinutes: Int?
+    var distanceKm: Double?
 
     init(id: String = UUID().uuidString.lowercased(), kind: CheckinKind = .done, date: CalendarDate? = nil,
-         value: Double? = nil, note: String? = nil, photoId: String? = nil, caption: String? = nil) {
+         value: Double? = nil, note: String? = nil, photoId: String? = nil, caption: String? = nil,
+         durationMinutes: Int? = nil, distanceKm: Double? = nil) {
         self.id = id
         self.kind = kind
         self.date = date
@@ -248,6 +345,8 @@ struct CheckinRequest: Codable, Hashable, Sendable {
         self.note = note
         self.photoId = photoId
         self.caption = caption
+        self.durationMinutes = durationMinutes
+        self.distanceKm = distanceKm
     }
 
     func encode(to encoder: Encoder) throws {
@@ -259,19 +358,34 @@ struct CheckinRequest: Codable, Hashable, Sendable {
         try c.encode(note, forKey: .note)
         try c.encode(photoId, forKey: .photoId)
         try c.encode(caption, forKey: .caption)
+        try c.encode(durationMinutes, forKey: .durationMinutes)
+        try c.encode(distanceKm, forKey: .distanceKm)
+    }
+
+    /// „5,8 km in 35 Min." - damit eine Ablehnung beim Nachsenden sagt,
+    /// welcher Lauf gemeint ist; die Eingaben sind dann weg.
+    var runText: String? {
+        guard let durationMinutes, let distanceKm else { return nil }
+        let km = distanceKm.formatted(.number.precision(.fractionLength(0...2)).locale(Locale(identifier: "de_DE")))
+        return "\(km) km in \(durationMinutes) Min."
     }
 }
 
+/// `PUT …/checkins/{id}`. Bei den Lauf-Feldern heisst `null` „unveraendert".
 struct CheckinUpdate: Codable, Hashable, Sendable {
     var value: Double?
     var note: String?
     var caption: String?
+    var durationMinutes: Int? = nil
+    var distanceKm: Double? = nil
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(value, forKey: .value)
         try c.encode(note, forKey: .note)
         try c.encode(caption, forKey: .caption)
+        try c.encode(durationMinutes, forKey: .durationMinutes)
+        try c.encode(distanceKm, forKey: .distanceKm)
     }
 }
 

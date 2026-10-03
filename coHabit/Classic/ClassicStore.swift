@@ -243,6 +243,9 @@ extension CheckInTarget {
         self.type = type
         photoRequired = habit.photoRequired
         valueUnit = nil
+        // Nur Aufbauen/Lassen kommen hierher - Laufpunkte gibt es nur bei
+        // Challenges, und die tragen ihre Zusammenfassung mit.
+        runEntry = false
         label = habit.photoRequired ? "Beweisfoto & abhaken" : "Abhaken"
         otherMembers = []
         backfillFrom = nil

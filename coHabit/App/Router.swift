@@ -214,19 +214,24 @@ final class Toast {
     static let shared = Toast()
 
     private(set) var message: String?
+    /// Eine kleine Zeile unter einer grossen Meldung - „+20 P" und darunter
+    /// „Basis 10 · Distanz 5 · Dauer 5" nach einem Lauf.
+    private(set) var detail: String?
     private(set) var isError = false
     private var hideTask: Task<Void, Never>?
 
     private init() {}
 
-    func show(_ text: String, error: Bool = false) {
+    func show(_ text: String, detail: String? = nil, error: Bool = false) {
         message = text
+        self.detail = detail
         isError = error
         hideTask?.cancel()
         hideTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(error ? 4 : 2.2))
+            try? await Task.sleep(for: .seconds(error ? 4 : (detail == nil ? 2.2 : 3.5)))
             guard !Task.isCancelled else { return }
             self?.message = nil
+            self?.detail = nil
         }
     }
 
