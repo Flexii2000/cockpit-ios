@@ -86,7 +86,9 @@ eingefügter Link).
 `../habits`, Demo-Daten laut dessen README): `COCKPIT_URL_COHABIT` und
 `COCKPIT_COHABIT_TOKEN` (Token einer Demo-Person) für `run-simulator.sh`, dazu
 `COCKPIT_COHABIT_OTHER_TOKEN` (eine zweite Person, die einlädt) für
-`uitest.sh coHabit`. `COCKPIT_TOUR=1 tools/uitest.sh coHabit
+`uitest.sh coHabit`; `COCKPIT_PHOTO_COHABIT=<id>` lässt
+`testCheckInWithSeveralPhotos` in einem bestehenden Co-Habit eintragen statt in
+einem eigenen. `COCKPIT_TOUR=1 tools/uitest.sh coHabit
 CohabitTourUITests/testTourOfAllScreens` tippt sich durch jeden Bildschirm und
 nimmt ihn hell und dunkel auf (`XCUIDevice.shared.appearance`). Die Unit-Tests von coHabit hängen an coHabit als Wirt
 (`CohabitTests/`), nicht an Healthy. Der Einkaufs-Token kommt wie die anderen aus
@@ -199,7 +201,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_CLASSIC=1` | legt in coHabit den Schalter „Klassische Liste" (Profil) beim Start um: „Heute" zeigt die alte Habit-Liste der Fokus-App; `0` schaltet ihn aus (der Schalter überlebt jeden Start - die UI-Tests setzen deshalb immer `0`, außer sie wollen die Liste) |
 | `COCKPIT_TIMELINE_HIDDEN=c-1,c-2` | blendet diese Co-Habits im Timeline-Filter von coHabit beim Start aus, `none` keins; ohne Wert bleibt die gemerkte Auswahl (sie ueberlebt jeden Start) |
 | `COCKPIT_STATS_RANGE=week` | Statistik in coHabit fuer Woche oder Jahr (`week`, `year`) |
-| `COCKPIT_TEST_PHOTO=1` | der Galerie-Knopf im Beweisfoto-Blatt liefert ein erzeugtes Bild statt der Mediathek - nur falls ein UI-Test die Mediathek nicht erreicht |
+| `COCKPIT_TEST_PHOTO=1` | der Galerie-Knopf im Beweisfoto-Blatt liefert ein erzeugtes Bild statt der Mediathek, je Tipp ein andersfarbiges (mehrere Fotos, Karussell) - nur falls ein UI-Test die Mediathek nicht erreicht |
 | `COCKPIT_GRADES_TOKEN`, `_USER`, `_PASSWORD` | Noten-Zugang. Das Passwort landet dabei **ohne** Face-ID-Schutz im Keychain - im Simulator gibt es kein Gesicht, ein geschuetzter Eintrag waere dort nicht mehr zu lesen |
 | `COCKPIT_NO_HEALTH=1` | Health-Anbindung aus. Sonst verdeckt der Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken lässt er sich nicht (`simctl privacy` kennt keinen Health-Dienst) |
 

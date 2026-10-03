@@ -135,7 +135,7 @@ extension TimelineItem {
     func with(reactions: [ReactionView]) -> TimelineItem {
         TimelineItem(id: id, day: day, at: at, cohabit: cohabit, kind: kind, person: person, title: title,
                      subtitle: subtitle, photoId: photoId, caption: caption, reactionTarget: reactionTarget,
-                     reactions: reactions, canReply: canReply)
+                     reactions: reactions, canReply: canReply, photoIds: photoIds)
     }
 }
 
@@ -238,7 +238,7 @@ struct TimelineCard: View {
     @Environment(\.meId) private var meId
 
     var body: some View {
-        if item.photoId != nil {
+        if !item.photos.isEmpty {
             photoCard
         } else {
             compactCard
@@ -293,12 +293,7 @@ struct TimelineCard: View {
                 Chip(text: item.cohabit.name, fill: item.cohabit.color.colors.surface,
                      foreground: item.cohabit.color.colors.onSurface, weight: .bold)
             }
-            if let photo = item.photoId {
-                PhotoView(id: photo, size: .full, placeholder: item.cohabit.color.colors.surface)
-                    .frame(height: 220)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            }
+            PhotoCarousel(ids: item.photos, height: 220, placeholder: item.cohabit.color.colors.surface)
             if let caption = item.caption, !caption.isEmpty {
                 Text(caption)
                     .font(.system(size: 16, weight: .medium))

@@ -147,31 +147,35 @@ final class CheckInController {
         }
     }
 
-    /// Schickt einen Eintrag, mit Foto erst das Foto. Ohne Netz landet beides
-    /// im Postausgang; der Knopf zeigt dann eine Uhr.
+    /// Schickt einen Eintrag, mit Fotos erst die Fotos (der Reihe nach, bis zu
+    /// vier). Ohne Netz landet, was noch nicht oben ist, samt Eintrag im
+    /// Postausgang; der Knopf zeigt dann eine Uhr.
     ///
     /// - Returns: ob das Blatt zugehen darf (angekommen oder abgelegt).
     @discardableResult
-    func submit(_ target: CheckInTarget, request: CheckinRequest, photo: UIImage? = nil) async -> Bool {
+    func submit(_ target: CheckInTarget, request: CheckinRequest, photos: [UIImage] = []) async -> Bool {
         busy.insert(target.id)
         defer { busy.remove(target.id) }
         lastError = nil
         let api = makeAPI()
         var request = request
-        var jpeg: Data?
-        if let photo {
+        var jpegs: [Data] = []
+        for photo in photos {
             guard let data = PhotoEncoding.jpeg(photo) else {
                 Toast.shared.show("Das Foto ließ sich nicht lesen.", error: true)
                 return false
             }
-            jpeg = data
+            jpegs.append(data)
         }
+        // Die Fotos, die noch nicht oben sind - immer ein Ende der Reihe, weil
+        // der Reihe nach hochgeladen wird.
+        var waiting = jpegs
         do {
-            if let data = jpeg {
+            for (index, data) in jpegs.enumerated() {
                 let upload = try await api.uploadPhoto(jpeg: data, key: UUID().uuidString.lowercased())
-                if let photo { PhotoLoader.shared.remember(photo, id: upload.id) }
-                request.photoId = upload.id
-                jpeg = nil
+                PhotoLoader.shared.remember(photos[index], id: upload.id)
+                request.appendPhoto(upload.id)
+                waiting.removeFirst()
             }
             let result: CheckinResult = try await api.send("POST", "/cohabits/\(target.id)/checkins", body: request)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -182,7 +186,7 @@ final class CheckInController {
             // Auch ein Lauf: mit Datum gilt er spaeter genauso. Lehnt der
             // Dienst ihn dann ab (Pace), steht das mit Distanz und Dauer in
             // der Leiste (`CohabitOutbox.replay`).
-            await outbox.enqueueCheckin(cohabitId: target.id, request: request, photo: jpeg)
+            await outbox.enqueueCheckin(cohabitId: target.id, request: request, photos: waiting)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             Toast.shared.show("Kein Netz – geht raus, sobald wieder Netz da ist.")
             if request.kind == .done { WidgetSync.markDone(target.id) }

@@ -232,6 +232,6 @@ extension Message {
     func with(reactions: [ReactionView]) -> Message {
         Message(id: id, cohabitId: cohabitId, kind: kind, author: author, mine: mine, createdAt: createdAt,
                 text: text, photoId: photoId, checkin: checkin, systemText: systemText,
-                reactionTarget: reactionTarget, reactions: reactions, deleted: deleted)
+                reactionTarget: reactionTarget, reactions: reactions, deleted: deleted, photoIds: photoIds)
     }
 }

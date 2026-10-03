@@ -1,14 +1,13 @@
-import PhotosUI
 import SwiftUI
 import UIKit
 
 /// Das Beweisfoto-Blatt (Entwurf S. 15): Kamera-Vorschau mit Ausloeser,
-/// Galerie, Kamerawechsel; Caption optional; der Hinweis, wer das Foto sieht
+/// Galerie, Kamerawechsel, bis zu vier Fotos (Vertrag §2.3a); Caption optional; der Hinweis, wer das Foto sieht
 /// (Vertrag §5.1); „Posten & abhaken".
 struct PhotoCheckInSheet: View {
     let target: CheckInTarget
 
-    @State private var photo: UIImage?
+    @State private var photos: [ProofPhoto] = []
     @State private var caption = ""
     @State private var value = ""
     @State private var otherDay = false
@@ -21,7 +20,7 @@ struct PhotoCheckInSheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 SheetHeader(title: "\(target.name) abhaken",
                             subtitle: target.photoRequired ? "Beweisfoto erforderlich" : nil) { dismiss() }
-                ProofPhotoPicker(photo: $photo, color: target.color)
+                ProofPhotoPicker(photos: $photos, color: target.color)
                 if target.valueUnit != nil {
                     FieldLabel(text: ValueEntrySheet.unitTitle(target.valueUnit))
                     InputField(placeholder: "Wert", text: $value, keyboard: .decimalPad, identifier: "checkinValue")
@@ -62,7 +61,7 @@ struct PhotoCheckInSheet: View {
 
     private var canSubmit: Bool {
         if submitting { return false }
-        if target.photoRequired && photo == nil { return false }
+        if target.photoRequired && photos.isEmpty { return false }
         if target.valueUnit != nil && ValueEntrySheet.number(value, unit: target.valueUnit) == nil { return false }
         return true
     }
@@ -75,7 +74,7 @@ struct PhotoCheckInSheet: View {
             date: chosenDay,
             value: target.valueUnit != nil ? ValueEntrySheet.number(value, unit: target.valueUnit) : nil,
             caption: caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : caption)
-        if await CheckInController.shared.submit(target, request: request, photo: photo) {
+        if await CheckInController.shared.submit(target, request: request, photos: photos.compactMap(\.image)) {
             dismiss()
         }
     }
@@ -98,152 +97,6 @@ struct PhotoAudienceHint: View {
             return "Erscheint im Chat von \(target.name) und in der Timeline von \(names)."
         }
         return "Erscheint im Chat von \(target.name)."
-    }
-}
-
-/// Kamera-Vorschau mit Ausloeser, Galerie und Kamerawechsel - im
-/// Beweisfoto-Blatt und im Lauf-Blatt. Die Kamera laeuft, solange die
-/// Vorschau zu sehen ist.
-struct ProofPhotoPicker: View {
-    @Binding var photo: UIImage?
-    let color: PaletteKey
-
-    @State private var camera = CameraController()
-    @State private var cameraRunning = false
-    @State private var pickerItem: PhotosPickerItem?
-    @State private var capturing = false
-
-    private var colors: PaletteColor { color.colors }
-
-    var body: some View {
-        preview
-            .task { cameraRunning = await camera.start() }
-            .onDisappear { camera.stop() }
-            .onChange(of: pickerItem) { _, item in
-                guard let item else { return }
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                        photo = image
-                    }
-                    pickerItem = nil
-                }
-            }
-    }
-
-    private var preview: some View {
-        ZStack(alignment: .bottom) {
-            // Fester Rahmen, Inhalt als overlay - ein Foto mit `scaledToFill`
-            // machte das Blatt sonst breiter als den Bildschirm.
-            Color.clear
-                .frame(maxWidth: .infinity)
-                .frame(height: 340)
-                .overlay {
-                    if let photo {
-                        Image(uiImage: photo)
-                            .resizable()
-                            .scaledToFill()
-                            .accessibilityIdentifier("chosenPhoto")
-                    } else if cameraRunning {
-                        CameraPreview(session: camera.session)
-                    } else {
-                        StripedPlaceholder(color: colors.accent, label: "Kamera-Vorschau")
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
-
-            HStack {
-                galleryButton
-                Spacer()
-                if photo != nil {
-                    Button {
-                        photo = nil
-                    } label: {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 72, height: 72)
-                            .background(Color(hex: 0x1C1B2E).opacity(0.85), in: Circle())
-                            .overlay(Circle().strokeBorder(.white, lineWidth: 4))
-                    }
-                    .accessibilityLabel("Anderes Foto")
-                } else {
-                    Button {
-                        Task {
-                            capturing = true
-                            photo = await camera.capture()
-                            capturing = false
-                        }
-                    } label: {
-                        Circle()
-                            .fill(Color(hex: 0x1C1B2E))
-                            .frame(width: 72, height: 72)
-                            .overlay(Circle().strokeBorder(.white, lineWidth: 4))
-                            .overlay { if capturing { ProgressView().tint(.white) } }
-                    }
-                    .disabled(!cameraRunning || capturing)
-                    .accessibilityLabel("Auslöser")
-                    .accessibilityIdentifier("shutter")
-                }
-                Spacer()
-                Button {
-                    camera.switchCamera()
-                } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Ink.ink)
-                        .frame(width: 50, height: 50)
-                        .background(Ink.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .disabled(!cameraRunning || photo != nil)
-                .opacity(cameraRunning && photo == nil ? 1 : 0.5)
-                .accessibilityLabel("Kamera wechseln")
-            }
-            .padding(18)
-        }
-    }
-
-    @ViewBuilder
-    private var galleryButton: some View {
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["COCKPIT_TEST_PHOTO"] == "1" {
-            // Nur fuer UI-Tests ohne Galerie-Zugriff: ein erzeugtes Bild statt
-            // der Mediathek. Steht hinter dem Schalter, nicht nur hinter DEBUG.
-            Button { photo = Self.testImage } label: { GalleryLabel() }
-                .accessibilityLabel("Galerie")
-                .accessibilityIdentifier("photoGallery")
-        } else {
-            PhotosPicker(selection: $pickerItem, matching: .images) { GalleryLabel() }
-                .accessibilityLabel("Galerie")
-                .accessibilityIdentifier("photoGallery")
-        }
-        #else
-        PhotosPicker(selection: $pickerItem, matching: .images) { GalleryLabel() }
-            .accessibilityLabel("Galerie")
-            .accessibilityIdentifier("photoGallery")
-        #endif
-    }
-
-    #if DEBUG
-    static var testImage: UIImage {
-        let size = CGSize(width: 1200, height: 900)
-        return UIGraphicsImageRenderer(size: size).image { context in
-            UIColor(red: 0.95, green: 0.63, blue: 0.48, alpha: 1).setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            UIColor.white.withAlphaComponent(0.35).setFill()
-            context.cgContext.fillEllipse(in: CGRect(x: 700, y: -150, width: 700, height: 700))
-        }
-    }
-    #endif
-}
-
-/// Der Galerie-Knopf in der Kamera-Vorschau.
-private struct GalleryLabel: View {
-    var body: some View {
-        Image(systemName: "photo")
-            .font(.system(size: 18, weight: .bold))
-            .foregroundStyle(Ink.ink)
-            .frame(width: 50, height: 50)
-            .background(Ink.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

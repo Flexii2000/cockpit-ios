@@ -566,6 +566,25 @@ struct Checkin: Codable, Hashable, Sendable, Identifiable {
     /// Nur bei Laufpunkten (Vertrag §2.6a), sonst `nil` - auch bei einem
     /// aelteren Dienst, der das Feld nicht kennt.
     let run: CheckinRun?
+    /// Alle Beweisfotos (bis zu vier, Vertrag §2.3a), das erste ist `photoId`.
+    /// Ein aelterer Dienst kennt nur `photoId` - dann `nil`, siehe `photos`.
+    let photoIds: [String]?
+
+    /// Die Fotos in Anzeige-Reihenfolge - auch von einem Dienst ohne `photoIds`.
+    var photos: [String] { PhotoList.of(photoId, photoIds) }
+}
+
+/// Mehrere Beweisfotos (Vertrag §2.3a): `photoIds` ist die ganze Reihe, das
+/// erste steht zusaetzlich in `photoId` - und nur dort bei einem aelteren
+/// Dienst oder Eintrag.
+enum PhotoList {
+    /// Hoechstens so viele Fotos je Eintrag.
+    static let maxCount = 4
+
+    static func of(_ photoId: String?, _ photoIds: [String]?) -> [String] {
+        if let photoIds, !photoIds.isEmpty { return photoIds }
+        return photoId.map { [$0] } ?? []
+    }
 }
 
 /// Ein Lauf mit seinen Punkten - alles fertig vom Dienst, die App rechnet
@@ -612,6 +631,14 @@ struct Message: Codable, Hashable, Sendable, Identifiable {
     let reactionTarget: String
     let reactions: [ReactionView]
     let deleted: Bool
+    /// Check-in-Post: alle Fotos des Eintrags; Foto-Nachricht: das eine.
+    let photoIds: [String]?
+
+    /// Die Fotos des Posts - bei einem Check-in-Post notfalls aus dem Eintrag.
+    var photos: [String] {
+        let own = PhotoList.of(photoId, photoIds)
+        return own.isEmpty ? (checkin?.photos ?? []) : own
+    }
 }
 
 struct MessagesPage: Codable, Hashable, Sendable {
@@ -690,6 +717,10 @@ struct TimelineItem: Codable, Hashable, Sendable, Identifiable {
     let reactionTarget: String
     let reactions: [ReactionView]
     let canReply: Bool
+    /// Alle Beweisfotos des Eintrags, das erste ist `photoId`.
+    let photoIds: [String]?
+
+    var photos: [String] { PhotoList.of(photoId, photoIds) }
 }
 
 struct TimelinePage: Codable, Hashable, Sendable {

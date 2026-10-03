@@ -3,6 +3,31 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-03 — coHabit, mehrere Beweisfotos: „+"-Kachel öffnet die Kamera, Karussell mit eigenen Punkten
+Bis zu vier Fotos je Eintrag (Vertrag §2.3a; Felix: höchstens 4, wischbares
+Karussell in voller Breite, Punkte nur bei mehr als einem, Fotos beim Bearbeiten
+ergänzen und entfernen).
+- **Blatt:** ohne Foto die Kamera-Vorschau wie bisher; danach das gewählte Foto
+  groß, darunter die Vorschaubilder (umbrechend) mit „×" und eine „+"-Kachel.
+  „+" schaltet die große Fläche wieder auf die Kamera (Auslöser, Galerie mit
+  Mehrfachauswahl bis vier voll, Kamerawechsel); ein Tipp auf ein Vorschaubild
+  zeigt es wieder groß. Die Kamera läuft nur, solange ihre Vorschau zu sehen
+  ist. Beim Bearbeiten dieselbe Reihe, nur ohne das große Bild
+  (`ProofPhotoPicker`, `showsSelection`). **Verworfen:** „+" als Menü
+  „Kamera | Galerie" - ein Schritt mehr, und die Galerie steckt ohnehin neben
+  dem Auslöser.
+- **Karussell** als `TabView` im Seitenstil mit eigenen Punkten darunter
+  (`PhotoCarousel`, `PageDots`) - die System-Punkte lägen weiß auf dem Foto und
+  verschwänden auf hellen Bildern. Ein Foto sieht aus wie bisher.
+- **Postausgang:** jedes Foto eine eigene Datei, der Reihe nach hoch, jede
+  hochgeladene Kennung sofort in der Anfrage - so lädt ein Abbruch nach dem
+  zweiten von drei Fotos beim nächsten Mal nur das dritte. Mit Netz bricht ein
+  Eintrag mitten im Hochladen ab, wandert nur der Rest in den Postausgang.
+  **Verworfen:** alle Fotos neu hochladen (dieselbe Kennung je Foto ginge auch,
+  aber jede Wiederholung kostete den ganzen Upload).
+- **Bearbeiten lädt direkt hoch**, ohne Postausgang - wie jedes Bearbeiten nur
+  mit Netz („Kein Netz."). Unveränderte Fotos schickt die App als `null`.
+
 ## 2026-10-03 — coHabit, Laufpunkte: eigenes Lauf-Blatt, Läufe dürfen in den Postausgang
 Eine Challenge mit Wertung „Laufpunkte" (`RUN_POINTS`, Vertrag §2.6a) fragt je
 Eintrag Dauer und Distanz; Punkte und Pace rechnet nur der Dienst.

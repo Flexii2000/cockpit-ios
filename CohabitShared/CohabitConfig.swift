@@ -328,16 +328,20 @@ struct CheckinRequest: Codable, Hashable, Sendable {
     let date: CalendarDate?
     var value: Double?
     var note: String?
+    /// Nur noch aus Postausgang-Auftraegen der Fassung mit einem Foto - neue
+    /// tragen `photoIds`; gesendet wird beides aus `photos`.
     var photoId: String?
     var caption: String?
     /// Ein Lauf (Laufpunkte, Vertrag §2.6a): ganze Minuten und km - bei
     /// `runEntry` Pflicht, sonst ignoriert der Dienst beide.
     var durationMinutes: Int?
     var distanceKm: Double?
+    /// Die Beweisfotos in Anzeige-Reihenfolge (Vertrag §2.3a, bis zu vier).
+    var photoIds: [String]?
 
     init(id: String = UUID().uuidString.lowercased(), kind: CheckinKind = .done, date: CalendarDate? = nil,
          value: Double? = nil, note: String? = nil, photoId: String? = nil, caption: String? = nil,
-         durationMinutes: Int? = nil, distanceKm: Double? = nil) {
+         durationMinutes: Int? = nil, distanceKm: Double? = nil, photoIds: [String]? = nil) {
         self.id = id
         self.kind = kind
         self.date = date
@@ -347,16 +351,31 @@ struct CheckinRequest: Codable, Hashable, Sendable {
         self.caption = caption
         self.durationMinutes = durationMinutes
         self.distanceKm = distanceKm
+        self.photoIds = photoIds
+    }
+
+    /// Alle Fotos - auch aus einem alten Auftrag, der nur `photoId` kennt.
+    var photos: [String] { PhotoList.of(photoId, photoIds) }
+
+    /// Ein hochgeladenes Foto hinten anhaengen - die Reihenfolge ist die der
+    /// Anzeige, und hochgeladen wird der Reihe nach.
+    mutating func appendPhoto(_ id: String) {
+        photoIds = photos + [id]
+        photoId = nil
     }
 
     func encode(to encoder: Encoder) throws {
+        let photos = photos
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id)
         try c.encode(kind, forKey: .kind)
         try c.encode(date, forKey: .date)
         try c.encode(value, forKey: .value)
         try c.encode(note, forKey: .note)
-        try c.encode(photoId, forKey: .photoId)
+        // Das erste auch einzeln: so versteht ein Dienst ohne `photoIds`
+        // wenigstens das.
+        try c.encode(photos.first, forKey: .photoId)
+        try c.encode(photos.isEmpty ? nil : photos, forKey: .photoIds)
         try c.encode(caption, forKey: .caption)
         try c.encode(durationMinutes, forKey: .durationMinutes)
         try c.encode(distanceKm, forKey: .distanceKm)
@@ -371,13 +390,15 @@ struct CheckinRequest: Codable, Hashable, Sendable {
     }
 }
 
-/// `PUT …/checkins/{id}`. Bei den Lauf-Feldern heisst `null` „unveraendert".
+/// `PUT …/checkins/{id}`. Bei den Lauf-Feldern und `photoIds` heisst `null`
+/// „unveraendert"; eine Liste ist der neue Satz Fotos (auch leer).
 struct CheckinUpdate: Codable, Hashable, Sendable {
     var value: Double?
     var note: String?
     var caption: String?
     var durationMinutes: Int? = nil
     var distanceKm: Double? = nil
+    var photoIds: [String]? = nil
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
@@ -386,6 +407,7 @@ struct CheckinUpdate: Codable, Hashable, Sendable {
         try c.encode(caption, forKey: .caption)
         try c.encode(durationMinutes, forKey: .durationMinutes)
         try c.encode(distanceKm, forKey: .distanceKm)
+        try c.encode(photoIds, forKey: .photoIds)
     }
 }
 

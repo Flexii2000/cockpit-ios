@@ -483,7 +483,7 @@ mit dem Status.
 | DELETE · PUT | `/cohabits/{id}/members/{personId\|me}` · `/admin` | Mitglieder, Verlassen, Admin übertragen |
 | PUT | `/cohabits/{id}/settings/me` | Stumm, Check-ins/Chat (`null` = wie global), Unterbrechungen teilen, Health-Einwilligung |
 | POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
-| POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen; bei Laufpunkten mit `durationMinutes`/`distanceKm` (siehe unten) |
+| POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen; bis zu vier Fotos (`photoIds`), bei Laufpunkten mit `durationMinutes`/`distanceKm` (siehe unten) |
 | PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) |
 | GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat |
 | POST/DELETE | `/reactions` | `{"target":"event:…\|message:…","reaction"}` |
@@ -544,6 +544,24 @@ liegt; entschieden wird nach Sonntag (Status `RUNNING`, `listLine` „Ø 2.250 v
 Ziele - im Formular nur der Chip „Kalorienziel im Wochenmittel“, Rhythmus
 einmal pro Woche (setzt der Dienst ohnehin). Quellen sind in der App Text, kein
 Enum: eine unbekannte steht mit ihrem Namen da und kippt nichts.
+
+⚠️ **Mehrere Beweisfotos (seit 2026-10-03, `../habits` Commit `0cf85ed`, Vertrag §2.3a):** ein Eintrag trägt
+bis zu vier. `POST …/checkins` mit `"photoIds":[…]` (1–4, Reihenfolge =
+Anzeige; 400 „Höchstens 4 Fotos.“ / „Ein Foto ist doppelt.“), das erste wird
+`photoId` - die App schickt es zusätzlich einzeln, ein älterer Dienst versteht
+so wenigstens das. `PUT …/checkins/{id}`: `photoIds` fehlt oder `null` =
+unverändert, eine Liste (0–4) = der neue Satz; weggefallene löscht der Dienst,
+neue müssen vorher über `POST /photos` hoch; bei Foto-Pflicht bleibt eins (400
+„Ein Beweisfoto ist Pflicht.“). Bekommt ein Eintrag ohne Foto seine ersten,
+entsteht der Chat-Post (ohne Push), fallen alle weg, verschwindet er. Antworten:
+`Checkin.photoIds`, `Message.photoIds` (Check-in-Post: alle des Eintrags,
+Foto-Nachricht: das eine, sonst `[]`) und `TimelineItem.photoIds` - immer eine
+Liste; die App liest sie optional und fällt auf `photoId` zurück (`photos`,
+`PhotoList`). Push ohne Caption: „Neues Beweisfoto“ / „3 neue Beweisfotos“.
+⚠️ **Postausgang:** jedes Foto eines wartenden Eintrags ist eine eigene Datei
+(`photoFiles`, Dateiname = Idempotenz-Schlüssel), sie gehen der Reihe nach hoch
+und hängen sich an `photoIds`; ein Abbruch mittendrin lädt nichts doppelt.
+Aufträge der Fassung mit einem Foto (`photoFile`) gehen weiter raus.
 
 ⚠️ **Laufpunkte (seit 2026-10-03, `../habits` Commit `259bec7`, Vertrag
 §2.6a):** Challenge-Wertung `RUN_POINTS` - Punkte je Lauf aus Dauer und

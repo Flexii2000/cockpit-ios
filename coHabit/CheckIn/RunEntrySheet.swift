@@ -12,7 +12,7 @@ struct RunEntrySheet: View {
 
     @State private var minutes = ""
     @State private var distance = ""
-    @State private var photo: UIImage?
+    @State private var photos: [ProofPhoto] = []
     @State private var caption = ""
     @State private var otherDay = false
     @State private var day = Date()
@@ -29,7 +29,7 @@ struct RunEntrySheet: View {
                             subtitle: target.photoRequired ? "Beweisfoto erforderlich" : nil) { dismiss() }
                 RunInputFields(minutes: $minutes, distance: $distance)
                 if target.photoRequired {
-                    ProofPhotoPicker(photo: $photo, color: target.color)
+                    ProofPhotoPicker(photos: $photos, color: target.color)
                 }
                 FieldLabel(text: "Caption (optional)")
                 InputField(placeholder: "Wie war's?", text: $caption, identifier: "runCaption")
@@ -78,7 +78,7 @@ struct RunEntrySheet: View {
     private var canSubmit: Bool {
         if submitting { return false }
         if Self.minutes(minutes) == nil || Self.distance(distance) == nil { return false }
-        if target.photoRequired && photo == nil { return false }
+        if target.photoRequired && photos.isEmpty { return false }
         return true
     }
 
@@ -91,7 +91,7 @@ struct RunEntrySheet: View {
         let request = CheckinRequest(id: requestId, date: chosenDay, caption: trimmed.isEmpty ? nil : trimmed,
                                      durationMinutes: durationMinutes, distanceKm: distanceKm)
         if await CheckInController.shared.submit(target, request: request,
-                                                 photo: target.photoRequired ? photo : nil) {
+                                                 photos: target.photoRequired ? photos.compactMap(\.image) : []) {
             dismiss()
         }
     }

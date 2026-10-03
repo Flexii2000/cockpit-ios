@@ -58,6 +58,47 @@
 > mit Foto eintragen (Ziffernblock bei Dauer, Komma bei Distanz), einen zu
 > langsamen (Meldung im Blatt, Eingaben bleiben), die Punkte-Meldung oben,
 > „Meine Einträge › Bearbeiten" und einen Lauf ohne Netz.
+>
+> **coHabit, mehrere Beweisfotos (03.10.):** braucht den Dienst ab `0cf85ed` -
+> sonst nimmt ein älterer Dienst nur das erste Foto. Auf dem Gerät prüfen: echte
+> Kamera mit „+" (zweites, drittes Foto), Galerie mit Mehrfachauswahl, Wischen
+> im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
+> beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
+
+## coHabit: mehrere Beweisfotos · **gebaut, nicht ausgerollt** (2026-10-03)
+
+Bis zu vier Fotos je Eintrag (Vertrag §2.3a, Dienst ab `0cf85ed`).
+
+- **Beweisfoto- und Lauf-Blatt** (`ProofPhotoPicker`): ohne Foto die Kamera wie
+  bisher; danach das gewählte Foto groß, darunter Vorschaubilder (umbrechend)
+  mit „×" und eine „+"-Kachel, die die Kamera wieder zeigt (Auslöser, Galerie mit
+  Mehrfachauswahl bis vier voll). Gesendet: `photoIds` in dieser Reihenfolge,
+  das erste zusätzlich als `photoId`.
+- **Chat-Post und Timeline:** mehrere Fotos als wischbares Karussell in voller
+  Breite, Punkte darunter nur bei mehr als einem (`PhotoCarousel`); eins sieht
+  aus wie bisher.
+- **Bearbeiten** („Meine Einträge"): dieselbe Reihe ohne großes Bild, Fotos
+  ergänzen und entfernen; neue gehen vor dem `PUT` hoch, unverändert = `null`;
+  bei Foto-Pflicht lässt sich das letzte nicht entfernen (Sichern aus).
+- **Postausgang:** jedes Foto eine Datei, der Reihe nach hoch, jede Kennung
+  sofort in der Anfrage; Aufträge der Fassung mit einem Foto gehen weiter raus.
+- Modelle: `photoIds` in `Checkin`, `Message`, `TimelineItem` optional, `photos`
+  fällt auf `photoId` zurück.
+
+**Geprüft:** `tools/verify.sh` grün, alle fünf (Healthy 95 XCTest + 31 Swift
+Testing, coHabit 131, davon 8 neu in `MultiPhotoTests`: Lesen mit/ohne
+`photoIds`, Senden in Reihenfolge samt `photoId`, `null`/Liste beim Bearbeiten,
+Postausgang lädt alle der Reihe nach hoch, setzt nach Abbruch fort, liest alte
+Aufträge; Blatt schickt alle Fotos; Bearbeiten lädt neue hoch). Gegen den lokalen
+Dienst (`0cf85ed`, Demo-Daten): neuer UI-Test `testCheckInWithSeveralPhotos`
+grün - einmal in einem eigenen Co-Habit (danach gelöscht), einmal echt im
+Demo-Streak „Laufen" (Eintrag mit drei Fotos neben den Posts von Lena und Max;
+drei Fotos, eins raus, eins rein, posten; Chat und Timeline mit Karussell und
+Punkten, Wischen blättert; Bearbeiten: eins raus, eins dazu, der Dienst trägt
+danach drei). `testCheckInWithAPhotoFromTheGallery` mit der echten Mediathek
+grün (die Auswahl will jetzt bestätigt werden, „Wähle bis zu 4 Fotos aus.").
+Bilder hell und dunkel angesehen. **Nicht im Simulator prüfbar:** die echte
+Kamera, wie sich Wischen im Karussell auf dem Gerät anfühlt.
 
 ## coHabit: Laufpunkte · **gebaut, nicht ausgerollt** (2026-10-03)
 

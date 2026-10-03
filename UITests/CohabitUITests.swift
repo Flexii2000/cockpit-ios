@@ -75,6 +75,7 @@ final class CohabitUITests: XCTestCase {
     func testCheckInWithAPhotoFromTheGallery() throws {
         let name = unique("Foto UI")
         let id = try createCohabit(name: name, photoRequired: true, token: token)
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
         let app = launch()
         let card = app.buttons["card-\(id)"]
         XCTAssertTrue(card.waitForExistence(timeout: 20), "Karte fehlt auf „Heute“")
@@ -121,6 +122,112 @@ final class CohabitUITests: XCTestCase {
         // Die Auswahl laeuft in einem fremden Prozess: XCUITest sieht das Bild,
         // haelt es aber fuer nicht tippbar - ein Tipp auf die Stelle geht.
         photo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Seit mehrere Fotos gehen (bis zu vier), will die Mediathek die
+        // Auswahl bestaetigt haben.
+        for label in ["Hinzufügen", "Add"] where app.buttons[label].waitForExistence(timeout: 3) {
+            app.buttons[label].tap()
+            break
+        }
+    }
+
+    // MARK: - Mehrere Beweisfotos
+
+    /// Bis zu vier Fotos je Eintrag (Vertrag §2.3a): drei ueber die Galerie
+    /// (`COCKPIT_TEST_PHOTO=1` liefert je Platz ein andersfarbiges Bild), eins
+    /// wieder raus und ein neues rein, posten; im Chat und in der Timeline ein
+    /// Karussell mit Punkten. Dann den Eintrag bearbeiten: eins entfernen, eins
+    /// ergaenzen - der Dienst traegt danach wieder drei.
+    ///
+    /// Ohne `COCKPIT_PHOTO_COHABIT` legt der Test ein Streak mit Foto-Pflicht
+    /// an; mit der Kennung eines bestehenden (Demo-Daten) traegt er dort ein,
+    /// neben den Fotos der anderen.
+    @MainActor
+    func testCheckInWithSeveralPhotos() throws {
+        let tag = unique("Drei Fotos")
+        let given = environment["COCKPIT_PHOTO_COHABIT"] ?? ""
+        let id = given.isEmpty ? try createCohabit(name: unique("Fotos UI"), photoRequired: true, token: token) : given
+        if given.isEmpty { cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token) }
+        let app = launch(extra: ["COCKPIT_TEST_PHOTO": "1", "COCKPIT_TIMELINE_HIDDEN": "none",
+                                 "COCKPIT_LINK": "cohabit://cohabit/\(id)/checkin"])
+
+        let gallery = app.buttons["photoGallery"]
+        XCTAssertTrue(gallery.waitForExistence(timeout: 20), "Beweisfoto-Blatt fehlt")
+        XCTAssertFalse(app.buttons["photoPost"].isEnabled, "ohne Foto kein Posten")
+        gallery.tap()
+        XCTAssertTrue(app.images["chosenPhoto"].waitForExistence(timeout: 5), "erstes Foto nicht übernommen")
+        for _ in 0..<2 {
+            app.buttons["addPhoto"].tap()
+            XCTAssertTrue(gallery.waitForExistence(timeout: 5), "die „+“-Kachel öffnet keine Kamera")
+            gallery.tap()
+        }
+        XCTAssertTrue(app.buttons["photoThumb-2"].waitForExistence(timeout: 5), "keine drei Vorschaubilder")
+        snap(app, "fotos-drei")
+        app.buttons["removePhoto-1"].tap()
+        XCTAssertFalse(app.buttons["photoThumb-2"].waitForExistence(timeout: 2), "Entfernen wirkt nicht")
+        app.buttons["addPhoto"].tap()
+        gallery.tap()
+        XCTAssertTrue(app.buttons["photoThumb-2"].waitForExistence(timeout: 5))
+        let caption = app.textFields["photoCaption"]
+        caption.tap()
+        caption.typeText(tag)
+        shoot(app, "fotos-vor-dem-posten")
+        app.buttons["photoPost"].tap()
+        XCTAssertTrue(waitUntilGone(app.buttons["photoPost"]), "das Blatt ist nach dem Posten noch offen")
+
+        // Chat: der Post mit Karussell und Punkten.
+        app.buttons["segment-Chat"].tap()
+        XCTAssertTrue(app.staticTexts[tag].waitForExistence(timeout: 10), "der Check-in-Post fehlt im Chat")
+        let carousel = app.descendants(matching: .any).matching(identifier: "photoCarousel").firstMatch
+        XCTAssertTrue(carousel.waitForExistence(timeout: 5), "kein Karussell im Chat")
+        let dots = app.descendants(matching: .any).matching(identifier: "photoDots").firstMatch
+        XCTAssertEqual(dots.label, "Foto 1 von 3")
+        snap(app, "fotos-chat")
+        carousel.swipeLeft()
+        XCTAssertTrue(waitFor(dots, toReadAgain: "Foto 2 von 3"), "Wischen blättert nicht")
+        shoot(app, "fotos-chat-gewischt")
+
+        // Timeline: dasselbe Karussell.
+        app.buttons["Zurück"].firstMatch.tap()
+        app.buttons["tab-Timeline"].tap()
+        XCTAssertTrue(app.staticTexts[tag].waitForExistence(timeout: 15), "der Eintrag fehlt in der Timeline")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "photoCarousel").firstMatch
+            .waitForExistence(timeout: 5), "kein Karussell in der Timeline")
+        snap(app, "fotos-timeline")
+
+        // Bearbeiten: eins raus, eins dazu.
+        let link = launch(extra: ["COCKPIT_TEST_PHOTO": "1", "COCKPIT_LINK": "cohabit://cohabit/\(id)"])
+        let menu = link.buttons["detailMenu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 20))
+        menu.tap()
+        link.buttons["Meine Einträge"].tap()
+        let entry = link.buttons["Eintrag bearbeiten"].firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "kein eigener Eintrag")
+        entry.tap()
+        link.buttons["Bearbeiten"].tap()
+        XCTAssertTrue(link.buttons["photoThumb-2"].waitForExistence(timeout: 10), "die drei Fotos fehlen im Bearbeiten")
+        snap(link, "fotos-bearbeiten")
+        link.buttons["removePhoto-0"].tap()
+        link.buttons["addPhoto"].tap()
+        let editGallery = link.buttons["photoGallery"]
+        XCTAssertTrue(editGallery.waitForExistence(timeout: 5), "die „+“-Kachel öffnet keine Kamera")
+        editGallery.tap()
+        XCTAssertTrue(link.buttons["photoThumb-2"].waitForExistence(timeout: 5))
+        shoot(link, "fotos-bearbeitet")
+        link.buttons["checkinSave"].tap()
+        XCTAssertTrue(waitUntilGone(link.buttons["checkinSave"]), "das Bearbeiten-Blatt geht nicht zu")
+        shoot(link, "fotos-bearbeitet-gesichert")
+
+        let detail = try request("GET", "/cohabits/\(id)", body: nil, token: token)
+        let mine = try XCTUnwrap(detail["myCheckins"] as? [[String: Any]])
+        let edited = try XCTUnwrap(mine.first { ($0["caption"] as? String) == tag })
+        XCTAssertEqual((edited["photoIds"] as? [String])?.count, 3, "nach dem Bearbeiten nicht drei Fotos")
+    }
+
+    /// Wartet, bis ein Element weg ist - ein Blatt, das nach dem Senden zugeht.
+    @MainActor
+    private func waitUntilGone(_ element: XCUIElement) -> Bool {
+        let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: element)
+        return XCTWaiter.wait(for: [gone], timeout: 15) == .completed
     }
 
     // MARK: - Chat

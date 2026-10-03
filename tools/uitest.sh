@@ -78,6 +78,9 @@ export TEST_RUNNER_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}"
 export TEST_RUNNER_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}"
 export TEST_RUNNER_COCKPIT_COHABIT_TOKEN="${COCKPIT_COHABIT_TOKEN:-}"
 export TEST_RUNNER_COCKPIT_COHABIT_OTHER_TOKEN="${COCKPIT_COHABIT_OTHER_TOKEN:-}"
+# Freiwillig: in welchem Co-Habit testCheckInWithSeveralPhotos eintraegt (ohne:
+# ein eigenes, frisch angelegtes).
+export TEST_RUNNER_COCKPIT_PHOTO_COHABIT="${COCKPIT_PHOTO_COHABIT:-}"
 # Der Rundgang fuer die Bildschirmfotos laeuft nur auf ausdruecklichen Wunsch.
 export TEST_RUNNER_COCKPIT_TOUR="${COCKPIT_TOUR:-}"
 export TEST_RUNNER_COCKPIT_OFFLINE_TEST="${COCKPIT_OFFLINE_TEST:-}"

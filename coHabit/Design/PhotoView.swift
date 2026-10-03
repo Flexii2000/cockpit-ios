@@ -95,3 +95,61 @@ struct PhotoView: View {
         .accessibilityLabel("Foto")
     }
 }
+
+/// Die Beweisfotos eines Eintrags in voller Breite (Vertrag §2.3a): eins wie
+/// bisher, mehrere als wischbares Karussell mit Punkten darunter.
+struct PhotoCarousel: View {
+    let ids: [String]
+    var height: CGFloat = 220
+    var cornerRadius: CGFloat = 18
+    var placeholder: Color = Ink.track
+
+    @State private var page = 0
+
+    var body: some View {
+        if ids.count == 1, let id = ids.first {
+            PhotoView(id: id, size: .full, placeholder: placeholder)
+                .frame(height: height)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else if !ids.isEmpty {
+            VStack(spacing: 8) {
+                TabView(selection: $page) {
+                    ForEach(Array(ids.enumerated()), id: \.offset) { index, id in
+                        PhotoView(id: id, size: .full, placeholder: placeholder)
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: height)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .accessibilityIdentifier("photoCarousel")
+                PageDots(count: ids.count, current: min(page, ids.count - 1))
+            }
+            // Ein bearbeiteter Eintrag hat womoeglich weniger Fotos als vorher.
+            .onChange(of: ids) { _, new in page = min(page, max(0, new.count - 1)) }
+        }
+    }
+}
+
+/// Die Punkte unter dem Karussell - der aktuelle in Tinte.
+struct PageDots: View {
+    let count: Int
+    let current: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<count, id: \.self) { index in
+                Circle()
+                    .fill(index == current ? Ink.ink : Ink.ink.opacity(0.2))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.easeOut(duration: 0.15), value: current)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Foto \(current + 1) von \(count)")
+        .accessibilityIdentifier("photoDots")
+    }
+}

@@ -449,7 +449,7 @@ struct EntriesSheet: View {
                         ForEach(Array(detail.myCheckins.enumerated()), id: \.element.id) { index, checkin in
                             if index > 0 { FormDivider() }
                             HStack(spacing: 12) {
-                                if let photo = checkin.photoId {
+                                if let photo = checkin.photos.first {
                                     PhotoView(id: photo, size: .thumb, placeholder: detail.ref.color.colors.surface)
                                         .frame(width: 44, height: 44)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -508,29 +508,48 @@ struct EditCheckinSheet: View {
     @State private var caption = ""
     @State private var minutes = ""
     @State private var distance = ""
+    @State private var photos: [ProofPhoto]
     @State private var saving = false
     @Environment(\.dismiss) private var dismiss
 
+    init(store: CohabitDetailStore, checkin: Checkin) {
+        self.store = store
+        self.checkin = checkin
+        _photos = State(initialValue: checkin.photos.map(ProofPhoto.remote))
+    }
+
     /// Ein Lauf: Dauer und Distanz statt eines Werts.
     private var isRun: Bool { checkin.run != nil || store.detail?.summary.isRunEntry == true }
+    /// Fotos gibt es nur an Eintraegen, nicht an Unterbrechungen.
+    private var takesPhotos: Bool { checkin.kind == .done }
+    private var photosChanged: Bool { photos.map(\.id) != checkin.photos }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SheetHeader(title: "Eintrag bearbeiten", subtitle: Formats.dayTitle(checkin.date)) { dismiss() }
-            if isRun {
-                RunInputFields(minutes: $minutes, distance: $distance)
-            } else if checkin.value != nil || store.detail?.config.tracking.isValue == true {
-                FieldLabel(text: "Wert")
-                InputField(placeholder: "Wert", text: $value, keyboard: .decimalPad)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                SheetHeader(title: "Eintrag bearbeiten", subtitle: Formats.dayTitle(checkin.date)) { dismiss() }
+                if isRun {
+                    RunInputFields(minutes: $minutes, distance: $distance)
+                } else if checkin.value != nil || store.detail?.config.tracking.isValue == true {
+                    FieldLabel(text: "Wert")
+                    InputField(placeholder: "Wert", text: $value, keyboard: .decimalPad)
+                }
+                if takesPhotos {
+                    FieldLabel(text: "Fotos")
+                    ProofPhotoPicker(photos: $photos, color: store.detail?.ref.color ?? .peach, showsSelection: false)
+                }
+                FieldLabel(text: "Notiz")
+                InputField(placeholder: "Notiz", text: $note)
+                if !photos.isEmpty || checkin.caption != nil {
+                    FieldLabel(text: "Caption")
+                    InputField(placeholder: "Wie war's?", text: $caption)
+                }
             }
-            FieldLabel(text: "Notiz")
-            InputField(placeholder: "Notiz", text: $note)
-            if checkin.photoId != nil {
-                FieldLabel(text: "Caption")
-                InputField(placeholder: "Wie war's?", text: $caption)
-            }
-            Spacer()
-            Button("Sichern") {
+            .padding(Metrics.gutter)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            Button {
                 saving = true
                 Task {
                     let update = CheckinUpdate(value: isRun ? nil : ValueEntrySheet.number(value),
@@ -538,20 +557,26 @@ struct EditCheckinSheet: View {
                                                caption: caption.isEmpty ? nil : caption,
                                                durationMinutes: isRun ? RunEntrySheet.minutes(minutes) : nil,
                                                distanceKm: isRun ? RunEntrySheet.distance(distance) : nil)
-                    if await store.update(checkin, update) { dismiss() }
+                    // Unveraenderte Fotos gar nicht erst schicken (`null` = so lassen).
+                    if await store.update(checkin, update, photos: takesPhotos && photosChanged ? photos : nil) {
+                        dismiss()
+                    }
                     saving = false
                 }
+            } label: {
+                if saving { ProgressView().tint(Ink.onInk) } else { Text("Sichern") }
             }
             .buttonStyle(PrimaryButtonStyle())
-            // Ein Lauf ohne lesbare Dauer oder Distanz: lieber nicht sichern
-            // als still „unveraendert" schicken.
-            .disabled(saving || (isRun && (RunEntrySheet.minutes(minutes) == nil
-                                           || RunEntrySheet.distance(distance) == nil)))
+            .disabled(!canSave)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.vertical, 10)
+            .background(Ink.background)
             .accessibilityIdentifier("checkinSave")
         }
-        .padding(Metrics.gutter)
         .screenBackground()
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(saving)
         .onAppear {
             value = checkin.value.map { ValueEntrySheet.format($0) } ?? ""
             note = checkin.note ?? ""
@@ -559,5 +584,15 @@ struct EditCheckinSheet: View {
             minutes = checkin.run?.durationMinutes.map { String($0) } ?? ""
             distance = checkin.run?.distanceKm.map { ValueEntrySheet.format($0) } ?? ""
         }
+    }
+
+    private var canSave: Bool {
+        if saving { return false }
+        // Ein Lauf ohne lesbare Dauer oder Distanz: lieber nicht sichern als
+        // still „unveraendert" schicken.
+        if isRun && (RunEntrySheet.minutes(minutes) == nil || RunEntrySheet.distance(distance) == nil) { return false }
+        // Bei Foto-Pflicht bleibt mindestens eins (der Dienst lehnt sonst ab).
+        if takesPhotos && photos.isEmpty && store.detail?.config.photoRequired == true { return false }
+        return true
     }
 }

@@ -293,12 +293,7 @@ struct MessageRow: View {
             if message.deleted {
                 Text("Nachricht gelöscht").italic().foregroundStyle(Ink.muted)
             } else {
-                if let photo = message.photoId ?? message.checkin?.photoId {
-                    PhotoView(id: photo, size: .full, placeholder: color.colors.surface)
-                        .frame(height: 190)
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                }
+                PhotoCarousel(ids: message.photos, height: 190, placeholder: color.colors.surface)
                 if let value = message.checkin?.valueText {
                     Text(value)
                         .font(.system(size: 15, weight: .heavy))

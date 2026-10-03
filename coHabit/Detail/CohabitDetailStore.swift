@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Ein Co-Habit mit allem, was seine Detailseite braucht (`GET /cohabits/{id}`).
 @MainActor
@@ -12,11 +13,15 @@ final class CohabitDetailStore {
     /// Weg (geloescht, verlassen) - die Seite geht dann zu.
     private(set) var isGone = false
 
-    init(cohabitId: String) {
+    /// Woher die Anfragen gehen - die Tests setzen einen Stub ein.
+    private let makeAPI: @MainActor () -> CohabitAPI
+
+    init(cohabitId: String, makeAPI: @escaping @MainActor () -> CohabitAPI = { Session.shared.api() }) {
         self.cohabitId = cohabitId
+        self.makeAPI = makeAPI
     }
 
-    private var api: CohabitAPI { Session.shared.api() }
+    private var api: CohabitAPI { makeAPI() }
     private var path: String { "/cohabits/\(cohabitId)" }
 
     func load() async {
@@ -164,8 +169,29 @@ final class CohabitDetailStore {
 
     // MARK: - Eigene Eintraege
 
-    func update(_ checkin: Checkin, _ update: CheckinUpdate) async -> Bool {
+    /// - Parameter photos: der neue Satz Fotos in Anzeige-Reihenfolge - neue
+    ///   gehen vorher hoch; `nil` laesst die Fotos, wie sie sind.
+    func update(_ checkin: Checkin, _ update: CheckinUpdate, photos: [ProofPhoto]? = nil) async -> Bool {
+        var update = update
         do {
+            if let photos {
+                var ids: [String] = []
+                for photo in photos {
+                    switch photo {
+                    case .remote(let id):
+                        ids.append(id)
+                    case .local(_, let image):
+                        guard let jpeg = PhotoEncoding.jpeg(image) else {
+                            Toast.shared.show("Das Foto ließ sich nicht lesen.", error: true)
+                            return false
+                        }
+                        let upload = try await api.uploadPhoto(jpeg: jpeg, key: UUID().uuidString.lowercased())
+                        PhotoLoader.shared.remember(image, id: upload.id)
+                        ids.append(upload.id)
+                    }
+                }
+                update.photoIds = ids
+            }
             let result: CheckinResult = try await api.send("PUT", path + "/checkins/\(checkin.id)", body: update)
             apply(result.cohabit)
             DataBus.shared.changed()

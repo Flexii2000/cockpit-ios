@@ -32,9 +32,16 @@ actor CohabitOutbox {
         var operation: Operation
         /// Das Foto, das vorher hoch muss - Dateiname im Ordner des
         /// Postausgangs. Nach dem Hochladen weg, die Kennung steht dann in
-        /// der Anfrage.
+        /// der Anfrage. Nur noch in Auftraegen der Fassung mit einem Foto.
         var photoFile: String?
         let createdAt: Date
+        /// Die Fotos, die vorher hoch muessen, in Anzeige-Reihenfolge (ein
+        /// Eintrag hat bis zu vier, Vertrag §2.3a). Jedes geht nach dem
+        /// Hochladen hier raus und haengt sich an die Anfrage.
+        var photoFiles: [String]?
+
+        /// Was noch hochzuladen ist, der Reihe nach - auch aus einem alten Auftrag.
+        var pendingPhotos: [String] { (photoFile.map { [$0] } ?? []) + (photoFiles ?? []) }
     }
 
     private let directory: URL
@@ -49,23 +56,29 @@ actor CohabitOutbox {
 
     // MARK: - Ablegen
 
-    /// Legt einen Eintrag ab; ein Foto wird als Datei daneben gelegt.
+    /// Legt einen Eintrag ab; die Fotos werden als Dateien daneben gelegt
+    /// und gehen vor dem Eintrag hoch, in dieser Reihenfolge hinter die, deren
+    /// Kennung die Anfrage schon traegt.
+    func enqueueCheckin(cohabitId: String, request: CheckinRequest, photos: [Data]) async {
+        await append(.checkin(cohabitId: cohabitId, request: request), photos: photos)
+    }
+
     func enqueueCheckin(cohabitId: String, request: CheckinRequest, photo: Data?) async {
-        await append(.checkin(cohabitId: cohabitId, request: request), photo: photo)
+        await enqueueCheckin(cohabitId: cohabitId, request: request, photos: photo.map { [$0] } ?? [])
     }
 
     func enqueueMessage(cohabitId: String, request: MessageRequest, photo: Data?) async {
-        await append(.message(cohabitId: cohabitId, request: request), photo: photo)
+        await append(.message(cohabitId: cohabitId, request: request), photos: photo.map { [$0] } ?? [])
     }
 
     /// Haken oder Rueckfall aus der klassischen Liste - ohne Foto: mit
     /// Foto-Pflicht geht das Abhaken dort ueber das Beweisfoto-Blatt.
     func enqueueClassicMark(habitId: String, request: ClassicMarkRequest) async {
-        await append(.classicMark(habitId: habitId, request: request), photo: nil)
+        await append(.classicMark(habitId: habitId, request: request), photos: [])
     }
 
     func enqueueClassicUnmark(habitId: String, date: CalendarDate) async {
-        await append(.classicUnmark(habitId: habitId, date: date), photo: nil)
+        await append(.classicUnmark(habitId: habitId, date: date), photos: [])
     }
 
     /// Eine Reaktion - hebt eine wartende Gegenbewegung auf, statt beide zu
@@ -83,7 +96,7 @@ actor CohabitOutbox {
             await publish(entries, error: nil)
             return
         }
-        await append(.reaction(request, add: add), photo: nil)
+        await append(.reaction(request, add: add), photos: [])
     }
 
     func entries() -> [Entry] { load() }
@@ -119,12 +132,18 @@ actor CohabitOutbox {
         var lastError: String?
         while var entry = load().first {
             do {
-                if let photoFile = entry.photoFile {
+                // Jedes Foto einzeln: was oben ist, steht danach in der
+                // Anfrage - ein Abbruch mittendrin laedt es nicht noch einmal.
+                for photoFile in entry.pendingPhotos {
                     let data = try Data(contentsOf: photos.appending(path: photoFile))
                     let key = (photoFile as NSString).deletingPathExtension
                     let upload = try await api.uploadPhoto(jpeg: data, key: key)
                     entry.operation = entry.operation.withPhoto(upload.id)
-                    entry.photoFile = nil
+                    if entry.photoFile == photoFile {
+                        entry.photoFile = nil
+                    } else {
+                        entry.photoFiles?.removeAll { $0 == photoFile }
+                    }
                     replaceFirst(with: entry)
                     try? FileManager.default.removeItem(at: photos.appending(path: photoFile))
                 }
@@ -141,7 +160,7 @@ actor CohabitOutbox {
                     } else {
                         lastError = entry.operation.rejection(message)
                     }
-                    removeFirst(deletingPhoto: entry.photoFile)
+                    removeFirst(deletingPhotos: entry.pendingPhotos)
                 default:
                     await publish(load(), error: lastError)
                     return
@@ -150,7 +169,7 @@ actor CohabitOutbox {
                 // Die Fotodatei ist weg - ohne sie laesst sich der Eintrag
                 // nicht mehr vollstaendig schicken.
                 lastError = "Ein wartendes Foto ließ sich nicht mehr lesen."
-                removeFirst()
+                removeFirst(deletingPhotos: entry.pendingPhotos)
             }
         }
         await publish([], error: lastError)
@@ -180,17 +199,21 @@ actor CohabitOutbox {
 
     // MARK: - Datei
 
-    private func append(_ operation: Entry.Operation, photo: Data?) async {
+    private func append(_ operation: Entry.Operation, photos images: [Data]) async {
         var entries = load()
-        var photoFile: String?
-        if let photo {
+        var photoFiles: [String] = []
+        if !images.isEmpty {
             try? FileManager.default.createDirectory(at: photos, withIntermediateDirectories: true)
+        }
+        for image in images {
+            // Der Dateiname ist der Idempotenz-Schluessel beim Hochladen.
             let name = UUID().uuidString.lowercased() + ".jpg"
-            if (try? photo.write(to: photos.appending(path: name), options: .atomic)) != nil {
-                photoFile = name
+            if (try? image.write(to: photos.appending(path: name), options: .atomic)) != nil {
+                photoFiles.append(name)
             }
         }
-        entries.append(Entry(id: UUID(), operation: operation, photoFile: photoFile, createdAt: Date()))
+        entries.append(Entry(id: UUID(), operation: operation, photoFile: nil, createdAt: Date(),
+                             photoFiles: photoFiles.isEmpty ? nil : photoFiles))
         save(entries)
         await publish(entries, error: nil)
     }
@@ -220,12 +243,14 @@ actor CohabitOutbox {
         save(entries)
     }
 
-    private func removeFirst(deletingPhoto photoFile: String? = nil) {
+    private func removeFirst(deletingPhotos photoFiles: [String] = []) {
         var entries = load()
         guard !entries.isEmpty else { return }
         entries.removeFirst()
         save(entries)
-        if let photoFile { try? FileManager.default.removeItem(at: photos.appending(path: photoFile)) }
+        for photoFile in photoFiles {
+            try? FileManager.default.removeItem(at: photos.appending(path: photoFile))
+        }
     }
 
     private func publish(_ entries: [Entry], error: String?) async {
@@ -234,11 +259,12 @@ actor CohabitOutbox {
 }
 
 extension CohabitOutbox.Entry.Operation {
-    /// Die Anfrage mit der Kennung des hochgeladenen Fotos.
+    /// Die Anfrage mit der Kennung des hochgeladenen Fotos - beim Eintrag
+    /// hinten angehaengt, bei einer Nachricht das eine.
     func withPhoto(_ photoId: String) -> Self {
         switch self {
         case .checkin(let cohabitId, var request):
-            request.photoId = photoId
+            request.appendPhoto(photoId)
             return .checkin(cohabitId: cohabitId, request: request)
         case .message(let cohabitId, var request):
             request.photoId = photoId
