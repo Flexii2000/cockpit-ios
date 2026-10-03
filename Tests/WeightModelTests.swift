@@ -225,4 +225,30 @@ final class WeightWidgetTests: XCTestCase {
         XCTAssertEqual(WeightWidget.bmi.value(s), "–")
         XCTAssertNil(WeightWidget.diff.tone(s))
     }
+
+    // MARK: - Zeitraeume
+
+    func testRangesInPickerOrder() {
+        XCTAssertEqual(WeightRange.allCases.map(\.title),
+                       ["30 Tage", "90 Tage", "180 Tage", "1 Jahr", "3 Jahre", "Alles"])
+    }
+
+    /// 180 Tage hat einen eigenen Endpunkt - der Dienst schneidet selbst zu.
+    func testHalfYearUsesItsOwnEndpoint() {
+        XCTAssertEqual(WeightRange.last180.path, "/api/weight/last180")
+        XCTAssertNil(WeightRange.last180.windowDays)
+        XCTAssertEqual(WeightRange.last180.offeredSeries, WeightRange.last90.offeredSeries)
+        XCTAssertEqual(WeightRange.last180.availableSeries, WeightRange.last90.availableSeries)
+        XCTAssertEqual(WeightRange.last180.defaultVisible, WeightRange.last90.defaultVisible)
+    }
+
+    /// Die Gewichtskurve im Kalorien-Verlauf: bis 90 Tage weiter `last90`,
+    /// damit ein Dienst ohne `last180` die bisherigen Zeitraeume nicht verliert.
+    @MainActor
+    func testFoodHistoryAsksForHalfYearOnlyBeyondNinetyDays() {
+        XCTAssertEqual(FoodStore.historyRanges, [14, 30, 90, 180])
+        XCTAssertEqual(FoodStore.weightRange(forHistoryDays: 14), .last90)
+        XCTAssertEqual(FoodStore.weightRange(forHistoryDays: 90), .last90)
+        XCTAssertEqual(FoodStore.weightRange(forHistoryDays: 180), .last180)
+    }
 }

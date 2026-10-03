@@ -59,11 +59,39 @@
 > langsamen (Meldung im Blatt, Eingaben bleiben), die Punkte-Meldung oben,
 > „Meine Einträge › Bearbeiten" und einen Lauf ohne Netz.
 >
+> **Healthy, 180 Tage (03.10.):** braucht den Weight Tracker mit
+> `/api/weight/last180` (`../weight-app`) - erst ihn ausrollen, dann
+> `tools/install-device.sh Healthy`. Vorher zeigt „180 Tage" im Gewicht-Tab
+> einen 404 und der Kalorien-Verlauf über 180 Tage keine Gewichtskurve; 14/30/90
+> Tage laufen auch mit dem alten Dienst. Auf dem Gerät prüfen: Umschalter im
+> Gewicht-Tab (sechs Segmente, nichts abgeschnitten), 180 Tage in beiden
+> Verläufen.
+>
 > **coHabit, mehrere Beweisfotos (03.10.):** braucht den Dienst ab `0cf85ed` -
 > sonst nimmt ein älterer Dienst nur das erste Foto. Auf dem Gerät prüfen: echte
 > Kamera mit „+" (zweites, drittes Foto), Galerie mit Mehrfachauswahl, Wischen
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
+
+## Healthy: 180 Tage im Gewichts- und im Kalorien-Verlauf · **gebaut, nicht ausgerollt** (2026-10-03)
+
+- **Gewicht-Tab:** neuer Zeitraum „180 Tage" zwischen 90 Tagen und 1 Jahr
+  (`WeightRange.last180`, Endpunkt `/api/weight/last180`, Serien wie bei 90
+  Tagen; Achse nach Spanne, also „Mai 26"). Der Umschalter hat jetzt sechs
+  Segmente und ist dafür ein `UISegmentedControl` mit Segmenten nach
+  Beschriftungsbreite (`ContentWidthSegments`) - gleich breit wurde „180 Tage"
+  abgeschnitten.
+- **Essen-Tab, Verlauf:** 14 · 30 · 90 · 180 Tage (`FoodStore.historyRanges`);
+  die Gewichtskurve kommt ab mehr als 90 Tagen aus `last180`, sonst wie bisher
+  aus `last90`.
+- **Geprüft:** `tools/verify.sh Healthy` (129 Tests, neu
+  `testRangesInPickerOrder`, `testHalfYearUsesItsOwnEndpoint`,
+  `testFoodHistoryAsksForHalfYearOnlyBeyondNinetyDays`); UI-Test
+  `testFoodHistoryOffersHalfAYear` (tippt „180 Tage" im Verlauf, iPhone 17e);
+  Screenshots Gewicht-Tab auf iPhone 17e (hell, dunkel) und iPhone Air - alle
+  sechs Segmente ganz lesbar.
+- **Nicht geprüft:** der 180-Tage-Gewichtsverlauf mit echten Daten - der
+  Dienst auf dem Server kennt `last180` noch nicht (404 im Simulator).
 
 ## coHabit: mehrere Beweisfotos · **gebaut, nicht ausgerollt** (2026-10-03)
 

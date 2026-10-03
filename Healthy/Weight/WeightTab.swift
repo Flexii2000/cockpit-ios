@@ -139,14 +139,13 @@ struct WeightTab: View {
 
     private var chart: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("Zeitraum", selection: Binding(
-                get: { store.range },
-                set: { range in Task { await store.select(range) } })) {
-                ForEach(WeightRange.allCases) { range in
-                    Text(range.title).tag(range)
-                }
-            }
-            .pickerStyle(.segmented)
+            // Sechs Zeitraeume: gleich breite Segmente schnitten „180 Tage"
+            // ab, siehe ContentWidthSegments.
+            ContentWidthSegments(options: WeightRange.allCases, title: \.title,
+                                 selection: Binding(
+                                     get: { store.range },
+                                     set: { range in Task { await store.select(range) } }))
+                .accessibilityLabel("Zeitraum")
 
             WeightChartView(points: store.points,
                             highlights: store.chartHighlights,

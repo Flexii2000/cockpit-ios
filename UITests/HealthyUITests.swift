@@ -89,6 +89,33 @@ final class HealthyUITests: XCTestCase {
                       "Der Verlauf muss unterhalb der Mahlzeiten erreichbar sein")
     }
 
+    /// Der Verlauf geht bis 180 Tage zurueck: vier Zeitraeume nebeneinander,
+    /// und der laengste laesst sich waehlen.
+    func testFoodHistoryOffersHalfAYear() {
+        let app = start(tab: "food")
+        XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
+
+        // Unterhalb der Ringe ansetzen: dort liegt die Liste, nicht der
+        // Pager mit den Tagen. Die Liste baut den Verlauf erst, wenn er ins
+        // Bild kommt - deshalb scrollen, bis der Umschalter da ist.
+        let halfYear = app.buttons["180 Tage"]
+        for _ in 0..<10 where !halfYear.isHittable {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            start.press(forDuration: 0.05, thenDragTo: end)
+        }
+        XCTAssertTrue(halfYear.waitForExistence(timeout: 5))
+        halfYear.tap()
+        // Das Diagramm laedt nach - kurz Zeit lassen, sonst zeigt das Bild
+        // noch die 30 Tage.
+        sleep(3)
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.40))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        shoot(app, "essen-verlauf-180")
+        XCTAssertTrue(halfYear.isSelected)
+    }
+
     /// Wischt einen Eintrag an, ohne zu loeschen: die Muelltonne muss
     /// erscheinen, und zwar ohne das Wort daneben.
     func testSwipeOnAnEntryRevealsTheTrashButton() throws {

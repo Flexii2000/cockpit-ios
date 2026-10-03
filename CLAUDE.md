@@ -180,7 +180,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | Schalter | Wofür |
 |---|---|
 | `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
-| `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `year`, `threeYears`, `allTime`) |
+| `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
 | `COCKPIT_SCAN=4000417025005` | liefert im Essen-Tab sofort diesen Produktcode, als wäre er gescannt worden: das Scanner-Blatt geht auf, gibt ihn ohne Kamera ab, danach öffnet sich das Eintrag-Blatt mit dem Produkt aus Open Food Facts — im Simulator gibt es keine Kamera |

@@ -63,7 +63,7 @@
 # er sich nicht - simctl kennt keinen Health-Dienst.
 #
 # COCKPIT_RANGE=allTime stellt den Gewicht-Tab auf einen Zeitraum
-# (month, last90, year, allTime).
+# (month, last90, last180, year, threeYears, allTime).
 #
 # COCKPIT_SELECT=2026-08-15 waehlt einen Tag im Diagramm vor, damit die
 # Sprechblase im Bild ist - eine Ziehgeste kann der Simulator nicht.

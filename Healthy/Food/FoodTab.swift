@@ -494,7 +494,7 @@ struct FoodTab: View {
                     store.historyDays = days
                     Task { await store.loadHistory() }
                 })) {
-                ForEach([14, 30, 90], id: \.self) { days in
+                ForEach(FoodStore.historyRanges, id: \.self) { days in
                     Text("\(days) Tage").tag(days)
                 }
             }

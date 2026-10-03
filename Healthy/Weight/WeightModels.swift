@@ -153,7 +153,7 @@ struct UpdateTargetRequest: Encodable, Sendable {
 /// auf dem Handy ist ein Diagramm mit Umschalter die bessere Form - vier
 /// Diagramme hintereinander bedeuten dort nur viel Scrollen.
 enum WeightRange: String, CaseIterable, Identifiable, Sendable {
-    case month, last90, year, threeYears, allTime
+    case month, last90, last180, year, threeYears, allTime
 
     var id: String { rawValue }
 
@@ -161,6 +161,7 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .month:      "/api/weight/month"
         case .last90:     "/api/weight/last90"
+        case .last180:    "/api/weight/last180"
         case .year:       "/api/weight/year"
         // Fuer drei Jahre gibt es keinen eigenen Endpunkt; die volle Reihe
         // wird geholt und im Client zugeschnitten. Sie ist klein genug, und
@@ -188,6 +189,7 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .month:      "30 Tage"
         case .last90:     "90 Tage"
+        case .last180:    "180 Tage"
         case .year:       "1 Jahr"
         case .threeYears: "3 Jahre"
         case .allTime:    "Alles"

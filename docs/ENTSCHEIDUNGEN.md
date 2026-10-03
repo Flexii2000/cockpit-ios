@@ -3,6 +3,26 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-03 — 180 Tage: eigener Endpunkt, Segmente so breit wie ihre Beschriftung
+Felix wollte eine 180-Tage-Ansicht in allen Frontends, im Gewichtsverlauf wie im
+Kalorien-Verlauf.
+- **Eigener Endpunkt `/api/weight/last180`** (Weight Tracker), Form wie
+  `last90`. **Verworfen:** im Client aus `/year` zuschneiden wie bei „3 Jahre" -
+  die Weboberfläche und das Gewichts-Overlay des Kalorienzählers im Browser
+  brauchen ihn ohnehin (CORS gilt je Pfad), und dann ist ein zweiter Weg in
+  den Apps nur eine zweite Wahrheit.
+- **Overlay im Kalorien-Verlauf lädt `last180` erst ab mehr als 90 Tagen**,
+  darunter weiter `last90`. So bleiben 14/30/90 Tage heil, auch wenn die App
+  vor dem Dienst ausgerollt wird. **Verworfen:** immer `last180` - ein Dienst
+  ohne den Pfad nähme dann jedem Zeitraum die Gewichtskurve.
+- **Zeitraum-Umschalter im Gewicht-Tab als `UISegmentedControl` mit
+  `apportionsSegmentWidthsByContent`** (`ContentWidthSegments`). Mit sechs
+  gleich breiten Segmenten wurde „180 Tage" auf dem iPhone 17e zu „180 Ta…",
+  während „Alles" Platz übrig hatte; nach Beschriftung verteilt passt alles.
+  **Verworfen:** (a) die globale Appearance - verzöge auch „Zeitraum | Linie"
+  im Highlights-Blatt und den Kalorien-Verlauf; (b) kürzere Beschriftungen
+  („½ Jahr", „6 M") - eine Textfrage für Felix, nicht nötig, solange es passt.
+
 ## 2026-10-03 — coHabit, mehrere Beweisfotos: „+"-Kachel öffnet die Kamera, Karussell mit eigenen Punkten
 Bis zu vier Fotos je Eintrag (Vertrag §2.3a; Felix: höchstens 4, wischbares
 Karussell in voller Breite, Punkte nur bei mehr als einem, Fotos beim Bearbeiten

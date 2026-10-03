@@ -169,6 +169,7 @@ Ein `JSONDecoder` mit `.iso8601` scheitert am reinen Datum. Deshalb die
 | Methode | Pfad | Antwort |
 |---|---|---|
 | GET | `/api/weight/last90` | `[WeightPoint]` |
+| GET | `/api/weight/last180` | `[WeightPoint]` — wie `last90`, rollierend 180 Tage (seit 2026-10-03; ein älterer Dienst antwortet 404) |
 | GET | `/api/weight/year` | `[WeightPoint]` |
 | GET | `/api/weight/month` | `[WeightPoint]` |
 | GET | `/api/weight/all-time` | `[WeightPoint]` |

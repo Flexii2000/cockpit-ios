@@ -41,6 +41,8 @@ final class FoodStore {
     private(set) var accessProblem = false
 
     var historyDays = 30
+    /// Was der Zeitraum-Umschalter ueber dem Verlauf anbietet.
+    static let historyRanges = [14, 30, 90, 180]
     /// Welche Gewichtskurven ueber dem Verlauf liegen - Mittel, Tageswerte,
     /// beides oder nichts. Standardmaessig **leer**: sie beantworten eine
     /// andere Frage als "wie viel habe ich gegessen", und wer sie sehen will,
@@ -159,7 +161,15 @@ final class FoodStore {
             historyAverage = []
         }
         // Dasselbe fuer die Gewichtskurve - fehlt sie, fehlt nur sie.
-        weightPoints = (try? await weightApi.points(.last90)) ?? []
+        weightPoints = (try? await weightApi.points(Self.weightRange(forHistoryDays: historyDays))) ?? []
+    }
+
+    /// Welche Gewichtsreihe den Verlauf abdeckt. Bis 90 Tage weiter
+    /// `last90`, erst darueber `last180`: so bleiben die bisherigen
+    /// Zeitraeume heil, auch wenn der Weight Tracker den neuen Endpunkt noch
+    /// nicht ausgerollt hat.
+    static func weightRange(forHistoryDays days: Int) -> WeightRange {
+        days > 90 ? .last180 : .last90
     }
 
     /// Zeigt einen Tag: erst aus dem Speicher, dann frisch vom Dienst - so
