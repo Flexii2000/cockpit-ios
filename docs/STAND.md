@@ -59,8 +59,8 @@
 > langsamen (Meldung im Blatt, Eingaben bleiben), die Punkte-Meldung oben,
 > „Meine Einträge › Bearbeiten" und einen Lauf ohne Netz.
 >
-> **Healthy, Evaluation (04.10.):** braucht keinen Dienst - `tools/install-device.sh
-> Healthy`, dann Fragen festlegen und auf dem Gerät prüfen, was unten unter
+> **Healthy, Evaluation (04.10.):** braucht keinen Dienst, ist auf Felix' iPhone
+> (`a500707`). Offen: Fragen festlegen und auf dem Gerät prüfen, was unten unter
 > „Evaluation-Tab" steht (Face-ID-Frist, Mitteilung um 21:30).
 >
 > **Healthy, 180 Tage (03.10.):** braucht den Weight Tracker mit
@@ -77,7 +77,7 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
-## Healthy: Evaluation-Tab · **gebaut, nicht auf dem Gerät** (2026-10-04)
+## Healthy: Evaluation-Tab · **auf Felix' iPhone** (2026-10-04)
 
 - **Neuer Tab „Evaluation"** zwischen Gewicht und Einkauf (`Healthy/Evaluation/`):
   je Tag ein paar persönliche Fragen mit 1–10 (heute und gestern setzbar,
