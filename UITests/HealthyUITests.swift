@@ -160,9 +160,54 @@ final class HealthyUITests: XCTestCase {
                       "Nach dem Wisch nach links muss „Morgen“ in der Leiste stehen")
     }
 
+    // MARK: - Evaluation
+
+    /// Ein Jahr erfundener Antworten (nur im Speicher): Antworten oben, darunter
+    /// Linien und je Frage eine Heatmap - unterhalb des ersten Bildschirms, den
+    /// `run-simulator.sh` allein zeigt.
+    func testEvaluationShowsAnswersChartAndHeatmaps() {
+        let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_DEMO": "1"])
+        XCTAssertTrue(app.staticTexts["Frage A"].firstMatch.waitForExistence(timeout: 15))
+        shoot(app, "evaluation-top")
+
+        let three = app.buttons.matching(identifier: "3").firstMatch
+        three.tap()
+        XCTAssertTrue(three.isSelected, "die getippte Zahl ist gesetzt")
+        three.tap()
+        XCTAssertFalse(three.isSelected, "noch einmal nimmt sie zurueck")
+
+        app.buttons["1 Jahr"].tap()
+        scrollDown(app, times: 2)
+        shoot(app, "evaluation-year-heatmaps")
+        scrollDown(app, times: 2)
+        shoot(app, "evaluation-bottom")
+    }
+
+    /// Ohne Fragen: festlegen, eine beantworten - mit einer frischen Datei je
+    /// Lauf (`COCKPIT_EVALUATION_SCRATCH`), damit nichts liegen bleibt.
+    func testEvaluationQuestionsCanBeSetUp() {
+        let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_SCRATCH": "1"])
+        let setUp = app.buttons["Fragen festlegen"]
+        XCTAssertTrue(setUp.waitForExistence(timeout: 15))
+        shoot(app, "evaluation-empty")
+        setUp.tap()
+
+        let field = app.textFields["Frage"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("Frage X")
+        shoot(app, "evaluation-questions-sheet")
+        app.buttons["Fertig"].tap()
+
+        XCTAssertTrue(app.staticTexts["Frage X"].firstMatch.waitForExistence(timeout: 5))
+        let seven = app.buttons.matching(identifier: "7").firstMatch
+        seven.tap()
+        XCTAssertTrue(seven.isSelected)
+        shoot(app, "evaluation-answered")
+    }
+
     func testTabsAreReachable() {
         let app = start(tab: "food")
-        for tab in ["Gewicht", "Essen"] {
+        for tab in ["Gewicht", "Evaluation", "Essen"] {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10), tab)
         }

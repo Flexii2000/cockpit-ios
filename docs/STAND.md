@@ -59,6 +59,10 @@
 > langsamen (Meldung im Blatt, Eingaben bleiben), die Punkte-Meldung oben,
 > „Meine Einträge › Bearbeiten" und einen Lauf ohne Netz.
 >
+> **Healthy, Evaluation (04.10.):** braucht keinen Dienst - `tools/install-device.sh
+> Healthy`, dann Fragen festlegen und auf dem Gerät prüfen, was unten unter
+> „Evaluation-Tab" steht (Face-ID-Frist, Mitteilung um 21:30).
+>
 > **Healthy, 180 Tage (03.10.):** braucht den Weight Tracker mit
 > `/api/weight/last180` (`../weight-app`) - erst ihn ausrollen, dann
 > `tools/install-device.sh Healthy`. Vorher zeigt „180 Tage" im Gewicht-Tab
@@ -72,6 +76,33 @@
 > Kamera mit „+" (zweites, drittes Foto), Galerie mit Mehrfachauswahl, Wischen
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
+
+## Healthy: Evaluation-Tab · **gebaut, nicht auf dem Gerät** (2026-10-04)
+
+- **Neuer Tab „Evaluation"** zwischen Gewicht und Einkauf (`Healthy/Evaluation/`):
+  je Tag ein paar persönliche Fragen mit 1–10 (heute und gestern setzbar,
+  derselbe Knopf nimmt zurück), darunter Zeitraum 30 · 90 · 180 Tage · 1 Jahr,
+  Linien (7-Tage-Mittel rückwärts, Antworten als Punkte, Fragen ein-/ausblendbar)
+  und je Frage eine Heatmap. Fragen über das Listen-Symbol oben rechts.
+- **Nur auf dem iPhone:** `Application Support/Evaluation/evaluation.json`,
+  Datenschutz „vollständig", kein Dienst. Im Repo stehen keine Fragen (Tests,
+  Demo und Doku mit Platzhaltern).
+- **Face ID mit fünf Minuten Frist** ab dem Verlassen von Tab oder App
+  (`EvaluationLock`, Frist in `RootView`); Sichtschutz im App-Umschalter.
+  `LockScreen` liegt dafür jetzt in `Core/`, `BiometricLock.unlock()` startet
+  keine zweite Abfrage, solange eine läuft.
+- **Erinnerung 21:30** (`EvaluationReminder`), lokal, nicht an beantworteten
+  Abenden; Antippen öffnet den Tab. Die Erlaubnis fragt die App, sobald die
+  ersten Fragen stehen.
+- **Geprüft:** `tools/verify.sh` (alle fünf Apps; Unit-Tests: 17 neue in
+  `EvaluationTests`), UI-Tests `testEvaluationShowsAnswersChartAndHeatmaps`,
+  `testEvaluationQuestionsCanBeSetUp`, `testTabsAreReachable` auf dem iPhone 17e,
+  hell und dunkel angesehen (`COCKPIT_EVALUATION_DEMO=1`).
+- **Auf dem Gerät prüfen** (geht im Simulator nicht): Face ID beim Wechsel in
+  den Tab, nach 4 Minuten woanders noch offen, nach 5 Minuten (auch mit
+  gesperrtem iPhone) wieder zu; Abbrechen des Dialogs führt nicht in eine
+  Schleife; App-Umschalter zeigt nur das Schloss; die Mitteilung um 21:30 kommt
+  (und an einem beantworteten Abend nicht) und öffnet den Tab.
 
 ## Healthy: 180 Tage im Gewichts- und im Kalorien-Verlauf · **gebaut, nicht ausgerollt** (2026-10-03)
 

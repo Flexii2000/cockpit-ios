@@ -50,9 +50,10 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Healthy/            App: Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine
+Healthy/            App: Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung)
   Charts/           Callout, DaySeries, SeriesChip, Palette
+  Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist
   Food/ Weight/ Health/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
@@ -69,8 +70,8 @@ Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg 
   App/
 Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkaufsliste
 Core/               was alle fünf Apps brauchen, aber keine Erweiterung (coHabit nur Notifications):
-                    Zugang (Cookies, Keychain-Wanderung), Sperre, Benachrichtigungen,
-                    Zugang-Blatt, Fehler-/Offline-Leisten
+                    Zugang (Cookies, Keychain-Wanderung), Sperre samt Sperrbildschirm,
+                    Benachrichtigungen, Zugang-Blatt, Fehler-/Offline-Leisten
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
@@ -308,6 +309,16 @@ selbst auf.
 Sperren vor zwei Tabs; in Vault liegt hinter jedem Tab etwas, das nicht
 offen herumstehen soll - also `BiometricLock` um alles, Sichtschutz im
 App-Umschalter immer, und beim Zurückkommen fragt sie gleich wieder.
+
+**Healthy: eine Sperre vor der Evaluation, mit Frist.** Derselbe
+`BiometricLock`, aber in `EvaluationLock` gewickelt: er geht erst zu, wenn der
+Tab oder die App fünf Minuten verlassen war (`ContinuousClock`, läuft im
+Ruhezustand weiter). Die Frist lebt in `RootView`, weil nur die Wurzel jeden
+Tabwechsel sieht. Sichtschutz im App-Umschalter, solange der Tab offen ist.
+**Kein Dienst dahinter:** Fragen und Antworten liegen in einer Datei der App
+(`Application Support/Evaluation/evaluation.json`, Datenschutz „vollständig"),
+gerechnet wird ausnahmsweise in der App (`EvaluationChartData`). Die Erinnerung
+um 21:30 sind lokale Mitteilungen je Tag (`EvaluationReminder`).
 
 **Das Passwort der Noten liegt hinter Face ID.** Als einziges Geheimnis der
 App: die übrigen sind Geräte-Token, die das Widget bei gesperrtem Bildschirm

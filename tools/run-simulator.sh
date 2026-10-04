@@ -4,7 +4,7 @@
 #
 #   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> [tab] [screenshot.png]
 #
-# Tabs: Healthy food|weight|shopping|widget, Vault grades|finance,
+# Tabs: Healthy food|weight|evaluation|shopping|widget, Vault grades|finance,
 # Fokus todo|forest|widget, Einkaufsliste (hat nur die eine Seite),
 # coHabit today|timeline|stats|profile|new|widget;
 # `setup` oeffnet in den ersten vier Apps das Zugang-Blatt.
@@ -64,6 +64,10 @@
 #
 # COCKPIT_RANGE=allTime stellt den Gewicht-Tab auf einen Zeitraum
 # (month, last90, last180, year, threeYears, allTime).
+#
+# COCKPIT_EVALUATION_DEMO=1 fuellt den Evaluation-Tab mit einem Jahr erfundener
+# Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie in der Datei.
+# Mit COCKPIT_NO_LOCK=1, sonst steht dort der Sperrbildschirm.
 #
 # COCKPIT_SELECT=2026-08-15 waehlt einen Tag im Diagramm vor, damit die
 # Sprechblase im Bild ist - eine Ziehgeste kann der Simulator nicht.
@@ -143,6 +147,7 @@ SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
 SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
 SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
+SIMCTL_CHILD_COCKPIT_EVALUATION_DEMO="${COCKPIT_EVALUATION_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \
 SIMCTL_CHILD_COCKPIT_SCAN="${COCKPIT_SCAN:-}" \
 SIMCTL_CHILD_COCKPIT_FORCE_LOCK="${COCKPIT_FORCE_LOCK:-}" \

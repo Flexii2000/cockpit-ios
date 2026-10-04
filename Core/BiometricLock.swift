@@ -59,7 +59,10 @@ final class BiometricLock {
     }
 
     func unlock() async {
-        guard !isUnlocked else { return }
+        // Laeuft schon eine Abfrage, nicht noch eine dazu: zwei Ausloeser
+        // (Tabwechsel und Rueckkehr in den Vordergrund) koennen gleichzeitig
+        // kommen, und iOS bricht dann eine der beiden Abfragen ab.
+        guard !isUnlocked, !isAuthenticating else { return }
         #if DEBUG
         // Im Simulator gibt es kein Gesicht, das man vorzeigen koennte -
         // ohne diesen Schalter waere der Sperrbildschirm nie aufzunehmen.

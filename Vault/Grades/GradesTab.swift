@@ -275,33 +275,3 @@ struct GradesTab: View {
         }
     }
 }
-
-/// Der Bildschirm vor einem gesperrten Tab.
-struct LockScreen: View {
-
-    let title: String
-    let failure: String?
-    let unlock: () async -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(.secondary)
-            Text(title)
-                .font(.headline)
-            if let failure {
-                Text(failure)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-            Button("Entsperren") {
-                Task { await unlock() }
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding(32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}

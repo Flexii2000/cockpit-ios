@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Was in der Leiste unten steht.
 enum TabSelection: Hashable {
-    case food, weight, shopping
+    case food, weight, evaluation, shopping
     #if DEBUG
     /// Nur zum Ansehen der Kacheln - siehe WidgetPreviewTab.
     case widget
@@ -19,10 +19,11 @@ enum TabSelection: Hashable {
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
-        case "weight":   return .weight
-        case "shopping": return .shopping
-        case "widget":   return .widget
-        default:         return .food
+        case "weight":     return .weight
+        case "evaluation": return .evaluation
+        case "shopping":   return .shopping
+        case "widget":     return .widget
+        default:           return .food
         }
         #else
         return .food
@@ -45,6 +46,10 @@ struct RootView: View {
     @Environment(Access.self) private var access
     @Environment(\.scenePhase) private var scenePhase
 
+    /// Lebt hier und nicht im Tab: die Frist laeuft, waehrend ein anderer Tab
+    /// offen ist, und nur die Wurzel sieht jeden Wechsel.
+    @State private var evaluationLock = EvaluationLock()
+
     private var router: Router { Router.shared }
     private var setup: SetupPresenter { SetupPresenter.shared }
 
@@ -57,6 +62,9 @@ struct RootView: View {
             }
             Tab(Backend.weight.title, systemImage: Backend.weight.systemImage, value: TabSelection.weight) {
                 WeightTab()
+            }
+            Tab("Evaluation", systemImage: "heart.text.square", value: TabSelection.evaluation) {
+                EvaluationTab(lock: evaluationLock)
             }
             // Nur mit Einkaufs-Token: die App zeigt, wofuer ein Zugang da ist
             // (docs/PLAN-AUFTEILUNG.md). Ohne Token bleibt die Leiste, wie sie
@@ -86,7 +94,32 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             // Zurueck im Vordergrund heisst oft: zurueck im Netz. Was im
             // Postausgang wartet, darf jetzt raus.
-            if phase == .active { Task { await Outbox.shared.replay() } }
+            if phase == .active {
+                Task {
+                    await Outbox.shared.replay()
+                    await EvaluationReminder.refresh()
+                }
+            }
+            // Die Frist der Evaluation zaehlt auch, wenn man die App verlaesst
+            // - aber nur, wenn man sie von diesem Tab aus verlaesst; aus einem
+            // anderen Tab laeuft sie schon seit dem Wechsel dorthin.
+            if router.selection == .evaluation {
+                if phase == .active {
+                    Task { await evaluationLock.returnToForeground() }
+                } else {
+                    evaluationLock.leave()
+                }
+            }
+        }
+        .onChange(of: router.selection) { old, new in
+            if old == .evaluation { evaluationLock.leave() }
+            if new == .evaluation { Task { await evaluationLock.show() } }
+        }
+        .task {
+            await EvaluationReminder.refresh()
+            // Start direkt im Tab (Antippen der Erinnerung, COCKPIT_TAB):
+            // dann gibt es keinen Wechsel, der fragen koennte.
+            if router.selection == .evaluation { await evaluationLock.show() }
         }
     }
 }

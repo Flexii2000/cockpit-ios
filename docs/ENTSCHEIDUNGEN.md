@@ -3,6 +3,42 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-04 — Evaluation: nur auf dem iPhone, Fragen in der App, Face ID mit Frist
+Felix wollte in Healthy (nur iOS) einen Tab, in dem er ein paar persönliche
+Fragen täglich mit 1–10 beantwortet und den Verlauf sieht. Seine Vorgaben: Face
+ID, die nach fünf Minuten abläuft (gezählt ab dem Wechsel), Fragen nicht im
+Repo, Daten privat. Entschieden hat er (04.10.):
+- **Speicher nur auf dem iPhone** - eine Datei mit Datenschutz „vollständig",
+  im iPhone-Backup, an keinen Server. **Verworfen:** (a) iCloud-Privatdatenbank
+  - geräteübergreifend, aber mehr Einrichtung; (b) eine Datei im Kalorienzähler
+  - dort könnte der Server-Agent sie lesen. Preis: wer die App löscht, verliert
+  die Antworten.
+- **Fragen in der App festlegen.** **Verworfen:** eine von Git ignorierte
+  Datei, die mitgebaut wird - Ändern hieße neu bauen.
+- **Skala 1–10**, zehn Knöpfe; derselbe Knopf noch einmal nimmt zurück.
+- **Verlauf als Linien und Heatmap:** je Frage das Mittel der letzten sieben
+  Tage als Linie, Antworten blass als Punkte; darunter je Frage ein Raster
+  (Wochen als Spalten, Montag oben). Das Mittel schaut **zurück** statt
+  zentriert wie beim Gewicht: „wie war die letzte Woche" ist die Frage, und
+  zentriert reichte es am heutigen Rand in Tage, die noch kommen.
+- **Gerechnet wird in der App** - Ausnahme von „die Dienste rechnen", weil es
+  keinen Dienst gibt. Nur das Mittel und das Raster, in `EvaluationChartData`.
+- **Erinnerung um 21:30** als lokale Mitteilung je Tag, 30 Tage im Voraus, neu
+  verteilt bei jeder Antwort und jedem Wechsel in den Vordergrund; an einem
+  beantworteten Abend keine. Text ohne Frage („Evaluation · Noch offen").
+  **Verworfen:** eine täglich wiederholte Mitteilung - von der lässt sich ein
+  einzelner Abend nicht abbestellen.
+- **Nachtragen nur heute und gestern.**
+- **Frist der Sperre ab dem ersten Wechsel weg vom Tab** (in einen anderen Tab
+  oder aus der App), gemessen mit `ContinuousClock`. Zurück in die App fragt
+  sie von selbst nur, wenn die Frist eben abgelaufen ist - der Face-ID-Dialog
+  macht die App kurz inaktiv, und wer ihn abbricht, käme sonst sofort wieder
+  hinein. Beim Wechsel in den Tab fragt sie immer. **Verworfen:** `Date()` -
+  springt mit, wenn jemand die Uhr verstellt; `systemUptime` - steht still,
+  während das iPhone schläft.
+- **Entfernen einer Frage blendet ihren Verlauf nur aus**, die Antworten
+  bleiben in der Datei. Umbenennen behält ihn.
+
 ## 2026-10-03 — 180 Tage: eigener Endpunkt, Segmente so breit wie ihre Beschriftung
 Felix wollte eine 180-Tage-Ansicht in allen Frontends, im Gewichtsverlauf wie im
 Kalorien-Verlauf.

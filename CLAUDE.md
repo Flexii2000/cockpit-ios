@@ -76,7 +76,7 @@ tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkaufsliste`, `coHabit`). Tabs: Healthy `food|weight|shopping|widget`, Vault
+`Fokus`, `Einkaufsliste`, `coHabit`). Tabs: Healthy `food|weight|evaluation|shopping|widget`, Vault
 `grades|finance`, Fokus `todo|forest|widget`, Einkaufsliste hat nur die eine Seite,
 coHabit `today|timeline|stats|profile|new|widget`;
 `setup` öffnet das Zugang-Blatt (nicht in coHabit — dort ist der Zugang ein
@@ -179,7 +179,9 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `evaluation`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Healthy) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
+| `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
@@ -247,6 +249,10 @@ sag das dann auch so.
 - **Bezeichner englisch, Kommentare deutsch.** Wie im Rest von Felix'
   Projekten. Kommentare erklären das **Warum**, nicht das Was — was der Code
   tut, steht im Code.
+- **Keine Evaluation-Fragen im Repo.** Das Repo ist öffentlich; die Fragen
+  des Evaluation-Tabs legt Felix in der App fest, Antworten bleiben auf dem
+  iPhone. Auch in Tests, Doku, Screenshots und Commit-Nachrichten nur
+  Platzhalter („Frage A").
 - **Keine Tokens im Repo.** Die Zugangstokens liegen im Keychain des Geräts
   und werden einmal über den Einrichtungs-Bildschirm eingegeben. Kein
   Default-Token im Code, auch kein "changeme".

@@ -9,9 +9,13 @@ import UserNotifications
 /// gar keine Oberflaeche - eine `.task` an einer View liefe dann nie.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
-    /// Beim Antippen nichts umschalten: Essen ist ohnehin der erste Tab, und
-    /// die Schnellerfassung ist das Einzige, was sich hier meldet.
-    private let notifications = NotificationDelegate(onOpen: { _ in })
+    /// Die Erinnerung der Evaluation oeffnet ihren Tab (hinter Face ID). Sonst
+    /// nichts umschalten: Essen ist ohnehin der erste Tab, und die
+    /// Schnellerfassung meldet sich von dort.
+    private let notifications = NotificationDelegate(onOpen: { kind in
+        guard kind == EvaluationReminder.kind else { return }
+        Task { @MainActor in Router.shared.show(.evaluation) }
+    })
 
     func application(
         _ application: UIApplication,
