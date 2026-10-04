@@ -131,7 +131,7 @@ final class EvaluationTests: XCTestCase {
     }
 
     func testRangesInPickerOrder() {
-        XCTAssertEqual(EvaluationRange.allCases.map(\.title), ["30 Tage", "90 Tage", "180 Tage", "1 Jahr"])
+        XCTAssertEqual(EvaluationRange.allCases.map(\.title), ["14 Tage", "30 Tage", "90 Tage", "180 Tage", "1 Jahr"])
         XCTAssertEqual(EvaluationChartData.start(of: .month, today: monday), monday.adding(days: -29))
     }
 

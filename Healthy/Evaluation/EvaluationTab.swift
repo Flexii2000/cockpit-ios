@@ -134,12 +134,11 @@ struct EvaluationTab: View {
         let from = EvaluationChartData.start(of: store.range, today: to)
         let questions = Array(store.data.questions.enumerated())
         return VStack(alignment: .leading, spacing: 16) {
-            Picker("Zeitraum", selection: $store.range) {
-                ForEach(EvaluationRange.allCases) { range in
-                    Text(range.title).tag(range)
-                }
-            }
-            .pickerStyle(.segmented)
+            // Fuenf Zeitraeume: gleich breit wuerde „180 Tage“ abgeschnitten,
+            // wie im Gewicht-Tab (ContentWidthSegments).
+            ContentWidthSegments(options: EvaluationRange.allCases, title: \.title,
+                                 selection: $store.range)
+                .accessibilityLabel("Zeitraum")
 
             EvaluationChartView(
                 series: questions
@@ -172,6 +171,17 @@ struct EvaluationTab: View {
                                       values: values(of: question.id, from: from, to: to),
                                       color: EvaluationPalette.color(at: index))
                 }
+            }
+
+            // Erst ab zwei Fragen gibt es ein Paar.
+            if questions.count >= 2 {
+                EvaluationCorrelationsView(
+                    results: EvaluationStatistics.results(store.data, from: from, to: to),
+                    color: { id in
+                        EvaluationPalette.color(at: questions.first { $0.element.id == id }?.offset ?? 0)
+                    },
+                    title: { id in questions.first { $0.element.id == id }?.element.text ?? "" })
+                    .padding(.top, 8)
             }
         }
     }

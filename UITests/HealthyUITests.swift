@@ -163,8 +163,8 @@ final class HealthyUITests: XCTestCase {
     // MARK: - Evaluation
 
     /// Ein Jahr erfundener Antworten (nur im Speicher): Antworten oben, darunter
-    /// Linien und je Frage eine Heatmap - unterhalb des ersten Bildschirms, den
-    /// `run-simulator.sh` allein zeigt.
+    /// Linien, je Frage eine Heatmap und die Zusammenhaenge - unterhalb des
+    /// ersten Bildschirms, den `run-simulator.sh` allein zeigt.
     func testEvaluationShowsAnswersChartAndHeatmaps() {
         let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_DEMO": "1"])
         XCTAssertTrue(app.staticTexts["Frage A"].firstMatch.waitForExistence(timeout: 15))
@@ -176,10 +176,18 @@ final class HealthyUITests: XCTestCase {
         three.tap()
         XCTAssertFalse(three.isSelected, "noch einmal nimmt sie zurueck")
 
+        app.buttons["14 Tage"].tap()
+        scrollDown(app, times: 2)
+        shoot(app, "evaluation-fortnight")
+        scrollUp(app, times: 3)
+
         app.buttons["1 Jahr"].tap()
         scrollDown(app, times: 2)
         shoot(app, "evaluation-year-heatmaps")
-        scrollDown(app, times: 2)
+        scrollDown(app, times: 3)
+        XCTAssertTrue(app.staticTexts["Zusammenhänge"].waitForExistence(timeout: 5))
+        shoot(app, "evaluation-correlations")
+        scrollDown(app, times: 4)
         shoot(app, "evaluation-bottom")
     }
 

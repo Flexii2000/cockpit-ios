@@ -81,9 +81,12 @@
 
 - **Neuer Tab „Evaluation"** zwischen Gewicht und Einkauf (`Healthy/Evaluation/`):
   je Tag ein paar persönliche Fragen mit 1–10 (heute und gestern setzbar,
-  derselbe Knopf nimmt zurück), darunter Zeitraum 30 · 90 · 180 Tage · 1 Jahr,
-  Linien (7-Tage-Mittel rückwärts, Antworten als Punkte, Fragen ein-/ausblendbar)
-  und je Frage eine Heatmap. Fragen über das Listen-Symbol oben rechts.
+  derselbe Knopf nimmt zurück), darunter Zeitraum 14 · 30 · 90 · 180 Tage ·
+  1 Jahr, Linien (7-Tage-Mittel rückwärts, Antworten als Punkte, Fragen
+  ein-/ausblendbar), je Frage eine Heatmap und **Zusammenhänge**: je Paar
+  Spearman ρ und Pearson r, am selben Tag und am Folgetag, p mit effektivem n
+  (Bartlett) und Holm-Korrektur, Sterne (`EvaluationStatistics`, gegen scipy
+  geprüft). Fragen über das Listen-Symbol oben rechts.
 - **Nur auf dem iPhone:** `Application Support/Evaluation/evaluation.json`,
   Datenschutz „vollständig", kein Dienst. Im Repo stehen keine Fragen (Tests,
   Demo und Doku mit Platzhaltern).

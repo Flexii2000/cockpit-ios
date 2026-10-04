@@ -72,8 +72,9 @@ enum EvaluationDays {
 }
 
 /// Zeitraum der Diagramme - dieselben Schritte wie im Gewicht-Tab, ohne die
-/// ganz langen.
+/// ganz langen, dafuer mit zwei Wochen vorn (Felix, 04.10.).
 enum EvaluationRange: Int, CaseIterable, Identifiable, Sendable {
+    case fortnight = 14
     case month = 30
     case last90 = 90
     case last180 = 180
@@ -84,10 +85,11 @@ enum EvaluationRange: Int, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .month:   "30 Tage"
-        case .last90:  "90 Tage"
-        case .last180: "180 Tage"
-        case .year:    "1 Jahr"
+        case .fortnight: "14 Tage"
+        case .month:     "30 Tage"
+        case .last90:    "90 Tage"
+        case .last180:   "180 Tage"
+        case .year:      "1 Jahr"
         }
     }
 }

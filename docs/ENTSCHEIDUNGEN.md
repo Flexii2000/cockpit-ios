@@ -3,6 +3,33 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-04 — Evaluation: Zusammenhänge mit Signifikanz, 14 Tage
+Felix wollte Zusammenhänge zwischen den Antworten mit Signifikanzniveaus.
+Entschieden hat er:
+- **Spearman ρ und Pearson r nebeneinander** je Frage-Paar. **Verworfen:**
+  nur eins von beiden.
+- **p-Werte mit effektivem n nach Bartlett**: n · (1 − a·b)/(1 + a·b) mit den
+  Autokorrelationen beider Reihen um einen Tag (bei ρ auf den Rängen), nie mehr
+  als n; dann t-Test mit n_eff − 2 Freiheitsgraden, zweiseitig. Tageswerte
+  hängen von Tag zu Tag zusammen, ein klassischer Test machte die p-Werte zu
+  klein - zwei unabhängige, langsam schwankende Reihen sähen „signifikant"
+  korreliert aus. **Verworfen:** (a) klassisch mit n − 2; (b) Korrelation der
+  Veränderungen zum Vortag - nimmt Trends heraus, beantwortet aber eine andere
+  Frage.
+- **Holm-Korrektur**, je Maß über alle Tests (gleicher Tag und versetzt): bei
+  drei Fragen neun. Sterne nach dem korrigierten p (* < 0,05, ** < 0,01,
+  *** < 0,001). ρ und r sind zwei Blicke auf dieselben Hypothesen, deshalb je
+  Maß eine Familie. **Verworfen:** keine Korrektur; roh und korrigiert
+  nebeneinander.
+- **Zusätzlich um einen Tag versetzt** (heute A → morgen B, beide Richtungen).
+- **Über den oben gewählten Zeitraum**, ab 5 Paaren ein Koeffizient, ab
+  n_eff 4 ein p-Wert. Die unvollständige Betafunktion für den t-Test rechnet die
+  App selbst (Kettenbruch wie in den Numerical Recipes), geprüft gegen scipy.
+- **Fragen als Farbpunkte** in den Zeilen statt als Sätze - die Legende
+  darüber ordnet sie zu; VoiceOver liest die Fragen vor.
+- **14 Tage** als fünfter Zeitraum vorn (Felix). Fünf gleich breite Segmente
+  schnitten „180 Tage" ab - deshalb wie im Gewicht-Tab `ContentWidthSegments`.
+
 ## 2026-10-04 — Evaluation: nur auf dem iPhone, Fragen in der App, Face ID mit Frist
 Felix wollte in Healthy (nur iOS) einen Tab, in dem er ein paar persönliche
 Fragen täglich mit 1–10 beantwortet und den Verlauf sieht. Seine Vorgaben: Face
