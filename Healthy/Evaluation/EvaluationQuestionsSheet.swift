@@ -22,8 +22,15 @@ struct EvaluationQuestionsSheet: View {
         NavigationStack {
             List {
                 ForEach($draft) { $question in
-                    TextField("Frage", text: $question.text, axis: .vertical)
-                        .focused($focused, equals: question.id)
+                    VStack(alignment: .leading, spacing: 6) {
+                        TextField("Frage", text: $question.text, axis: .vertical)
+                            .focused($focused, equals: question.id)
+                        TextField("Kurzname", text: Binding(
+                            get: { question.shortLabel ?? "" },
+                            set: { question.shortLabel = $0 }))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .onDelete { draft.remove(atOffsets: $0) }
                 .onMove { draft.move(fromOffsets: $0, toOffset: $1) }

@@ -1,16 +1,15 @@
 import SwiftUI
 
 /// Die Zusammenhaenge je Frage-Paar: oben am selben Tag, darunter um einen Tag
-/// versetzt (links heute, rechts morgen). Die Fragen stehen als ihre Farbpunkte
-/// da - als ganze Saetze waeren neun Zeilen kaum zu lesen; die Legende darueber
-/// sagt, welche Farbe welche Frage ist.
+/// versetzt (links heute, rechts morgen). Die Fragen stehen mit ihrem Kurznamen
+/// da - als ganze Saetze waeren neun Zeilen kaum zu lesen, und Farbpunkte musste
+/// man erst in der Legende nachschlagen (Felix, 04.10.).
 struct EvaluationCorrelationsView: View {
 
     typealias Statistics = EvaluationStatistics
 
     let results: [Statistics.Result]
-    let color: (UUID) -> Color
-    let title: (UUID) -> String
+    let question: (UUID) -> EvaluationQuestion?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -40,13 +39,13 @@ struct EvaluationCorrelationsView: View {
 
     private func row(_ result: Statistics.Result) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                dot(result.first)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                label(result.first)
                 Image(systemName: result.kind == .sameDay ? "arrow.left.and.right" : "arrow.right")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                dot(result.second)
-                Spacer()
+                label(result.second)
+                Spacer(minLength: 8)
                 Text("n \(result.n)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
@@ -87,15 +86,17 @@ struct EvaluationCorrelationsView: View {
         }
     }
 
-    private func dot(_ question: UUID) -> some View {
-        Circle()
-            .fill(color(question))
-            .frame(width: 10, height: 10)
+    /// Ohne Kurznamen die Frage selbst, auf eine Zeile gekuerzt.
+    private func label(_ id: UUID) -> some View {
+        Text(question(id)?.label ?? "")
+            .font(.subheadline.weight(.medium))
+            .lineLimit(1)
     }
 
+    /// VoiceOver liest die ganzen Fragen vor, nicht die Kurznamen.
     private func accessibilityTitle(_ result: Statistics.Result) -> String {
         let link = result.kind == .sameDay ? "und" : "heute, am Folgetag"
-        return "\(title(result.first)) \(link) \(title(result.second))"
+        return "\(question(result.first)?.text ?? "") \(link) \(question(result.second)?.text ?? "")"
     }
 
     static func pText(_ p: Double?) -> String {

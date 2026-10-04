@@ -203,6 +203,9 @@ final class HealthyUITests: XCTestCase {
         let field = app.textFields["Frage"].firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("Frage X")
+        let shortLabel = app.textFields["Kurzname"].firstMatch
+        shortLabel.tap()
+        shortLabel.typeText("Kurz X")
         shoot(app, "evaluation-questions-sheet")
         app.buttons["Fertig"].tap()
 

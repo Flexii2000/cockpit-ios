@@ -90,6 +90,31 @@ final class EvaluationTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "kein json")
     }
 
+    func testFilesFromBeforeShortLabelsStillLoad() throws {
+        let json = Data("""
+        {"version":1,"questions":[{"id":"\(a.id.uuidString)","text":"Frage A"}],
+         "days":[{"date":"2026-09-28","values":{"\(a.id.uuidString)":6}}]}
+        """.utf8)
+        let data = try JSONDecoder().decode(EvaluationData.self, from: json)
+        XCTAssertNil(data.questions[0].shortLabel)
+        XCTAssertEqual(data.questions[0].label, "Frage A", "ohne Kurznamen die Frage selbst")
+        XCTAssertEqual(data.value(of: a.id, on: monday), 6)
+    }
+
+    @MainActor
+    func testShortLabelIsTrimmedAndEmptyMeansNone() throws {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).appendingPathComponent("evaluation.json")
+        addTeardownBlock { try? FileManager.default.removeItem(at: file.deletingLastPathComponent()) }
+        let store = EvaluationStore(file: file, asksForReminders: false)
+        store.load()
+        store.replaceQuestions([EvaluationQuestion(id: a.id, text: "Frage A", shortLabel: "  Kurz A "),
+                                EvaluationQuestion(id: b.id, text: "Frage B", shortLabel: "   ")])
+        let reread = try XCTUnwrap(EvaluationStore.read(file))
+        XCTAssertEqual(reread.questions.map(\.shortLabel), ["Kurz A", nil])
+        XCTAssertEqual(reread.questions.map(\.label), ["Kurz A", "Frage B"])
+    }
+
     func testRemovedQuestionKeepsItsAnswersInTheFile() {
         var data = data([(monday, a, 7), (monday, b, 2)])
         data.questions = [b]

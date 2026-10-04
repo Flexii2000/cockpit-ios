@@ -177,10 +177,7 @@ struct EvaluationTab: View {
             if questions.count >= 2 {
                 EvaluationCorrelationsView(
                     results: EvaluationStatistics.results(store.data, from: from, to: to),
-                    color: { id in
-                        EvaluationPalette.color(at: questions.first { $0.element.id == id }?.offset ?? 0)
-                    },
-                    title: { id in questions.first { $0.element.id == id }?.element.text ?? "" })
+                    question: { id in store.data.questions.first { $0.id == id } })
                     .padding(.top, 8)
             }
         }

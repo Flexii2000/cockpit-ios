@@ -8,11 +8,19 @@ import Foundation
 struct EvaluationQuestion: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     var text: String
+    /// Zwei Worte statt des ganzen Satzes - dort, wo der Satz nicht passt,
+    /// bei den Zusammenhaengen (Felix, 04.10.). Genauso privat wie die Frage.
+    /// Fehlt in Dateien von vor dem 04.10.; dann `nil`.
+    var shortLabel: String?
 
-    init(id: UUID = UUID(), text: String) {
+    init(id: UUID = UUID(), text: String, shortLabel: String? = nil) {
         self.id = id
         self.text = text
+        self.shortLabel = shortLabel
     }
+
+    /// Der Kurzname - oder, solange keiner gesetzt ist, die Frage selbst.
+    var label: String { shortLabel ?? text }
 }
 
 /// Die Antworten eines Tages, je Frage ein Wert von 1 bis 10.

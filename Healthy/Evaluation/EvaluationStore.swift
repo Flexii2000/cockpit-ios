@@ -120,7 +120,12 @@ final class EvaluationStore {
     /// fehlt, verschwindet aus der Ansicht, seine Antworten bleiben in der Datei.
     func replaceQuestions(_ questions: [EvaluationQuestion]) {
         let cleaned = questions
-            .map { EvaluationQuestion(id: $0.id, text: $0.text.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .map { question in
+                let label = question.shortLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return EvaluationQuestion(id: question.id,
+                                          text: question.text.trimmingCharacters(in: .whitespacesAndNewlines),
+                                          shortLabel: label.isEmpty ? nil : label)
+            }
             .filter { !$0.text.isEmpty }
         guard cleaned != data.questions else { return }
         let hadNone = data.questions.isEmpty
@@ -143,7 +148,7 @@ final class EvaluationStore {
 /// Repo ist oeffentlich. Wird nie gespeichert.
 enum EvaluationDemo {
     static func data(today: CalendarDate) -> EvaluationData {
-        let questions = ["Frage A", "Frage B", "Frage C"].map { EvaluationQuestion(text: $0) }
+        let questions = ["A", "B", "C"].map { EvaluationQuestion(text: "Frage \($0)", shortLabel: "Kurz \($0)") }
         var data = EvaluationData(questions: questions)
         var generator = SplitMix(seed: 42)
         var levels = [6.5, 7.0, 7.5]

@@ -86,7 +86,8 @@
   ein-/ausblendbar), je Frage eine Heatmap und **Zusammenhänge**: je Paar
   Spearman ρ und Pearson r, am selben Tag und am Folgetag, p mit effektivem n
   (Bartlett) und Holm-Korrektur, Sterne (`EvaluationStatistics`, gegen scipy
-  geprüft). Fragen über das Listen-Symbol oben rechts.
+  geprüft), die Paare mit ihren Kurznamen. Fragen und Kurznamen über das
+  Listen-Symbol oben rechts.
 - **Nur auf dem iPhone:** `Application Support/Evaluation/evaluation.json`,
   Datenschutz „vollständig", kein Dienst. Im Repo stehen keine Fragen (Tests,
   Demo und Doku mit Platzhaltern).

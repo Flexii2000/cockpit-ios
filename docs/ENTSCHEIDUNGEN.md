@@ -25,8 +25,12 @@ Entschieden hat er:
 - **Über den oben gewählten Zeitraum**, ab 5 Paaren ein Koeffizient, ab
   n_eff 4 ein p-Wert. Die unvollständige Betafunktion für den t-Test rechnet die
   App selbst (Kettenbruch wie in den Numerical Recipes), geprüft gegen scipy.
-- **Fragen als Farbpunkte** in den Zeilen statt als Sätze - die Legende
-  darüber ordnet sie zu; VoiceOver liest die Fragen vor.
+- **Fragen mit Kurznamen** in den Zeilen (Felix, zweiter Anlauf am selben
+  Tag): je Frage ein optionaler Kurzname von etwa zwei Worten, im Fragen-Blatt
+  unter der Frage einzutragen und genauso privat. Ohne ihn steht die Frage,
+  auf eine Zeile gekürzt. **Verworfen:** Farbpunkte (erster Anlauf) - man
+  musste erst in der Legende nachsehen; ganze Sätze - neun Zeilen wären kaum
+  zu lesen. VoiceOver liest weiter die ganzen Fragen.
 - **14 Tage** als fünfter Zeitraum vorn (Felix). Fünf gleich breite Segmente
   schnitten „180 Tage" ab - deshalb wie im Gewicht-Tab `ContentWidthSegments`.
 
