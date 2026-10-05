@@ -97,7 +97,8 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(page.messages.map(\.kind), [.checkin, .text, .system, .system],
                        "eine unbekannte Art darf den Chat nicht leeren")
         XCTAssertEqual(page.messages[0].checkin?.photoId, "p1")
-        XCTAssertEqual(page.messages[0].reactions.first?.reaction, .stark)
+        XCTAssertEqual(page.messages[0].reactions.first?.reaction, "💪", "der alte Name wird zum Emoji")
+        XCTAssertEqual(page.messages[0].reactions.first?.people, [])
         XCTAssertTrue(page.messages[1].mine)
         XCTAssertEqual(page.messages[2].systemText, "Lena hat eine neue Bestserie: 9 Wochen")
         // Ohne hasMore (Abfrage mit ?after=) gibt es nichts Aelteres.

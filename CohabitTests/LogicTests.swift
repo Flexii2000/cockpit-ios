@@ -102,15 +102,67 @@ final class InputTests: XCTestCase {
     }
 
     func testReactionsCountLocally() {
-        let start = [ReactionView(reaction: .stark, label: "Stark", count: 2, mine: false)]
-        let added = Reactions.locally(start, reaction: .stark, add: true)
+        let me = PersonView(id: "felix", displayName: "Felix", username: "felix", initials: "FE",
+                            color: .peach, avatarPhotoId: nil)
+        let lena = PersonView(id: "lena", displayName: "Lena", username: "lena", initials: "LE",
+                              color: .mint, avatarPhotoId: nil)
+        let start = [ReactionView(reaction: "💪", count: 2, mine: false, people: [lena, lena])]
+        // Dazu: dasselbe Emoji zaehlt hoch und nennt mich.
+        let added = Reactions.locally(start, setting: "💪", me: me)
         XCTAssertEqual(added.first?.count, 3)
         XCTAssertEqual(added.first?.mine, true)
-        let new = Reactions.locally(start, reaction: .haha, add: true)
-        XCTAssertEqual(new.last?.label, "Haha")
-        let removed = Reactions.locally([ReactionView(reaction: .stark, label: "Stark", count: 1, mine: true)],
-                                        reaction: .stark, add: false)
+        XCTAssertEqual(added.first?.people.last?.id, "felix")
+        // Ein neues hinten an.
+        let new = Reactions.locally(start, setting: "🔥", me: me)
+        XCTAssertEqual(new.map(\.reaction), ["💪", "🔥"])
+        XCTAssertEqual(new.last?.label, "🔥")
+        // Eine je Person: ein anderes ersetzt meins.
+        let switched = Reactions.locally(new, setting: "😂", me: me)
+        XCTAssertEqual(switched.map(\.reaction), ["💪", "😂"])
+        XCTAssertEqual(switched.filter(\.mine).map(\.reaction), ["😂"])
+        // Zurueckgenommen: weg, wenn sonst niemand.
+        let removed = Reactions.locally([ReactionView(reaction: "💪", count: 1, mine: true, people: [me])],
+                                        setting: nil, me: me)
         XCTAssertTrue(removed.isEmpty)
+        // Nach Anzahl sortiert: meins macht 🔥 zur haeufigsten.
+        let two = [ReactionView(reaction: "💪", count: 2, mine: false), ReactionView(reaction: "🔥", count: 2, mine: false)]
+        XCTAssertEqual(Reactions.locally(two, setting: "🔥", me: me).map(\.reaction), ["🔥", "💪"])
+    }
+
+    func testPillShowsTopThreeAndTotal() {
+        let list = [ReactionView(reaction: "🔥", count: 1, mine: false), ReactionView(reaction: "💪", count: 3, mine: true),
+                    ReactionView(reaction: "😂", count: 1, mine: false), ReactionView(reaction: "👏", count: 2, mine: false)]
+        XCTAssertEqual(Reactions.top(list), ["💪", "👏", "🔥"])
+        XCTAssertEqual(Reactions.total(list), 7)
+        XCTAssertEqual(Reactions.mine(in: list), "💪")
+        XCTAssertNil(Reactions.mine(in: []))
+    }
+
+    func testReactionSheetRows() {
+        let lena = PersonView(id: "lena", displayName: "Lena", username: "lena", initials: "LE", color: .mint, avatarPhotoId: nil)
+        let me = PersonView(id: "felix", displayName: "Felix", username: "felix", initials: "FE", color: .peach, avatarPhotoId: nil)
+        let rows = ReactionsListSheet.rows([ReactionView(reaction: "💪", count: 2, mine: true, people: [lena, me]),
+                                            ReactionView(reaction: "🔥", count: 1, mine: false)], meId: "felix")
+        XCTAssertEqual(rows.map(\.emoji), ["💪", "💪", "🔥"])
+        XCTAssertEqual(rows.map(\.mine), [false, true, false])
+        XCTAssertNil(rows[2].person, "ein aelterer Dienst ohne people: eine Zeile mit der Anzahl")
+    }
+
+    func testEmojiRecognitionAndNormalisation() {
+        XCTAssertEqual(Emoji.first(in: "🔥"), "🔥")
+        XCTAssertEqual(Emoji.first(in: "abc👍🏽x"), "👍🏽", "Hautfarbe gehoert dazu")
+        XCTAssertEqual(Emoji.first(in: "❤"), "❤️", "Textzeichen bekommt U+FE0F wie beim Dienst")
+        XCTAssertEqual(Emoji.first(in: "❤\u{FE0E}"), "❤️")
+        XCTAssertEqual(Emoji.first(in: "🇩🇪"), "🇩🇪")
+        XCTAssertEqual(Emoji.first(in: "1️⃣"), "1️⃣")
+        XCTAssertEqual(Emoji.first(in: "👨‍👩‍👧"), "👨‍👩‍👧")
+        XCTAssertNil(Emoji.first(in: "123 abc #"))
+        XCTAssertNil(Emoji.first(in: ""))
+        XCTAssertEqual(Emoji.normalized("❤️"), "❤️")
+        XCTAssertTrue(Emoji.quickPicks.allSatisfy { Emoji.normalized($0) == $0 }, "die Schnellauswahl ist schon normalisiert")
+        XCTAssertEqual(Emoji.fromService("STARK"), "💪")
+        XCTAssertEqual(Emoji.fromService("WEITER_SO"), "🔥")
+        XCTAssertEqual(Emoji.fromService("🙌"), "🙌")
     }
 }
 

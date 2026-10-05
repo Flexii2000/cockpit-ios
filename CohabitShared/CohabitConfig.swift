@@ -430,9 +430,13 @@ struct MessageRequest: Codable, Hashable, Sendable {
     }
 }
 
+/// `POST /reactions` setzt die eigene Reaktion (ein neues Emoji ersetzt das
+/// alte), `DELETE /reactions?target=…&reaction=…` nimmt sie zurueck (Vertrag
+/// §2.7a). Auftraege im Postausgang aus der Zeit der festen Reaktionen tragen
+/// noch `STARK` & Co. - die nimmt der Dienst weiter an.
 struct ReactionRequest: Codable, Hashable, Sendable {
     let target: String
-    let reaction: ReactionKind
+    let reaction: String
 }
 
 /// Ein Haken (Aufbauen) bzw. Rueckfall (Lassen) aus der klassischen Liste

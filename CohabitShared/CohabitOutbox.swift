@@ -81,20 +81,30 @@ actor CohabitOutbox {
         await append(.classicUnmark(habitId: habitId, date: date), photos: [])
     }
 
-    /// Eine Reaktion - hebt eine wartende Gegenbewegung auf, statt beide zu
-    /// schicken (zweimal tippen ohne Netz soll nichts bewegen).
+    /// Eine Reaktion (Vertrag §2.7a: je Person eine je Ziel). Zaehlt nur die
+    /// juengste wartende auf dasselbe Ziel:
+    /// - zurueckgenommen und wieder gesetzt (dasselbe Emoji): beide fallen weg,
+    ///   der Stand ist der von vorher;
+    /// - gesetzt und noch einmal anders gesetzt: das neue ersetzt das wartende,
+    ///   der Dienst ersetzt ohnehin.
+    /// Gesetzt und zurueckgenommen gehen dagegen beide raus: das Setzen hat ein
+    /// frueheres eigenes Emoji ersetzt, das sonst wiederkaeme.
     func enqueueReaction(_ request: ReactionRequest, add: Bool) async {
         var entries = load()
-        if let index = entries.firstIndex(where: {
-            if case .reaction(let other, let otherAdd) = $0.operation {
-                return other == request && otherAdd != add
+        if let index = entries.lastIndex(where: { $0.operation.reactionTarget == request.target }),
+           case .reaction(let waiting, let waitingAdd) = entries[index].operation, add {
+            if !waitingAdd && waiting.reaction == request.reaction {
+                entries.remove(at: index)
+                save(entries)
+                await publish(entries, error: nil)
+                return
             }
-            return false
-        }) {
-            entries.remove(at: index)
-            save(entries)
-            await publish(entries, error: nil)
-            return
+            if waitingAdd {
+                entries[index].operation = .reaction(request, add: true)
+                save(entries)
+                await publish(entries, error: nil)
+                return
+            }
         }
         await append(.reaction(request, add: add), photos: [])
     }
@@ -187,7 +197,7 @@ actor CohabitOutbox {
             } else {
                 let _: ReactionsResult = try await api.delete("/reactions", query: [
                     URLQueryItem(name: "target", value: request.target),
-                    URLQueryItem(name: "reaction", value: request.reaction.rawValue),
+                    URLQueryItem(name: "reaction", value: request.reaction),
                 ])
             }
         case .classicMark(let habitId, let request):
@@ -282,6 +292,12 @@ extension CohabitOutbox.Entry.Operation {
             return "Lauf \(run) nicht angenommen: \(message)"
         }
         return "Nicht angenommen: \(message)"
+    }
+
+    /// Das Ziel einer wartenden Reaktion.
+    var reactionTarget: String? {
+        if case .reaction(let request, _) = self { return request.target }
+        return nil
     }
 
     /// Ein Eintrag fuer einen Tag - ein 409 darauf heisst „steht schon", also

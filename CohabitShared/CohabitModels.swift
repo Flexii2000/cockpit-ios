@@ -76,30 +76,37 @@ struct CohabitRef: Codable, Hashable, Sendable, Identifiable {
     let type: CohabitType
 }
 
-/// Die feste Auswahl an Reaktionen (Vertrag §2.7).
-enum ReactionKind: String, LenientEnum, CaseIterable, Identifiable {
-    case stark = "STARK"
-    case respekt = "RESPEKT"
-    case weiterSo = "WEITER_SO"
-    case haha = "HAHA"
-    static let fallback = ReactionKind.stark
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .stark: "Stark"
-        case .respekt: "Respekt"
-        case .weiterSo: "Weiter so"
-        case .haha: "Haha"
-        }
-    }
-}
-
+/// Eine Reaktion samt allen, die sie gesetzt haben (Vertrag §2.7a): `reaction`
+/// und `label` sind das Emoji, `people` in der Reihenfolge der Reaktionen.
+/// Der Dienst sortiert nach `count` absteigend, bei Gleichstand nach der
+/// fruehesten Reaktion.
+///
+/// Liest tolerant: ein aelterer Dienst schickt die festen Namen (`STARK` …)
+/// und kein `people` - daraus wird das Emoji, das der Dienst heute dafuer setzt.
 struct ReactionView: Codable, Hashable, Sendable {
-    let reaction: ReactionKind
+    let reaction: String
     let label: String
     let count: Int
     let mine: Bool
+    let people: [PersonView]
+
+    init(reaction: String, label: String? = nil, count: Int, mine: Bool, people: [PersonView] = []) {
+        self.reaction = reaction
+        self.label = label ?? reaction
+        self.count = count
+        self.mine = mine
+        self.people = people
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        reaction = Emoji.fromService(try c.decode(String.self, forKey: .reaction))
+        let label = try c.decodeIfPresent(String.self, forKey: .label)
+        self.label = label.map(Emoji.fromService) ?? reaction
+        count = try c.decode(Int.self, forKey: .count)
+        mine = try c.decodeIfPresent(Bool.self, forKey: .mine) ?? false
+        people = try c.decodeIfPresent([PersonView].self, forKey: .people) ?? []
+    }
 }
 
 struct Headline: Codable, Hashable, Sendable {
@@ -460,7 +467,7 @@ struct FinishedDialog: Codable, Hashable, Sendable, Identifiable {
     let podium: [PodiumEntry]
     let stakeText: String?
     let nextText: String?
-    /// Die Systemmeldung zum Ende, auf die „Gratulieren" ein „Stark" setzt -
+    /// Die Systemmeldung zum Ende, auf die „Gratulieren" 💪 setzt -
     /// liefert der Dienst zusaetzlich zum Vertrag mit.
     let reactionTarget: String?
 

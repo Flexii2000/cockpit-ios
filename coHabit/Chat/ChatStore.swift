@@ -130,30 +130,41 @@ final class ChatStore {
         }
     }
 
-    /// Reagieren - sofort sichtbar, ohne Netz im Postausgang.
-    func toggle(_ reaction: ReactionKind, on message: Message) async {
-        let mine = message.reactions.first { $0.reaction == reaction }?.mine ?? false
-        let updated = await Reactions.toggle(reaction, target: message.reactionTarget,
-                                             current: message.reactions, mine: mine)
-        if let index = messages.firstIndex(where: { $0.id == message.id }) {
-            messages[index] = messages[index].with(reactions: updated)
+    /// Reagieren (Vertrag §2.7a): ein Emoji setzt die eigene Reaktion, das
+    /// eigene noch einmal nimmt sie zurueck. Sofort sichtbar, ohne Netz im
+    /// Postausgang.
+    func react(_ emoji: String, on message: Message) async {
+        await Reactions.choose(emoji, target: message.reactionTarget, current: message.reactions) { [weak self] list in
+            self?.replaceReactions(list, of: message.id)
         }
     }
 
-    /// „Gratulieren" im Abschlussdialog: „Stark" auf die Systemmeldung zum
-    /// Ende der Challenge (Vertrag §5.2.17). Der Dienst nennt die Meldung im
+    /// Die eigene Reaktion zuruecknehmen („Entfernen" im Blatt „Reaktionen").
+    func removeReaction(on message: Message) async {
+        guard let mine = Reactions.mine(in: message.reactions) else { return }
+        await react(mine, on: message)
+    }
+
+    private func replaceReactions(_ reactions: [ReactionView], of messageId: String) {
+        if let index = messages.firstIndex(where: { $0.id == messageId }) {
+            messages[index] = messages[index].with(reactions: reactions)
+        }
+    }
+
+    /// „Gratulieren" im Abschlussdialog: 💪 auf die Systemmeldung zum Ende der
+    /// Challenge (Vertrag §5.2.17, §2.7a). Der Dienst nennt die Meldung im
     /// Dialog (`reactionTarget`); fehlt sie, gilt die juengste Systemmeldung
     /// mit dem Namen des Gewinners, sonst die juengste ueberhaupt.
     static func congratulate(cohabitId: String, dialog: FinishedDialog) async {
         let api = Session.shared.api()
         if let target = dialog.reactionTarget {
-            let request = ReactionRequest(target: target, reaction: .stark)
+            let request = ReactionRequest(target: target, reaction: Emoji.congratulate)
             do {
                 let _: ReactionsResult = try await api.send("POST", "/reactions", body: request)
             } catch CohabitError.offline {
                 await CohabitOutbox.shared.enqueueReaction(request, add: true)
             } catch {
-                // „schon reagiert" oder weg - der Chat zeigt ohnehin den Stand.
+                // weg oder nicht mehr sichtbar - der Chat zeigt ohnehin den Stand.
             }
             DataBus.shared.changed()
             return
@@ -167,8 +178,9 @@ final class ChatStore {
             guard let name = winner?.displayName else { return false }
             return message.systemText?.contains(name) ?? false
         } ?? system.first
-        guard let target, !(target.reactions.first { $0.reaction == .stark }?.mine ?? false) else { return }
-        _ = await Reactions.toggle(.stark, target: target.reactionTarget, current: target.reactions, mine: false)
+        // Schon 💪 von mir - noch einmal gesetzt naehme es zurueck.
+        guard let target, Reactions.mine(in: target.reactions) != Emoji.congratulate else { return }
+        await Reactions.choose(Emoji.congratulate, target: target.reactionTarget, current: target.reactions) { _ in }
         DataBus.shared.changed()
     }
 }
@@ -184,47 +196,87 @@ struct ReportRequest: Encodable {
 /// Reaktionen auf Nachrichten und Timeline-Ereignisse - dieselbe Mechanik.
 enum Reactions {
 
-    /// Setzt oder nimmt eine Reaktion und liefert die neue Liste. Ohne Netz
-    /// wird lokal gezaehlt und im Postausgang nachgereicht.
+    /// Das eigene Emoji in der Liste.
+    static func mine(in reactions: [ReactionView]) -> String? {
+        reactions.first(where: \.mine)?.reaction
+    }
+
+    /// Setzt ein Emoji oder nimmt das eigene zurueck (dasselbe noch einmal).
+    /// `show` bekommt erst den lokal gerechneten Stand - sofort sichtbar -,
+    /// dann den des Dienstes; ohne Netz bleibt der lokale, und die Reaktion
+    /// wartet im Postausgang. Lehnt der Dienst ab, kommt der alte Stand zurueck.
     @MainActor
-    static func toggle(_ reaction: ReactionKind, target: String, current: [ReactionView], mine: Bool) async -> [ReactionView] {
+    static func choose(_ emoji: String, target: String, current: [ReactionView],
+                       show: @MainActor ([ReactionView]) -> Void) async {
+        let emoji = Emoji.normalized(emoji)
+        let removing = mine(in: current) == emoji
+        let request = ReactionRequest(target: target, reaction: emoji)
+        show(locally(current, setting: removing ? nil : emoji, me: Session.shared.me?.person))
         let api = Session.shared.api()
-        let request = ReactionRequest(target: target, reaction: reaction)
         do {
             let result: ReactionsResult
-            if mine {
+            if removing {
                 result = try await api.delete("/reactions", query: [
                     URLQueryItem(name: "target", value: target),
-                    URLQueryItem(name: "reaction", value: reaction.rawValue),
+                    URLQueryItem(name: "reaction", value: emoji),
                 ])
             } else {
                 result = try await api.send("POST", "/reactions", body: request)
             }
-            return result.reactions
+            show(result.reactions)
         } catch CohabitError.offline {
-            await CohabitOutbox.shared.enqueueReaction(request, add: !mine)
-            return locally(current, reaction: reaction, add: !mine)
+            await CohabitOutbox.shared.enqueueReaction(request, add: !removing)
         } catch {
+            show(current)
             Toast.shared.show(error)
-            return current
         }
     }
 
-    /// Plus oder minus eins - mehr rechnet die App nicht.
-    static func locally(_ reactions: [ReactionView], reaction: ReactionKind, add: Bool) -> [ReactionView] {
-        var list = reactions
-        if let index = list.firstIndex(where: { $0.reaction == reaction }) {
-            let old = list[index]
-            let count = max(0, old.count + (add ? 1 : -1))
-            if count == 0 {
-                list.remove(at: index)
-            } else {
-                list[index] = ReactionView(reaction: reaction, label: old.label, count: count, mine: add)
+    /// Der Stand nach dem eigenen Tipp, ohne den Dienst: die eigene Reaktion
+    /// raus, das neue Emoji (falls eins) rein - mehr rechnet die App nicht.
+    /// Sortiert wie der Dienst nach Anzahl; bei Gleichstand bleibt die
+    /// bisherige Reihenfolge, neue Emojis kommen hinten an.
+    static func locally(_ reactions: [ReactionView], setting emoji: String?, me: PersonView?) -> [ReactionView] {
+        var list: [ReactionView] = []
+        for reaction in reactions {
+            guard reaction.mine else {
+                list.append(reaction)
+                continue
             }
-        } else if add {
-            list.append(ReactionView(reaction: reaction, label: reaction.label, count: 1, mine: true))
+            let count = reaction.count - 1
+            if count > 0 {
+                list.append(ReactionView(reaction: reaction.reaction, label: reaction.label, count: count, mine: false,
+                                         people: reaction.people.filter { $0.id != me?.id }))
+            }
         }
-        return list
+        if let emoji {
+            let people = me.map { [$0] } ?? []
+            if let index = list.firstIndex(where: { $0.reaction == emoji }) {
+                let old = list[index]
+                list[index] = ReactionView(reaction: emoji, label: old.label, count: old.count + 1, mine: true,
+                                           people: old.people + people)
+            } else {
+                list.append(ReactionView(reaction: emoji, count: 1, mine: true, people: people))
+            }
+        }
+        return sorted(list)
+    }
+
+    /// Nach Anzahl absteigend, sonst in der bisherigen Reihenfolge.
+    static func sorted(_ reactions: [ReactionView]) -> [ReactionView] {
+        reactions.enumerated()
+            .sorted { $0.element.count != $1.element.count ? $0.element.count > $1.element.count : $0.offset < $1.offset }
+            .map(\.element)
+    }
+
+    /// Die Emojis der Pille: hoechstens drei, die haeufigsten zuerst.
+    static func top(_ reactions: [ReactionView]) -> [String] {
+        Array(sorted(reactions).prefix(3).map(\.reaction))
+    }
+
+    /// Alle Reaktionen zusammen - die Zahl in der Pille (erst ab zwei).
+    static func total(_ reactions: [ReactionView]) -> Int {
+        reactions.reduce(0) { $0 + $1.count }
     }
 }
 

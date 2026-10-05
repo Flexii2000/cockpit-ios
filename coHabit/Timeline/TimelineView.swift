@@ -118,12 +118,17 @@ final class TimelineStore {
         try? await api.sendIgnoringResponse("POST", "/timeline/seen", body: SeenRequest(lastEventId: newest.id))
     }
 
-    func toggle(_ reaction: ReactionKind, on item: TimelineItem) async {
-        let mine = item.reactions.first { $0.reaction == reaction }?.mine ?? false
-        let updated = await Reactions.toggle(reaction, target: item.reactionTarget, current: item.reactions, mine: mine)
-        if let index = items.firstIndex(where: { $0.id == item.id }) {
-            items[index] = items[index].with(reactions: updated)
+    /// Wie im Chat: ein Emoji setzt, das eigene noch einmal nimmt zurueck.
+    func react(_ emoji: String, on item: TimelineItem) async {
+        await Reactions.choose(emoji, target: item.reactionTarget, current: item.reactions) { [weak self] list in
+            guard let self, let index = self.items.firstIndex(where: { $0.id == item.id }) else { return }
+            self.items[index] = self.items[index].with(reactions: list)
         }
+    }
+
+    func removeReaction(on item: TimelineItem) async {
+        guard let mine = Reactions.mine(in: item.reactions) else { return }
+        await react(mine, on: item)
     }
 }
 
@@ -145,6 +150,11 @@ struct TimelineView: View {
 
     @State private var store = TimelineStore()
     @State private var showsFilter = false
+    /// Langer Druck bzw. Smiley: die Leiste fuer dieses Ereignis.
+    @State private var menuTarget: TimelineItem?
+    @State private var afterMenu: (@MainActor () -> Void)?
+    /// Das Blatt „Reaktionen".
+    @State private var reactionsTarget: TimelineItem?
 
     var body: some View {
         ScrollView {
@@ -174,7 +184,8 @@ struct TimelineView: View {
                         SectionLabel(text: Formats.dayTitle(day))
                         ForEach(groups[day] ?? []) { item in
                             TimelineCard(item: item,
-                                         react: { reaction in Task { await store.toggle(reaction, on: item) } })
+                                         openMenu: { menuTarget = item },
+                                         openReactions: { reactionsTarget = item })
                         }
                     }
                     if store.hasMore {
@@ -202,6 +213,25 @@ struct TimelineView: View {
         .onChange(of: DataBus.shared.revision) { Task { await store.load() } }
         .sheet(isPresented: $showsFilter) {
             TimelineFilterSheet(store: store)
+        }
+        .sensoryFeedback(.impact(weight: .medium), trigger: menuTarget?.id) { _, new in new != nil }
+        .sheet(item: $menuTarget, onDismiss: {
+            afterMenu?()
+            afterMenu = nil
+        }) { item in
+            ReactionActionsSheet(current: Reactions.mine(in: item.reactions),
+                                 actions: item.canReply ? [ReactionMenuAction(
+                                     title: "Antworten", systemImage: "bubble.left", identifier: "menuReply") {
+                                         Router.shared.push(.cohabit(item.cohabit.id, .chat))
+                                     }] : [],
+                                 react: { emoji in Task { await store.react(emoji, on: item) } },
+                                 afterDismiss: { afterMenu = $0 })
+        }
+        .sheet(item: $reactionsTarget) { target in
+            let item = store.items.first { $0.id == target.id } ?? target
+            ReactionsListSheet(reactions: item.reactions) {
+                Task { await store.removeReaction(on: item) }
+            }
         }
     }
 
@@ -233,16 +263,23 @@ struct TimelineView: View {
 /// Ein Ereignis: mit Foto gross, sonst kompakt.
 struct TimelineCard: View {
     let item: TimelineItem
-    let react: (ReactionKind) -> Void
+    /// Die Leiste mit den Emojis (langer Druck, Smiley).
+    let openMenu: () -> Void
+    /// Tipp auf die Pille.
+    let openReactions: () -> Void
 
     @Environment(\.meId) private var meId
 
     var body: some View {
-        if !item.photos.isEmpty {
-            photoCard
-        } else {
-            compactCard
+        Group {
+            if !item.photos.isEmpty {
+                photoCard
+            } else {
+                compactCard
+            }
         }
+        .onLongPressGesture(minimumDuration: 0.35, perform: openMenu)
+        .accessibilityAction(named: "Reagieren", openMenu)
     }
 
     private var title: Text {
@@ -299,10 +336,12 @@ struct TimelineCard: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Ink.ink)
             }
-            HStack(alignment: .center, spacing: 8) {
-                ReactionChips(reactions: item.reactions, react: react)
-                AddReactionMenu(react: react)
+            HStack(alignment: .center, spacing: 12) {
+                if !item.reactions.isEmpty {
+                    ReactionPill(reactions: item.reactions, open: openReactions)
+                }
                 Spacer(minLength: 4)
+                smileyButton
                 if item.canReply {
                     replyButton
                 }
@@ -328,23 +367,27 @@ struct TimelineCard: View {
                 Spacer(minLength: 0)
             }
             if !item.reactions.isEmpty {
-                ReactionChips(reactions: item.reactions, react: react)
+                ReactionPill(reactions: item.reactions, open: openReactions)
                     .padding(.leading, 52)
             }
         }
         .card(padding: 14)
-        .contextMenu {
-            ForEach(ReactionKind.allCases) { reaction in
-                Button(reaction.label) { react(reaction) }
-            }
-            if item.canReply {
-                Button("Antworten", systemImage: "bubble.left") {
-                    Router.shared.push(.cohabit(item.cohabit.id, .chat))
-                }
-            }
-        }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("event-\(item.id)")
+    }
+
+    /// Neben „Antworten": oeffnet die Leiste wie der lange Druck.
+    private var smileyButton: some View {
+        Button(action: openMenu) {
+            Image(systemName: "face.smiling")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Ink.muted)
+                .frame(width: 36, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Reagieren")
+        .accessibilityIdentifier("react-\(item.id)")
     }
 
     private var replyButton: some View {

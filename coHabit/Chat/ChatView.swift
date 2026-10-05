@@ -14,6 +14,12 @@ struct ChatView: View {
     @State private var reportTarget: Message?
     @State private var reportReason = ""
     @State private var blockTarget: PersonView?
+    /// Langer Druck: Leiste und Aktionen fuer diese Nachricht.
+    @State private var menuTarget: Message?
+    /// Was nach dem Schliessen der Leiste laeuft (Melden, Blockieren).
+    @State private var afterMenu: (@MainActor () -> Void)?
+    /// Das Blatt „Reaktionen" zu dieser Nachricht.
+    @State private var reactionsTarget: Message?
     @FocusState private var fieldFocused: Bool
     @Environment(\.meId) private var meId
 
@@ -46,8 +52,9 @@ struct ChatView: View {
                                    showsAuthor: index == 0 || store.messages[index - 1].author?.id != message.author?.id
                                        || store.messages[index - 1].kind != message.kind,
                                    color: detail.ref.color,
-                                   react: { reaction in Task { await store.toggle(reaction, on: message) } })
-                            .contextMenu { menu(for: message) }
+                                   openReactions: { reactionsTarget = message })
+                            .onLongPressGesture(minimumDuration: 0.35) { openMenu(message) }
+                            .accessibilityAction(named: "Reagieren") { openMenu(message) }
                             .id(message.id)
                     }
                     ForEach(pending, id: \.id) { request in
@@ -87,6 +94,22 @@ struct ChatView: View {
                 if !Task.isCancelled { await store.refresh() }
             }
         }
+        .sensoryFeedback(.impact(weight: .medium), trigger: menuTarget?.id) { _, new in new != nil }
+        .sheet(item: $menuTarget, onDismiss: {
+            afterMenu?()
+            afterMenu = nil
+        }) { message in
+            ReactionActionsSheet(current: Reactions.mine(in: message.reactions),
+                                 actions: actions(for: message),
+                                 react: { emoji in Task { await store.react(emoji, on: message) } },
+                                 afterDismiss: { afterMenu = $0 })
+        }
+        .sheet(item: $reactionsTarget) { target in
+            let message = store.messages.first { $0.id == target.id } ?? target
+            ReactionsListSheet(reactions: message.reactions) {
+                Task { await store.removeReaction(on: message) }
+            }
+        }
         .onChange(of: DataBus.shared.revision) { Task { await store.refresh() } }
         .onChange(of: CohabitSync.shared.flushCount) { Task { await store.load() } }
         .onChange(of: pickerItem) { _, item in
@@ -117,38 +140,29 @@ struct ChatView: View {
         }
     }
 
-    @ViewBuilder
-    private func menu(for message: Message) -> some View {
-        if !message.deleted && message.kind != .system {
-            Menu("Reagieren") {
-                ForEach(ReactionKind.allCases) { reaction in
-                    let mine = message.reactions.first { $0.reaction == reaction }?.mine ?? false
-                    Button {
-                        Task { await store.toggle(reaction, on: message) }
-                    } label: {
-                        if mine { Label(reaction.label, systemImage: "checkmark") } else { Text(reaction.label) }
-                    }
-                }
-            }
-        }
-        if message.kind == .system {
-            ForEach(ReactionKind.allCases) { reaction in
-                Button(reaction.label) { Task { await store.toggle(reaction, on: message) } }
-            }
-        }
-        if message.mine && !message.deleted && message.kind != .system {
-            Button("Löschen", systemImage: "trash", role: .destructive) {
+    /// Geloeschte Nachrichten bieten nichts mehr an.
+    private func openMenu(_ message: Message) {
+        guard !message.deleted else { return }
+        menuTarget = message
+    }
+
+    /// Was unter der Leiste steht: eigene loeschen, fremde melden und deren
+    /// Person blockieren. Systemmeldungen haben nur die Leiste.
+    private func actions(for message: Message) -> [ReactionMenuAction] {
+        guard !message.deleted, message.kind != .system else { return [] }
+        if message.mine {
+            return [ReactionMenuAction(title: "Löschen", systemImage: "trash", destructive: true,
+                                       identifier: "menuDelete") {
                 Task { await store.delete(message) }
-            }
+            }]
         }
-        if !message.mine, message.kind != .system, !message.deleted {
-            Button("Melden", systemImage: "exclamationmark.bubble") { reportTarget = message }
-            if let author = message.author {
-                Button("\(author.displayName) blockieren", systemImage: "hand.raised", role: .destructive) {
-                    blockTarget = author
-                }
-            }
+        var actions = [ReactionMenuAction(title: "Melden", systemImage: "exclamationmark.bubble",
+                                          identifier: "menuReport") { reportTarget = message }]
+        if let author = message.author {
+            actions.append(ReactionMenuAction(title: "\(author.displayName) blockieren", systemImage: "hand.raised",
+                                              destructive: true, identifier: "menuBlock") { blockTarget = author })
         }
+        return actions
     }
 
     // MARK: - Eingabe
@@ -247,7 +261,8 @@ struct MessageRow: View {
     let message: Message
     let showsAuthor: Bool
     let color: PaletteKey
-    let react: (ReactionKind) -> Void
+    /// Tipp auf die Pille: das Blatt „Reaktionen".
+    let openReactions: () -> Void
 
     @Environment(\.meId) private var meId
 
@@ -263,7 +278,7 @@ struct MessageRow: View {
                     .padding(.vertical, 6)
                     .background(Ink.accentSoft, in: Capsule())
                 if !message.reactions.isEmpty {
-                    ReactionChips(reactions: message.reactions, react: react)
+                    ReactionPill(reactions: message.reactions, open: openReactions)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -304,13 +319,11 @@ struct MessageRow: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(Ink.ink)
                 }
-                if !message.reactions.isEmpty {
-                    ReactionChips(reactions: message.reactions, react: react)
-                }
             }
         }
         .padding(14)
         .background(Ink.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
+        .reactionPill(message.deleted ? [] : message.reactions, trailing: message.mine, open: openReactions)
         .padding(.trailing, message.mine ? 0 : 40)
         .padding(.leading, message.mine ? 40 : 0)
         .frame(maxWidth: .infinity, alignment: message.mine ? .trailing : .leading)
@@ -348,9 +361,7 @@ struct MessageRow: View {
             .padding(.vertical, 10)
             .background(message.mine ? Color(hex: 0x5B3FD9) : Ink.surface,
                         in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            if !message.reactions.isEmpty {
-                ReactionChips(reactions: message.reactions, react: react)
-            }
+            .reactionPill(message.deleted ? [] : message.reactions, trailing: message.mine, open: openReactions)
         }
         .padding(message.mine ? .leading : .trailing, 60)
         .frame(maxWidth: .infinity, alignment: message.mine ? .trailing : .leading)
@@ -377,51 +388,5 @@ struct PendingBubble: View {
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         .padding(.leading, 60)
-    }
-}
-
-/// „Stark · 2", „Respekt · 1" - antippen setzt oder nimmt die eigene.
-struct ReactionChips: View {
-    let reactions: [ReactionView]
-    let react: (ReactionKind) -> Void
-
-    var body: some View {
-        FlowLayout(spacing: 6) {
-            ForEach(reactions, id: \.reaction) { reaction in
-                Button {
-                    react(reaction.reaction)
-                } label: {
-                    Text("\(reaction.label) · \(reaction.count)")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Ink.ink)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background(reaction.mine ? Ink.accentSoft : Ink.track, in: Capsule())
-                        .overlay(Capsule().strokeBorder(reaction.mine ? Ink.accent : Color.clear, lineWidth: 1.2))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("reaction-\(reaction.reaction.rawValue)")
-            }
-        }
-    }
-}
-
-/// Die vier Reaktionen zur Auswahl - fuer ein Ereignis ohne Reaktionen.
-struct AddReactionMenu: View {
-    let react: (ReactionKind) -> Void
-
-    var body: some View {
-        Menu {
-            ForEach(ReactionKind.allCases) { reaction in
-                Button(reaction.label) { react(reaction) }
-            }
-        } label: {
-            Image(systemName: "face.smiling")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Ink.muted)
-                .frame(width: 34, height: 30)
-                .background(Ink.track, in: Capsule())
-        }
-        .accessibilityLabel("Reagieren")
     }
 }

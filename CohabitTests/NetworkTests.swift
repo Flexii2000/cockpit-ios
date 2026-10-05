@@ -207,21 +207,54 @@ final class OutboxTests: XCTestCase {
     func testMessagesAndReactionsGoOutInOrder() async throws {
         StubServer.install { request in request.method == "DELETE" ? .json(200, #"{"reactions":[]}"#) : .json(201, "{}") }
         await outbox.enqueueMessage(cohabitId: "c1", request: MessageRequest(id: "m1", text: "Bin dabei!"), photo: nil)
-        await outbox.enqueueReaction(ReactionRequest(target: "event:e1", reaction: .stark), add: true)
-        await outbox.enqueueReaction(ReactionRequest(target: "message:m9", reaction: .haha), add: false)
+        await outbox.enqueueReaction(ReactionRequest(target: "event:e1", reaction: "💪"), add: true)
+        await outbox.enqueueReaction(ReactionRequest(target: "message:m9", reaction: "😂"), add: false)
         await outbox.replay(using: StubServer.api())
         XCTAssertEqual(StubServer.requests.map(\.method), ["POST", "POST", "DELETE"])
         XCTAssertEqual(StubServer.requests[0].json?["text"] as? String, "Bin dabei!")
-        XCTAssertEqual(StubServer.requests[1].json?["reaction"] as? String, "STARK")
+        XCTAssertEqual(StubServer.requests[1].json?["reaction"] as? String, "💪")
         let query = URLComponents(url: StubServer.requests[2].url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         XCTAssertEqual(query.first { $0.name == "target" }?.value, "message:m9")
-        XCTAssertEqual(query.first { $0.name == "reaction" }?.value, "HAHA")
+        XCTAssertEqual(query.first { $0.name == "reaction" }?.value, "😂")
     }
 
-    func testTappingTwiceOfflineCancelsOut() async {
-        let reaction = ReactionRequest(target: "event:e1", reaction: .respekt)
-        await outbox.enqueueReaction(reaction, add: true)
+    func testRemovingAndSettingTheSameAgainOfflineCancelsOut() async {
+        let reaction = ReactionRequest(target: "event:e1", reaction: "🙌")
         await outbox.enqueueReaction(reaction, add: false)
+        await outbox.enqueueReaction(reaction, add: true)
+        let left = await outbox.entries()
+        XCTAssertTrue(left.isEmpty)
+    }
+
+    /// Eine je Person: ein zweites Emoji ersetzt das wartende - und Setzen
+    /// mit anschliessendem Zuruecknehmen geht ganz raus, sonst kaeme ein
+    /// frueheres eigenes Emoji zurueck, das das Setzen ersetzt hat.
+    func testReactionsOnTheSameTargetCollapse() async {
+        await outbox.enqueueReaction(ReactionRequest(target: "event:e1", reaction: "🔥"), add: true)
+        await outbox.enqueueReaction(ReactionRequest(target: "event:e1", reaction: "😂"), add: true)
+        var left = await outbox.entries()
+        XCTAssertEqual(left.count, 1)
+        if case .reaction(let request, let add) = left.first?.operation {
+            XCTAssertEqual(request.reaction, "😂")
+            XCTAssertTrue(add)
+        } else {
+            XCTFail("falsche Art")
+        }
+        await outbox.enqueueReaction(ReactionRequest(target: "event:e1", reaction: "😂"), add: false)
+        left = await outbox.entries()
+        XCTAssertEqual(left.count, 2)
+    }
+
+    /// Ein Auftrag aus der Zeit der festen Reaktionen liest sich weiter und
+    /// geht mit dem alten Namen raus - den nimmt der Dienst an.
+    func testOldReactionInTheOutboxStillGoesOut() async throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let old = #"[{"id":"6A1C1D6E-6B8C-4C55-9E3A-4F8A1B2C3D4E","createdAt":"2026-10-01T08:00:00Z","#
+            + #""operation":{"reaction":{"_0":{"target":"event:e1","reaction":"STARK"},"add":true}}}]"#
+        try Data(old.utf8).write(to: directory.appending(path: "outbox.json"))
+        StubServer.install { _ in .json(200, #"{"reactions":[]}"#) }
+        await outbox.replay(using: StubServer.api())
+        XCTAssertEqual(StubServer.requests.first?.json?["reaction"] as? String, "STARK")
         let left = await outbox.entries()
         XCTAssertTrue(left.isEmpty)
     }
