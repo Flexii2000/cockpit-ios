@@ -25,6 +25,7 @@ final class Session {
         var switched = false
         #if DEBUG
         switched = CohabitToken.seedFromEnvironment()
+        NotificationImage.handOverDebugBase(to: CohabitGroup.defaults)
         #endif
         token = CohabitToken.load()
         if switched {
