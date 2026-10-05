@@ -1,13 +1,10 @@
 # Stand
 
-> **Fokus, Feature Requests per Push (05.10.):** braucht den To-Do-Dienst mit
-> `notification` (`../todo`) und den Kalorienzähler, der sie schickt (`../food`)
-> — beide ausrollen, dann `tools/install-device.sh Fokus`. Ein älteres Fokus
-> zeigt die Meldung auch, öffnet beim Tipp aber nur den To-Do-Tab statt der
-> Karte. Auf dem Gerät prüfen: Torben schickt einen Wunsch ab (oder ein Test mit
-> seinem Token) → Meldung „Feature Request · <App>“ / „Torben: <Titel>“, Tipp
-> öffnet die Karte in Safari, auch wenn Fokus vorher beendet war; ein eigener
-> Wunsch meldet nichts.
+> **Fokus, Feature Requests per Push (05.10.):** ausgerollt — To-Do `a394af8`,
+> Kalorienzähler `1e72268`, Fokus auf Felix' iPhone (16:55). Offen ist nur die
+> Probe auf dem Gerät: beim nächsten Wunsch von Torben kommt „Feature Request ·
+> <App>“ / „Torben: <Titel>“, der Tipp öffnet die Karte in Safari, auch wenn
+> Fokus vorher beendet war; ein eigener Wunsch meldet nichts.
 >
 > **Nächster Schritt (coHabit, 30.09.):** Branch `cohabit` ist gebaut, aber
 > nichts davon ist ausgerollt. Reihenfolge für Felix (Vertrag §1.5): erst den
@@ -86,7 +83,7 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
-## Fokus: Feature Requests von anderen als Push · **gebaut, nicht ausgerollt** (2026-10-05)
+## Fokus: Feature Requests von anderen als Push · **ausgerollt, auf Felix' iPhone** (2026-10-05)
 
 Schickt jemand anderes als Felix einen Feature Request ab, meldet Fokus das:
 „Feature Request · coHabit“, darunter „Torben: <Titel der Karte>“. Ein Tipp
@@ -104,8 +101,9 @@ erst, wäre ein sofortiges `openURL` ins Leere gegangen.
 
 Geprüft: `tools/verify.sh` (alle fünf gebaut, Unit-Tests grün: 131 XCTest,
 drei davon neu für den Link in der Nutzlast, und 31 Swift Testing; coHabit
-grün), dazu die Dienste (`../todo` 41 Tests, `../food` 249 Tests). **Nicht
-geprüft:** ein echter Push auf dem Gerät und der Tipp aus der beendeten App.
+grün), dazu die Dienste (`../todo` 41 Tests, `../food` 249 Tests). Ausgerollt
+am 05.10. um 16:55 (beide Dienste, Fokus per `install-device.sh`). **Noch nicht
+gesehen:** ein echter Push auf dem Gerät und der Tipp aus der beendeten App.
 
 
 
