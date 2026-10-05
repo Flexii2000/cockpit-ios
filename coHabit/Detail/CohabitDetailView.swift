@@ -374,8 +374,9 @@ struct DetailHeader<MenuContent: View>: View {
                     .lineLimit(1)
             }
             Spacer()
+            // Die Einheit darunter: daneben wuerde der Name gekuerzt.
             HeadlineFigure(headline: detail.summary.headline, valueFont: .figure(26),
-                           unitFont: .system(size: 13, weight: .bold))
+                           unitFont: .system(size: 13, weight: .bold), stacked: true, alignment: .trailing)
                 .fixedSize()
         }
     }

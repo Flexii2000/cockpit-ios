@@ -18,27 +18,40 @@ extension Headline {
 }
 
 /// Zahl gross, Einheit klein auf derselben Grundlinie - passt beides nicht
-/// nebeneinander, steht die Einheit darunter.
+/// nebeneinander, steht die Einheit darunter. `stacked` stellt sie immer
+/// darunter (wo daneben der Name gekuerzt wuerde).
 struct HeadlineFigure: View {
     let headline: Headline
     let valueFont: Font
     let unitFont: Font
     var color: Color = Ink.ink
+    var stacked = false
+    var alignment: HorizontalAlignment = .leading
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                value
-                unit
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                value
-                unit
+        Group {
+            if stacked {
+                below
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        value
+                        unit
+                    }
+                    below
+                }
             }
         }
         .foregroundStyle(color)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(headline.spokenText)
+    }
+
+    private var below: some View {
+        VStack(alignment: alignment, spacing: 0) {
+            value
+            unit
+        }
     }
 
     private var value: some View {
