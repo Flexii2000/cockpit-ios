@@ -234,7 +234,9 @@ struct GifPickerSheet: View {
 struct GifTile: View {
     let item: KlipyItem
 
+    @State private var preview: UIImage?
     @State private var animated: Data?
+    @State private var visible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -243,17 +245,20 @@ struct GifTile: View {
             .overlay {
                 ZStack {
                     Ink.track
-                    if let preview = item.blurPreviewData.flatMap(UIImage.init(data:)) {
+                    if let preview {
                         Image(uiImage: preview).resizable().scaledToFill()
                     }
                     if let animated, let url = item.tileURL {
-                        AnimatedImageView(data: animated, key: url.absoluteString, animates: !reduceMotion)
+                        AnimatedImageView(data: animated, key: url.absoluteString, animates: visible && !reduceMotion)
                     }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .contentShape(Rectangle())
+            .onAppear { visible = true }
+            .onDisappear { visible = false }
             .task(id: item.tileURL) {
+                preview = item.blurPreviewData.flatMap(UIImage.init(data:))
                 guard let url = item.tileURL else { return }
                 animated = await KlipyMedia.shared.data(url)
             }

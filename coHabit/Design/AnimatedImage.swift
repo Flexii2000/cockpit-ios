@@ -174,6 +174,8 @@ struct GifMessageView: View {
 
     @State private var still: UIImage?
     @State private var animated: (data: Data, url: URL)?
+    /// Eine Zeile, die der Chat noch haelt, aber nicht zeigt, laeuft nicht mit.
+    @State private var visible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     static func height(for gif: GifView, width: CGFloat) -> CGFloat {
@@ -185,13 +187,16 @@ struct GifMessageView: View {
             .fill(placeholder)
             .overlay {
                 if let animated {
-                    AnimatedImageView(data: animated.data, key: animated.url.absoluteString, animates: !reduceMotion)
+                    AnimatedImageView(data: animated.data, key: animated.url.absoluteString,
+                                      animates: visible && !reduceMotion)
                 } else if let still {
                     Image(uiImage: still).resizable().scaledToFill()
                 }
             }
             .frame(width: width, height: Self.height(for: gif, width: width))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .onAppear { visible = true }
+            .onDisappear { visible = false }
             .task(id: gif.gifUrl) {
                 let media = KlipyMedia.shared
                 let urls = [gif.webpUrl, gif.gifUrl].compactMap { $0.flatMap(URL.init(string:)) }
@@ -217,16 +222,19 @@ struct AnimatedPhotoView: View {
     var placeholder: Color = Ink.track
 
     @State private var data: Data?
+    @State private var visible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             if let data {
-                AnimatedImageView(data: data, key: id, animates: !reduceMotion)
+                AnimatedImageView(data: data, key: id, animates: visible && !reduceMotion)
             } else {
                 PhotoView(id: id, size: .thumb, placeholder: placeholder)
             }
         }
+        .onAppear { visible = true }
+        .onDisappear { visible = false }
         .task(id: id) {
             data = await PhotoLoader.shared.data(id, size: .full)
         }
