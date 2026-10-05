@@ -26,6 +26,9 @@ struct ProfileView: View {
                     FormCard {
                         NavigationLink(value: Route.notifications) { FormRow(title: "Benachrichtigungen") }
                         FormDivider()
+                        NavigationLink(value: Route.typeColors) { FormRow(title: "Farben") }
+                            .accessibilityIdentifier("profileTypeColors")
+                        FormDivider()
                         NavigationLink(value: Route.health) {
                             FormRow(title: "Health-Verbindung") {
                                 if healthAsked { Chip(text: "verbunden", fill: PaletteKey.mint.colors.surface, weight: .bold, size: 12) }

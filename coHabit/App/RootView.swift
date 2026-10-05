@@ -170,6 +170,8 @@ extension View {
                 FriendsView()
             case .notifications:
                 NotificationSettingsView()
+            case .typeColors:
+                TypeColorsView()
             case .health:
                 HealthConnectionView()
             case .archived:

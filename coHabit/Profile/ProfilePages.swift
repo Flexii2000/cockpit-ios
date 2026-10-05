@@ -194,6 +194,90 @@ struct NotificationSettingsView: View {
     }
 }
 
+// MARK: - Farben
+
+/// Die eigene Farbe je Typ (Vertrag §5.2b): fuenf Karten in der gewaehlten
+/// Farbe, darunter die zehn zur Wahl. Ein Tipp gilt sofort und ueberall; ohne
+/// Erklaertext und ohne Zuruecksetzen - die Vorgabe waehlt man wie jede andere.
+struct TypeColorsView: View {
+    private var session: Session { Session.shared }
+
+    var body: some View {
+        Subpage(title: "Farben") {
+            ForEach(TypeColorSlot.allCases) { slot in
+                TypeColorCard(slot: slot, selected: session.typeColors[slot]) { color in
+                    Task {
+                        if let message = await session.chooseTypeColor(color, for: slot) {
+                            Toast.shared.show(message, error: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Eine Karte in der Farbe, die der Typ hat - so sieht man das Ergebnis, hell
+/// wie dunkel. Der Name steht wie auf den Karten in „Heute" in `onSurface`:
+/// kraeftig auf hell, Tinte auf dunkel (die kraeftige Stufe waere dort kaum
+/// zu lesen).
+private struct TypeColorCard: View {
+    let slot: TypeColorSlot
+    let selected: PaletteKey
+    let choose: (PaletteKey) -> Void
+
+    /// Zwei Reihen zu fuenf - umbrechen statt seitlich scrollen.
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 5)
+
+    var body: some View {
+        let colors = selected.colors
+        VStack(alignment: .leading, spacing: 14) {
+            Text(slot.title)
+                .font(.heading(22))
+                .foregroundStyle(colors.onSurface)
+            LazyVGrid(columns: Self.columns, spacing: 10) {
+                ForEach(PaletteKey.allCases) { key in
+                    swatch(key)
+                }
+            }
+        }
+        .card(colors.surface, circle: colors.accent.opacity(0.55), circleSize: 70, padding: 16)
+        .animation(.easeOut(duration: 0.2), value: selected)
+        .sensoryFeedback(.selection, trigger: selected)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("typeColorCard-\(slot.rawValue)")
+    }
+
+    /// Der Kreis zeigt den Akzent: die zehn Flaechen sind hell zu blass (Pfirsich
+    /// und Koralle) und dunkel zu aehnlich, um sie auseinanderzuhalten.
+    private func swatch(_ key: PaletteKey) -> some View {
+        let isSelected = key == selected
+        return Button {
+            choose(key)
+        } label: {
+            Circle()
+                .fill(key.colors.accent)
+                .frame(width: 40, height: 40)
+                .overlay {
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 15, weight: .black))
+                            // Fest dunkel: die Akzente sind hell und dunkel dieselben.
+                            .foregroundStyle(Color(hex: 0x1C1B2E))
+                    }
+                }
+                .padding(4)
+                .overlay(Circle().strokeBorder(Ink.ink, lineWidth: isSelected ? 2.5 : 0))
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(key.title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("typeColor-\(slot.rawValue)-\(key.rawValue)")
+    }
+}
+
 // MARK: - Health-Verbindung
 
 struct HealthConnectionView: View {

@@ -28,6 +28,7 @@ enum Route: Hashable {
     case cohabit(String, DetailSection)
     case friends
     case notifications
+    case typeColors
     case health
     case archived
     case appLinks

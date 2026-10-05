@@ -315,6 +315,90 @@ final class CohabitUITests: XCTestCase {
         XCTAssertTrue(app.buttons["segment-Dashboard"].isSelected)
     }
 
+    // MARK: - Typfarben je Person (Vertrag §5.2b)
+
+    /// Profil › Farben: Streak von Pfirsich auf Himmelblau - die Karte, der
+    /// Haken und das schon gezeigte „Heute" folgen sofort, der Dienst hat es.
+    /// Seite und „Heute" hell und dunkel aufgenommen; danach wieder die Farbe
+    /// von vorher.
+    @MainActor
+    func testPickTheColourOfAType() throws {
+        let before = try request("GET", "/me/type-colors", body: nil, token: token)
+        let streak = before["STREAK"] as? String ?? "peach"
+        let url = URL(string: baseURL + "/me/type-colors")!
+        let token = token
+        addTeardownBlock {
+            var request = URLRequest(url: url)
+            request.httpMethod = "PUT"
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = Data(#"{"STREAK":"\#(streak)"}"#.utf8)
+            _ = try? await URLSession.shared.data(for: request)
+        }
+        addTeardownBlock { @MainActor in XCUIDevice.shared.appearance = .light }
+        _ = try request("PUT", "/me/type-colors", body: ["STREAK": "peach"], token: token)
+
+        // Erst „Heute" zeigen: es muss sich umfaerben, ohne neu zu laden.
+        let app = launch()
+        XCTAssertTrue(app.buttons["segment-Dashboard"].waitForExistence(timeout: 20))
+        app.buttons["segment-Dashboard"].tap()
+        sleep(1)
+        shoot(app, "farben-heute-vorher")
+        app.buttons["tab-Profil"].tap()
+        let entry = app.buttons["profileTypeColors"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 20), "kein Eintrag „Farben“ im Profil")
+        shoot(app, "farben-profil")
+        entry.tap()
+        let sky = app.buttons["typeColor-STREAK-sky"]
+        XCTAssertTrue(sky.waitForExistence(timeout: 10), "die Seite „Farben“ fehlt")
+        for title in ["Streak", "Abstinenz", "Ziel", "Challenge", "Automatisch"] {
+            XCTAssertTrue(app.staticTexts[title].exists, "Karte „\(title)“ fehlt")
+        }
+        let streakColours = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'typeColor-STREAK-'"))
+        XCTAssertEqual(streakColours.count, 10)
+        let rows = Set(streakColours.allElementsBoundByIndex.map { Int($0.frame.midY.rounded()) })
+        XCTAssertEqual(rows.count, 2, "zwei Reihen zu fünf: \(rows)")
+        XCTAssertTrue(streakColours.allElementsBoundByIndex.allSatisfy { app.frame.contains($0.frame) },
+                      "ein Kreis ragt aus dem Bild")
+        XCTAssertTrue(app.buttons["typeColor-STREAK-peach"].isSelected)
+
+        sky.tap()
+        XCTAssertTrue(sky.isSelected, "die Wahl gilt nicht sofort")
+        XCTAssertFalse(app.buttons["typeColor-STREAK-peach"].isSelected)
+        sleep(1)
+        let saved = try request("GET", "/me/type-colors", body: nil, token: token)
+        XCTAssertEqual(saved["STREAK"] as? String, "sky", "der Dienst hat die Wahl nicht")
+        XCTAssertEqual(saved["GOAL"] as? String, before["GOAL"] as? String, "nur der eine Platz")
+
+        for appearance in [XCUIDevice.Appearance.light, .dark] {
+            XCUIDevice.shared.appearance = appearance
+            sleep(1)
+            shoot(app, "farben-\(appearance == .dark ? "dunkel" : "hell")")
+            scrollDown(app, times: 2)
+            shoot(app, "farben-unten-\(appearance == .dark ? "dunkel" : "hell")")
+            scrollUp(app, times: 3)
+        }
+        XCUIDevice.shared.appearance = .light
+        app.buttons["Zurück"].tap()
+        app.buttons["tab-Timeline"].tap()
+        sleep(2)
+        shoot(app, "farben-timeline")
+        app.buttons["tab-Heute"].tap()
+        XCTAssertTrue(app.buttons["segment-Dashboard"].waitForExistence(timeout: 10))
+        for appearance in [XCUIDevice.Appearance.light, .dark] {
+            XCUIDevice.shared.appearance = appearance
+            let name = appearance == .dark ? "dunkel" : "hell"
+            app.buttons["segment-Dashboard"].tap()
+            sleep(1)
+            shoot(app, "farben-heute-dashboard-\(name)")
+            app.buttons["segment-Liste"].tap()
+            sleep(1)
+            shoot(app, "farben-heute-liste-\(name)")
+        }
+        // Das Dashboard bleibt gewaehlt - andere Tests suchen dort ihre Karte.
+        app.buttons["segment-Dashboard"].tap()
+    }
+
     // MARK: - Emoji-Reaktionen und GIFs (Vertrag §2.7a)
 
     /// Langer Druck auf eine Nachricht: Leiste mit Schnellauswahl und Aktionen,
