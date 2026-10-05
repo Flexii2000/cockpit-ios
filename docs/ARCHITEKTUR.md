@@ -169,9 +169,17 @@ dann neu.
 Vertrag §2.1 in `CohabitShared/CohabitPalette.swift`, hell und dunkel): eigene
 untere Leiste über einer `TabView` mit versteckter Systemleiste, Karten mit
 großen Radien und angeschnittenem Kreis, Primärknöpfe in Tinte. Gefärbt wird
-**nach Typ**, nicht nach der gespeicherten Farbe (`CohabitRef.typeColor` in
-`CohabitShared/CohabitKinds.swift`, auch für die Kacheln); dort steht auch die
-Reihenfolge von „Heute" (`typeOrder`, wie die klassische Liste).
+**nach Typ**, nicht nach der gespeicherten Farbe, und zwar in den Farben, die
+die Person je Typ gewählt hat (Vertrag §5.2b): die Zuordnung `TypeColors` und
+`CohabitRef.typeColor(in:)` stehen in `CohabitShared/CohabitKinds.swift`, dort
+auch die Reihenfolge von „Heute" (`typeOrder`, wie die klassische Liste). In
+der App heißt das `CohabitRef.typeColor` (`@MainActor`, `Session.swift`) und
+liest `Session.typeColors` - jede Ansicht, die so färbt, zeichnet sich nach
+einer Wahl auf „Farben" über Observation von selbst neu. Die Kacheln kennen die
+Sitzung nicht und nehmen `CohabitGroup.typeColors(for:)` (die von `/widget`,
+dann `cohabit.me` der App, dann die Vorgaben); der Compiler hält sie davon ab,
+`typeColor` ohne Zuordnung zu benutzen, weil es das in der Erweiterung nicht
+gibt.
 
 **Ohne Netz** zeigt jeder Bildschirm den letzten Stand aus dem `OfflineCache`
 mit „Offline · Stand: …"; Einträge (auch mit Foto), Nachrichten und

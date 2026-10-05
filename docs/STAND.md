@@ -1,5 +1,15 @@
 # Stand
 
+> **coHabit, Typfarben je Person (05.10., abends):** Branch `type-colors` (auf
+> `today-types`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `ce4cc3a`
+> (`../habits`, Branch `type-colors`) - ein älterer Dienst lässt die App mit
+> den Vorgabefarben laufen, „Farben" springt dort beim Tippen mit seiner
+> Fehlermeldung zurück. Erst den Dienst ausrollen, dann `tools/install-device.sh
+> coHabit`. Auf dem Gerät prüfen: Profil › Farben hell und dunkel, ein Tipp färbt
+> „Heute", Detail, Chat, Timeline und Statistik sofort um, die Kacheln auf dem
+> Homebildschirm folgen nach dem Neuladen, ein neues Co-Habit hat die eigene
+> Farbe auch im Web.
+>
 > **coHabit, „Heute" nach Typ (05.10.):** Branch `today-types` (auf
 > `chat-media`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `bdac077`
 > (`../habits`, Branch `today-types`) für `autoSource`, `createdAt` und den
@@ -129,6 +139,41 @@ drei davon neu für den Link in der Nutzlast, und 31 Swift Testing; coHabit
 grün), dazu die Dienste (`../todo` 41 Tests, `../food` 249 Tests). Ausgerollt
 am 05.10. um 16:55 (beide Dienste, Fokus per `install-device.sh`). **Noch nicht
 gesehen:** ein echter Push auf dem Gerät und der Tipp aus der beendeten App.
+
+## coHabit: Typfarben je Person · **gebaut, nicht ausgerollt** (2026-10-05)
+
+Vertrag §2.1 und §5.2b (`../habits/docs/COHABIT-CONTRACT.md`), Entscheidung in
+`ENTSCHEIDUNGEN.md` (05.10.). Torben fand alles braun; jetzt wählt jede Person
+die Farbe je Typ.
+- **Palette** mit zehn Farben: dazu Lavendel, Himmelblau, Salbei, Koralle
+  (`PaletteKey`, alle vier Stufen in `CohabitPalette.swift`); die Namen der
+  Oberfläche wie im Vertrag (auch „Mint", „Periwinkle").
+- **Zuordnung** `TypeColors` (Plätze Streak, Abstinenz, Ziel, Challenge,
+  Automatisch) aus `MeView.typeColors`, gehalten in `Session.typeColors` und mit
+  `/me` als `cohabit.me` in der App-Gruppe; fehlt das Feld oder ist ein Schlüssel
+  unbekannt: die Vorgabe. Überall, wo nach Typ gefärbt wird (Heute, Detail,
+  Chat, Timeline samt Filter, Statistik, Archiv, Einladungen, Abhak-Blätter,
+  dazu die Typkarten im Anlegen-Schritt 1), folgt eine Wahl sofort. Kacheln:
+  `WidgetData.typeColors`, dann `cohabit.me`, dann die Vorgaben.
+- **Anlegen** schickt die eigene Typfarbe als `color`.
+- **Profil › Farben** unter „Benachrichtigungen": fünf Karten in der gewählten
+  Farbe (Name in `onSurface` wie auf „Heute"), darunter die zehn Kreise in zwei
+  Reihen zu fünf, die gewählte mit Ring und Haken. Ein Tipp speichert sofort nur
+  diesen Platz (`PUT /me/type-colors`), schlägt das fehl, springt die Wahl
+  zurück und die Meldung des Dienstes kommt als Toast.
+- **Geprüft:** `tools/verify.sh` (alle fünf gebaut; Healthy 132 XCTest und 31
+  Swift Testing, coHabit 170 Unit-Tests, neu `TypeColorsTests`: Palette, `MeView`
+  und `WidgetData` mit und ohne Feld, unbekannte Werte, Zuordnung samt
+  Automatisch, der PUT-Rumpf, Sofort-Anzeige und Zurückspringen). UI-Test
+  `testPickTheColourOfAType` gegen den lokalen Dienst (`ce4cc3a`, Demo-Daten)
+  im eigenen Simulator „coHabit Colors": „Heute" erst zeigen, dann Streak auf
+  Himmelblau - „Heute" ist danach himmelblau, ohne neu zu laden; Seite und
+  „Heute" hell und dunkel angesehen, dazu die Kachel-Vorschau mit Himmelblau
+  und Koralle. ⚠️ Ein frisch angelegter Simulator wechselt per
+  `XCUIDevice.shared.appearance` nicht ins Dunkle, bis einmal `xcrun simctl ui
+  <Gerät> appearance light` lief.
+- **Nicht geprüft:** die echten Kacheln auf dem Homebildschirm (nur die
+  Vorschau `COCKPIT_TAB=widget`), die Haptik beim Tippen, VoiceOver.
 
 ## coHabit: „Heute" nach Typ · **gebaut, nicht ausgerollt** (2026-10-05)
 

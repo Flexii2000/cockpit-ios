@@ -472,6 +472,7 @@ mit dem Status.
 |---|---|---|
 | GET | `/me` · PUT `/me` · PUT/DELETE `/me/avatar` | Anmeldung prüfen, Profil, Profilbild (multipart `photo`, quadratisch von der App) |
 | GET/PUT | `/me/notifications` | globale Schalter |
+| GET/PUT | `/me/type-colors` | eigene Farbe je Typ (Seite „Farben"): PUT nur mit dem einen Platz, `{"STREAK":"sky"}` → alle fünf |
 | GET/POST/DELETE | `/me/app-links[/{id}]` | „App verbinden"; `DELETE /me/app-links/current` beim Abmelden |
 | GET | `/me/export` | ZIP → Teilen |
 | DELETE | `/me` | `{"confirm":"LÖSCHEN"}` |
@@ -618,6 +619,26 @@ der Gruppe zählt der Name. `CohabitSummary.progress` gibt es jetzt auch bei
 gegen `target` bzw. ohne Zielwert gegen den Führenden (wer führt, hat 1).
 Wie bisher: GOAL Summe gegen Ziel, automatisch STEPS_WEEKLY Schritte der Woche
 gegen das Wochenziel, FOCUS Minuten gegen das Ziel (Tag oder Woche).
+
+⚠️ **Typfarben je Person (seit 2026-10-05 abends, `../habits` Branch
+`type-colors`, Commit `ce4cc3a`, Vertrag §5.2b):** Plätze `STREAK`,
+`ABSTINENCE`, `GOAL`, `CHALLENGE`, `AUTOMATIC` (jedes Co-Habit mit
+`autoSource`, egal welcher Typ) → Palettenschlüssel; Vorgaben peach, mint,
+periwinkle, butter, aqua. `GET /me/type-colors` → immer alle fünf. `PUT
+/me/type-colors` mit einzelnen Plätzen (`{"STREAK":"sky"}`, `null` = zurück zur
+Vorgabe) → wieder alle fünf; unbekannter Platz → 400 „Unbekannter Typ.",
+unbekannte Farbe → 400 „Unbekannte Farbe." (dann ändert sich nichts).
+Dieselben fünf stehen als `typeColors` in `MeView` und `WidgetData`. Die
+Palette hat seitdem zehn Schlüssel: dazu `lavender`, `sky`, `sage`, `coral`
+(Hexwerte im Vertrag §2.1, in `CohabitShared/CohabitPalette.swift`); Avatar-
+und Anlegefarben, die der Dienst selbst ableitet, bleiben bei den ersten sechs.
+Die App färbt mit `Session.typeColors` (aus `/me`, mit ihm als `cohabit.me` in
+der App-Gruppe), die Kacheln mit `WidgetData.typeColors`, dann `cohabit.me`,
+dann den Vorgaben (`CohabitGroup.typeColors(for:)`). Ein älterer Dienst schickt
+das Feld nicht, ein unbekannter Schlüssel steht für die Vorgabe des Platzes -
+beides färbt wie bisher; „Farben" meldet dort beim Tippen den Fehler des
+Dienstes (404) und springt zurück. Neue Co-Habits gehen mit der eigenen
+Typfarbe als `color` raus.
 
 ⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG
 (oder PNG, GIF), höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` →

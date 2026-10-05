@@ -153,6 +153,10 @@ offensichtlich sind und je einen halben Anlauf gekostet haben:
   den Simulator heran, und xcodebuild haengt danach in `simctl diagnose`
   (abbrechen). Ein anderer Simulator hilft - coHabit laeuft im eigenen
   (`DEVICE="coHabit Test" tools/uitest.sh coHabit …`, 30.09.).
+* **Ein frisch angelegter Simulator bleibt hell.** `XCUIDevice.shared.appearance
+  = .dark` wirkt dort erst, nachdem einmal `xcrun simctl ui "<Geraet>"
+  appearance light` lief (vorher meldet `simctl ui … appearance` „unknown“) -
+  die „dunkel“-Bilder sind sonst still hell (05.10.).
 * **Aufraeumen per `addTeardownBlock`, nicht per `defer`.** Schlaegt eine
   Pruefung fehl, bricht XCTest die Methode ab, ohne `defer` auszufuehren - was
   der Test im Dienst angelegt hat, bliebe liegen.

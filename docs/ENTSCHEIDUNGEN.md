@@ -3,6 +3,34 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-05 — coHabit: Typfarben wählt jede Person selbst, aus zehn Farben
+Torben fand nach der Farbe nach Typ (Eintrag darunter) alles braun: fast alles
+sind Streaks, und Pfirsich ist im Dunkeln braun. Entschieden hat Felix:
+- **Jede Person wählt die Farbe je Typ** (Streak, Abstinenz, Ziel, Challenge
+  und „Automatisch" für alles mit `autoSource`), gespeichert beim Dienst
+  (`/me/type-colors`), damit sie auf jedem Gerät, im Web und auf den Kacheln
+  gilt. Vorgaben wie bisher. **Verworfen:** feste Typfarben für alle (etwa nur
+  eine andere Farbe statt Pfirsich); eine Wahl nur je Gerät - Kacheln, Web und
+  ein zweites Gerät wüssten nichts davon.
+- **Zehn Farben**: die sechs plus Lavendel, Himmelblau, Salbei, Koralle; mehrere
+  Typen dürfen dieselbe haben. **Verworfen:** bei den sechs bleiben.
+- **Seite „Farben"** im Profil unter „Benachrichtigungen": fünf Karten in der
+  gewählten Farbe, darunter die zehn als Kreise in zwei Reihen zu fünf, ein Tipp
+  speichert sofort; keine Erklärtexte, kein Zurücksetzen-Knopf. **Verworfen:**
+  eine Farbwahl beim Anlegen je Co-Habit (wie vor dem Nachmittag) - gleiche
+  Typen sähen wieder verschieden aus.
+
+In der App: die Kreise zeigen den **Akzent**, nicht die Fläche - Pfirsich und
+Koralle sind als helle Fläche kaum zu unterscheiden, die dunklen Flächen
+untereinander auch nicht. Der Name auf der Karte steht wie auf „Heute" in
+`onSurface` (kräftig auf hell, Tinte auf dunkel); der Vertrag sagt „in der
+kräftigen Farbe", die wäre auf der dunklen Fläche aber kaum zu lesen.
+**Verworfen:** die kräftige Stufe auch dunkel. Gespeichert wird **nur der
+getippte Platz** und sofort angezeigt; lehnt der Dienst ab oder fehlt das Netz,
+springt die Wahl zurück und seine Meldung kommt als Toast. **Verworfen:** den
+Postausgang - eine Farbe ist keine Änderung, die später genauso gelten muss, und
+ein stilles Warten wäre hier verwirrender als ein Zurückspringen.
+
 ## 2026-10-05 — coHabit, klassische Liste: Abhakbares vor Lassen
 Reihenfolge jetzt Aufbauen → Ziele und Challenges → Lassen → automatisch, in
 jeder Gruppe nach Anlegedatum (`classicOrder`). **Warum:** Felix; ein neues
@@ -59,7 +87,8 @@ wegen der Reihenfolge nach Typ und der Balken. Entschieden hat er:
   damit keine Ansicht sie aus Versehen nimmt. Anlegen zeigt keine Farbwahl mehr
   und schickt die Typfarbe (so sehen Web und Android dasselbe); Bearbeiten zeigt
   keine und lässt die gespeicherte, wie sie ist. **Verworfen:** eine Farbe je
-  Co-Habit - gleiche Typen sahen auf „Heute" verschieden aus.
+  Co-Habit - gleiche Typen sahen auf „Heute" verschieden aus. *(Am Abend
+  desselben Tages: die Farbe je Typ wählt jede Person selbst, siehe oben.)*
 
 ## 2026-10-05 — coHabit: GIFs, Emoji-Reaktionen, Bild in Benachrichtigungen
 Felix' Wahl (Vertrag §2.7a): GIFs aus KLIPY (Tenor ist abgeschaltet), eigene
