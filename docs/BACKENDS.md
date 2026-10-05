@@ -486,14 +486,15 @@ mit dem Status.
 | POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
 | POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen; bis zu vier Fotos (`photoIds`), bei Laufpunkten mit `durationMinutes`/`distanceKm` (siehe unten) |
 | PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) |
-| GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat |
-| POST/DELETE | `/reactions` | `{"target":"event:…\|message:…","reaction"}` |
+| GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat; Nachricht mit `gif` (KLIPY) oder eigenem GIF (`photoAnimated`), siehe unten |
+| POST · DELETE | `/reactions` · `/reactions?target=…&reaction=…` | `{"target":"event:…\|message:…","reaction":"🔥"}` setzt die **eigene** (eine je Person), DELETE nimmt sie zurück → `{"reactions":[ReactionView]}` (seit 2026-10-05, siehe unten) |
+| GET | `/gifs/config` | → `{"enabled":true,"apiKey","customerId","locale","contentFilter"}` bzw. `{"enabled":false}` - Zugang zur GIF-Suche bei KLIPY (seit 2026-10-05) |
 | POST | `/cohabits/{id}/nudges` · `/nudges/{id}/seen` | Stupsen, Stupser gesehen |
 | POST | `/cohabits/{id}/dialogs/{dialogId}/seen` | Abschlussdialog gesehen |
 | GET | `/timeline?exclude=<id>,<id>&before=&limit=30` · POST `/timeline/seen` | Timeline ohne die Co-Habits, die der Filter ausblendet; „neue Beweisfotos" zurücksetzen (siehe unten) |
 | GET | `/stats?range=WEEK\|MONTH\|YEAR&anchor=` | Statistik |
 | GET | `/widget` | die Kacheln (holen sie selbst) |
-| POST | `/photos` · GET `/photos/{id}?size=thumb\|full` | Fotos (siehe unten) |
+| POST | `/photos` · GET `/photos/{id}?size=thumb\|full` | Fotos und eigene GIFs (siehe unten) |
 | GET/POST/DELETE | `/friends…` · `/people/search` · `/me/friend-link` · `/blocks…` | Freunde & Einladungen |
 | GET/POST | `/invite-links/{code}` · `/accept` | Einladungslink - ohne Zugang mit Anzeigename, Nutzername, `acceptTerms` |
 | GET/POST | `/me/invitations` · `/invitations/{id}/accept\|decline` | offene Einladungen |
@@ -603,13 +604,56 @@ anderen nach diesem Ereignis, **ohne den Filter zu kennen**. Gefiltert meldet
 die App deshalb das neueste Ereignis überhaupt (`GET /timeline?limit=1` ohne
 `exclude`), ungefiltert wie bisher das oberste der Liste.
 
-⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG,
-höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` → `{"id","width","height"}`;
-danach steht die `id` im Eintrag oder in der Nachricht. `GET /photos/{id}` ohne
-`size` liefert `full`. Der Dienst dreht
+⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG
+(oder PNG, GIF), höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` →
+`{"id","width","height","animated"}`; danach steht die `id` im Eintrag oder in
+der Nachricht. `GET /photos/{id}` ohne `size` liefert `full`. Der Dienst dreht
 **nicht** nach EXIF — die App zeichnet das Bild aufrecht neu (≤ 2048 px, JPEG
 0,85, `PhotoEncoding`). Abrufen nur mit Token (`PhotoLoader`, kein
 `AsyncImage`); Fotos ändern sich nie und bleiben im Cache.
+
+⚠️ **Eigene GIFs (seit 2026-10-05, Vertrag §2.7a, `../habits` Commit `49c9a6b`):**
+ein GIF mit mehr als einem Bild legt der Dienst **unverändert** ab (nur
+Kommentare und fremde Application-Extensions fliegen raus) → `"animated":true`;
+`size=full` liefert dann `image/gif`, `size=thumb` das erste Bild als JPEG.
+Grenzen: 10 MB, 2048 px je Kante (400 „Das GIF ist zu groß (höchstens 2048 px).“),
+Breite × Höhe × Bilder ≤ 120 Mio. („Das GIF hat zu viele Bilder.“). Ein GIF mit
+einem Bild ist ein gewöhnliches Foto. Animiert geht es **nur** in eine
+Chat-Nachricht: die bleibt `kind: PHOTO` mit `photoAnimated: true`, als
+Beweisfoto 400 „Ein GIF ist kein Beweisfoto.“. Die App erkennt ein GIF am
+Dateianfang (`GIF8`, `ImageFormat.sniff`) und schickt es als `photo.gif`/
+`image/gif`, alles andere als JPEG - auch aus dem Postausgang, dessen Datei
+dafür `.gif` heißt.
+
+⚠️ **GIFs aus der Suche (KLIPY, seit 2026-10-05):** `GET /gifs/config` liefert
+Schlüssel, `customerId` (zufällig, stabil je Person), `locale`, `contentFilter`;
+ohne `KLIPY_API_KEY` auf dem Server `{"enabled":false}` - dann kein GIF-Knopf.
+Gesucht wird **direkt vom Gerät** bei `https://api.klipy.com/api/v1/{key}/gifs/trending`
+bzw. `…/search?q=` (immer `page`, `per_page=24`, `customer_id`, `locale`,
+`content_filter`), nach dem Senden `POST …/gifs/share/{slug}` mit
+`{"customer_id","q"}` - KLIPYs Bedingung, kein Umweg über den Dienst
+(`KlipyClient`). Antwort `{"result","data":{"data":[Item],"current_page","has_next"}}`,
+`Item.id` ist eine **Zahl**, `file.{hd|md|sm|xs}.{gif|webp|jpg|mp4|webm}` mit
+`url`, `width`, `height`. Gesendet wird `POST …/messages` mit
+`"gif":{"slug","title","width","height","gifUrl","webpUrl","mp4Url","stillUrl"}`
+aus `md` (sonst `hd`, `sm`); der Dienst prüft jede URL auf
+`^https://static[0-9]*\.klipy\.com/` (sonst 400 „Das GIF ist ungültig.“) und
+liefert `kind: "GIF"` mit `gif` (dieselben Felder plus `"provider":"KLIPY"`).
+Medien von KLIPY nur im Speicher und im HTTP-Cache (`KlipyMedia`), nie als
+eigene Datei. Ohne echten Schlüssel (überall außer auf dem Server) antwortet
+KLIPY nicht: `tools/klipy-stub.py` spielt KLIPY für Simulator und UI-Tests
+(`COCKPIT_URL_KLIPY=http://127.0.0.1:48793/api/v1`), ein lokaler Dienst mit
+`KLIPY_API_KEY=irgendwas` meldet `enabled:true`.
+
+⚠️ **Emoji-Reaktionen (seit 2026-10-05):** `ReactionView` ist
+`{"reaction":"💪","label":"💪","count","mine","people":[PersonView]}`, nach
+`count` absteigend. Je Person **eine** Reaktion je Ziel: `POST` setzt (ersetzt
+das eigene alte Emoji), `DELETE …?reaction=` nimmt zurück - ist die eigene
+inzwischen eine andere, bleibt sie. Kein Emoji → 400 „Das ist kein Emoji.“. Die
+alten Namen (`STARK` → 💪, `RESPEKT` → 🙌, `WEITER_SO` → 🔥, `HAHA` → 😂) nimmt
+der Dienst weiter an und deutet gespeicherte um; die App liest sie genauso
+(`Emoji.fromService`), damit ein alter Postausgang-Auftrag oder ein älterer
+Dienst nichts kippt. Sie schreibt Emojis wie der Dienst (ohne U+FE0E, ❤ → ❤️).
 
 ⚠️ **Leere Felder schickt die App als `null`**, nicht weggelassen
 (`CohabitConfig`, `MySettings`, `CheckinRequest`, `CheckinUpdate`) — beim Bearbeiten hieße ein
@@ -622,7 +666,7 @@ Zone (die App merkt sich die Zone je Co-Habit in der App-Gruppe).
 ⚠️ **Wo das Backend vom Vertrag abweicht** (../habits/docs/COHABIT-CONTRACT.md, Anhang,
 für die Clients verbindlich):
 - `FinishedDialog.reactionTarget` (`message:<id>`) nennt die Systemmeldung zum
-  Ende - „Gratulieren" setzt dort ein „Stark"; `kind` ist `CHALLENGE` oder `GOAL`.
+  Ende - „Gratulieren" setzt dort 💪 (bis 05.10. „Stark"); `kind` ist `CHALLENGE` oder `GOAL`.
   Die App dekodiert `reactionTarget` optional.
 - Mitglieder im Detail haben `state` `ACTIVE`, `INVITED` (`joinedAt: null`)
   oder `PAUSED`; `DELETE …/members/{id}` auf eine eingeladene Person zieht die
@@ -638,7 +682,13 @@ für die Clients verbindlich):
   Dashboard-Karten („Laufen · Streak") setzt die App selbst zusammen.
 
 **Push** (Vertrag §4): APNs mit Topic `com.fherrmann.cohabit`, Sandbox; die
-Nutzlast trägt `kind` und `link` (`cohabit://…`), die App folgt dem Link.
+Nutzlast trägt `kind` und `link` (`cohabit://…`), die App folgt dem Link. Gehört
+ein Bild dazu (`photo`, einzelne `chat`-Meldungen), stehen daneben `photoId`
+bzw. `imageUrl` (KLIPY-GIF) und `imageStillUrl`, und `aps.mutable-content` ist 1:
+dann lädt die Erweiterung `coHabitNotifications` das Bild (Foto mit Bearer
+`GET /photos/{id}?size=full`, GIF ohne Token direkt von `static*.klipy.com`) und
+hängt es an. `simctl push` startet die Erweiterung **nicht** (die Meldung wird
+direkt zugestellt) - prüfen lässt sie sich nur auf dem Gerät.
 
 ### Klassische Liste — `/cohabit/api/classic/habits` (seit 2026-09-30)
 

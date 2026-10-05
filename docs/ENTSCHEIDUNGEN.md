@@ -21,6 +21,63 @@ doppelt. **Verworfen:** ein eigener `/api/notify`-Endpunkt, den der
 Kalorienzähler nach dem Anlegen ruft — dann bräuchte jeder Wiederholungsweg
 seine eigene Regel, wann gemeldet wird.
 
+## 2026-10-05 — coHabit: GIFs, Emoji-Reaktionen, Bild in Benachrichtigungen
+Felix' Wahl (Vertrag §2.7a): GIFs aus KLIPY (Tenor ist abgeschaltet), eigene
+GIFs, beliebige Emojis als Reaktion (eine je Person), Bilder in den
+Benachrichtigungen. Was der Vertrag dem iOS-Agenten überließ:
+- **GIFs werden über ImageIO animiert** (`CGAnimateImageDataWithBlock`, Bild für
+  Bild dekodiert, `AnimatedImageView`) - im Chat das `webpUrl` (ImageIO spielt
+  animiertes WebP ab, kleiner als GIF), ohne es das `gifUrl`, bis dahin
+  `stillUrl`; dieselbe Ansicht für eigene GIFs und die Kacheln im GIF-Blatt.
+  Außerhalb des Fensters hält die Animation an, mit „Bewegung reduzieren" steht
+  das erste Bild. **Verworfen:** `mp4Url` als stumme `AVPlayerLooper`-Schleife -
+  kleiner und hardwaredekodiert, aber je sichtbarer Nachricht ein AVPlayer samt
+  Layer (iOS begrenzt gleichzeitige Dekoder), eine Audio-Sitzung, die ohne
+  `.ambient` Musik anderer Apps anhält, und ein zweiter Weg für die eigenen GIFs,
+  die es nur als GIF gibt. `UIImage.animatedImage` - legt alle Bilder auf einmal
+  in den Speicher.
+- **KLIPY-Medien nur im Speicher und im HTTP-Cache** (`KlipyMedia`: `NSCache`
+  bis 48 MB, eigene `URLCache` mit 200 MB, weil die geteilte zu klein für GIFs
+  ist). KLIPY verbietet Kopien in eigenen Dateien; der HTTP-Cache ist erlaubt.
+- **„+" öffnet die Emoji-Tastatur** (`EmojiInputField`: ein `UITextField`, das
+  `textInputMode` „emoji" verlangt) - mit der Emoji-Suche des Systems und jedem
+  Emoji, das iOS kennt. Das erste Emoji der Eingabe zählt, alles andere wird
+  verworfen. Ist die Emoji-Tastatur nicht eingerichtet, kommt die normale (dort
+  über den Globus). **Verworfen:** ein eigenes Raster - bräuchte einen
+  Emoji-Katalog samt Namen für eine Suche und hinkte jeder iOS-Fassung hinterher.
+- **Die Leiste ist ein Blatt**, kein Kontextmenü: Schnellauswahl und „+" oben,
+  Löschen/Melden/Blockieren (Timeline: Antworten) darunter; Aktionen laufen erst
+  nach dem Schließen, damit Melde- und Blockier-Dialog hochkommen. **Verworfen:**
+  `.contextMenu` - nimmt keine eigene Leiste auf; eine Palette
+  (`ControlGroup`) im Menü scrollt bei sieben Einträgen seitlich, und die
+  Hervorhebung des eigenen Emojis ginge nicht. Ist das eigene Emoji keins der
+  sechs, steht es als achtes in der Leiste (hervorgehoben, antippen nimmt es
+  zurück) - acht Felder passen auch auf ein schmales iPhone.
+- **Reaktionen sofort sichtbar**, dann der Stand des Dienstes; bei Ablehnung
+  zurück. Im Postausgang zählt je Ziel nur die jüngste: ein zweites Emoji
+  ersetzt das wartende, Zurücknehmen und wieder Setzen hebt sich auf - aber
+  Setzen und Zurücknehmen gehen **beide** raus, weil das Setzen ein früheres
+  eigenes Emoji ersetzt hat, das sonst wiederkäme. **Verworfen:** die bisherige
+  Regel „Gegenbewegung hebt sich auf" für alle Paare.
+- **Eigene GIFs wie Fotos:** aus der Galerie oder per „Einfügen" (ein
+  `PasteButton` im Feld, nur wenn ein GIF in der Zwischenablage liegt - der
+  Blick auf den Typ löst keinen Hinweis von iOS aus) hängen sie am Feld und
+  gehen mit „Senden" samt Text raus, wie Fotos in App und Web. Erkannt wird ein
+  GIF am Dateianfang, hoch geht es unverändert. **Verworfen:** sofort beim
+  Auswählen senden - dann verhielten sich Fotos und GIFs aus derselben Galerie
+  verschieden.
+- **Die Erweiterung `coHabitNotifications` übersetzt nur sechs Dateien**
+  (`NotificationImage`, `ImageFormat`, `CohabitToken`, `Keychain`, `Backend`,
+  sich selbst), lädt mit einer eigenen `URLSession` und lässt beim Foto keine
+  Weiterleitung zu (der Token ginge mit), beim GIF nur zwischen
+  `static*.klipy.com`. **Verworfen:** `CohabitAPI` - zöge Postausgang,
+  Offline-Stand und `CohabitSync` (MainActor) mit, für eine Erweiterung mit
+  wenig Speicher und 30 Sekunden.
+- **Ein KLIPY-Stub im Repo** (`tools/klipy-stub.py`) statt eines Schlüssels:
+  der gehört in kein Repo, und ohne ihn antwortet KLIPY nicht. Die Medien-URLs
+  darin sind die öffentlichen aus KLIPYs Doku, damit der Dienst sie beim Senden
+  annimmt.
+
 ## 2026-10-04 — Evaluation: Zusammenhänge mit Signifikanz, 14 Tage
 Felix wollte Zusammenhänge zwischen den Antworten mit Signifikanzniveaus.
 Entschieden hat er:

@@ -9,6 +9,21 @@
 > öffnet die Karte in Safari, auch wenn Fokus vorher beendet war; ein eigener
 > Wunsch meldet nichts.
 >
+> **coHabit, GIFs, Emoji-Reaktionen, Bild in Benachrichtigungen (05.10.):**
+> Branch `chat-media`, nicht gemergt, nicht gepusht. Braucht den Dienst ab
+> `49c9a6b` (`../habits`, Branch `chat-media`) mit `KLIPY_API_KEY` in
+> `/etc/habits.env` - **erst ihn ausrollen**, dann `tools/install-device.sh
+> coHabit`. Neu ist die Erweiterung `com.fherrmann.cohabit.notifications` (App-
+> und Keychain-Gruppe von coHabit): das Profil legt `-allowProvisioningUpdates`
+> an, solange Xcode angemeldet ist. Ein älterer Dienst kennt `/gifs/config`
+> nicht (kein GIF-Knopf) und nimmt kein GIF als Foto. Auf dem Gerät prüfen (geht
+> im Simulator nicht oder nur mit Stub): langer Druck auf Nachricht und
+> Timeline-Karte (Haptik, Scrollen bleibt möglich), „+" mit der echten
+> Emoji-Tastatur und ihrer Suche, das GIF-Blatt mit echtem KLIPY (Suche,
+> Nachladen), ein GIF aus der Galerie und per „Einfügen", Benachrichtigungen mit
+> Beweisfoto, eigenem GIF und KLIPY-GIF (Bild im Banner, GIF animiert beim
+> Aufziehen) - `simctl push` startet die Erweiterung nicht.
+>
 > **Nächster Schritt (coHabit, 30.09.):** Branch `cohabit` ist gebaut, aber
 > nichts davon ist ausgerollt. Reihenfolge für Felix (Vertrag §1.5): erst den
 > Dienst (`../habits`, Branch `cohabit`) mergen und ausrollen
@@ -107,7 +122,40 @@ drei davon neu für den Link in der Nutzlast, und 31 Swift Testing; coHabit
 grün), dazu die Dienste (`../todo` 41 Tests, `../food` 249 Tests). **Nicht
 geprüft:** ein echter Push auf dem Gerät und der Tipp aus der beendeten App.
 
+## coHabit: GIFs, Emoji-Reaktionen, Bild in Benachrichtigungen · **gebaut, nicht ausgerollt** (2026-10-05)
 
+Vertrag §2.7a (`../habits/docs/COHABIT-CONTRACT.md`), Entscheidungen in
+`ENTSCHEIDUNGEN.md` (05.10.).
+- **Emoji-Reaktionen** statt der vier festen, eine je Person, in Chat,
+  Check-in-Posts und Timeline: langer Druck öffnet ein Blatt mit 💪 🔥 🙌 ❤️ 😂 👏,
+  „+" (Emoji-Tastatur) und darunter Löschen/Melden/Blockieren (Timeline:
+  Antworten); das eigene ist hervorgehoben. Pille an der Unterkante der Blase
+  (drei häufigste, Zahl ab 2, Akzentrand mit eigener), Tipp → Blatt
+  „Reaktionen" mit „Entfernen". Timeline-Karten: Pille und Smiley neben
+  „Antworten". „Gratulieren" setzt 💪. Alte Namen (`STARK` …) lesen sich als
+  Emoji (`Emoji.fromService`), alte Postausgang-Aufträge gehen unverändert raus.
+- **GIFs aus KLIPY**: „GIF" im Eingabefeld (nur mit `/gifs/config` enabled),
+  Blatt mit „Search KLIPY", Raster in zwei Spalten (Trending, Suche nach 300 ms,
+  Nachladen), Antippen sendet sofort `md` und meldet `share` an KLIPY. Anzeige
+  ohne Blase im Seitenverhältnis, animiert über ImageIO (WebP, sonst GIF;
+  `stillUrl` vorher). Ohne Netz in den Postausgang.
+- **Eigene GIFs**: Galerie und „Einfügen" (erscheint nur mit GIF in der
+  Zwischenablage) erkennen GIFs und laden sie unverändert hoch (`image/gif`,
+  auch aus dem Postausgang); `photoAnimated` → animiert im Chat.
+- **Bild in Benachrichtigungen**: Erweiterung `coHabitNotifications` lädt
+  `photoId` (mit Token) bzw. `imageUrl` (nur `static*.klipy.com`) und hängt es an.
+- **Geprüft:** `tools/verify.sh` (siehe unten), Unit-Tests `ChatMediaTests`,
+  `NotificationImageTests` und angepasste Reaktions-/Postausgang-Tests; gegen
+  den lokalen Dienst (`49c9a6b`, Demo-Daten) und `tools/klipy-stub.py` die
+  UI-Tests `testReactWithAnEmojiAndRemoveIt` (Leiste, Ersetzen, Blatt,
+  Entfernen, „+" mit Emoji-Tastatur), `testReactInTheTimeline` und
+  `testSendAGifFromTheSearch` im eigenen Simulator „coHabit Media"; hell und
+  dunkel angesehen; eigenes GIF und KLIPY-GIF laufen im Chat animiert.
+- **Nicht prüfbar im Simulator:** die Erweiterung zur Laufzeit (`simctl push`
+  stellt direkt zu), echte KLIPY-Antworten (kein Schlüssel), die Galerie mit
+  einem echten GIF.
+
+## Healthy: Evaluation-Tab · **auf Felix' iPhone** (2026-10-04)
 
 - **Neuer Tab „Evaluation"** zwischen Gewicht und Einkauf (`Healthy/Evaluation/`):
   je Tag ein paar persönliche Fragen mit 1–10 (heute und gestern setzbar,

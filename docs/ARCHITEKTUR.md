@@ -64,6 +64,8 @@ coHabit/            App: Habits mit Freunden - Heute, Timeline, Statistik, Profi
   App/ Design/ Today/ Detail/ Chat/ CheckIn/ Timeline/ Stats/ Profile/ Create/ Invite/ Onboarding/ Health/
   Classic/          die alte Habit-Liste der Fokus-App als „Heute" (Schalter im Profil)
 coHabitWidget/      Kacheln von coHabit: klein/rund (konfigurierbar, Abhak-Knopf), mittel, gross, rechteckig
+coHabitNotifications/ Notification Service Extension von coHabit: haengt Foto bzw. GIF an eine Meldung -
+                    eine Datei plus NotificationImage, ImageFormat, CohabitToken, Keychain, Backend
 CohabitShared/      was coHabit UND coHabitWidget teilen: API mit Bearer, Modelle, Postausgang,
                     App-Gruppe group.com.fherrmann.cohabit, App-Intents, Kachel-Ansichten, Farben
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
@@ -188,7 +190,23 @@ Detailseite (`Route.cohabit`), `SyncLine`, `ErrorLine` und der Postausgang
 **Push:** Topic `com.fherrmann.cohabit`, der Dienst schickt selbst
 (`POST /devices` meldet die Kennung an). Jede Meldung trägt einen `link`; ein
 Tipp führt genau dorthin (`CohabitNotificationDelegate`, Completion-Handler
-wie in Core). Beim Abmelden wird die Kennung ausgetragen.
+wie in Core). Beim Abmelden wird die Kennung ausgetragen. Gehört ein Bild dazu
+(`photoId` bzw. `imageUrl`, dann `mutable-content`), startet iOS die
+Erweiterung **coHabitNotifications** (`com.fherrmann.cohabit.notifications`,
+eingebettet in coHabit): sie liest den Token aus derselben Keychain-Gruppe
+(lesbar ab dem ersten Entsperren), lädt das Foto vom Dienst bzw. das GIF direkt
+von KLIPY und hängt es an; ein GIF bleibt animiert. Was sie lädt und wie die
+Anlage heißt, steht in `CohabitShared/NotificationImage.swift` (prüfbar in
+`CohabitTests`); sie übersetzt nur die paar Dateien, die sie braucht, nicht
+`CohabitAPI`. Im Debug-Build reicht die App ihre umgebogene Dienst-Adresse
+über die App-Gruppe weiter - Umgebungsvariablen bekommt eine Erweiterung nicht.
+
+**Chat-Medien** (seit 05.10., Vertrag §2.7a): GIFs aus der Suche fragt die App
+direkt bei KLIPY (`KlipyClient`, Schlüssel aus `GET /gifs/config`), eigene GIFs
+gehen unverändert hoch. Animiert wird alles über ImageIO (`AnimatedImageView`),
+KLIPY-Medien liegen nur im Speicher und im HTTP-Cache (`KlipyMedia`), eigene
+Fotos und GIFs wie bisher auf der Platte (`PhotoLoader`). Reaktionen sind
+Emojis, eine je Person (`Reactions`, `ReactionViews.swift`).
 
 **Health:** nur lesend (Schritte, Lauf-/Gehdistanz, Trainings), je Co-Habit
 mit Metrik und Einwilligung ein Tageswert pro Tag der Nachtragsfrist,

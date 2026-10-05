@@ -27,6 +27,7 @@ Tagessummen); die Apps zeigen.
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
 | `coHabit/` | nur coHabit | alles |
 | `CohabitShared/` | coHabit **und** `coHabitWidget` | API-Client mit Bearer, Modelle, Postausgang, App-Gruppe `group.com.fherrmann.cohabit`, App-Intents und die Kachel-Ansichten — nichts, das es in einer Erweiterung nicht gibt |
+| `coHabitNotifications/` | nur die Notification Service Extension von coHabit | eine Datei; dazu einzeln (project.yml) `CohabitShared/NotificationImage.swift`, `ImageFormat.swift`, `CohabitToken.swift` und `Shared/Keychain.swift`, `Backend.swift` - **diese drei aus `CohabitShared/` duerfen nichts aus dem Rest von `CohabitShared/` benutzen**, sonst baut die Erweiterung nicht |
 | `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei plus `FocusShared/`, kein `Shared/`: legt beim Intervallstart den Schild (neu), nimmt ihn am Ende weg und ersetzt die Ende-Meldung durch „Apps wieder frei", sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
@@ -197,6 +198,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
+| `COCKPIT_URL_KLIPY=http://127.0.0.1:48793/api/v1` | GIF-Suche in coHabit gegen `tools/klipy-stub.py` statt KLIPY - ohne echten Schluessel (nur auf dem Server) antwortet KLIPY nicht. `uitest.sh` reicht es an `testSendAGifFromTheSearch` weiter |
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann. Wirkt auch ohne Zugang: ein Setup-Link (`cohabit://setup?token=…`) meldet dann an, ein Einladungslink oeffnet die Registrierung |
 | `COCKPIT_TODAY_MODE=list` | „Heute" in coHabit als Liste statt Dashboard |
