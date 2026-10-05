@@ -1,8 +1,9 @@
 import UIKit
 import UserNotifications
 
-/// Push-Kennung entgegennehmen (fuer Erinnerungen des To-Do-Dienstes) und
-/// einen Tipp auf eine Meldung zum passenden Tab fuehren.
+/// Push-Kennung entgegennehmen (fuer Erinnerungen und Feature Requests des
+/// To-Do-Dienstes) und einen Tipp auf eine Meldung zum passenden Tab - oder
+/// zu ihrem Link - fuehren.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private let notifications = NotificationDelegate(onOpen: { kind in
@@ -14,6 +15,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         case "forest": Task { @MainActor in Router.shared.show(.forest) }
         default: break
         }
+    }, onLink: { link in
+        // Ein Feature Request von Torben & Co.: der Tipp oeffnet die Karte,
+        // dahinter steht der To-Do-Tab mit ihrer Unteraufgabe.
+        Task { @MainActor in Router.shared.open(link) }
     })
 
     func application(

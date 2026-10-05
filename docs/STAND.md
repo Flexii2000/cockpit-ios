@@ -1,5 +1,14 @@
 # Stand
 
+> **Fokus, Feature Requests per Push (05.10.):** braucht den To-Do-Dienst mit
+> `notification` (`../todo`) und den Kalorienzähler, der sie schickt (`../food`)
+> — beide ausrollen, dann `tools/install-device.sh Fokus`. Ein älteres Fokus
+> zeigt die Meldung auch, öffnet beim Tipp aber nur den To-Do-Tab statt der
+> Karte. Auf dem Gerät prüfen: Torben schickt einen Wunsch ab (oder ein Test mit
+> seinem Token) → Meldung „Feature Request · <App>“ / „Torben: <Titel>“, Tipp
+> öffnet die Karte in Safari, auch wenn Fokus vorher beendet war; ein eigener
+> Wunsch meldet nichts.
+>
 > **Nächster Schritt (coHabit, 30.09.):** Branch `cohabit` ist gebaut, aber
 > nichts davon ist ausgerollt. Reihenfolge für Felix (Vertrag §1.5): erst den
 > Dienst (`../habits`, Branch `cohabit`) mergen und ausrollen
@@ -77,7 +86,28 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
-## Healthy: Evaluation-Tab · **auf Felix' iPhone** (2026-10-04)
+## Fokus: Feature Requests von anderen als Push · **gebaut, nicht ausgerollt** (2026-10-05)
+
+Schickt jemand anderes als Felix einen Feature Request ab, meldet Fokus das:
+„Feature Request · coHabit“, darunter „Torben: <Titel der Karte>“. Ein Tipp
+öffnet die Karte (`fherrmann.com/feature-requests/<id>`) in Safari, dahinter
+steht der To-Do-Tab mit ihrer Unteraufgabe. Felix' eigene Wünsche melden nichts.
+
+Der Weg: der Kalorienzähler legt die Unteraufgabe wie bisher im To-Do an und
+gibt dabei `notification: {title, body}` mit; das To-Do schickt sie, sobald die
+Aufgabe steht, über denselben APNs-Weg wie die Erinnerungen — Nutzlast weiter
+`"kind": "todo"`, neu daneben `"link"` (der Link der Aufgabe). Hier in der App:
+`NotificationDelegate` reicht einen http(s)-Link an `onLink` weiter (nur Fokus
+übergibt einen, Healthy und Vault übergehen ihn), `Router.open` merkt ihn, und
+`RootView` öffnet ihn erst, wenn die Szene aktiv ist — startet der Tipp die App
+erst, wäre ein sofortiges `openURL` ins Leere gegangen.
+
+Geprüft: `tools/verify.sh` (alle fünf gebaut, Unit-Tests grün: 131 XCTest,
+drei davon neu für den Link in der Nutzlast, und 31 Swift Testing; coHabit
+grün), dazu die Dienste (`../todo` 41 Tests, `../food` 249 Tests). **Nicht
+geprüft:** ein echter Push auf dem Gerät und der Tipp aus der beendeten App.
+
+
 
 - **Neuer Tab „Evaluation"** zwischen Gewicht und Einkauf (`Healthy/Evaluation/`):
   je Tag ein paar persönliche Fragen mit 1–10 (heute und gestern setzbar,

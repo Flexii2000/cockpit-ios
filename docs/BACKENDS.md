@@ -843,7 +843,7 @@ setzt nichts zusammen.
 |---|---|---|
 | GET | `/api/board?all=false` | Bereiche mit sichtbaren Aufgaben; `all=true` auch ältere erledigte |
 | POST/PUT/DELETE | `/api/areas[/{id}]` | Bereich anlegen `{name}`, umbenennen, löschen (samt Aufgaben) |
-| POST | `/api/todos` | `{areaId, parentId?, title, link?}` — `parentId` macht eine Unteraufgabe (eine Ebene) |
+| POST | `/api/todos` | `{areaId, parentId?, title, link?, notification?}` — `parentId` macht eine Unteraufgabe (eine Ebene); `notification` `{title, body}` schickt beim Anlegen einen Push an Fokus (nutzt nur der Kalorienzähler) |
 | PUT | `/api/todos/{id}` | `{title, dueAt?}` — ohne `dueAt` gibt es keine Fälligkeit mehr; `link` bleibt, wie er ist |
 | POST | `/api/todos/{id}/reminders` | `{at}` als Zeitpunkt **mit Zone** (`ReminderDraft` schreibt ISO mit `Z`), nur Zukunft |
 | DELETE | `/api/todos/{id}/reminders/{rid}` | Erinnerung weg |
@@ -875,6 +875,14 @@ Fokus (Topic `com.fherrmann.fokus`, Nutzlast `"kind": "todo"`). Die App
 meldet ihre Kennung nach dem ersten erfolgreichen Laden des Bretts an. Eine
 erledigte Aufgabe erinnert an nichts mehr; eine um mehr als eine Stunde
 verpasste Erinnerung ist verpasst.
+
+⚠️ **Feature Requests von anderen kommen ebenfalls als Push** (seit
+2026-10-05): der Kalorienzähler gibt beim Anlegen der Unteraufgabe
+`notification` mit, das To-Do schickt sie nach dem Speichern, im Hintergrund.
+Nutzlast wie bei Erinnerungen plus `"link"` = Link der Aufgabe (die
+Kartenseite). Fokus öffnet ihn beim Tipp (`NotificationDelegate.link(in:)`, nur
+http(s) mit Host); eine ältere Fokus-Version übergeht ihn und zeigt den
+To-Do-Tab.
 
 ⚠️ **Erledigtes verschwindet nach drei Tagen, wird aber nicht gelöscht.**
 `visibleUntil` sagt, wann; danach fehlt die Aufgabe im Brett, bis `all=true`

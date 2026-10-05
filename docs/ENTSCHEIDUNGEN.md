@@ -3,6 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-05 — Feature Requests als Push in Fokus: über das To-Do, Tipp öffnet die Karte
+Felix wollte von Fokus benachrichtigt werden, wenn ein Feature Request angelegt
+wird. Entschieden hat er:
+- **Nur Wünsche von anderen**, seine eigenen melden nichts. **Verworfen:** jede
+  Anfrage, auch die eigenen.
+- **Der Tipp öffnet die Karte** (Safari), nicht nur den To-Do-Tab. **Verworfen:**
+  To-Do-Tab wie bei Erinnerungen — ohne App-Update, aber ein Tipp mehr.
+- **Text** „Feature Request · <App>“ / „<Person>: <Titel>“. **Verworfen:** Person
+  im Titel; neutraler Titel „Neuer Feature Request“.
+
+Technisch schickt das **To-Do** den Push, nicht der Kalorienzähler: nur das
+To-Do kennt die Push-Kennungen von Fokus (`/api/devices`), und die Meldung hängt
+so am Anlegen der Unteraufgabe — kommt die erst mit dem Nachlauf, kommt die
+Meldung mit, und eine übernommene (schon vorhandene) Aufgabe meldet sich nicht
+doppelt. **Verworfen:** ein eigener `/api/notify`-Endpunkt, den der
+Kalorienzähler nach dem Anlegen ruft — dann bräuchte jeder Wiederholungsweg
+seine eigene Regel, wann gemeldet wird.
+
 ## 2026-10-04 — Evaluation: Zusammenhänge mit Signifikanz, 14 Tage
 Felix wollte Zusammenhänge zwischen den Antworten mit Signifikanzniveaus.
 Entschieden hat er:
