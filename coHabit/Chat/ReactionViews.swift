@@ -52,9 +52,11 @@ extension View {
     func reactionPill(_ reactions: [ReactionView], trailing: Bool, open: @escaping () -> Void) -> some View {
         overlay(alignment: trailing ? .bottomTrailing : .bottomLeading) {
             if !reactions.isEmpty {
+                // Verschoben statt ueber eine Ausrichtungslinie: die kommt
+                // durch `if` und `padding` nicht zuverlaessig an.
                 ReactionPill(reactions: reactions, open: open)
-                    .alignmentGuide(.bottom) { _ in ReactionPill.overlap }
                     .padding(.horizontal, 10)
+                    .offset(y: ReactionPill.height - ReactionPill.overlap)
             }
         }
         .padding(.bottom, reactions.isEmpty ? 0 : ReactionPill.height - ReactionPill.overlap + 2)

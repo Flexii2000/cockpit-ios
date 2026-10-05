@@ -300,6 +300,51 @@ final class CohabitUITests: XCTestCase {
         remove.tap()
         XCTAssertTrue(waitUntilGone(pill), "die Pille bleibt nach „Entfernen“")
         XCTAssertEqual(try reactions(of: messageId, in: id), [])
+
+        // „+": jedes andere Emoji ueber die Tastatur.
+        bubble.press(forDuration: 0.8)
+        let other = app.textFields["reactOther"]
+        XCTAssertTrue(other.waitForExistence(timeout: 5))
+        other.tap()
+        sleep(1)
+        shoot(app, "reaktion-tastatur")
+        other.typeText("🎉")
+        XCTAssertTrue(pill.waitForExistence(timeout: 10), "das Emoji aus der Tastatur kommt nicht an")
+        XCTAssertEqual(try reactions(of: messageId, in: id), ["🎉"])
+        shoot(app, "reaktion-anderes")
+    }
+
+    /// Timeline: der Smiley neben „Antworten" oeffnet dieselbe Leiste, die
+    /// Pille steht auf der Karte; hell und dunkel aufgenommen.
+    @MainActor
+    func testReactInTheTimeline() throws {
+        let app = launch(tab: "timeline", extra: ["COCKPIT_TIMELINE_HIDDEN": "none"])
+        addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        let smiley = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'smiley-'")).firstMatch
+        XCTAssertTrue(app.buttons["timelineFilter"].waitForExistence(timeout: 20))
+        for _ in 0..<8 where !(smiley.exists && smiley.isHittable) { scrollDown(app) }
+        XCTAssertTrue(smiley.isHittable, "keine Foto-Karte mit Smiley in den Demo-Daten")
+        let itemId = String(smiley.identifier.dropFirst("smiley-".count))
+        shoot(app, "timeline-karte")
+        smiley.tap()
+        let clap = app.buttons["react-👏"]
+        XCTAssertTrue(clap.waitForExistence(timeout: 5), "der Smiley oeffnet keine Leiste")
+        XCTAssertFalse(app.buttons["menuDelete"].exists, "in der Timeline gibt es nichts zu loeschen")
+        shoot(app, "timeline-leiste")
+        XCUIDevice.shared.appearance = .dark
+        sleep(1)
+        shoot(app, "timeline-leiste-dunkel")
+        let selected = clap.isSelected
+        clap.tap()
+        let card = app.otherElements["event-\(itemId)"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        sleep(1)
+        shoot(app, "timeline-pille-dunkel")
+        // Zurueck auf den Stand vorher: noch einmal dasselbe nimmt es zurueck.
+        smiley.tap()
+        XCTAssertTrue(clap.waitForExistence(timeout: 5))
+        XCTAssertEqual(clap.isSelected, !selected, "das eigene ist nicht hervorgehoben")
+        clap.tap()
     }
 
     /// Das GIF-Blatt gegen tools/klipy-stub.py: Suchfeld „Search KLIPY",
