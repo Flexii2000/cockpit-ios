@@ -46,9 +46,17 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
         /// Ob die Quelle woanders liegt und hier nichts einzutragen ist.
         var isAutomatic: Bool { !takesMarks && !usesSummary }
 
-        /// Die Gruppe in der Liste: erst Aufbauen und Lassen, dann Ziele und
-        /// Challenges, dann die automatischen.
-        var order: Int { takesMarks ? 0 : usesSummary ? 1 : 2 }
+        /// Die Gruppe in der Liste: oben, was man abhakt bzw. eintraegt
+        /// (Aufbauen, dann Ziele und Challenges), darunter Lassen - dort traegt
+        /// man nur einen Rueckfall ein -, zuletzt die automatischen.
+        var order: Int {
+            switch self {
+            case .build: 0
+            case .goal, .challenge: 1
+            case .quit: 2
+            default: 3
+            }
+        }
 
         var label: String {
             switch self {
@@ -327,11 +335,12 @@ extension ClassicHabit: Decodable {
 }
 
 extension Array where Element == ClassicHabit {
-    /// Erst, was man selbst abhakt (Aufbauen, Lassen), dann Ziele und
-    /// Challenges, dann, was von selbst zaehlt (Track food, Schritte,
-    /// Fokus-Zeit) - der Dienst liefert in Anlegereihenfolge, die bleibt
-    /// innerhalb der Gruppen erhalten. Wie frueher `manualFirst` (Felix,
-    /// 2026-09-23), seit 2026-10-01 mit Zielen und Challenges in der Mitte.
+    /// Erst, was man abhakt bzw. eintraegt (Aufbauen, dann Ziele und
+    /// Challenges), dann Lassen, dann, was von selbst zaehlt (Track food,
+    /// Schritte, Fokus-Zeit) - der Dienst liefert in Anlegereihenfolge, die
+    /// bleibt innerhalb der Gruppen erhalten. Seit 2026-10-05 (Felix) steht
+    /// Lassen unter dem Abhakbaren: ein neues taegliches Habit rutschte sonst
+    /// unter aeltere Lassen-Habits.
     var classicOrder: [ClassicHabit] {
         enumerated()
             .sorted { ($0.element.kind.order, $0.offset) < ($1.element.kind.order, $1.offset) }

@@ -374,9 +374,9 @@ final class ClassicGoalChallengeTests: XCTestCase {
         XCTAssertFalse(habits[1].kind.takesMarks)
     }
 
-    /// Erst Aufbauen und Lassen, dann Ziele und Challenges, dann die
+    /// Erst Aufbauen, dann Ziele und Challenges, dann Lassen, dann die
     /// automatischen - innerhalb der Gruppen die Anlegereihenfolge.
-    func testOrderManualThenGoalsAndChallengesThenAutomatic() throws {
+    func testOrderCheckableFirstThenQuitThenAutomatic() throws {
         let habits = try decode([
             Self.habitJSON(id: "f1", kind: "FOOD"),
             Self.habitJSON(id: "g1", kind: "GOAL", summary: Self.goal),
@@ -386,7 +386,7 @@ final class ClassicGoalChallengeTests: XCTestCase {
             Self.habitJSON(id: "s1", kind: "STEPS"),
             Self.habitJSON(id: "b2", kind: "BUILD"),
         ])
-        XCTAssertEqual(habits.classicOrder.map(\.id), ["b1", "q1", "b2", "g1", "c1", "f1", "s1"])
+        XCTAssertEqual(habits.classicOrder.map(\.id), ["b1", "b2", "g1", "c1", "q1", "f1", "s1"])
     }
 
     /// Welcher Knopf was ausloest.

@@ -3,6 +3,14 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-05 — coHabit, klassische Liste: Abhakbares vor Lassen
+Reihenfolge jetzt Aufbauen → Ziele und Challenges → Lassen → automatisch, in
+jeder Gruppe nach Anlegedatum (`classicOrder`). **Warum:** Felix; ein neues
+tägliches Habit rutschte unter ältere Lassen-Habits, obwohl man es abhakt und
+bei Lassen nur einen Rückfall einträgt. **Verworfen:** (a) nur Aufbauen vor
+Lassen, Ziele und Challenges weiter dahinter; (b) heute Offene ganz oben – die
+Liste würde sich beim Abhaken umsortieren.
+
 ## 2026-10-05 — Feature Requests als Push in Fokus: über das To-Do, Tipp öffnet die Karte
 Felix wollte von Fokus benachrichtigt werden, wenn ein Feature Request angelegt
 wird. Entschieden hat er:
@@ -358,7 +366,8 @@ Balken, keine sieben Punkte (seit dem Nachmittag doch, siehe oben); rechts „Ei
 Liste öffnet (Wert-Blatt, +1, Beweisfoto) - die Liste hat keine eigene Logik.
 Der Name führt immer zur Detailseite, Langdruck-Nachtragen gibt es nicht,
 Wischen wie bei den anderen. Reihenfolge: Aufbauen/Lassen, dann Ziele und
-Challenges, dann die automatischen (`classicOrder`). Der Editor legt weiter nur
+Challenges, dann die automatischen (`classicOrder`; seit 05.10. Lassen erst
+nach Zielen und Challenges, siehe dort). Der Editor legt weiter nur
 die fünf alten Arten an. **Warum:** Felix; die alte Zeile hat genau drei
 Plätze (Kennzahl links, Text in der Mitte, Knopf rechts), in die die
 Zusammenfassung passt. Auf dem Knopf steht „Eintragen" und nicht
