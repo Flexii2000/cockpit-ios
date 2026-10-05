@@ -4,8 +4,9 @@ import Foundation
 ///
 /// Hier liegt, was beide Prozesse sehen muessen: der letzte Stand der Kachel
 /// (die App legt ihn nach jedem Laden ab, die Kachel zeigt ihn, wenn sie
-/// selbst nicht durchkommt), die Zeitzonen der Co-Habits (damit ein Haken aus
-/// der Kachel ohne Netz den richtigen Tag bekommt) und der Postausgang.
+/// selbst nicht durchkommt), der letzte Stand von `/me` (die Typfarben, wenn
+/// `/widget` sie nicht kennt), die Zeitzonen der Co-Habits (damit ein Haken
+/// aus der Kachel ohne Netz den richtigen Tag bekommt) und der Postausgang.
 enum CohabitGroup {
 
     static let identifier = "group.com.fherrmann.cohabit"
@@ -25,6 +26,23 @@ enum CohabitGroup {
 
     private static let widgetDataKey = "cohabit.widgetData"
     private static let zonesKey = "cohabit.zones"
+    private static let meKey = "cohabit.me"
+
+    // MARK: - Ich
+
+    static func saveMe(_ me: MeView) {
+        guard let encoded = try? APIClient.encoder().encode(me) else { return }
+        defaults.set(encoded, forKey: meKey)
+    }
+
+    static func loadMe() -> MeView? {
+        guard let data = defaults.data(forKey: meKey) else { return nil }
+        return try? APIClient.decoder().decode(MeView.self, from: data)
+    }
+
+    static func removeMe() {
+        defaults.removeObject(forKey: meKey)
+    }
 
     // MARK: - Stand der Kachel
 
@@ -36,6 +54,13 @@ enum CohabitGroup {
     static func loadWidgetData() -> WidgetData? {
         guard let data = defaults.data(forKey: widgetDataKey) else { return nil }
         return try? APIClient.decoder().decode(WidgetData.self, from: data)
+    }
+
+    /// Die Typfarben der Kacheln (Vertrag §5.2b): die von `/widget`; fehlen sie
+    /// dort (aelterer Dienst), die aus dem letzten `/me` der App, sonst die
+    /// Vorgaben.
+    static func typeColors(for data: WidgetData) -> TypeColors {
+        data.typeColors ?? loadMe()?.typeColors ?? .defaults
     }
 
     // MARK: - Zeitzonen

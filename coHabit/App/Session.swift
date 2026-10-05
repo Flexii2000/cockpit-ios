@@ -15,6 +15,11 @@ final class Session {
 
     private(set) var token: String?
     private(set) var me: MeView?
+    /// Die eigene Farbe je Typ (Vertrag §5.2b) - aus `me`, beim Waehlen sofort.
+    /// Eigens gefuehrt statt aus `me` berechnet: jede Ansicht, die nach Typ
+    /// faerbt, liest das (`CohabitRef.typeColor`) und soll nur neu zeichnen,
+    /// wenn sich die Farben aendern - nicht bei jedem Laden von `/me`.
+    private(set) var typeColors: TypeColors = .defaults
     /// Warum die App wieder am Start steht - „Zugang ungültig".
     var signedOutReason: String?
 
@@ -32,16 +37,15 @@ final class Session {
             // Eine andere Person (Debug-Schalter): deren Vorgaenger soll man
             // nicht mehr sehen, auch nicht ohne Netz.
             OfflineCache.clear()
-            CohabitGroup.defaults.removeObject(forKey: Self.meKey)
+            CohabitGroup.removeMe()
         }
         if token != nil && !switched {
-            // Der letzte bekannte Stand, damit „Du" und der Avatar sofort
-            // stimmen - frisch geholt wird gleich danach.
-            me = try? APIClient.decoder().decode(MeView.self, from: CohabitGroup.defaults.data(forKey: Self.meKey) ?? Data())
+            // Der letzte bekannte Stand, damit „Du", der Avatar und die
+            // Farben sofort stimmen - frisch geholt wird gleich danach.
+            me = CohabitGroup.loadMe()
+            typeColors = me?.typeColors ?? .defaults
         }
     }
-
-    private static let meKey = "cohabit.me"
 
     func api() -> CohabitAPI { CohabitAPI(token: token) }
 
@@ -105,9 +109,44 @@ final class Session {
 
     func store(_ me: MeView) {
         self.me = me
-        if let data = try? APIClient.encoder().encode(me) {
-            CohabitGroup.defaults.set(data, forKey: Self.meKey)
+        CohabitGroup.saveMe(me)
+        show(me.typeColors ?? .defaults)
+    }
+
+    private func show(_ colors: TypeColors) {
+        if colors != typeColors { typeColors = colors }
+    }
+
+    /// Waehlt die Farbe eines Typs (Vertrag §5.2b): sofort ueberall, dann beim
+    /// Dienst - nur dieser Platz. Schlaegt das fehl, springt die Wahl zurueck.
+    /// - Returns: die Meldung des Dienstes, wenn es nicht ging.
+    func chooseTypeColor(_ color: PaletteKey, for slot: TypeColorSlot, api: CohabitAPI? = nil) async -> String? {
+        let previous = typeColors[slot]
+        guard color != previous else { return nil }
+        apply(typeColors.setting(color, for: slot))
+        do {
+            let saved = try await (api ?? self.api()).saveTypeColor(color, for: slot)
+            // Ein zweiter Tipp auf denselben Platz, waehrend dieser unterwegs
+            // war, hat Vorrang - sonst sprang die Wahl kurz zurueck.
+            if typeColors[slot] == color { apply(typeColors.setting(saved[slot], for: slot)) }
+            WidgetSync.typeColorsChanged(saved)
+            return nil
+        } catch {
+            if typeColors[slot] == color { apply(typeColors.setting(previous, for: slot)) }
+            return error.localizedDescription
         }
+    }
+
+    /// Zeigt Farben, bevor `/me` sie bringt - auch im Speicher der App-Gruppe,
+    /// damit die Kachel und der naechste Start sie schon kennen. Nicht privat:
+    /// die Tests stellen damit den Stand vor ihnen wieder her.
+    func apply(_ colors: TypeColors) {
+        if var me {
+            me.typeColors = colors
+            self.me = me
+            CohabitGroup.saveMe(me)
+        }
+        show(colors)
     }
 
     /// Abmelden: beim Dienst den eigenen Token widerrufen und das Geraet
@@ -126,7 +165,8 @@ final class Session {
         CohabitToken.clear()
         token = nil
         me = nil
-        CohabitGroup.defaults.removeObject(forKey: Self.meKey)
+        show(.defaults)
+        CohabitGroup.removeMe()
         OfflineCache.clear()
         await CohabitOutbox.shared.clear()
         CohabitGroup.clear()
@@ -172,6 +212,17 @@ enum WidgetSync {
         Task { await refresh() }
     }
 
+    /// Neue Typfarben: der Stand der Kachel bekommt sie sofort (auch fuer den
+    /// Fall, dass sie selbst nicht durchkommt), dann laden die Kacheln neu.
+    @MainActor
+    static func typeColorsChanged(_ colors: TypeColors) {
+        if var data = CohabitGroup.loadWidgetData() {
+            data.typeColors = colors
+            CohabitGroup.saveWidgetData(data)
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     /// Die eigene Aktion sofort zeigen (Vertrag §5.5), dann neu laden.
     @MainActor
     static func markDone(_ cohabitId: String) {
@@ -181,4 +232,13 @@ enum WidgetSync {
         }
         Task { await refresh() }
     }
+}
+
+extension CohabitRef {
+    /// Die Farbe in der App, ueberall: die eigene des Typs (Vertrag §5.2b).
+    /// Liest `Session.typeColors` - so zeichnet sich jede Ansicht, die sie
+    /// benutzt, nach einer Wahl auf der Seite „Farben" von selbst neu. Gibt es
+    /// nur in der App; die Kachel faerbt mit `typeColor(in:)` und den Farben
+    /// von `/widget`.
+    @MainActor var typeColor: PaletteKey { typeColor(in: Session.shared.typeColors) }
 }

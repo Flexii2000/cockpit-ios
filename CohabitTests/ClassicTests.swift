@@ -410,6 +410,7 @@ final class ClassicGoalChallengeTests: XCTestCase {
     /// Eintragen bei Ziel und Challenge laeuft ueber `CheckInController` wie in
     /// der neuen Liste: Wert-Blatt mit `valueUnit`, Beweisfoto bei Foto-Pflicht,
     /// sonst gleich +1.
+    @MainActor
     func testCheckInFollowsTheNewList() throws {
         let photoGoal = Self.goal.replacingOccurrences(of: #""photoRequired":false"#, with: #""photoRequired":true"#)
         let habits = try decode([

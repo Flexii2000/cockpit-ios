@@ -23,6 +23,7 @@ struct CheckInTarget: Identifiable, Hashable {
     /// „Anderer Tag".
     var backfill = false
 
+    @MainActor
     init(summary: CohabitSummary, meId: String?) {
         id = summary.ref.id
         name = summary.ref.name
@@ -37,6 +38,7 @@ struct CheckInTarget: Identifiable, Hashable {
         zone = CohabitGroup.zone(for: summary.ref.id) ?? Self.defaultZone
     }
 
+    @MainActor
     init(detail: CohabitDetail, meId: String?) {
         id = detail.id
         name = detail.ref.name

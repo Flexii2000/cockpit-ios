@@ -182,7 +182,7 @@ struct CohabitConfig: Codable, Hashable, Sendable {
     /// Ein frisches Co-Habit eines Typs mit den Vorgaben des Vertrags.
     static func draft(_ type: CohabitType, today: CalendarDate = .today(in: TimeZone(identifier: "Europe/Berlin") ?? .current)) -> CohabitConfig {
         var config = CohabitConfig(
-            type: type, name: "", color: type.palette, timezone: "Europe/Berlin",
+            type: type, name: "", color: TypeColorSlot(type).defaultColor, timezone: "Europe/Berlin",
             tracking: .check, photoRequired: false, backfillHours: 48, reminderTime: nil,
             membersCanInvite: false)
         switch type {
@@ -520,6 +520,10 @@ struct WidgetData: Codable, Hashable, Sendable {
     let challenge: ChallengeBoard?
     let teamGoal: TeamGoal?
     var openStreak: OpenStreak?
+    /// Wie `MeView.typeColors` (Vertrag §5.2b) - die Kachel faerbt damit, ohne
+    /// die App zu fragen. `nil` bei einem aelteren Dienst; was dann gilt, sagt
+    /// `colors`.
+    var typeColors: TypeColors? = nil
 
     /// Die eigene Aktion sofort zeigen (Vertrag §5.5: „lokal übernehmen, dann
     /// neu laden"). Nur der Zustand „heute erledigt" - Serie und Quote kennt

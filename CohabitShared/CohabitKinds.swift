@@ -3,13 +3,116 @@ import Foundation
 // Farbe und Reihenfolge nach Typ (Felix, 2026-10-05): die moderne Liste soll so
 // leicht zu verfolgen sein wie die klassische - dieselbe Reihenfolge nach Typ,
 // und jedes Co-Habit traegt die Farbe seines Typs statt einer eigenen.
+// Welche Farbe ein Typ hat, waehlt seit dem Abend desselben Tages jede Person
+// selbst (Vertrag §5.2b): Torben fand alles braun - fast alles sind Streaks,
+// und Pfirsich ist im Dunkeln braun.
 // Steht hier, damit App und Kachel dieselbe Zuordnung haben.
 
-extension CohabitType {
-    /// Die Farbe eines Typs - dieselbe wie auf den Typkarten im Anlegen-Schritt 1;
-    /// automatische (Track food, Schritte, Fokus-Zeit …) sind immer Aqua.
-    func color(automatic: Bool) -> PaletteKey {
-        automatic ? .aqua : palette
+/// Ein Platz der Typfarben: die vier Typen und „automatisch" - jedes Co-Habit,
+/// das von selbst zaehlt, egal welchen Typs.
+enum TypeColorSlot: String, CaseIterable, Identifiable, Sendable {
+    case streak = "STREAK"
+    case abstinence = "ABSTINENCE"
+    case goal = "GOAL"
+    case challenge = "CHALLENGE"
+    case automatic = "AUTOMATIC"
+
+    init(_ type: CohabitType) {
+        switch type {
+        case .streak: self = .streak
+        case .abstinence: self = .abstinence
+        case .goal: self = .goal
+        case .challenge: self = .challenge
+        }
+    }
+
+    /// Automatisch geht vor dem Typ: Track food ist ein Streak, sieht aber aus
+    /// wie Schritte und Fokus-Zeit.
+    init(_ type: CohabitType, automatic: Bool) {
+        self = automatic ? .automatic : Self(type)
+    }
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .streak: "Streak"
+        case .abstinence: "Abstinenz"
+        case .goal: "Ziel"
+        case .challenge: "Challenge"
+        case .automatic: "Automatisch"
+        }
+    }
+
+    /// Die Vorgabe - dieselbe wie bei einem Dienst, der die Wahl noch nicht kennt.
+    var defaultColor: PaletteKey {
+        switch self {
+        case .streak: .peach
+        case .abstinence: .mint
+        case .goal: .periwinkle
+        case .challenge: .butter
+        case .automatic: .aqua
+        }
+    }
+}
+
+/// Welche Farbe jeder Typ bei dieser Person hat (`MeView.typeColors`,
+/// `WidgetData.typeColors`). Was fehlt oder unbekannt ist, hat die Vorgabe -
+/// ein Dienst mit einer elften Farbe soll nicht alles in Periwinkle tauchen,
+/// wie es `PaletteKey.fallback` taete.
+struct TypeColors: Codable, Hashable, Sendable {
+
+    /// Nur, was von der Vorgabe abweicht - so sind zwei gleich aussehende
+    /// Zuordnungen auch gleich (`==`), und die App zeichnet nicht umsonst neu.
+    private var chosen: [TypeColorSlot: PaletteKey]
+
+    static let defaults = TypeColors()
+
+    init(_ chosen: [TypeColorSlot: PaletteKey] = [:]) {
+        self.chosen = chosen.filter { $0.value != $0.key.defaultColor }
+    }
+
+    subscript(slot: TypeColorSlot) -> PaletteKey {
+        chosen[slot] ?? slot.defaultColor
+    }
+
+    func setting(_ color: PaletteKey, for slot: TypeColorSlot) -> TypeColors {
+        var copy = chosen
+        copy[slot] = color
+        return TypeColors(copy)
+    }
+
+    func color(for ref: CohabitRef) -> PaletteKey { self[ref.typeColorSlot] }
+
+    private struct Key: CodingKey {
+        let stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+
+    /// Liest `{"STREAK":"sky",…}` tolerant: unbekannte Plaetze, unbekannte
+    /// Farben, `null` und sogar ein Feld, das gar kein Objekt ist, fallen auf
+    /// die Vorgaben - an diesem Feld soll nie ganz `/me` oder `/widget` scheitern.
+    init(from decoder: Decoder) throws {
+        var chosen: [TypeColorSlot: PaletteKey] = [:]
+        if let container = try? decoder.container(keyedBy: Key.self) {
+            for slot in TypeColorSlot.allCases {
+                if let raw = try? container.decodeIfPresent(String.self, forKey: Key(stringValue: slot.rawValue)),
+                   let color = PaletteKey(rawValue: raw) {
+                    chosen[slot] = color
+                }
+            }
+        }
+        self.init(chosen)
+    }
+
+    /// Immer alle fuenf, wie der Dienst sie schickt.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Key.self)
+        for slot in TypeColorSlot.allCases {
+            try container.encode(self[slot].rawValue, forKey: Key(stringValue: slot.rawValue))
+        }
     }
 }
 
@@ -17,10 +120,13 @@ extension CohabitRef {
     /// Zaehlt von selbst - aus Healthy, Health, dem Wald oder der Evaluation.
     var isAutomatic: Bool { autoSource != nil }
 
-    /// Die Farbe in der App, ueberall: Streak Pfirsich, Abstinenz Minze, Ziel
-    /// Flieder, Challenge Butter, automatisch Aqua. Die gespeicherte Farbe
-    /// (`storedColor`) zeigen nur noch Web und Android.
-    var typeColor: PaletteKey { type.color(automatic: isAutomatic) }
+    var typeColorSlot: TypeColorSlot { TypeColorSlot(type, automatic: isAutomatic) }
+
+    /// Die Farbe in der Zuordnung einer Person. Die gespeicherte Farbe
+    /// (`storedColor`) zeigt kein Client mehr. In der App heisst das
+    /// `typeColor` (mit der Zuordnung der Sitzung); die Kachel nimmt die von
+    /// `/widget`.
+    func typeColor(in colors: TypeColors) -> PaletteKey { colors[typeColorSlot] }
 
     /// Die Gruppe in „Heute": wie in der klassischen Liste erst, was man abhakt
     /// (Streaks, dann Ziele und Challenges), dann Abstinenz, zuletzt die
@@ -36,9 +142,12 @@ extension CohabitRef {
 }
 
 extension CohabitConfig {
-    /// Die Farbe, die ein neues Co-Habit aus der App mitbekommt - die seines
-    /// Typs, damit Web und Android dieselbe zeigen.
-    var typeColor: PaletteKey { type.color(automatic: auto != nil) }
+    /// Die Farbe, die ein neues Co-Habit aus der App mitbekommt - die eigene
+    /// seines Typs (Vertrag §5.2b). Gezeigt wird die gespeicherte nirgends
+    /// mehr, aeltere Fassungen von Web und Android lesen sie aber noch.
+    func typeColor(in colors: TypeColors) -> PaletteKey {
+        colors[TypeColorSlot(type, automatic: auto != nil)]
+    }
 }
 
 enum TodayGroup: Int, Comparable, Sendable {

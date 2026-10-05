@@ -110,6 +110,13 @@ struct CohabitAPI: Sendable {
         try decode(try await perform(multipartRequest("PUT", "/me/avatar", data: jpeg)))
     }
 
+    /// Eine Typfarbe (Vertrag §5.2b): nur dieser Platz geht raus - zwei
+    /// Geraete, die verschiedene Typen umstellen, ueberschreiben sich so nicht.
+    /// Zurueck kommen alle fuenf.
+    func saveTypeColor(_ color: PaletteKey, for slot: TypeColorSlot) async throws -> TypeColors {
+        try await send("PUT", "/me/type-colors", body: [slot.rawValue: color.rawValue])
+    }
+
     // MARK: - Innereien
 
     struct EmptyBody: Codable, Sendable {}

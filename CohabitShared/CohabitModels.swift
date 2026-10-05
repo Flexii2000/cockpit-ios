@@ -26,7 +26,10 @@ extension LenientEnum {
 // MARK: - Gemeinsame Objekte (§3.0)
 
 enum PaletteKey: String, LenientEnum, CaseIterable, Identifiable {
-    case peach, mint, periwinkle, butter, rose, aqua
+    // Die letzten vier kamen am 2026-10-05 fuer die Typfarben dazu (Vertrag
+    // §2.1, §5.2b) - Avatare und Anlegefarben des Dienstes bleiben bei den
+    // ersten sechs.
+    case peach, mint, periwinkle, butter, rose, aqua, lavender, sky, sage, coral
     static let fallback = PaletteKey.periwinkle
     var id: String { rawValue }
 }
@@ -46,16 +49,6 @@ enum CohabitType: String, LenientEnum, CaseIterable, Identifiable {
         case .abstinence: "Abstinenz"
         case .goal: "Ziel"
         case .challenge: "Challenge"
-        }
-    }
-
-    /// Die Farbe der Typkarte im Anlegen-Schritt 1.
-    var palette: PaletteKey {
-        switch self {
-        case .streak: .peach
-        case .abstinence: .mint
-        case .goal: .periwinkle
-        case .challenge: .butter
         }
     }
 }
@@ -165,6 +158,10 @@ struct MeView: Codable, Hashable, Sendable {
     let incomingFriendRequests: Int
     let canLogout: Bool
     let createdAt: Date?
+    /// Die eigene Farbe je Typ (Vertrag §5.2b). `nil` bei einem aelteren
+    /// Dienst - dann gelten die Vorgaben. `var`, weil die App eine Wahl sofort
+    /// zeigt, bevor der Dienst sie bestaetigt.
+    var typeColors: TypeColors?
 }
 
 struct NotificationSettings: Codable, Hashable, Sendable {

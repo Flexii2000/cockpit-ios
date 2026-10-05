@@ -99,13 +99,12 @@ final class CreateFlowModel {
         }
     }
 
-    /// Nur, was zum Typ gehoert.
-    /// Was rausgeht: der Name ohne Rand und die Farbe des Typs (automatisch:
-    /// Aqua) - so zeigen Web und Android dieselbe Farbe wie die App.
+    /// Was rausgeht: der Name ohne Rand und die eigene Farbe des Typs
+    /// (Vertrag §5.2b; automatische: die von „Automatisch").
     var cleaned: CohabitConfig {
         var config = config
         config.name = config.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        config.color = config.typeColor
+        config.color = config.typeColor(in: Session.shared.typeColors)
         return config
     }
 
@@ -204,7 +203,7 @@ struct TypeStep: View {
                         }
                         .foregroundStyle(Ink.ink)
                         .multilineTextAlignment(.leading)
-                        .card(type.palette.colors.surface, circle: type.palette.colors.accent.opacity(0.55),
+                        .card(colors(type).surface, circle: colors(type).accent.opacity(0.55),
                               corner: Self.corner(type), circleSize: 90, padding: 18)
                     }
                     .buttonStyle(.plain)
@@ -219,6 +218,11 @@ struct TypeStep: View {
             .padding(.horizontal, Metrics.gutter)
             .padding(.vertical, 12)
         }
+    }
+
+    /// Die Typkarten in den eigenen Farben - so sieht das neue Co-Habit nachher aus.
+    private func colors(_ type: CohabitType) -> PaletteColor {
+        Session.shared.typeColors[TypeColorSlot(type)].colors
     }
 
     static func description(_ type: CohabitType) -> String {

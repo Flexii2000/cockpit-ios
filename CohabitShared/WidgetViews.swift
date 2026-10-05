@@ -128,6 +128,7 @@ struct TodayWidgetView: View {
     var rows = 4
 
     var body: some View {
+        let colors = CohabitGroup.typeColors(for: data)
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Heute")
@@ -149,7 +150,7 @@ struct TodayWidgetView: View {
             ForEach(Array(data.cohabits.prefix(rows).enumerated()), id: \.element.id) { index, item in
                 if index > 0 { Spacer(minLength: 2) }
                 Link(destination: URL(string: "cohabit://cohabit/\(item.ref.id)")!) {
-                    TodayWidgetRow(item: item)
+                    TodayWidgetRow(item: item, color: item.ref.typeColor(in: colors))
                 }
             }
             Spacer(minLength: 0)
@@ -161,10 +162,11 @@ struct TodayWidgetView: View {
 
 struct TodayWidgetRow: View {
     let item: WidgetData.Item
+    let color: PaletteKey
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle().fill(item.ref.typeColor.colors.accent).frame(width: 9, height: 9)
+            Circle().fill(color.colors.accent).frame(width: 9, height: 9)
             Text(item.ref.name)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Ink.ink)
@@ -195,6 +197,7 @@ struct BoardWidgetView: View {
     var staleSince: Date?
 
     var body: some View {
+        let colors = CohabitGroup.typeColors(for: data)
         VStack(alignment: .leading, spacing: 10) {
             if let challenge = data.challenge {
                 Link(destination: URL(string: "cohabit://cohabit/\(challenge.ref.id)")!) {
@@ -210,7 +213,7 @@ struct BoardWidgetView: View {
                         }
                         VStack(spacing: 6) {
                             ForEach(challenge.leaderboard.prefix(3)) { entry in
-                                ChallengeWidgetRow(entry: entry, color: challenge.ref.typeColor,
+                                ChallengeWidgetRow(entry: entry, color: challenge.ref.typeColor(in: colors),
                                                    best: challenge.leaderboard.map(\.score).max() ?? 1)
                             }
                         }
@@ -237,7 +240,7 @@ struct BoardWidgetView: View {
                         WidgetBar(fraction: Double(goal.percent) / 100)
                     }
                     .padding(10)
-                    .background(goal.ref.typeColor.colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(goal.ref.typeColor(in: colors).colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
             }
             if let streak = data.openStreak {
@@ -256,7 +259,7 @@ struct BoardWidgetView: View {
                             .background(Ink.ink, in: Capsule())
                     }
                     .padding(10)
-                    .background(streak.ref.typeColor.colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(streak.ref.typeColor(in: colors).colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
             }
             Spacer(minLength: 0)

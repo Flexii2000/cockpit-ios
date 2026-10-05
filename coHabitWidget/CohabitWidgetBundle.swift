@@ -91,8 +91,8 @@ private struct SingleFamilyView: View {
                 }
             }
             .containerBackground(for: .widget) {
-                if let item = entry.item {
-                    SmallCohabitBackground(color: item.ref.typeColor)
+                if let item = entry.item, let data = entry.state.data {
+                    SmallCohabitBackground(color: item.ref.typeColor(in: CohabitGroup.typeColors(for: data)))
                 } else {
                     Ink.surface
                 }
@@ -160,11 +160,14 @@ struct BoardCohabitWidget: Widget {
                 }
             }
             .containerBackground(for: .widget) {
-                ZStack {
-                    (entry.state.data?.challenge?.ref.typeColor.colors.surface ?? Ink.surface)
-                    if let color = entry.state.data?.challenge?.ref.typeColor {
+                if let data = entry.state.data, let challenge = data.challenge {
+                    let color = challenge.ref.typeColor(in: CohabitGroup.typeColors(for: data))
+                    ZStack {
+                        color.colors.surface
                         CornerCircle(color: color.colors.accent.opacity(0.6), corner: .topTrailing, size: 110)
                     }
+                } else {
+                    Ink.surface
                 }
             }
             .widgetURL(URL(string: "cohabit://today"))

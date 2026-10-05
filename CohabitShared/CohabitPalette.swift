@@ -30,17 +30,26 @@ extension PaletteKey {
         case .butter:     PaletteColor(surfaceLight: 0xFFF0B3, accentHex: 0xF2D46B, strongHex: 0x8A6D00, surfaceDark: 0x4A4326)
         case .rose:       PaletteColor(surfaceLight: 0xFBD3E0, accentHex: 0xEE8FB0, strongHex: 0xA83A62, surfaceDark: 0x4A2F3A)
         case .aqua:       PaletteColor(surfaceLight: 0xCDEFF1, accentHex: 0x6CCFD6, strongHex: 0x1E7F87, surfaceDark: 0x27454A)
+        case .lavender:   PaletteColor(surfaceLight: 0xE6DAF7, accentHex: 0xB392E6, strongHex: 0x6A3FB0, surfaceDark: 0x3B3150)
+        case .sky:        PaletteColor(surfaceLight: 0xD2E8FA, accentHex: 0x6AB0EB, strongHex: 0x1D69A6, surfaceDark: 0x253A4E)
+        case .sage:       PaletteColor(surfaceLight: 0xDDE6D2, accentHex: 0x9CB585, strongHex: 0x4D6A38, surfaceDark: 0x343D2C)
+        case .coral:      PaletteColor(surfaceLight: 0xFFD3CC, accentHex: 0xF47F6E, strongHex: 0xB4382A, surfaceDark: 0x4E2E2A)
         }
     }
 
+    /// Die Namen aus dem Vertrag (§2.1) - fuer VoiceOver auf der Seite „Farben".
     var title: String {
         switch self {
         case .peach: "Pfirsich"
-        case .mint: "Minze"
-        case .periwinkle: "Flieder"
+        case .mint: "Mint"
+        case .periwinkle: "Periwinkle"
         case .butter: "Butter"
         case .rose: "Rosé"
         case .aqua: "Aqua"
+        case .lavender: "Lavendel"
+        case .sky: "Himmelblau"
+        case .sage: "Salbei"
+        case .coral: "Koralle"
         }
     }
 }

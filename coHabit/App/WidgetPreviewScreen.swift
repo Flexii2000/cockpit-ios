@@ -18,13 +18,14 @@ struct WidgetPreviewScreen: View {
                 Text("Kacheln").font(.heading(28)).foregroundStyle(Ink.ink)
                 if let state {
                     if let data = state.data {
+                        let colors = CohabitGroup.typeColors(for: data)
                         HStack(spacing: 14) {
                             ForEach(Array(data.cohabits.prefix(2))) { item in
                                 labelled("Klein") {
                                     SmallCohabitWidgetView(item: item, staleSince: state.staleSince)
                                         .padding(14)
                                         .frame(width: 158, height: 158)
-                                        .background(SmallCohabitBackground(color: item.ref.typeColor))
+                                        .background(SmallCohabitBackground(color: item.ref.typeColor(in: colors)))
                                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                                 }
                             }
@@ -42,8 +43,8 @@ struct WidgetPreviewScreen: View {
                                 .frame(width: 338, height: 354)
                                 .background {
                                     ZStack {
-                                        data.challenge?.ref.typeColor.colors.surface ?? Ink.surface
-                                        if let color = data.challenge?.ref.typeColor {
+                                        data.challenge?.ref.typeColor(in: colors).colors.surface ?? Ink.surface
+                                        if let color = data.challenge?.ref.typeColor(in: colors) {
                                             CornerCircle(color: color.colors.accent.opacity(0.6), corner: .topTrailing, size: 110)
                                         }
                                     }

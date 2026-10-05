@@ -59,26 +59,34 @@ final class TodayTypeTests: XCTestCase {
         func ref(_ type: CohabitType, _ auto: String? = nil) -> CohabitRef {
             CohabitRef(id: "x", name: "X", color: .rose, type: type, autoSource: auto)
         }
-        XCTAssertEqual(ref(.streak).typeColor, .peach)
-        XCTAssertEqual(ref(.abstinence).typeColor, .mint)
-        XCTAssertEqual(ref(.goal).typeColor, .periwinkle)
-        XCTAssertEqual(ref(.challenge).typeColor, .butter)
-        XCTAssertEqual(ref(.streak, "FOOD").typeColor, .aqua)
-        XCTAssertEqual(ref(.streak, "FOCUS").typeColor, .aqua)
-        XCTAssertEqual(ref(.goal, "SOMETHING_NEW").typeColor, .aqua, "jede Quelle zaehlt als automatisch")
+        // Die Vorgaben - so faerbt die App, solange der Dienst keine eigenen kennt.
+        XCTAssertEqual(ref(.streak).typeColor(in: .defaults), .peach)
+        XCTAssertEqual(ref(.abstinence).typeColor(in: .defaults), .mint)
+        XCTAssertEqual(ref(.goal).typeColor(in: .defaults), .periwinkle)
+        XCTAssertEqual(ref(.challenge).typeColor(in: .defaults), .butter)
+        XCTAssertEqual(ref(.streak, "FOOD").typeColor(in: .defaults), .aqua)
+        XCTAssertEqual(ref(.streak, "FOCUS").typeColor(in: .defaults), .aqua)
+        XCTAssertEqual(ref(.goal, "SOMETHING_NEW").typeColor(in: .defaults), .aqua, "jede Quelle zaehlt als automatisch")
     }
 
     func testNewCohabitsGoOutInTheirTypeColour() {
-        let model = MainActor.assumeIsolated { CreateFlowModel() }
+        let defaults = TypeColors.defaults
+        var config = CohabitConfig.draft(.challenge)
+        config.color = .rose
+        XCTAssertEqual(config.typeColor(in: defaults), .butter)
+        config = .draft(.streak)
+        config.auto = CohabitConfig.Auto(source: "STEPS_WEEKLY", weeklyStepGoal: 70_000, focusMinutesGoal: nil)
+        XCTAssertEqual(config.typeColor(in: defaults), .aqua)
+        XCTAssertEqual(config.typeColor(in: defaults.setting(.sage, for: .automatic)), .sage,
+                       "automatisch geht vor dem Typ")
+        config.auto = nil
+        XCTAssertEqual(config.typeColor(in: defaults), .peach)
+        XCTAssertEqual(config.typeColor(in: defaults.setting(.sky, for: .streak)), .sky)
+        // Was beim Anlegen rausgeht, folgt den Farben der Sitzung (TypeColorsTests).
         MainActor.assumeIsolated {
-            model.config = .draft(.challenge)
-            model.config.color = .rose
-            XCTAssertEqual(model.cleaned.color, .butter)
-            model.config = .draft(.streak)
-            model.config.auto = CohabitConfig.Auto(source: "STEPS_WEEKLY", weeklyStepGoal: 70_000, focusMinutesGoal: nil)
-            XCTAssertEqual(model.cleaned.color, .aqua)
-            model.config.auto = nil
-            XCTAssertEqual(model.cleaned.color, .peach)
+            let model = CreateFlowModel()
+            model.config = .draft(.goal)
+            XCTAssertEqual(model.cleaned.color, Session.shared.typeColors[.goal])
         }
     }
 
