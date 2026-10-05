@@ -26,7 +26,7 @@ struct CheckInTarget: Identifiable, Hashable {
     init(summary: CohabitSummary, meId: String?) {
         id = summary.ref.id
         name = summary.ref.name
-        color = summary.ref.color
+        color = summary.ref.typeColor
         type = summary.ref.type
         photoRequired = summary.photoRequired
         valueUnit = summary.valueUnit
@@ -40,7 +40,7 @@ struct CheckInTarget: Identifiable, Hashable {
     init(detail: CohabitDetail, meId: String?) {
         id = detail.id
         name = detail.ref.name
-        color = detail.ref.color
+        color = detail.ref.typeColor
         type = detail.ref.type
         photoRequired = detail.config.photoRequired
         valueUnit = detail.summary.valueUnit ?? (detail.config.tracking.isValue ? detail.config.tracking.unit : nil)

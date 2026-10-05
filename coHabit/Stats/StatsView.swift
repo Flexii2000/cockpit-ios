@@ -69,7 +69,7 @@ struct StatsView: View {
                     HeatmapCard(stats: stats)
                     ForEach(stats.cohabits) { row in
                         HStack(spacing: 12) {
-                            Circle().fill(row.ref.color.colors.accent).frame(width: 12, height: 12)
+                            Circle().fill(row.ref.typeColor.colors.accent).frame(width: 12, height: 12)
                             Text(row.ref.name)
                                 .font(.system(size: 16, weight: .heavy))
                                 .foregroundStyle(Ink.ink)

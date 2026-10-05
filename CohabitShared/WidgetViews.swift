@@ -164,7 +164,7 @@ struct TodayWidgetRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle().fill(item.ref.color.colors.accent).frame(width: 9, height: 9)
+            Circle().fill(item.ref.typeColor.colors.accent).frame(width: 9, height: 9)
             Text(item.ref.name)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Ink.ink)
@@ -210,7 +210,7 @@ struct BoardWidgetView: View {
                         }
                         VStack(spacing: 6) {
                             ForEach(challenge.leaderboard.prefix(3)) { entry in
-                                ChallengeWidgetRow(entry: entry, color: challenge.ref.color,
+                                ChallengeWidgetRow(entry: entry, color: challenge.ref.typeColor,
                                                    best: challenge.leaderboard.map(\.score).max() ?? 1)
                             }
                         }
@@ -237,7 +237,7 @@ struct BoardWidgetView: View {
                         WidgetBar(fraction: Double(goal.percent) / 100)
                     }
                     .padding(10)
-                    .background(goal.ref.color.colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(goal.ref.typeColor.colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
             }
             if let streak = data.openStreak {
@@ -256,7 +256,7 @@ struct BoardWidgetView: View {
                             .background(Ink.ink, in: Capsule())
                     }
                     .padding(10)
-                    .background(streak.ref.color.colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(streak.ref.typeColor.colors.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
             }
             Spacer(minLength: 0)

@@ -307,7 +307,7 @@ struct TimelineCard: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Ink.ink)
                     .frame(width: 40, height: 40)
-                    .background(item.cohabit.color.colors.surface, in: Circle())
+                    .background(item.cohabit.typeColor.colors.surface, in: Circle())
             }
         }
     }
@@ -327,10 +327,10 @@ struct TimelineCard: View {
                     }
                 }
                 Spacer(minLength: 4)
-                Chip(text: item.cohabit.name, fill: item.cohabit.color.colors.surface,
-                     foreground: item.cohabit.color.colors.onSurface, weight: .bold)
+                Chip(text: item.cohabit.name, fill: item.cohabit.typeColor.colors.surface,
+                     foreground: item.cohabit.typeColor.colors.onSurface, weight: .bold)
             }
-            PhotoCarousel(ids: item.photos, height: 220, placeholder: item.cohabit.color.colors.surface)
+            PhotoCarousel(ids: item.photos, height: 220, placeholder: item.cohabit.typeColor.colors.surface)
             if let caption = item.caption, !caption.isEmpty {
                 Text(caption)
                     .font(.system(size: 16, weight: .medium))

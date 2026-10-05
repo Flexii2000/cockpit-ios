@@ -450,7 +450,7 @@ struct EntriesSheet: View {
                             if index > 0 { FormDivider() }
                             HStack(spacing: 12) {
                                 if let photo = checkin.photos.first {
-                                    PhotoView(id: photo, size: .thumb, placeholder: detail.ref.color.colors.surface)
+                                    PhotoView(id: photo, size: .thumb, placeholder: detail.ref.typeColor.colors.surface)
                                         .frame(width: 44, height: 44)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                 }
@@ -536,7 +536,7 @@ struct EditCheckinSheet: View {
                 }
                 if takesPhotos {
                     FieldLabel(text: "Fotos")
-                    ProofPhotoPicker(photos: $photos, color: store.detail?.ref.color ?? .peach, showsSelection: false)
+                    ProofPhotoPicker(photos: $photos, color: store.detail?.ref.typeColor ?? .peach, showsSelection: false)
                 }
                 FieldLabel(text: "Notiz")
                 InputField(placeholder: "Notiz", text: $note)

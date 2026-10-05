@@ -176,7 +176,7 @@ extension CohabitSummary {
 struct DashboardCard: View {
     let summary: CohabitSummary
 
-    private var colors: PaletteColor { summary.ref.color.colors }
+    private var colors: PaletteColor { summary.ref.typeColor.colors }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -258,7 +258,7 @@ struct DashboardCard: View {
 struct SmallCard: View {
     let summary: CohabitSummary
 
-    private var colors: PaletteColor { summary.ref.color.colors }
+    private var colors: PaletteColor { summary.ref.typeColor.colors }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -326,7 +326,7 @@ struct TodayList: View {
 struct TodayRow: View {
     let summary: CohabitSummary
 
-    private var colors: PaletteColor { summary.ref.color.colors }
+    private var colors: PaletteColor { summary.ref.typeColor.colors }
 
     var body: some View {
         ZStack(alignment: .trailing) {
@@ -492,8 +492,8 @@ struct InvitationCard: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Ink.ink)
             }
-            .card(invitation.cohabit.ref.color.colors.surface,
-                  circle: invitation.cohabit.ref.color.colors.accent.opacity(0.5), circleSize: 70, padding: 14)
+            .card(invitation.cohabit.ref.typeColor.colors.surface,
+                  circle: invitation.cohabit.ref.typeColor.colors.accent.opacity(0.5), circleSize: 70, padding: 14)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("invitation-\(invitation.id)")

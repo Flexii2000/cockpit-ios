@@ -58,7 +58,7 @@ struct ChatView: View {
                         MessageRow(message: message,
                                    showsAuthor: index == 0 || store.messages[index - 1].author?.id != message.author?.id
                                        || store.messages[index - 1].kind != message.kind,
-                                   color: detail.ref.color,
+                                   color: detail.ref.typeColor,
                                    openReactions: { reactionsTarget = message })
                             .onLongPressGesture(minimumDuration: 0.35) { openMenu(message) }
                             .accessibilityAction(named: "Reagieren") { openMenu(message) }

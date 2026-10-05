@@ -72,8 +72,34 @@ struct PersonView: Codable, Hashable, Sendable, Identifiable {
 struct CohabitRef: Codable, Hashable, Sendable, Identifiable {
     let id: String
     let name: String
-    let color: PaletteKey
+    /// Die Farbe, die beim Dienst gespeichert ist (Web, Android). Die App
+    /// faerbt seit 2026-10-05 nach Typ (`typeColor`) - deshalb heisst sie
+    /// hier nicht `color`: wer eine Farbe braucht, nimmt die des Typs.
+    let storedColor: PaletteKey
     let type: CohabitType
+    /// Die Quelle eines automatischen Co-Habits (`FOOD`, `STEPS_WEEKLY`,
+    /// `FOCUS`, `EVALUATION` … - auch eine, die die App noch nicht kennt),
+    /// `nil` bei einem, das man selbst abhakt. Ein aelterer Dienst schickt es
+    /// nicht - dann gilt jedes als manuell.
+    let autoSource: String?
+    /// Fuer die Reihenfolge nach Typ und Anlegedatum (wie in der klassischen
+    /// Liste). Ein aelterer Dienst schickt es nicht.
+    let createdAt: Date?
+
+    init(id: String, name: String, color: PaletteKey, type: CohabitType, autoSource: String? = nil,
+         createdAt: Date? = nil) {
+        self.id = id
+        self.name = name
+        storedColor = color
+        self.type = type
+        self.autoSource = autoSource
+        self.createdAt = createdAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, type, autoSource, createdAt
+        case storedColor = "color"
+    }
 }
 
 /// Eine Reaktion samt allen, die sie gesetzt haben (Vertrag §2.7a): `reaction`

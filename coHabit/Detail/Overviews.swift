@@ -15,7 +15,7 @@ struct StreakOverview: View {
     var body: some View {
         VStack(spacing: 14) {
             if let week = detail.streak?.week, !week.rows.isEmpty {
-                WeekGrid(week: week, color: detail.ref.color, meId: meId)
+                WeekGrid(week: week, color: detail.ref.typeColor, meId: meId)
             }
             HStack(spacing: 10) {
                 Tile(value: detail.streak?.fulfillmentRate.map { "\($0)%" } ?? "–", caption: "Erfüllung")
@@ -171,7 +171,7 @@ struct AbstinenceOverview: View {
                 }
 
                 if !block.series.isEmpty {
-                    SeriesCard(series: block.series, color: detail.ref.color)
+                    SeriesCard(series: block.series, color: detail.ref.typeColor)
                 }
             }
             RulesCard(rules: detail.rules)
@@ -245,7 +245,7 @@ struct GoalOverview: View {
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                             ProgressTrack(fraction: contribution.fraction,
-                                          fill: mine ? Ink.ink : detail.ref.color.colors.accent,
+                                          fill: mine ? Ink.ink : detail.ref.typeColor.colors.accent,
                                           track: Ink.track, height: 10)
                             Text(contribution.valueText)
                                 .font(.system(size: 14, weight: .semibold).monospacedDigit())
@@ -385,7 +385,7 @@ struct ChallengeOverview: View {
                 VStack(spacing: 6) {
                     ForEach(challenge.leaderboard) { entry in
                         LeaderboardRow(entry: entry, mine: entry.person.id == meId,
-                                       color: detail.ref.color, name: entry.person.shortLabel(me: meId))
+                                       color: detail.ref.typeColor, name: entry.person.shortLabel(me: meId))
                     }
                 }
                 .padding(8)
@@ -413,7 +413,7 @@ struct ChallengeOverview: View {
                             FlowLayout(spacing: 8) {
                                 ForEach(challenge.pastRounds) { round in
                                     Chip(text: "\(round.label) · \(round.winners.map { $0.shortLabel(me: meId) }.joined(separator: ", "))",
-                                         fill: detail.ref.color.colors.surface, weight: .bold)
+                                         fill: detail.ref.typeColor.colors.surface, weight: .bold)
                                 }
                             }
                         }

@@ -28,30 +28,17 @@ struct CohabitSettingsForm: View {
         }
     }
 
-    // MARK: - Name und Farbe
+    // MARK: - Name
 
+    /// Ohne Farbwahl (Felix, 2026-10-05): die App faerbt nach Typ. Beim
+    /// Anlegen geht die Farbe des Typs mit (`CreateFlowModel.cleaned`), beim
+    /// Bearbeiten bleibt die gespeicherte unberuehrt.
     private var nameCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             FieldLabel(text: "Name")
             InputField(placeholder: "Name", text: Binding(
                 get: { config.name },
                 set: { config.name = String($0.prefix(40)) }), identifier: "createName")
-            FieldLabel(text: "Farbe")
-            HStack(spacing: 10) {
-                ForEach(PaletteKey.allCases) { key in
-                    Button {
-                        config.color = key
-                    } label: {
-                        Circle()
-                            .fill(key.colors.surface)
-                            .frame(width: 44, height: 44)
-                            .overlay(Circle().strokeBorder(Ink.ink, lineWidth: config.color == key ? 3 : 0))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(key.title)
-                    .accessibilityAddTraits(config.color == key ? .isSelected : [])
-                }
-            }
         }
         .card(padding: 16)
     }

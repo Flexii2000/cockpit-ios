@@ -145,7 +145,7 @@ final class ModelTests: XCTestCase {
 
     func testLenientEnumsFallBack() throws {
         let ref = try decode(CohabitRef.self, #"{"id":"x","name":"X","color":"lavender","type":"MARATHON"}"#)
-        XCTAssertEqual(ref.color, PaletteKey.fallback)
+        XCTAssertEqual(ref.storedColor, PaletteKey.fallback)
         XCTAssertEqual(ref.type, CohabitType.fallback)
         let cells = try decode([WeekCell].self, #"["DONE","SOMETHING_NEW"]"#)
         XCTAssertEqual(cells, [.done, .future])

@@ -20,7 +20,7 @@ struct TimelineFilterSheet: View {
                     }
                     ForEach(store.cohabits) { ref in
                         FormDivider()
-                        FilterRow(title: ref.name, color: ref.color, isOn: store.filter.isVisible(ref.id),
+                        FilterRow(title: ref.name, color: ref.typeColor, isOn: store.filter.isVisible(ref.id),
                                   identifier: "filterRow-\(ref.id)") {
                             Task { await store.toggle(ref.id) }
                         }

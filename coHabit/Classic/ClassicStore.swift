@@ -233,13 +233,13 @@ final class ClassicStore {
 
 extension CheckInTarget {
     /// Das Beweisfoto-Blatt fuer ein Habit der klassischen Liste, wenn die
-    /// Zusammenfassung des Co-Habits nicht zu haben ist: Farbe aus dem letzten
-    /// Stand der Kachel (sonst die des Typs), ohne die Namen der anderen.
+    /// Zusammenfassung des Co-Habits nicht zu haben ist: in der Farbe des Typs
+    /// (wie ueberall seit 2026-10-05), ohne die Namen der anderen.
     init(classic habit: ClassicHabit) {
         let type: CohabitType = habit.kind == .quit ? .abstinence : .streak
         id = habit.id
         name = habit.name
-        color = CohabitGroup.loadWidgetData()?.cohabits.first { $0.ref.id == habit.id }?.ref.color ?? type.palette
+        color = type.color(automatic: false)
         self.type = type
         photoRequired = habit.photoRequired
         valueUnit = nil

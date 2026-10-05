@@ -319,7 +319,7 @@ struct ArchivedView: View {
                                 Image(systemName: "chevron.right").font(.system(size: 15, weight: .bold))
                             }
                             .foregroundStyle(Ink.ink)
-                            .card(summary.ref.color.colors.surface, padding: 16)
+                            .card(summary.ref.typeColor.colors.surface, padding: 16)
                         }
                         .buttonStyle(.plain)
                     }

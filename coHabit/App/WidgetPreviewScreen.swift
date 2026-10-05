@@ -24,7 +24,7 @@ struct WidgetPreviewScreen: View {
                                     SmallCohabitWidgetView(item: item, staleSince: state.staleSince)
                                         .padding(14)
                                         .frame(width: 158, height: 158)
-                                        .background(SmallCohabitBackground(color: item.ref.color))
+                                        .background(SmallCohabitBackground(color: item.ref.typeColor))
                                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                                 }
                             }
@@ -42,8 +42,8 @@ struct WidgetPreviewScreen: View {
                                 .frame(width: 338, height: 354)
                                 .background {
                                     ZStack {
-                                        data.challenge?.ref.color.colors.surface ?? Ink.surface
-                                        if let color = data.challenge?.ref.color {
+                                        data.challenge?.ref.typeColor.colors.surface ?? Ink.surface
+                                        if let color = data.challenge?.ref.typeColor {
                                             CornerCircle(color: color.colors.accent.opacity(0.6), corner: .topTrailing, size: 110)
                                         }
                                     }

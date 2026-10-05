@@ -92,7 +92,7 @@ private struct SingleFamilyView: View {
             }
             .containerBackground(for: .widget) {
                 if let item = entry.item {
-                    SmallCohabitBackground(color: item.ref.color)
+                    SmallCohabitBackground(color: item.ref.typeColor)
                 } else {
                     Ink.surface
                 }
@@ -161,8 +161,8 @@ struct BoardCohabitWidget: Widget {
             }
             .containerBackground(for: .widget) {
                 ZStack {
-                    (entry.state.data?.challenge?.ref.color.colors.surface ?? Ink.surface)
-                    if let color = entry.state.data?.challenge?.ref.color {
+                    (entry.state.data?.challenge?.ref.typeColor.colors.surface ?? Ink.surface)
+                    if let color = entry.state.data?.challenge?.ref.typeColor {
                         CornerCircle(color: color.colors.accent.opacity(0.6), corner: .topTrailing, size: 110)
                     }
                 }

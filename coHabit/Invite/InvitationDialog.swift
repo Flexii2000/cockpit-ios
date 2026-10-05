@@ -161,7 +161,7 @@ struct InvitationCardContent<Extra: View>: View {
     let accept: () -> Void
     @ViewBuilder var extra: Extra
 
-    private var colors: PaletteColor { cohabit.ref.color.colors }
+    private var colors: PaletteColor { cohabit.ref.typeColor.colors }
 
     var body: some View {
         VStack(spacing: 0) {

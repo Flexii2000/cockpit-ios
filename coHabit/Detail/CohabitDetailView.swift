@@ -134,9 +134,9 @@ struct CohabitDetailView: View {
             // Am VStack, nicht an der ScrollView: der liegt innerhalb der
             // sicheren Zone, so reicht der Streifen genau bis unter die Leiste.
             .statusBarScrim(scrim != .none && section == .overview,
-                            color: scrim == .page ? Ink.background : detail.ref.color.colors.surface)
+                            color: scrim == .page ? Ink.background : detail.ref.typeColor.colors.surface)
             if let dialog = detail.dialog, !dialogDismissed.contains(dialog.id) {
-                FinishedDialogView(dialog: dialog, color: detail.ref.color,
+                FinishedDialogView(dialog: dialog, color: detail.ref.typeColor,
                                    toTimeline: {
                                        close(dialog)
                                        Router.shared.tab = .timeline
@@ -308,7 +308,7 @@ struct DetailHeader<MenuContent: View>: View {
 
     @Environment(\.meId) private var meId
 
-    private var colors: PaletteColor { detail.ref.color.colors }
+    private var colors: PaletteColor { detail.ref.typeColor.colors }
 
     var body: some View {
         VStack(spacing: 16) {

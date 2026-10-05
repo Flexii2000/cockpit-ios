@@ -100,9 +100,12 @@ final class CreateFlowModel {
     }
 
     /// Nur, was zum Typ gehoert.
+    /// Was rausgeht: der Name ohne Rand und die Farbe des Typs (automatisch:
+    /// Aqua) - so zeigen Web und Android dieselbe Farbe wie die App.
     var cleaned: CohabitConfig {
         var config = config
         config.name = config.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        config.color = config.typeColor
         return config
     }
 
