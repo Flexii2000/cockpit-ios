@@ -110,16 +110,17 @@ struct TodayView: View {
 
 // MARK: - Dashboard
 
-/// Grosse Karten fuer Streak und Abstinenz, darunter die kleinen fuer Ziel
-/// und Challenge paarweise nebeneinander - wie im Entwurf.
+/// In der Reihenfolge der klassischen Liste (Felix, 2026-10-05): grosse
+/// Karten fuer die Streaks, darunter Ziele und Challenges als kleine Karten
+/// paarweise, dann Abstinenz und zuletzt die automatischen, wieder gross.
 struct DashboardGrid: View {
     let cohabits: [CohabitSummary]
 
     var body: some View {
-        let big = cohabits.filter { $0.ref.type == .streak || $0.ref.type == .abstinence }
-        let small = cohabits.filter { $0.ref.type == .goal || $0.ref.type == .challenge }
+        let groups = Dictionary(grouping: cohabits.typeOrder, by: \.ref.todayGroup)
+        let small = groups[.goalsAndChallenges] ?? []
         VStack(spacing: 14) {
-            ForEach(big) { summary in
+            ForEach(groups[.streak] ?? []) { summary in
                 DashboardCard(summary: summary)
             }
             ForEach(Array(stride(from: 0, to: small.count, by: 2)), id: \.self) { index in
@@ -131,6 +132,9 @@ struct DashboardGrid: View {
                         Color.clear.frame(maxWidth: .infinity)
                     }
                 }
+            }
+            ForEach((groups[.abstinence] ?? []) + (groups[.automatic] ?? [])) { summary in
+                DashboardCard(summary: summary)
             }
         }
     }
@@ -209,15 +213,13 @@ struct DashboardCard: View {
                 .foregroundStyle(colors.onSurface)
                 .lineLimit(1)
                 .padding(.trailing, 64)
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(summary.headline.value)
-                    .font(.figure(64))
-                    .foregroundStyle(Ink.ink)
-                Text(summary.headline.unit)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(Ink.ink)
+            HeadlineFigure(headline: summary.headline, valueFont: .figure(64),
+                           unitFont: .system(size: 20, weight: .bold))
+                .opacity(summary.status == .unavailable ? 0.4 : 1)
+            if case .bar(let fraction) = summary.gauge {
+                ProgressTrack(fraction: fraction, fill: Ink.ink, track: Ink.surface.opacity(0.7), height: 10)
+                    .padding(.bottom, 4)
             }
-            .opacity(summary.status == .unavailable ? 0.4 : 1)
             HStack(alignment: .center) {
                 AvatarStack(people: summary.members, total: summary.memberCount, size: 34)
                 Spacer(minLength: 8)
@@ -241,14 +243,9 @@ struct DashboardCard: View {
                 AvatarStack(people: summary.members, total: summary.memberCount, size: 34)
             }
             Spacer(minLength: 8)
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Text(summary.headline.value)
-                    .font(.figure(56))
-                    .foregroundStyle(Ink.ink)
-                Text(summary.headline.unit)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Ink.ink)
-            }
+            HeadlineFigure(headline: summary.headline, valueFont: .figure(56),
+                           unitFont: .system(size: 18, weight: .bold))
+                .fixedSize()
         }
         .card(colors.surface, circle: colors.accent.opacity(0.45), corner: .bottomLeading,
               circleSize: 110, padding: 18)
@@ -269,11 +266,12 @@ struct SmallCard: View {
                         .foregroundStyle(colors.onSurface)
                         .lineLimit(2)
                         .padding(.trailing, summary.showsCheckButton ? 40 : 0)
-                    Text(summary.headline.value)
-                        .font(.figure(44))
-                        .foregroundStyle(Ink.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+                    HeadlineFigure(headline: summary.headline, valueFont: .figure(44),
+                                   unitFont: .system(size: 15, weight: .bold))
+                    if case .bar(let fraction) = summary.gauge {
+                        ProgressTrack(fraction: fraction, fill: Ink.ink, track: Ink.surface.opacity(0.7), height: 8)
+                            .padding(.vertical, 2)
+                    }
                     Text(summary.subline ?? summary.listLine ?? "")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Ink.ink)
@@ -299,22 +297,17 @@ struct SmallCard: View {
 
 // MARK: - Liste
 
+/// Eine Liste ohne Abschnitte (Felix, 2026-10-05): nach Typ geordnet wie die
+/// klassische - Streaks, Ziele und Challenges, Abstinenz, automatische -,
+/// darin nach Anlegedatum. Was man abhakt, bleibt an seinem Platz und zeigt
+/// den Haken statt des Pfeils.
 struct TodayList: View {
     let cohabits: [CohabitSummary]
     let newPhotos: NewPhotos?
 
     var body: some View {
-        let open = cohabits.filter { $0.section == .openToday }
-        let running = cohabits.filter { $0.section == .running }
         VStack(spacing: 10) {
-            if !open.isEmpty {
-                SectionLabel(text: "Offen heute")
-                ForEach(open) { TodayRow(summary: $0) }
-            }
-            if !running.isEmpty {
-                SectionLabel(text: "Läuft")
-                ForEach(running) { TodayRow(summary: $0) }
-            }
+            ForEach(cohabits.typeOrder) { TodayRow(summary: $0) }
             if let newPhotos, newPhotos.count > 0 {
                 NewPhotosRow(newPhotos: newPhotos)
                     .padding(.top, 8)
@@ -332,12 +325,11 @@ struct TodayRow: View {
         ZStack(alignment: .trailing) {
             NavigationLink(value: Route.cohabit(summary.id, .overview)) {
                 HStack(spacing: 12) {
-                    Text(summary.headline.short)
-                        .font(.system(size: 24, weight: .black).monospacedDigit())
-                        .foregroundStyle(Ink.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+                    HeadlineFigure(headline: summary.headline,
+                                   valueFont: .system(size: 24, weight: .black).monospacedDigit(),
+                                   unitFont: .system(size: 13, weight: .bold))
                         .frame(width: 84, alignment: .leading)
+                        .opacity(summary.status == .unavailable ? 0.4 : 1)
                     VStack(alignment: .leading, spacing: 5) {
                         Text(summary.ref.name)
                             .font(.system(size: 17, weight: .heavy))
@@ -358,6 +350,13 @@ struct TodayRow: View {
                 SummaryCheckButton(summary: summary, size: 48,
                                    style: summary.photoRequired ? .filled : .outlined)
                     .padding(.trailing, 12)
+            } else if summary.status == .done {
+                // Wie auf der Karte: erledigt bleibt stehen, mit Haken.
+                CheckButtonLabel(photo: false, done: true, size: 44)
+                    .padding(.trailing, 14)
+                    .allowsHitTesting(false)
+                    .accessibilityLabel("Heute erledigt")
+                    .accessibilityIdentifier("done-\(summary.id)")
             } else {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 17, weight: .bold))
@@ -368,22 +367,37 @@ struct TodayRow: View {
         }
     }
 
+    private var lineText: String {
+        summary.status == .unavailable ? (summary.unavailableText ?? "") : (summary.listLine ?? "")
+    }
+
     @ViewBuilder
     private var secondLine: some View {
-        if summary.ref.type == .goal, let progress = summary.progress {
-            ProgressTrack(fraction: progress.fraction, fill: Ink.ink, track: Ink.surface, height: 8)
-                .frame(maxWidth: 220)
-        } else {
-            HStack(spacing: 6) {
-                if let progress = summary.progress, summary.ref.type == .streak,
-                   progress.goal >= 1, progress.goal <= 7 {
-                    WeekDots(done: Int(progress.done), goal: Int(progress.goal))
+        switch summary.gauge {
+        case .bar(let fraction):
+            VStack(alignment: .leading, spacing: 6) {
+                if !lineText.isEmpty {
+                    Text(lineText)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Ink.ink)
+                        .lineLimit(2)
                 }
-                Text(summary.status == .unavailable ? (summary.unavailableText ?? "") : (summary.listLine ?? ""))
+                ProgressTrack(fraction: fraction, fill: Ink.ink, track: Ink.surface, height: 8)
+                    .frame(maxWidth: 220)
+            }
+        case .weekDots(let done, let goal):
+            HStack(spacing: 6) {
+                WeekDots(done: done, goal: goal)
+                Text(lineText)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Ink.ink)
                     .lineLimit(2)
             }
+        case .none:
+            Text(lineText)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Ink.ink)
+                .lineLimit(2)
         }
     }
 }

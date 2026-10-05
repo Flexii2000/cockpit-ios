@@ -374,10 +374,9 @@ struct DetailHeader<MenuContent: View>: View {
                     .lineLimit(1)
             }
             Spacer()
-            Text(detail.summary.headline.short)
-                .font(.figure(26))
-                .foregroundStyle(Ink.ink)
-                .lineLimit(1)
+            HeadlineFigure(headline: detail.summary.headline, valueFont: .figure(26),
+                           unitFont: .system(size: 13, weight: .bold))
+                .fixedSize()
         }
     }
 

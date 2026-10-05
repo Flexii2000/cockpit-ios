@@ -308,8 +308,9 @@ struct ArchivedView: View {
                     ForEach(list) { summary in
                         NavigationLink(value: Route.cohabit(summary.id, .overview)) {
                             HStack {
-                                Text(summary.headline.short)
-                                    .font(.system(size: 20, weight: .black))
+                                HeadlineFigure(headline: summary.headline,
+                                               valueFont: .system(size: 20, weight: .black),
+                                               unitFont: .system(size: 12, weight: .bold))
                                     .frame(width: 76, alignment: .leading)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(summary.ref.name).font(.system(size: 17, weight: .heavy))

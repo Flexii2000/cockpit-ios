@@ -254,6 +254,67 @@ final class CohabitUITests: XCTestCase {
         shoot(app, "chat")
     }
 
+    // MARK: - Heute nach Typ (Felix, 2026-10-05)
+
+    /// Liste und Dashboard in der Reihenfolge der klassischen Liste - Streaks,
+    /// Ziele und Challenges, Abstinenz, automatische -, ohne „Offen heute" und
+    /// „Läuft"; hell und dunkel aufgenommen, auch weiter unten.
+    @MainActor
+    func testTodayIsOrderedByTypeWithoutSections() throws {
+        let today = try request("GET", "/today", body: nil, token: token)
+        let cohabits = try XCTUnwrap(today["cohabits"] as? [[String: Any]])
+        try XCTSkipIf(cohabits.count < 2, "zu wenige Co-Habits fuer eine Reihenfolge")
+        var group: [String: Int] = [:]
+        for summary in cohabits {
+            let ref = try XCTUnwrap(summary["ref"] as? [String: Any])
+            let id = try XCTUnwrap(ref["id"] as? String)
+            let automatic = !(ref["autoSource"] is NSNull) && ref["autoSource"] != nil
+            switch (automatic, ref["type"] as? String) {
+            case (true, _): group[id] = 3
+            case (false, "STREAK"): group[id] = 0
+            case (false, "GOAL"), (false, "CHALLENGE"): group[id] = 1
+            default: group[id] = 2
+            }
+        }
+
+        let app = launch()
+        addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        let list = app.buttons["segment-Liste"]
+        XCTAssertTrue(list.waitForExistence(timeout: 20))
+        list.tap()
+        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'row-'"))
+        XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10), "keine Zeilen")
+        XCTAssertFalse(app.staticTexts["Offen heute"].exists, "die Liste hat keine Abschnitte mehr")
+        XCTAssertFalse(app.staticTexts["Läuft"].exists)
+        let order = rows.allElementsBoundByIndex
+            .sorted { $0.frame.minY < $1.frame.minY }
+            .map { String($0.identifier.dropFirst("row-".count)) }
+        XCTAssertEqual(order.count, cohabits.count)
+        let groups = order.compactMap { group[$0] }
+        XCTAssertEqual(groups, groups.sorted(), "nicht nach Typ geordnet: \(order)")
+
+        for appearance in [XCUIDevice.Appearance.light, .dark] {
+            XCUIDevice.shared.appearance = appearance
+            let name = appearance == .dark ? "dunkel" : "hell"
+            app.buttons["segment-Liste"].tap()
+            sleep(1)
+            shoot(app, "heute-liste-\(name)")
+            scrollDown(app, times: 2)
+            shoot(app, "heute-liste-unten-\(name)")
+            scrollUp(app, times: 3)
+            app.buttons["segment-Dashboard"].tap()
+            sleep(1)
+            shoot(app, "heute-dashboard-\(name)")
+            scrollDown(app, times: 2)
+            shoot(app, "heute-dashboard-mitte-\(name)")
+            scrollDown(app, times: 2)
+            shoot(app, "heute-dashboard-unten-\(name)")
+            scrollUp(app, times: 5)
+        }
+        // Das Dashboard bleibt gewaehlt - andere Tests suchen dort ihre Karte.
+        XCTAssertTrue(app.buttons["segment-Dashboard"].isSelected)
+    }
+
     // MARK: - Emoji-Reaktionen und GIFs (Vertrag §2.7a)
 
     /// Langer Druck auf eine Nachricht: Leiste mit Schnellauswahl und Aktionen,
