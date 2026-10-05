@@ -604,6 +604,21 @@ anderen nach diesem Ereignis, **ohne den Filter zu kennen**. Gefiltert meldet
 die App deshalb das neueste Ereignis überhaupt (`GET /timeline?limit=1` ohne
 `exclude`), ungefiltert wie bisher das oberste der Liste.
 
+⚠️ **Typ, Quelle, Anlegedatum (seit 2026-10-05, `../habits` Branch
+`today-types`, Commit `bdac077`):** `CohabitRef` trägt zusätzlich
+`"autoSource"` (`null` bei manuellen, sonst die Quelle wie `auto.source`:
+`FOOD`, `FOOD_TARGET_WEEKLY`, `STEPS_WEEKLY`, `FOCUS`, `EVALUATION` - eine
+unbekannte gilt als automatisch) und `"createdAt"` (ISO-Zeitpunkt). Damit ordnet
+„Heute" nach Typ wie die klassische Liste und färbt nach Typ
+(`CohabitShared/CohabitKinds.swift`); `color` liest die App als `storedColor`
+und zeigt es nicht mehr, schickt beim Anlegen aber die Typfarbe mit. Ein älterer
+Dienst schickt beide Felder nicht: dann gilt alles als manuell und innerhalb
+der Gruppe zählt der Name. `CohabitSummary.progress` gibt es jetzt auch bei
+**CHALLENGE** (laufend oder beendet, vor dem Start `null`): der eigene Stand
+gegen `target` bzw. ohne Zielwert gegen den Führenden (wer führt, hat 1).
+Wie bisher: GOAL Summe gegen Ziel, automatisch STEPS_WEEKLY Schritte der Woche
+gegen das Wochenziel, FOCUS Minuten gegen das Ziel (Tag oder Woche).
+
 ⚠️ **Fotos:** `POST /photos` als `multipart/form-data`, Feld `photo`, JPEG
 (oder PNG, GIF), höchstens 10 MB, Kopfzeile `Idempotency-Key: <uuid>` →
 `{"id","width","height","animated"}`; danach steht die `id` im Eintrag oder in

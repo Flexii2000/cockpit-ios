@@ -1,5 +1,15 @@
 # Stand
 
+> **coHabit, „Heute" nach Typ (05.10.):** Branch `today-types` (auf
+> `chat-media`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `bdac077`
+> (`../habits`, Branch `today-types`) für `autoSource`, `createdAt` und den
+> Challenge-Balken - ein älterer Dienst lässt die App laufen, dann aber ohne
+> Aqua für die automatischen, ohne Challenge-Balken und innerhalb der Gruppen
+> nach Name. Erst den Dienst ausrollen, dann `tools/install-device.sh coHabit`.
+> Auf dem Gerät prüfen: Abhaken in der Liste (die Zeile bleibt stehen, Haken
+> statt Pfeil), Dashboard und Liste mit echten Daten hell und dunkel, ein neues
+> Co-Habit hat die Typfarbe auch im Web.
+>
 > **Fokus, Feature Requests per Push (05.10.):** braucht den To-Do-Dienst mit
 > `notification` (`../todo`) und den Kalorienzähler, der sie schickt (`../food`)
 > — beide ausrollen, dann `tools/install-device.sh Fokus`. Ein älteres Fokus
@@ -121,6 +131,28 @@ Geprüft: `tools/verify.sh` (alle fünf gebaut, Unit-Tests grün: 131 XCTest,
 drei davon neu für den Link in der Nutzlast, und 31 Swift Testing; coHabit
 grün), dazu die Dienste (`../todo` 41 Tests, `../food` 249 Tests). **Nicht
 geprüft:** ein echter Push auf dem Gerät und der Tipp aus der beendeten App.
+
+## coHabit: „Heute" nach Typ · **gebaut, nicht ausgerollt** (2026-10-05)
+
+Felix' Vorgaben (siehe `ENTSCHEIDUNGEN.md`, 05.10.):
+- **Reihenfolge wie die klassische Liste** in Liste und Dashboard: manuelle
+  Streaks, Ziele und Challenges, Abstinenz, automatische; darin nach
+  Anlegedatum. Die Liste ohne „Offen heute"/„Läuft", Erledigtes bleibt stehen
+  und zeigt den Haken.
+- **Kennzahl ausgeschrieben** („17" + „Tage", sonst Einheit darunter) in Liste,
+  Karten, Detailkopf, Chatkopf und Archiv.
+- **Balken** für Ziele, Challenges, Schritte je Woche und Fokus-Zeit (Liste und
+  Karten), Punkte der Woche bei manuellen Streaks.
+- **Farbe nach Typ überall** (`CohabitRef.typeColor`), keine Farbwahl mehr beim
+  Anlegen und Bearbeiten; neue Co-Habits gehen mit der Typfarbe raus.
+- **Geprüft:** Unit-Tests `TodayTypeTests` (Reihenfolge samt Anlegedatum und
+  Gruppe der automatischen, Farben, Kennzahl, Balken, neue Felder mit und ohne);
+  UI-Test `testTodayIsOrderedByTypeWithoutSections` gegen den lokalen Dienst
+  (`bdac077`, Demo-Daten), Liste und Dashboard hell und dunkel angesehen, dazu
+  Detail, Chatkopf, Statistik und Profil. Die klassische Liste ist unverändert.
+- **Offen:** „Längste Serie" in der Statistik und die Rekord-Kachel im Detail
+  zeigen weiter die Kurzform des Dienstes („15 T") - dort gibt es keine Zahl und
+  Einheit getrennt.
 
 ## coHabit: GIFs, Emoji-Reaktionen, Bild in Benachrichtigungen · **gebaut, nicht ausgerollt** (2026-10-05)
 

@@ -168,7 +168,10 @@ dann neu.
 **Die Oberfläche ist selbst gezeichnet** nach den Entwürfen (Farben nach
 Vertrag §2.1 in `CohabitShared/CohabitPalette.swift`, hell und dunkel): eigene
 untere Leiste über einer `TabView` mit versteckter Systemleiste, Karten mit
-großen Radien und angeschnittenem Kreis, Primärknöpfe in Tinte.
+großen Radien und angeschnittenem Kreis, Primärknöpfe in Tinte. Gefärbt wird
+**nach Typ**, nicht nach der gespeicherten Farbe (`CohabitRef.typeColor` in
+`CohabitShared/CohabitKinds.swift`, auch für die Kacheln); dort steht auch die
+Reihenfolge von „Heute" (`typeOrder`, wie die klassische Liste).
 
 **Ohne Netz** zeigt jeder Bildschirm den letzten Stand aus dem `OfflineCache`
 mit „Offline · Stand: …"; Einträge (auch mit Foto), Nachrichten und

@@ -29,6 +29,38 @@ doppelt. **Verworfen:** ein eigener `/api/notify`-Endpunkt, den der
 Kalorienzähler nach dem Anlegen ruft — dann bräuchte jeder Wiederholungsweg
 seine eigene Regel, wann gemeldet wird.
 
+## 2026-10-05 — coHabit „Heute": nach Typ wie die klassische Liste, Farbe nach Typ
+Felix findet die klassische Liste leichter zu verfolgen als die moderne -
+wegen der Reihenfolge nach Typ und der Balken. Entschieden hat er:
+- **Reihenfolge wie in der klassischen Liste**, in Liste **und** Dashboard:
+  manuelle Streaks, Ziele und Challenges, Abstinenz, automatische (jede mit
+  `autoSource`); darin nach Anlegedatum (`createdAt`), ohne Datum nach Name.
+  Das Dashboard behält seine Karten (Streaks groß, Ziele/Challenges klein
+  paarweise, Abstinenz und automatische groß), nur in dieser Folge.
+  **Verworfen:** die bisherige Folge des Dienstes (offen zuerst) - ein
+  abgehaktes Co-Habit sprang nach unten.
+- **Keine Abschnitte**: eine Liste nach Typ ohne Überschriften; Erledigtes bleibt
+  stehen und zeigt den Haken statt des Pfeils. **Verworfen:** „Offen heute" und
+  „Läuft".
+- **Kennzahl ohne Abkürzung**: Zahl groß, Einheit klein in ganzen Worten
+  daneben („17" „Tage"), passt das nicht, darunter (`HeadlineFigure`) - auch im
+  Kopf der Detailseite und im Archiv. `headline.short` („3 Wo.") zeigt die App
+  nicht mehr. Im Kopf über dem Chat steht die Einheit immer darunter, sonst
+  würde der Name gekürzt.
+- **Balken** wie beim Ziel für Ziele, Challenges (eigener Stand gegen den
+  Zielwert bzw. den Führenden - der Dienst rechnet ihn), Schritte je Woche und
+  Fokus-Zeit; keiner für Track food, das kcal-Ziel im Wochenmittel und die
+  Evaluation (kein Ziel zum Auffüllen) und für unbekannte Quellen. Manuelle
+  Streaks behalten die Punkte der Woche.
+- **Farbe nach Typ in der ganzen App** (Heute, Detail, Chat, Timeline,
+  Statistik, Profil, Einladungen, Kacheln): Streak Pfirsich, Abstinenz Minze,
+  Ziel Flieder, Challenge Butter, automatisch (jeder Typ) Aqua - einmal in
+  `CohabitRef.typeColor`. Die gespeicherte Farbe heißt in der App `storedColor`,
+  damit keine Ansicht sie aus Versehen nimmt. Anlegen zeigt keine Farbwahl mehr
+  und schickt die Typfarbe (so sehen Web und Android dasselbe); Bearbeiten zeigt
+  keine und lässt die gespeicherte, wie sie ist. **Verworfen:** eine Farbe je
+  Co-Habit - gleiche Typen sahen auf „Heute" verschieden aus.
+
 ## 2026-10-05 — coHabit: GIFs, Emoji-Reaktionen, Bild in Benachrichtigungen
 Felix' Wahl (Vertrag §2.7a): GIFs aus KLIPY (Tenor ist abgeschaltet), eigene
 GIFs, beliebige Emojis als Reaktion (eine je Person), Bilder in den
