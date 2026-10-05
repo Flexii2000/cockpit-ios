@@ -29,6 +29,19 @@ struct FocusSessionDraft: Encodable, Sendable {
     var categoryId: String? = nil
 }
 
+/// Eine andere Kategorie fuer einen fertigen Baum. `null` geht ausdruecklich
+/// mit: es nimmt die Kategorie weg.
+struct FocusSessionCategoryDraft: Encodable, Sendable {
+    let categoryId: String?
+
+    private enum CodingKeys: String, CodingKey { case categoryId }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(categoryId, forKey: .categoryId)
+    }
+}
+
 /// Eine Kategorie fuer die Baeume im Wald („Bachelorarbeit", „Uni") - Felix
 /// vergibt die Namen selbst. Dieselbe Form liefert coHabit zur Auswahl fuer
 /// Fokus-Habits, die nur nach einer Kategorie zaehlen.

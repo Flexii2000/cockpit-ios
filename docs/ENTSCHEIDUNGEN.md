@@ -567,6 +567,27 @@ springt die Wahl zurück und seine Meldung kommt als Toast. **Verworfen:** den
 Postausgang - eine Farbe ist keine Änderung, die später genauso gelten muss, und
 ein stilles Warten wäre hier verwirrender als ein Zurückspringen.
 
+## 2026-10-05 — Wald: Kategorie nachtragen – Tag antippen, und auch beim wachsenden Baum
+Felix hatte vor einem 55-Minuten-Baum die Kategorie vergessen; nachträglich
+ging das bisher nur über den Dienst von Hand. Entschieden hat er:
+- **Tag antippen öffnet ein Blatt mit den Bäumen des Tages** (Uhrzeit, Dauer,
+  Kategorie, ältester zuerst); ein Baum antippen öffnet das bekannte
+  Kategorie-Blatt (`ForestCategorySheet`, Zweck `.tree`), Wählen schickt
+  `PUT /api/focus/sessions/{id}` (Dienst ab Branch `tree-category`).
+  **Verworfen:** (a) die Tageszeile im Wald aufklappen, je Baum ein Menü; (b)
+  Langdruck auf die Tageszeile mit einem Untermenü je Baum – nichts Neues zu
+  sehen, aber versteckt. Die Liste selbst zeigt weiter Tage (siehe 01.10., (c)).
+- **Auch während der Session**: die Kategorie in der Karte des wachsenden
+  Baums ist ein Knopf (zeigt auch „Ohne Kategorie"), die Wahl geht am Ende mit
+  dem Baum raus und gilt als zuletzt benutzt. **Verworfen:** nur nachträglich –
+  „kein Abbrechen, keine Verlängerung" bleibt, die Kategorie ändert an der
+  Session nichts.
+
+Ebenso entschieden, ohne echte Wahl: Ändern nur mit Netz und **ohne**
+Postausgang (wie Anlegen/Umbenennen); ein Baum, den der Dienst noch nicht kennt
+(wartet im Postausgang), lässt sich im Blatt nicht antippen – sonst reichte der
+Postausgang ihn danach mit der alten Kategorie nach und die Änderung wäre weg.
+
 ## 2026-10-05 — coHabit, klassische Liste: Abhakbares vor Lassen
 Reihenfolge jetzt Aufbauen → Ziele und Challenges → Lassen → automatisch, in
 jeder Gruppe nach Anlegedatum (`classicOrder`). **Warum:** Felix; ein neues

@@ -7,7 +7,8 @@ import SwiftUI
 /// darunter die Insel in 3D fuer den gewaehlten Ausschnitt - heute, Woche,
 /// Monat, Jahr -, darunter die Summe und die Tage. Waehrend einer Session
 /// gibt es hier nichts zu tun: kein Abbrechen, keine Verlaengerung - das war
-/// die Vorgabe.
+/// die Vorgabe. Nur die Kategorie laesst sich noch aendern, und ein Tag
+/// antippen zeigt seine Baeume, deren Kategorie sich ebenso nachtragen laesst.
 struct ForestTab: View {
 
     @Environment(\.scenePhase) private var scenePhase
@@ -18,6 +19,8 @@ struct ForestTab: View {
     @State private var askingCustom = false
     @State private var customMinutes = ""
     @State private var choosingCategory = false
+    @State private var choosingRunningCategory = false
+    @State private var openDay: ForestDay?
 
     var body: some View {
         @Bindable var store = store
@@ -28,7 +31,7 @@ struct ForestTab: View {
                         ErrorBanner(message: message, isAccessProblem: store.isAccessProblem)
                     }
                     if let active = store.active {
-                        RunningSessionCard(session: active)
+                        RunningSessionCard(session: active) { choosingRunningCategory = true }
                     } else {
                         plantCard
                     }
@@ -51,7 +54,9 @@ struct ForestTab: View {
                         LoadingPlaceholder()
                     } else {
                         ForEach(store.visibleDays) { day in
-                            ForestDayRow(day: day)
+                            Button { openDay = day } label: { ForestDayRow(day: day) }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("forestDay")
                         }
                     }
                 }
@@ -98,6 +103,12 @@ struct ForestTab: View {
             }
             .sheet(isPresented: $choosingCategory) {
                 ForestCategorySheet(store: store)
+            }
+            .sheet(isPresented: $choosingRunningCategory) {
+                ForestCategorySheet(store: store, purpose: .running)
+            }
+            .sheet(item: $openDay) { day in
+                ForestDaySheet(store: store, day: day.day)
             }
             // Apples eigenes Blatt statt eines selbstgebauten: der Picker ist
             // eine entfernte Ansicht eines Systemprozesses.
@@ -216,6 +227,9 @@ struct ForestTab: View {
 struct RunningSessionCard: View {
 
     let session: ActiveSession
+    /// Die Kategorie ist das Einzige, was sich waehrend der Session aendern
+    /// laesst - vergessen faellt meist erst auf, wenn der Baum schon waechst.
+    let chooseCategory: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
@@ -230,12 +244,15 @@ struct RunningSessionCard: View {
             Text(timerInterval: session.start...session.end, countsDown: true)
                 .font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit())
                 .accessibilityIdentifier("sessionCountdown")
-            if let category = session.categoryName {
-                Label(category, systemImage: "tag")
+            Button(action: chooseCategory) {
+                Label(session.categoryName ?? ForestCategorySheet.none, systemImage: "tag")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("sessionCategory")
+                    .lineLimit(1)
             }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .tint(.secondary)
+            .accessibilityIdentifier("sessionCategory")
             Text("bis \(Self.clock.string(from: session.end))")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -272,6 +289,10 @@ struct ForestDayRow: View {
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(width: 64, alignment: .trailing)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
             if let categories = FocusCategoryBreakdown.text(day.sessions) {
                 Text(categories)
@@ -281,17 +302,21 @@ struct ForestDayRow: View {
             }
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 
-    private var title: String {
+    private var title: String { Self.title(for: day.day) }
+
+    /// „Heute", „Gestern", sonst das Datum - auch der Titel des Tagesblatts.
+    static func title(for day: CalendarDate) -> String {
         let today = CalendarDate.today()
-        if day.day == today { return "Heute" }
+        if day == today { return "Heute" }
         if let yesterday = Calendar(identifier: .gregorian).date(byAdding: .day, value: -1,
                                                                  to: today.startOfDay()),
-           day.day == CalendarDate(date: yesterday) {
+           day == CalendarDate(date: yesterday) {
             return "Gestern"
         }
-        return Self.dayFormatter.string(from: day.day.startOfDay())
+        return dayFormatter.string(from: day.startOfDay())
     }
 
     private static let dayFormatter: DateFormatter = {

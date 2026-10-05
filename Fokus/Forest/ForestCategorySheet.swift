@@ -1,17 +1,30 @@
 import SwiftUI
 
-/// Die Kategorie fuer den naechsten Baum waehlen - und gleich hier anlegen,
-/// umbenennen (Langdruck oder Wischen) und loeschen.
+/// Die Kategorie fuer den naechsten Baum waehlen, fuer den wachsenden oder
+/// nachtraeglich fuer einen fertigen - und gleich hier anlegen, umbenennen
+/// (Langdruck oder Wischen) und loeschen.
 ///
 /// Antippen waehlt und schliesst; eine neu angelegte Kategorie ist sofort
 /// gewaehlt. Ohne Netz bleibt die Auswahl der zuletzt geladenen Liste -
-/// angelegt wird nur mit Netz (siehe `FocusSessionsAPI.createCategory`).
+/// angelegt wird nur mit Netz (siehe `FocusSessionsAPI.createCategory`),
+/// und ein fertiger Baum aendert sich auch nur mit Netz.
 struct ForestCategorySheet: View {
+
+    /// Wofuer gewaehlt wird.
+    enum Purpose {
+        /// Der Knopf ueber „Baum pflanzen".
+        case next
+        /// Der Baum, der gerade waechst - die Kategorie geht am Ende mit ihm raus.
+        case running
+        /// Ein fertiger Baum, den der Dienst schon kennt.
+        case tree(FocusSession)
+    }
 
     /// Die Wahl ohne Kategorie - so heisst sie auch auf dem Knopf.
     static let none = "Ohne Kategorie"
 
     let store: ForestStore
+    var purpose: Purpose = .next
     @Environment(\.dismiss) private var dismiss
 
     @State private var newName = ""
@@ -89,11 +102,41 @@ struct ForestCategorySheet: View {
         store.categories ?? store.category.map { [$0] } ?? []
     }
 
-    private func row(_ category: FocusCategory?) -> some View {
-        let selected = store.category?.id == category?.id
-        return Button {
+    /// Was den Haken traegt - beim fertigen Baum der Stand des Dienstes,
+    /// nicht der beim Oeffnen des Blatts.
+    private var selectedId: String? {
+        switch purpose {
+        case .next: store.category?.id
+        case .running: store.active?.categoryId
+        case .tree(let tree): current(tree).categoryId
+        }
+    }
+
+    private func current(_ tree: FocusSession) -> FocusSession {
+        store.allSessions.first { $0.id == tree.id } ?? tree
+    }
+
+    /// Liefert die Meldung, wenn der Dienst die Aenderung nicht annimmt.
+    private func choose(_ category: FocusCategory?) async -> String? {
+        switch purpose {
+        case .next:
             store.category = category
-            dismiss()
+            return nil
+        case .running:
+            store.changeActiveCategory(to: category)
+            return nil
+        case .tree(let tree):
+            return await store.changeCategory(of: current(tree), to: category)
+        }
+    }
+
+    private func row(_ category: FocusCategory?) -> some View {
+        let selected = selectedId == category?.id
+        return Button {
+            Task {
+                await run { await choose(category) }
+                if errorMessage == nil { dismiss() }
+            }
         } label: {
             HStack {
                 Text(category?.name ?? Self.none)
@@ -134,7 +177,12 @@ struct ForestCategorySheet: View {
         let name = newName
         guard !ForestStore.categoryName(name).isEmpty, !isBusy else { return }
         Task {
-            await run { await store.createCategory(named: name) }
+            await run {
+                switch await store.createCategory(named: name) {
+                case .success(let created): return await choose(created)
+                case .failure(let refusal): return refusal.message
+                }
+            }
             if errorMessage == nil {
                 newName = ""
                 dismiss()

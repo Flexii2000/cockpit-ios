@@ -32,6 +32,13 @@ struct FocusSessionsAPI: Sendable {
         try await client.send("POST", "/api/focus/sessions", body: draft, queueWhenOffline: true)
     }
 
+    /// Gibt einem fertigen Baum eine andere Kategorie (nil: keine). Nur mit
+    /// Netz, ohne Postausgang - wie die Kategorien selbst.
+    func changeCategory(of sessionId: String, to categoryId: String?) async throws -> FocusSession {
+        try await client.send("PUT", "/api/focus/sessions/\(sessionId)",
+                              body: FocusSessionCategoryDraft(categoryId: categoryId))
+    }
+
     // MARK: - Kategorien
 
     /// Die Kategorien zur Auswahl, in der Reihenfolge des Anlegens - ohne Netz

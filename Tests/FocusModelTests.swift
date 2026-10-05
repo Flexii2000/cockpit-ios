@@ -64,6 +64,15 @@ final class FocusModelTests: XCTestCase {
         XCTAssertEqual(create as NSDictionary, ["name": "Uni"])
     }
 
+    /// Nachtraeglich aendern: ohne Kategorie geht `null` mit, nicht ein
+    /// leerer Rumpf - so steht im Rumpf, was gemeint ist.
+    func testCategoryChangeSendsNullForNone() throws {
+        XCTAssertEqual(try object(FocusSessionCategoryDraft(categoryId: "ed49-2245")) as NSDictionary,
+                       ["categoryId": "ed49-2245"])
+        let none = try object(FocusSessionCategoryDraft(categoryId: nil))
+        XCTAssertTrue(none["categoryId"] is NSNull, "\(none)")
+    }
+
     /// Die zuletzt benutzte Kategorie bleibt je Geraet: vor dem ersten Laden
     /// steht sie so da, wie sie gemerkt ist; nach dem Laden mit dem Namen aus
     /// der Liste (umbenannt) oder gar nicht mehr (geloescht).

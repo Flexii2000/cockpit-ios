@@ -1053,6 +1053,7 @@ die App spricht es über `FocusSessionsAPI` (`Shared/FocusAPI.swift`).
 |---|---|---|
 | POST | `/api/focus/sessions` | `{id, start, end, categoryId?}` → 201; **dieselbe Id noch einmal → 200**, nichts ändert sich; unbekannte Kategorie → 400 „Unbekannte Kategorie.“ (eine inzwischen gelöschte gilt) |
 | GET | `/api/focus/sessions?from=&to=` | Sessions, deren `day` im Zeitraum liegt, neueste zuerst |
+| PUT | `/api/focus/sessions/{id}` | `{categoryId}` → die Session mit neuer Kategorie; `null` nimmt sie weg; unbekannter Baum → 404, unbekannte Kategorie → 400 (eine gelöschte gilt). Anfang und Ende bleiben (seit 2026-10-05, `../habits` Branch `tree-category`) |
 | GET | `/api/focus/categories` | `[{id, name}]` zur Auswahl, in der Reihenfolge des Anlegens (seit 2026-10-01, `../habits` `10536d7`) |
 | POST | `/api/focus/categories` | `{id?, name}` → 201; dieselbe Id noch einmal → 200; Name schon da (ohne Groß/klein) → 409 „Diese Kategorie gibt es schon.“; Name 1–40 Zeichen |
 | PUT | `/api/focus/categories/{id}` | `{name}` → `{id, name}`; coHabit zieht den Namen in seinen Fokus-Habits nach |
@@ -1073,6 +1074,14 @@ Postausgang: eine offline angelegte Kategorie, die beim Nachsenden scheitert
 Auswahl aus dem `OfflineCache`. Die App schickt keine eigene Kennung beim
 Anlegen. Der Wald selbst bleibt, wie er war - keine Farben je Kategorie; die
 Tageszeile nennt darunter die Kategorien mit ihren Minuten.
+
+⚠️ **Kategorie nachtragen** (seit 2026-10-05): Tageszeile antippen →
+`ForestDaySheet` mit den Bäumen des Tages → Baum antippen →
+`ForestCategorySheet(purpose: .tree)` → `PUT /api/focus/sessions/{id}`, nur
+mit Netz, ohne Postausgang. Bäume, die noch im Postausgang warten, sind dort
+nicht antippbar (`ForestStore.canChangeCategory`). Beim **wachsenden** Baum
+geht kein Request raus: die Kategorie steht in der `ActiveSession`
+(App-Gruppe) und geht am Ende mit dem POST mit.
 
 ⚠️ **Die Id vergibt die App** (`FocusSessionDraft`), damit ein Nachsenden aus
 dem Postausgang keinen zweiten Baum pflanzt — deshalb darf `plant` mit

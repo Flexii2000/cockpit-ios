@@ -163,20 +163,26 @@ final class ForestStore {
         }
     }
 
-    /// Legt eine Kategorie an und waehlt sie. Liefert die Meldung, wenn es
-    /// nicht ging - „Diese Kategorie gibt es schon." kommt vom Dienst.
-    func createCategory(named raw: String) async -> String? {
+    /// Eine Aenderung, die der Dienst nicht angenommen hat - mit der Meldung
+    /// fuers Blatt („Diese Kategorie gibt es schon." kommt vom Dienst).
+    struct Refusal: Error {
+        let message: String
+    }
+
+    /// Legt eine Kategorie an und nimmt sie in die Auswahl. Wofuer sie dann
+    /// gewaehlt ist - naechster, wachsender oder fertiger Baum -, entscheidet
+    /// das Blatt.
+    func createCategory(named raw: String) async -> Result<FocusCategory, Refusal> {
         let name = Self.categoryName(raw)
-        guard !name.isEmpty else { return nil }
+        guard !name.isEmpty else { return .failure(Refusal(message: "Der Name braucht 1 bis 40 Zeichen.")) }
         do {
             let created = try await api.createCategory(name: name)
             var list = categories ?? []
             if !list.contains(where: { $0.id == created.id }) { list.append(created) }
             categories = list
-            category = created
-            return nil
+            return .success(created)
         } catch {
-            return Self.explain(error)
+            return .failure(Refusal(message: Self.explain(error)))
         }
     }
 
@@ -188,6 +194,18 @@ final class ForestStore {
             categories = categories?.map { $0.id == renamed.id ? renamed : $0 }
             if category?.id == renamed.id { category = renamed }
             if categoryMemory.lastUsed?.id == renamed.id { categoryMemory.lastUsed = renamed }
+            // Die Baeume mit ihr gleich mit - sonst stuende im Blatt des Tages
+            // bis zum naechsten Laden der alte Name.
+            sessions = sessions.map { tree in
+                var tree = tree
+                if tree.categoryId == renamed.id { tree.categoryName = renamed.name }
+                return tree
+            }
+            if var session = active, session.categoryId == renamed.id {
+                session.categoryName = renamed.name
+                active = session
+                FocusHandoff.save(session)
+            }
             return nil
         } catch {
             return Self.explain(error)
@@ -204,6 +222,43 @@ final class ForestStore {
             return nil
         } catch {
             return Self.explain(error)
+        }
+    }
+
+    /// Ob sich die Kategorie eines fertigen Baums aendern laesst: nur, wenn
+    /// der Dienst ihn schon kennt. Ein wartender geht mit der Kategorie raus,
+    /// mit der er gepflanzt wurde - eine Aenderung daran ginge verloren, wenn
+    /// der Postausgang ihn danach mit der alten nachreicht.
+    func canChangeCategory(_ tree: FocusSession) -> Bool {
+        sessions.contains { $0.id == tree.id }
+    }
+
+    /// Gibt einem fertigen Baum eine andere Kategorie (nil: keine) - fuer den,
+    /// bei dem sie vor dem Pflanzen vergessen war. Liefert die Meldung, wenn
+    /// es nicht ging.
+    func changeCategory(of tree: FocusSession, to chosen: FocusCategory?) async -> String? {
+        guard tree.categoryId != chosen?.id else { return nil }
+        do {
+            let changed = try await api.changeCategory(of: tree.id, to: chosen?.id)
+            sessions = sessions.map { $0.id == changed.id ? changed : $0 }
+            return nil
+        } catch {
+            return Self.explain(error)
+        }
+    }
+
+    /// Die Kategorie des wachsenden Baums - er geht am Ende mit ihr an den
+    /// Dienst, ohne Umweg ueber eine Aenderung danach. Sie gilt dann auch als
+    /// zuletzt benutzt, wie beim Pflanzen.
+    func changeActiveCategory(to chosen: FocusCategory?) {
+        guard var session = active else { return }
+        session.categoryId = chosen?.id
+        session.categoryName = chosen?.name
+        active = session
+        FocusHandoff.save(session)
+        if !session.test {
+            category = chosen
+            categoryMemory.lastUsed = chosen
         }
     }
 

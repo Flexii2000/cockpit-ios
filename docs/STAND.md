@@ -141,6 +141,18 @@
 > Homebildschirm folgen nach dem Neuladen, ein neues Co-Habit hat die eigene
 > Farbe auch im Web.
 >
+> **Fokus, Kategorie nachtragen (05.10.):** ausgerollt am 15.10. (Dienst und
+> Fokus, auf den Stand vom 15.10. gesetzt). Tageszeile antippen → Blatt mit den Bäumen des Tages
+> → Baum antippen → Kategorie wählen; die Kategorie des wachsenden Baums ist ein
+> Knopf in seiner Karte. Braucht für fertige Bäume den Dienst mit
+> `PUT /habits/api/focus/sessions/{id}` (`../habits`); ein älterer Dienst
+> antwortet auf das Ändern mit einem Fehler im Blatt, der wachsende Baum geht
+> auch ohne. Geprüft: `verify.sh` und die UI-Tests
+> `testChangeTheCategoryOfAFinishedTree`, `testChangeTheCategoryWhileTheTreeGrows`,
+> `testPlantATreeWithACategory` gegen den lokalen Dienst vom Branch, Bilder hell
+> und dunkel. Auf dem Gerät prüfen: Tageszeile antippen (Hervorhebung beim
+> Tippen), Blatt im Blatt (Baum → Kategorie).
+>
 > **coHabit, „Heute" nach Typ (05.10.):** Branch `today-types` (auf
 > `chat-media`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `bdac077`
 > (`../habits`, Branch `today-types`) für `autoSource`, `createdAt` und den

@@ -120,11 +120,112 @@ final class FokusUITests: XCTestCase {
         cleanUp("DELETE", "/api/focus/sessions/\(tree)")
         XCTAssertEqual(planted?["categoryName"] as? String, name)
 
-        let day = app.staticTexts.matching(identifier: "dayCategories").firstMatch
+        // Die Tageszeile ist ein Knopf (sie oeffnet die Baeume des Tages) -
+        // ihre Texte stehen in seinem Label.
+        let day = app.buttons.matching(identifier: "forestDay").firstMatch
         for _ in 0..<4 where !(day.exists && day.isHittable) { scrollDown(app) }
-        XCTAssertTrue(day.waitForExistence(timeout: 10), "die Tageszeile zeigt keine Kategorien")
+        XCTAssertTrue(day.waitForExistence(timeout: 10), "keine Tageszeile")
         XCTAssertTrue(day.label.contains("\(name) 0:01"), day.label)
         snap(app, "wald-tag")
+    }
+
+    /// Kategorie vergessen, Baum waechst schon: die Kategorie in der Karte
+    /// antippen und waehlen - der fertige Baum steht mit ihr beim Dienst.
+    /// Pflanzt wirklich und wartet die Minute ab, nur gegen einen lokalen Dienst.
+    @MainActor
+    func testChangeTheCategoryWhileTheTreeGrows() throws {
+        try XCTSkipIf(!habitsURL.hasPrefix("http://127.0.0.1") && !habitsURL.hasPrefix("http://localhost"),
+                      "COCKPIT_URL_HABITS muss auf einen lokalen Dienst zeigen - siehe tools/uitest.sh")
+        let name = "Thesis \(Int(Date().timeIntervalSince1970) % 100_000)"
+        let category = try XCTUnwrap(try send("POST", "/api/focus/categories", body: #"{"name":"\#(name)"}"#)["id"]
+                                     as? String)
+        cleanUp("DELETE", "/api/focus/categories/\(category)")
+        let app = start(tab: "forest", extra: [
+            "COCKPIT_URL_HABITS": habitsURL,
+            "COCKPIT_URL_COHABIT": environment["COCKPIT_URL_COHABIT"] ?? "",
+            "COCKPIT_NO_SCREENTIME": "1",
+            "COCKPIT_NO_SHORTCUTS": "1",
+            "COCKPIT_FOREST_RANGE": "today",
+        ])
+
+        let menu = app.buttons["forestMenu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 25))
+        menu.tap()
+        app.buttons["Eigene Dauer …"].tap()
+        let minutes = app.alerts.textFields.firstMatch
+        XCTAssertTrue(minutes.waitForExistence(timeout: 5))
+        minutes.tap()
+        minutes.typeText("1")
+        app.alerts.buttons["Pflanzen"].tap()
+
+        let running = app.buttons["sessionCategory"]
+        XCTAssertTrue(running.waitForExistence(timeout: 10), "die laufende Session hat keinen Knopf fuer die Kategorie")
+        running.tap()
+        let row = app.buttons[name]
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "die Kategorie steht nicht im Blatt")
+        row.tap()
+        let chosen = NSPredicate(format: "label CONTAINS %@", name)
+        XCTAssertTrue(XCTWaiter.wait(for: [expectation(for: chosen, evaluatedWith: running)], timeout: 10) == .completed,
+                      "die Karte zeigt die neue Kategorie nicht: \(running.label)")
+        snap(app, "wald-laeuft-umkategorisiert")
+
+        XCTAssertTrue(app.buttons["plantTree"].waitForExistence(timeout: 100), "die Session ist nicht zu Ende gegangen")
+        let planted = try sessionsOfToday().first { $0["categoryId"] as? String == category }
+        let tree = try XCTUnwrap(planted?["id"] as? String, "der Baum steht nicht mit der neuen Kategorie beim Dienst")
+        cleanUp("DELETE", "/api/focus/sessions/\(tree)")
+    }
+
+    /// Ein fertiger Baum ohne Kategorie: Tag antippen, Baum antippen,
+    /// Kategorie waehlen - der Dienst kennt sie danach, das Blatt zeigt sie.
+    @MainActor
+    func testChangeTheCategoryOfAFinishedTree() throws {
+        try XCTSkipIf(!habitsURL.hasPrefix("http://127.0.0.1") && !habitsURL.hasPrefix("http://localhost"),
+                      "COCKPIT_URL_HABITS muss auf einen lokalen Dienst zeigen - siehe tools/uitest.sh")
+        let suffix = Int(Date().timeIntervalSince1970) % 100_000
+        let name = "Bachelorarbeit \(suffix)"
+        let category = try XCTUnwrap(try send("POST", "/api/focus/categories", body: #"{"name":"\#(name)"}"#)["id"]
+                                     as? String)
+        cleanUp("DELETE", "/api/focus/categories/\(category)")
+        // Vor fuenf Minuten zu Ende, eine Minute lang - heute, ohne Kategorie.
+        let end = Date().addingTimeInterval(-300)
+        let iso = ISO8601DateFormatter()
+        let id = "uitest-\(suffix)-tree"
+        _ = try send("POST", "/api/focus/sessions", body: #"{"id":"\#(id)","start":"\#(iso.string(from: end.addingTimeInterval(-60)))","end":"\#(iso.string(from: end))"}"#)
+        cleanUp("DELETE", "/api/focus/sessions/\(id)")
+
+        let app = start(tab: "forest", extra: [
+            "COCKPIT_URL_HABITS": habitsURL,
+            "COCKPIT_URL_COHABIT": environment["COCKPIT_URL_COHABIT"] ?? "",
+            "COCKPIT_NO_SCREENTIME": "1",
+            "COCKPIT_NO_SHORTCUTS": "1",
+            "COCKPIT_FOREST_RANGE": "today",
+        ])
+        let day = app.buttons.matching(identifier: "forestDay").firstMatch
+        XCTAssertTrue(day.waitForExistence(timeout: 25), "keine Tageszeile")
+        for _ in 0..<4 where !day.isHittable { scrollDown(app) }
+        day.tap()
+
+        let clock = DateFormatter()
+        clock.locale = Locale(identifier: "de_DE")
+        clock.dateFormat = "HH:mm"
+        let times = "\(clock.string(from: end.addingTimeInterval(-60)))–\(clock.string(from: end))"
+        let tree = app.buttons.matching(identifier: "forestTree")
+            .matching(NSPredicate(format: "label CONTAINS %@", times)).firstMatch
+        XCTAssertTrue(tree.waitForExistence(timeout: 10), "der Baum \(times) steht nicht im Blatt des Tages")
+        XCTAssertTrue(tree.label.contains("Ohne Kategorie"), tree.label)
+        snap(app, "wald-tag-baeume")
+        tree.tap()
+
+        let row = app.buttons[name]
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "die Kategorie steht nicht im Blatt")
+        row.tap()
+        let changed = NSPredicate(format: "label CONTAINS %@", name)
+        XCTAssertTrue(XCTWaiter.wait(for: [expectation(for: changed, evaluatedWith: tree)], timeout: 10) == .completed,
+                      "das Blatt des Tages zeigt die neue Kategorie nicht: \(tree.label)")
+        snap(app, "wald-tag-umkategorisiert")
+        let stored = try sessionsOfToday().first { $0["id"] as? String == id }
+        XCTAssertEqual(stored?["categoryId"] as? String, category)
+        XCTAssertEqual(stored?["categoryName"] as? String, name)
     }
 
     /// Umbenennen per Langdruck, Loeschen per Wischen - im Auswahlblatt, ohne
