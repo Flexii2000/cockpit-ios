@@ -619,6 +619,8 @@ struct CheckinResult: Codable, Hashable, Sendable {
 enum MessageKind: String, LenientEnum {
     case text = "TEXT"
     case photo = "PHOTO"
+    /// Ein GIF aus der Suche (KLIPY, Vertrag §2.7a) - steht in `gif`.
+    case gif = "GIF"
     case checkin = "CHECKIN"
     case system = "SYSTEM"
     static let fallback = MessageKind.system
@@ -640,6 +642,13 @@ struct Message: Codable, Hashable, Sendable, Identifiable {
     let deleted: Bool
     /// Check-in-Post: alle Fotos des Eintrags; Foto-Nachricht: das eine.
     let photoIds: [String]?
+    /// Bei `kind: GIF` das GIF aus der Suche.
+    let gif: GifView?
+    /// Ein eigenes GIF (`kind: PHOTO`): `GET /photos/{id}?size=full` liefert
+    /// dann `image/gif`. Fehlt bei einem aelteren Dienst.
+    let photoAnimated: Bool?
+
+    var isAnimatedPhoto: Bool { photoAnimated == true }
 
     /// Die Fotos des Posts - bei einem Check-in-Post notfalls aus dem Eintrag.
     var photos: [String] {
@@ -788,4 +797,6 @@ struct PhotoUpload: Codable, Hashable, Sendable {
     let id: String
     let width: Int?
     let height: Int?
+    /// Ein GIF mit mehr als einem Bild, unveraendert abgelegt (Vertrag §2.7a).
+    let animated: Bool?
 }

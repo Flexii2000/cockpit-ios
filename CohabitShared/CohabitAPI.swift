@@ -96,15 +96,18 @@ struct CohabitAPI: Sendable {
 
     /// Ein Foto hochladen (Vertrag §3.8). Der Schluessel macht das Hochladen
     /// wiederholbar: dieselbe Kennung noch einmal legt kein zweites Foto an.
-    func uploadPhoto(jpeg: Data, key: String) async throws -> PhotoUpload {
-        var req = multipartRequest("POST", "/photos", jpeg: jpeg)
+    ///
+    /// Ein GIF geht unveraendert als `image/gif` hoch - der Dienst behaelt die
+    /// Animation (Vertrag §2.7a); alles andere hat die App schon als JPEG.
+    func uploadPhoto(data: Data, key: String) async throws -> PhotoUpload {
+        var req = multipartRequest("POST", "/photos", data: data)
         req.setValue(key, forHTTPHeaderField: "Idempotency-Key")
         return try decode(try await perform(req))
     }
 
     /// Das Profilbild - quadratisch zugeschnitten hat es die App schon.
     func uploadAvatar(jpeg: Data) async throws -> MeView {
-        try decode(try await perform(multipartRequest("PUT", "/me/avatar", jpeg: jpeg)))
+        try decode(try await perform(multipartRequest("PUT", "/me/avatar", data: jpeg)))
     }
 
     // MARK: - Innereien
@@ -139,13 +142,14 @@ struct CohabitAPI: Sendable {
         return req
     }
 
-    private func multipartRequest(_ method: String, _ path: String, jpeg: Data) -> URLRequest {
+    private func multipartRequest(_ method: String, _ path: String, data: Data) -> URLRequest {
         var req = request(method, path)
         req.timeoutInterval = max(timeout, 90)
         let boundary = "cohabit-\(UUID().uuidString)"
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        req.httpBody = Self.multipartBody(field: "photo", filename: "photo.jpg", mime: "image/jpeg",
-                                          data: jpeg, boundary: boundary)
+        let format = ImageFormat.sniff(data) ?? .jpeg
+        req.httpBody = Self.multipartBody(field: "photo", filename: "photo.\(format.fileExtension)", mime: format.mimeType,
+                                          data: data, boundary: boundary)
         return req
     }
 

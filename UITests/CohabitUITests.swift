@@ -254,6 +254,99 @@ final class CohabitUITests: XCTestCase {
         shoot(app, "chat")
     }
 
+    // MARK: - Emoji-Reaktionen und GIFs (Vertrag §2.7a)
+
+    /// Langer Druck auf eine Nachricht: Leiste mit Schnellauswahl und Aktionen,
+    /// ein Emoji setzt die Pille, ein anderes ersetzt es, das Blatt
+    /// „Reaktionen" nimmt es mit „Entfernen" zurueck.
+    @MainActor
+    func testReactWithAnEmojiAndRemoveIt() throws {
+        let id = try createCohabit(name: unique("Reaktion UI"), photoRequired: false, token: token)
+        let text = "Heute frueher? \(Int.random(in: 100...999))"
+        let posted = try request("POST", "/cohabits/\(id)/messages",
+                                 body: ["id": UUID().uuidString.lowercased(), "text": text], token: token)
+        let messageId = try XCTUnwrap(posted["id"] as? String)
+        let app = launch(extra: ["COCKPIT_LINK": "cohabit://cohabit/\(id)/chat"])
+
+        let bubble = app.staticTexts[text]
+        XCTAssertTrue(bubble.waitForExistence(timeout: 20), "die Nachricht fehlt")
+        bubble.press(forDuration: 0.8)
+        let fire = app.buttons["react-🔥"]
+        XCTAssertTrue(fire.waitForExistence(timeout: 5), "keine Leiste nach langem Druck")
+        XCTAssertTrue(app.buttons["menuDelete"].exists, "die eigene Nachricht laesst sich loeschen")
+        XCTAssertTrue(app.textFields["reactOther"].exists, "kein „+“")
+        shoot(app, "reaktion-leiste")
+        fire.tap()
+
+        let pill = app.buttons["reactionPill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 10), "keine Pille unter der Nachricht")
+        shoot(app, "reaktion-pille")
+        XCTAssertEqual(try reactions(of: messageId, in: id), ["🔥"])
+
+        // Ein anderes Emoji ersetzt das eigene.
+        bubble.press(forDuration: 0.8)
+        let laugh = app.buttons["react-😂"]
+        XCTAssertTrue(laugh.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["react-🔥"].isSelected, "das eigene ist nicht hervorgehoben")
+        laugh.tap()
+        XCTAssertTrue(waitFor(pill, toReadAgain: "😂 1"), "das neue Emoji ersetzt das alte nicht")
+        XCTAssertEqual(try reactions(of: messageId, in: id), ["😂"])
+
+        pill.tap()
+        let remove = app.buttons["reactionRemove"]
+        XCTAssertTrue(remove.waitForExistence(timeout: 5), "kein Blatt „Reaktionen“")
+        XCTAssertTrue(app.staticTexts["Reaktionen"].exists)
+        shoot(app, "reaktion-blatt")
+        remove.tap()
+        XCTAssertTrue(waitUntilGone(pill), "die Pille bleibt nach „Entfernen“")
+        XCTAssertEqual(try reactions(of: messageId, in: id), [])
+    }
+
+    /// Das GIF-Blatt gegen tools/klipy-stub.py: Suchfeld „Search KLIPY",
+    /// Raster, Antippen sendet sofort und schliesst das Blatt.
+    @MainActor
+    func testSendAGifFromTheSearch() throws {
+        let klipy = environment["COCKPIT_URL_KLIPY"] ?? ""
+        try XCTSkipIf(klipy.isEmpty, "COCKPIT_URL_KLIPY fehlt - python3 tools/klipy-stub.py starten")
+        let id = try createCohabit(name: unique("GIF UI"), photoRequired: false, token: token)
+        let app = launch(extra: ["COCKPIT_LINK": "cohabit://cohabit/\(id)/chat", "COCKPIT_URL_KLIPY": klipy])
+
+        let button = app.buttons["chatGif"]
+        XCTAssertTrue(button.waitForExistence(timeout: 20), "kein GIF-Knopf - liefert /gifs/config enabled?")
+        shoot(app, "gif-knopf")
+        button.tap()
+        let search = app.textFields["gifSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5), "kein GIF-Blatt")
+        XCTAssertEqual(search.placeholderValue, "Search KLIPY")
+        XCTAssertTrue(app.buttons["gifTile-0"].waitForExistence(timeout: 10), "kein Trending")
+        sleep(2)
+        shoot(app, "gif-trending")
+        search.tap()
+        search.typeText("winken")
+        sleep(2)
+        shoot(app, "gif-suche")
+        app.buttons["gifTile-1"].tap()
+        XCTAssertTrue(waitUntilGone(search), "das Blatt bleibt offen")
+        let gif = app.otherElements["gif-hello-hi-663"]
+        XCTAssertTrue(gif.waitForExistence(timeout: 10), "das GIF steht nicht im Chat")
+        sleep(2)
+        shoot(app, "gif-chat")
+
+        let messages = try XCTUnwrap(try request("GET", "/cohabits/\(id)/messages", body: nil, token: token)["messages"]
+            as? [[String: Any]])
+        let last = try XCTUnwrap(messages.last)
+        XCTAssertEqual(last["kind"] as? String, "GIF")
+        XCTAssertEqual((last["gif"] as? [String: Any])?["slug"] as? String, "hello-hi-663")
+    }
+
+    /// Die Emojis einer Nachricht laut Dienst.
+    private func reactions(of messageId: String, in cohabitId: String) throws -> [String] {
+        let messages = try XCTUnwrap(try request("GET", "/cohabits/\(cohabitId)/messages", body: nil, token: token)["messages"]
+            as? [[String: Any]])
+        let message = try XCTUnwrap(messages.first { $0["id"] as? String == messageId })
+        return ((message["reactions"] as? [[String: Any]]) ?? []).compactMap { $0["reaction"] as? String }
+    }
+
     // MARK: - Einladung annehmen
 
     @MainActor

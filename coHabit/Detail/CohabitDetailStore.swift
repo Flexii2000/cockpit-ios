@@ -185,7 +185,7 @@ final class CohabitDetailStore {
                             Toast.shared.show("Das Foto ließ sich nicht lesen.", error: true)
                             return false
                         }
-                        let upload = try await api.uploadPhoto(jpeg: jpeg, key: UUID().uuidString.lowercased())
+                        let upload = try await api.uploadPhoto(data: jpeg, key: UUID().uuidString.lowercased())
                         PhotoLoader.shared.remember(image, id: upload.id)
                         ids.append(upload.id)
                     }

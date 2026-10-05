@@ -411,15 +411,20 @@ struct CheckinUpdate: Codable, Hashable, Sendable {
     }
 }
 
+/// Eine Nachricht. Liegt auch im Postausgang - `gif` ist optional, damit ein
+/// Auftrag aus einer aelteren Fassung weiter dekodiert.
 struct MessageRequest: Codable, Hashable, Sendable {
     let id: String
     var text: String?
     var photoId: String?
+    /// Ein GIF aus der Suche (Vertrag §2.7a) - nie zusammen mit `photoId`.
+    var gif: GifInput?
 
-    init(id: String = UUID().uuidString.lowercased(), text: String?, photoId: String? = nil) {
+    init(id: String = UUID().uuidString.lowercased(), text: String?, photoId: String? = nil, gif: GifInput? = nil) {
         self.id = id
         self.text = text
         self.photoId = photoId
+        self.gif = gif
     }
 
     func encode(to encoder: Encoder) throws {
@@ -427,6 +432,7 @@ struct MessageRequest: Codable, Hashable, Sendable {
         try c.encode(id, forKey: .id)
         try c.encode(text, forKey: .text)
         try c.encode(photoId, forKey: .photoId)
+        try c.encode(gif, forKey: .gif)
     }
 }
 

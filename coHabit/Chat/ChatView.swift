@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Der Chat (Entwurf S. 7): Check-in-Posts als hervorgehobene Karten,
 /// Textblasen (eigene rechts violett), Systemmeldungen klein in der Mitte;
@@ -9,8 +10,14 @@ struct ChatView: View {
 
     @State private var store: ChatStore
     @State private var text = ""
-    @State private var photo: UIImage?
+    /// Foto oder eigenes GIF am Eingabefeld.
+    @State private var attachment: ChatAttachment?
     @State private var pickerItem: PhotosPickerItem?
+    @State private var showsGifs = false
+    /// Liegt ein GIF in der Zwischenablage? Dann gibt es „Einfügen" im Feld.
+    /// Nachgesehen wird nur der Typ - das loest keinen Hinweis von iOS aus.
+    @State private var clipboardHasGif = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var reportTarget: Message?
     @State private var reportReason = ""
     @State private var blockTarget: PersonView?
@@ -86,6 +93,22 @@ struct ChatView: View {
             }
         }
         .task { await store.load() }
+        .task { await store.loadGifConfig() }
+        .onAppear { checkClipboard() }
+        .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in checkClipboard() }
+        .onChange(of: scenePhase) { _, phase in if phase == .active { checkClipboard() } }
+        .onChange(of: store.pastedGif) { _, data in
+            guard let data else { return }
+            attachment = .gif(data)
+            store.pastedGif = nil
+        }
+        .sheet(isPresented: $showsGifs) {
+            if let client = store.klipy {
+                GifPickerSheet(client: client) { item, query in
+                    Task { await store.sendGif(item, query: query) }
+                }
+            }
+        }
         .task(id: "poll") {
             // Push bringt neue Nachrichten ohnehin; solange der Chat offen ist,
             // schaut er zusaetzlich alle zehn Sekunden nach.
@@ -115,7 +138,7 @@ struct ChatView: View {
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self) { photo = UIImage(data: data) }
+                if let picked = await Self.load(item) { attachment = picked }
                 pickerItem = nil
             }
         }
@@ -167,16 +190,56 @@ struct ChatView: View {
 
     // MARK: - Eingabe
 
+    /// Aus der Galerie: ein GIF unveraendert (sonst ginge die Animation beim
+    /// Umrechnen in JPEG verloren), alles andere als Bild.
+    private static func load(_ item: PhotosPickerItem) async -> ChatAttachment? {
+        if item.supportedContentTypes.contains(where: { $0.conforms(to: .gif) }),
+           let file = try? await item.loadTransferable(type: GifFile.self),
+           let attachment = ChatAttachment.picked(file.data) {
+            return attachment
+        }
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return nil }
+        return ChatAttachment.picked(data)
+    }
+
+    private func checkClipboard() {
+        clipboardHasGif = UIPasteboard.general.contains(pasteboardTypes: [UTType.gif.identifier])
+    }
+
+    /// „Einfügen" mit einem GIF aus der Zwischenablage - als `PasteButton`,
+    /// damit iOS nicht jedes Mal um Erlaubnis fragt.
+    private var pasteButton: some View {
+        PasteButton(supportedContentTypes: [.gif]) { [store] providers in
+            guard let provider = providers.first else { return }
+            _ = provider.loadDataRepresentation(for: .gif) { data, _ in
+                guard let data else { return }
+                Task { @MainActor in store.pastedGif = data }
+            }
+        }
+        .labelStyle(.iconOnly)
+        .buttonBorderShape(.circle)
+        .controlSize(.small)
+        .tint(Ink.accent)
+        .accessibilityIdentifier("chatPaste")
+    }
+
     private var inputBar: some View {
         VStack(spacing: 8) {
-            if let photo {
+            if let attachment {
                 HStack {
                     Color.clear
                         .frame(width: 64, height: 64)
-                        .overlay { Image(uiImage: photo).resizable().scaledToFill() }
+                        .overlay {
+                            if let preview = attachment.preview {
+                                Image(uiImage: preview).resizable().scaledToFill()
+                            }
+                        }
+                        .overlay(alignment: .bottomLeading) {
+                            if attachment.isGif { GifBadge(color: .white).padding(4) }
+                        }
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(alignment: .topTrailing) {
-                            Button { self.photo = nil } label: {
+                            Button { self.attachment = nil } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 20))
                                     .foregroundStyle(.white, Ink.ink)
@@ -210,6 +273,17 @@ struct ChatView: View {
                         .font(.system(size: 16, weight: .medium))
                         .focused($fieldFocused)
                         .accessibilityIdentifier("chatField")
+                    if clipboardHasGif {
+                        pasteButton
+                    }
+                    if store.klipy != nil {
+                        Button { showsGifs = true } label: {
+                            GifBadge(color: Ink.muted)
+                                .frame(width: 34, height: 32)
+                        }
+                        .accessibilityLabel("GIF")
+                        .accessibilityIdentifier("chatGif")
+                    }
                     PhotosPicker(selection: $pickerItem, matching: .images) {
                         Image(systemName: "photo")
                             .font(.system(size: 17, weight: .semibold))
@@ -224,13 +298,13 @@ struct ChatView: View {
                 .background(Ink.surface, in: RoundedRectangle(cornerRadius: 25, style: .continuous))
                 Button {
                     let message = text
-                    let image = photo
+                    let attached = attachment
                     text = ""
-                    photo = nil
+                    attachment = nil
                     Task {
-                        if !(await store.send(text: message, photo: image)) {
+                        if !(await store.send(text: message, attachment: attached)) {
                             text = message
-                            photo = image
+                            attachment = attached
                         }
                     }
                 } label: {
@@ -240,7 +314,7 @@ struct ChatView: View {
                         .frame(width: 50, height: 50)
                         .background(Ink.accent, in: Circle())
                 }
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && photo == nil)
+                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && attachment == nil)
                 .accessibilityLabel("Senden")
                 .accessibilityIdentifier("chatSend")
             }
@@ -285,6 +359,8 @@ struct MessageRow: View {
             .padding(.vertical, 2)
         case .checkin:
             checkinCard
+        case .gif:
+            gifBubble
         case .text, .photo:
             bubble
         }
@@ -346,9 +422,15 @@ struct MessageRow: View {
                         .foregroundStyle(message.mine ? Color.white.opacity(0.8) : Ink.muted)
                 } else {
                     if let photo = message.photoId {
-                        PhotoView(id: photo, size: .full, placeholder: color.colors.surface)
-                            .frame(width: 220, height: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        Group {
+                            if message.isAnimatedPhoto {
+                                AnimatedPhotoView(id: photo, placeholder: color.colors.surface)
+                            } else {
+                                PhotoView(id: photo, size: .full, placeholder: color.colors.surface)
+                            }
+                        }
+                        .frame(width: 220, height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                     if let text = message.text, !text.isEmpty {
                         Text(text)
@@ -370,6 +452,70 @@ struct MessageRow: View {
     }
 }
 
+extension MessageRow {
+    /// Ein GIF aus der Suche: wie ein Foto, aber ohne Blase (Vertrag §2.7a) -
+    /// der Name steht darueber, die Pille an der Unterkante des GIFs.
+    var gifBubble: some View {
+        VStack(alignment: message.mine ? .trailing : .leading, spacing: 4) {
+            if !message.mine, showsAuthor, let author = message.author {
+                Text(author.shortLabel(me: meId))
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(Ink.ink)
+                    .padding(.leading, 4)
+            }
+            if message.deleted || message.gif == nil {
+                Text("Nachricht gelöscht")
+                    .italic()
+                    .font(.system(size: 15))
+                    .foregroundStyle(Ink.muted)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Ink.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            } else if let gif = message.gif {
+                GifMessageView(gif: gif, placeholder: color.colors.surface)
+                    .reactionPill(message.reactions, trailing: message.mine, open: openReactions)
+                if let text = message.text, !text.isEmpty {
+                    Text(text)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(message.mine ? Color.white : Ink.ink)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(message.mine ? Color(hex: 0x5B3FD9) : Ink.surface,
+                                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+            }
+        }
+        .padding(message.mine ? .leading : .trailing, 60)
+        .frame(maxWidth: .infinity, alignment: message.mine ? .trailing : .leading)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("message-\(message.id)")
+    }
+}
+
+/// Das „GIF" im Knopf und auf der Vorschau.
+struct GifBadge: View {
+    let color: Color
+
+    var body: some View {
+        Text("GIF")
+            .font(.system(size: 11, weight: .heavy))
+            .foregroundStyle(color)
+            .padding(.horizontal, 4)
+            .frame(height: 19)
+            .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(color, lineWidth: 1.6))
+            .accessibilityHidden(true)
+    }
+}
+
+/// Fuer die Galerie: die Datei als GIF, wie sie ist.
+struct GifFile: Transferable {
+    let data: Data
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(importedContentType: .gif) { GifFile(data: $0) }
+    }
+}
+
 /// Eine Nachricht, die noch auf Netz wartet.
 struct PendingBubble: View {
     let request: MessageRequest
@@ -379,7 +525,7 @@ struct PendingBubble: View {
             Image(systemName: "clock")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Ink.muted)
-            Text(request.text ?? "Foto")
+            Text(request.text ?? (request.gif != nil ? "GIF" : "Foto"))
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)

@@ -172,7 +172,7 @@ final class CheckInController {
         var waiting = jpegs
         do {
             for (index, data) in jpegs.enumerated() {
-                let upload = try await api.uploadPhoto(jpeg: data, key: UUID().uuidString.lowercased())
+                let upload = try await api.uploadPhoto(data: data, key: UUID().uuidString.lowercased())
                 PhotoLoader.shared.remember(photos[index], id: upload.id)
                 request.appendPhoto(upload.id)
                 waiting.removeFirst()

@@ -15,6 +15,7 @@ final class PhotoLoader {
 
     private let memory = NSCache<NSString, UIImage>()
     private var running: [String: Task<UIImage?, Never>] = [:]
+    private var loading: [String: Task<Data?, Never>] = [:]
 
     private static var directory: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -30,16 +31,8 @@ final class PhotoLoader {
         if let image = memory.object(forKey: key as NSString) { return image }
         if let task = running[key] { return await task.value }
         let task = Task<UIImage?, Never> {
-            let file = Self.directory.appending(path: key + ".jpg")
-            if let data = try? Data(contentsOf: file), let image = UIImage(data: data) {
-                return image
-            }
-            guard let data = try? await CohabitAPI().data("/photos/\(id)", query: [
-                URLQueryItem(name: "size", value: size.rawValue),
-            ]), let image = UIImage(data: data) else { return nil }
-            try? FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
-            try? data.write(to: file, options: .atomic)
-            return image
+            guard let data = await self.data(id, size: size) else { return nil }
+            return UIImage(data: data)
         }
         running[key] = task
         let image = await task.value
@@ -48,11 +41,41 @@ final class PhotoLoader {
         return image
     }
 
+    /// Die Datei, wie der Dienst sie liefert - fuer ein eigenes GIF
+    /// (`size=full` ist dann `image/gif`, Vertrag §2.7a), das als `UIImage`
+    /// nur sein erstes Bild zeigte. Liegt nach dem ersten Laden auf der Platte.
+    func data(_ id: String, size: Size) async -> Data? {
+        let key = key(id, size)
+        let file = Self.directory.appending(path: key + ".jpg")
+        if let data = try? Data(contentsOf: file) { return data }
+        if let task = loading[key] { return await task.value }
+        let task = Task<Data?, Never> {
+            guard let data = try? await CohabitAPI().data("/photos/\(id)", query: [
+                URLQueryItem(name: "size", value: size.rawValue),
+            ]), !data.isEmpty else { return nil }
+            try? FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
+            try? data.write(to: file, options: .atomic)
+            return data
+        }
+        loading[key] = task
+        let data = await task.value
+        loading[key] = nil
+        return data
+    }
+
     /// Ein gerade selbst hochgeladenes Foto sofort zeigen, ohne es erst
     /// wieder herunterzuladen.
     func remember(_ image: UIImage, id: String) {
         memory.setObject(image, forKey: key(id, .full) as NSString)
         memory.setObject(image, forKey: key(id, .thumb) as NSString)
+    }
+
+    /// Dasselbe fuer ein eigenes GIF: die Datei, wie sie hochging, ist die,
+    /// die der Dienst als `full` liefert.
+    func remember(fullData data: Data, id: String) {
+        try? FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
+        try? data.write(to: Self.directory.appending(path: key(id, .full) + ".jpg"), options: .atomic)
+        if let image = UIImage(data: data) { remember(image, id: id) }
     }
 
     /// Beim Abmelden.

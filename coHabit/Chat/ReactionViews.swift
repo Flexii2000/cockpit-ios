@@ -12,6 +12,8 @@ struct ReactionPill: View {
     let open: () -> Void
 
     static let height: CGFloat = 28
+    /// So viel davon liegt auf der Blase - weniger als ihr Innenabstand.
+    static let overlap: CGFloat = 7
 
     var body: some View {
         let total = Reactions.total(reactions)
@@ -43,18 +45,19 @@ struct ReactionPill: View {
 }
 
 extension View {
-    /// Die Pille an der Unterkante, halb darauf und halb darunter (wie in
-    /// WhatsApp) - auf der Seite, auf der die Nachricht steht. Darunter bleibt
-    /// so viel Platz, dass die naechste Zeile nichts verdeckt.
+    /// Die Pille an der Unterkante (wie in WhatsApp): ein Stueck auf der Blase,
+    /// der Rest darunter - nur so weit darauf, wie die Blase Rand hat, damit
+    /// sie bei einer Zeile Text nichts verdeckt. Auf der Seite, auf der die
+    /// Nachricht steht; darunter bleibt Platz, damit die naechste Zeile frei ist.
     func reactionPill(_ reactions: [ReactionView], trailing: Bool, open: @escaping () -> Void) -> some View {
         overlay(alignment: trailing ? .bottomTrailing : .bottomLeading) {
             if !reactions.isEmpty {
                 ReactionPill(reactions: reactions, open: open)
-                    .alignmentGuide(.bottom) { $0.height / 2 + 2 }
-                    .padding(.horizontal, 12)
+                    .alignmentGuide(.bottom) { _ in ReactionPill.overlap }
+                    .padding(.horizontal, 10)
             }
         }
-        .padding(.bottom, reactions.isEmpty ? 0 : ReactionPill.height / 2 + 2)
+        .padding(.bottom, reactions.isEmpty ? 0 : ReactionPill.height - ReactionPill.overlap + 2)
     }
 }
 

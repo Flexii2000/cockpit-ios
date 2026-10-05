@@ -66,7 +66,7 @@ final class CohabitAPITests: XCTestCase {
 
     func testUploadIsMultipartWithIdempotencyKey() async throws {
         StubServer.install { _ in .json(201, #"{"id":"p-1","width":2048,"height":1536}"#) }
-        let upload = try await StubServer.api().uploadPhoto(jpeg: Data([0xFF, 0xD8, 0xFF]), key: "key-1")
+        let upload = try await StubServer.api().uploadPhoto(data: Data([0xFF, 0xD8, 0xFF]), key: "key-1")
         XCTAssertEqual(upload.id, "p-1")
         let request = try XCTUnwrap(StubServer.requests.first)
         XCTAssertEqual(request.method, "POST")

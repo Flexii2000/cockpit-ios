@@ -387,7 +387,7 @@ struct TimelineCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Reagieren")
-        .accessibilityIdentifier("react-\(item.id)")
+        .accessibilityIdentifier("smiley-\(item.id)")
     }
 
     private var replyButton: some View {

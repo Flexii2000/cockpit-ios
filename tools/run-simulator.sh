@@ -27,6 +27,8 @@
 # aus. Ohne die Variable bleibt er, wie er war (er ueberlebt jeden Start).
 # COCKPIT_TIMELINE_HIDDEN=c-1,c-2 blendet diese Co-Habits im Timeline-Filter
 # beim Start aus, none keins; ohne Wert bleibt die gemerkte Auswahl.
+# COCKPIT_URL_KLIPY=http://127.0.0.1:48793/api/v1 schickt die GIF-Suche an
+# tools/klipy-stub.py statt an KLIPY (ohne echten Schluessel antwortet KLIPY nicht).
 #
 # Die Token kommen aus dem macOS-Schluesselbund und stehen NIRGENDWO im Repo:
 #
@@ -167,6 +169,7 @@ SIMCTL_CHILD_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}" \
 SIMCTL_CHILD_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}" \
 SIMCTL_CHILD_COCKPIT_COHABIT_TOKEN="$COHABIT" \
 SIMCTL_CHILD_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}" \
+SIMCTL_CHILD_COCKPIT_URL_KLIPY="${COCKPIT_URL_KLIPY:-}" \
 SIMCTL_CHILD_COCKPIT_TODAY_MODE="${COCKPIT_TODAY_MODE:-}" \
 SIMCTL_CHILD_COCKPIT_CLASSIC="${COCKPIT_CLASSIC:-}" \
 SIMCTL_CHILD_COCKPIT_TIMELINE_HIDDEN="${COCKPIT_TIMELINE_HIDDEN:-}" \

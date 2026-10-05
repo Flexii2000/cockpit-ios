@@ -14,9 +14,21 @@ final class ChatStore {
     private(set) var isLoadingOlder = false
     private(set) var errorMessage: String?
     private(set) var sending = false
+    /// `GET /gifs/config`, einmal je Chat - ohne (oder ausgeschaltet) kein GIF-Knopf.
+    private(set) var gifConfig: GifConfig?
+    /// Ein GIF aus der Zwischenablage, das noch ins Eingabefeld gehoert.
+    var pastedGif: Data?
 
     init(cohabitId: String) {
         self.cohabitId = cohabitId
+    }
+
+    /// Die Suche bei KLIPY - `nil`, solange der Dienst keinen Schluessel hat.
+    var klipy: KlipyClient? { KlipyClient(config: gifConfig) }
+
+    func loadGifConfig() async {
+        guard gifConfig == nil else { return }
+        gifConfig = try? await api.get("/gifs/config")
     }
 
     private var api: CohabitAPI { Session.shared.api() }
@@ -73,32 +85,60 @@ final class ChatStore {
 
     // MARK: - Schreiben
 
-    /// Text und/oder Foto. Ohne Netz in den Postausgang - die Nachricht steht
-    /// dann mit Uhr unten im Chat.
-    func send(text: String, photo: UIImage?) async -> Bool {
+    /// Text und/oder Foto bzw. eigenes GIF. Ohne Netz in den Postausgang -
+    /// die Nachricht steht dann mit Uhr unten im Chat.
+    func send(text: String, attachment: ChatAttachment?) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty || photo != nil else { return false }
+        guard !trimmed.isEmpty || attachment != nil else { return false }
         sending = true
         defer { sending = false }
         var request = MessageRequest(text: trimmed.isEmpty ? nil : String(trimmed.prefix(2000)))
-        var jpeg = photo.flatMap { PhotoEncoding.jpeg($0) }
+        var file = attachment?.uploadData
         do {
-            if let data = jpeg {
-                let upload = try await api.uploadPhoto(jpeg: data, key: UUID().uuidString.lowercased())
-                if let photo { PhotoLoader.shared.remember(photo, id: upload.id) }
+            if let data = file {
+                let upload = try await api.uploadPhoto(data: data, key: UUID().uuidString.lowercased())
+                switch attachment {
+                case .photo(let image): PhotoLoader.shared.remember(image, id: upload.id)
+                case .gif(let gif): PhotoLoader.shared.remember(fullData: gif, id: upload.id)
+                case nil: break
+                }
                 request.photoId = upload.id
-                jpeg = nil
+                file = nil
             }
             let message: Message = try await api.send("POST", path, body: request)
             merge([message])
             await markRead()
             return true
         } catch CohabitError.offline {
-            await CohabitOutbox.shared.enqueueMessage(cohabitId: cohabitId, request: request, photo: jpeg)
+            await CohabitOutbox.shared.enqueueMessage(cohabitId: cohabitId, request: request, photo: file)
             return true
         } catch {
             Toast.shared.show(error)
             return false
+        }
+    }
+
+    /// Ein GIF aus der Suche: sofort raus (kein Vorschauschritt), danach
+    /// bekommt KLIPY sein `share` - feuern und vergessen.
+    func sendGif(_ item: KlipyItem, query: String) async {
+        guard let gif = item.gifInput else {
+            Toast.shared.show("Das GIF ist ungültig.")
+            return
+        }
+        let client = klipy
+        let request = MessageRequest(text: nil, gif: gif)
+        do {
+            let message: Message = try await api.send("POST", path, body: request)
+            merge([message])
+            await markRead()
+        } catch CohabitError.offline {
+            await CohabitOutbox.shared.enqueueMessage(cohabitId: cohabitId, request: request, photo: nil)
+        } catch {
+            Toast.shared.show(error)
+            return
+        }
+        if let client {
+            Task.detached { await client.share(slug: item.slug, query: query) }
         }
     }
 
@@ -182,6 +222,41 @@ final class ChatStore {
         guard let target, Reactions.mine(in: target.reactions) != Emoji.congratulate else { return }
         await Reactions.choose(Emoji.congratulate, target: target.reactionTarget, current: target.reactions) { _ in }
         DataBus.shared.changed()
+    }
+}
+
+/// Was am Eingabefeld haengt: ein Foto (geht als JPEG) oder ein eigenes GIF
+/// (geht unveraendert, damit es animiert bleibt - Vertrag §2.7a).
+enum ChatAttachment {
+    case photo(UIImage)
+    case gif(Data)
+
+    /// Aus der Galerie bzw. der Zwischenablage: ein GIF erkennt man am
+    /// Dateianfang (`GIF8`) - der Typ, den die Quelle nennt, ist nur ein Hinweis.
+    static func picked(_ data: Data) -> ChatAttachment? {
+        if ImageFormat.sniff(data) == .gif { return .gif(data) }
+        return UIImage(data: data).map(ChatAttachment.photo)
+    }
+
+    var isGif: Bool {
+        if case .gif = self { return true }
+        return false
+    }
+
+    /// Das Vorschaubild im Eingabefeld - beim GIF das erste Bild.
+    var preview: UIImage? {
+        switch self {
+        case .photo(let image): image
+        case .gif(let data): UIImage(data: data)
+        }
+    }
+
+    /// Was hochgeht.
+    var uploadData: Data? {
+        switch self {
+        case .photo(let image): PhotoEncoding.jpeg(image)
+        case .gif(let data): data
+        }
     }
 }
 
@@ -284,6 +359,7 @@ extension Message {
     func with(reactions: [ReactionView]) -> Message {
         Message(id: id, cohabitId: cohabitId, kind: kind, author: author, mine: mine, createdAt: createdAt,
                 text: text, photoId: photoId, checkin: checkin, systemText: systemText,
-                reactionTarget: reactionTarget, reactions: reactions, deleted: deleted, photoIds: photoIds)
+                reactionTarget: reactionTarget, reactions: reactions, deleted: deleted, photoIds: photoIds,
+                gif: gif, photoAnimated: photoAnimated)
     }
 }

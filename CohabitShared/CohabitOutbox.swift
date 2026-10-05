@@ -67,6 +67,8 @@ actor CohabitOutbox {
         await enqueueCheckin(cohabitId: cohabitId, request: request, photos: photo.map { [$0] } ?? [])
     }
 
+    /// Eine Nachricht, ggf. mit Foto bzw. eigenem GIF (die Datei, wie sie
+    /// hochgehen soll) - ein GIF aus der Suche steht in der Anfrage.
     func enqueueMessage(cohabitId: String, request: MessageRequest, photo: Data?) async {
         await append(.message(cohabitId: cohabitId, request: request), photos: photo.map { [$0] } ?? [])
     }
@@ -147,7 +149,7 @@ actor CohabitOutbox {
                 for photoFile in entry.pendingPhotos {
                     let data = try Data(contentsOf: photos.appending(path: photoFile))
                     let key = (photoFile as NSString).deletingPathExtension
-                    let upload = try await api.uploadPhoto(jpeg: data, key: key)
+                    let upload = try await api.uploadPhoto(data: data, key: key)
                     entry.operation = entry.operation.withPhoto(upload.id)
                     if entry.photoFile == photoFile {
                         entry.photoFile = nil
@@ -216,8 +218,11 @@ actor CohabitOutbox {
             try? FileManager.default.createDirectory(at: photos, withIntermediateDirectories: true)
         }
         for image in images {
-            // Der Dateiname ist der Idempotenz-Schluessel beim Hochladen.
-            let name = UUID().uuidString.lowercased() + ".jpg"
+            // Der Dateiname (ohne Endung) ist der Idempotenz-Schluessel beim
+            // Hochladen. Die Endung sagt nur, was drin ist: ein eigenes GIF
+            // bleibt eins und geht unveraendert hoch (Vertrag §2.7a).
+            let format = ImageFormat.sniff(image) ?? .jpeg
+            let name = UUID().uuidString.lowercased() + "." + format.fileExtension
             if (try? image.write(to: photos.appending(path: name), options: .atomic)) != nil {
                 photoFiles.append(name)
             }
