@@ -39,10 +39,12 @@ ungedeutet). In der App:
 - **Rechte Seite frei → außen wie die kg-Skala**, mit kleinem Titel „Defizit"
   darüber (`chartYAxisLabel`). **Rechte Seite belegt** (kg im Essen-Verlauf,
   kcal im Gewicht-Diagramm) **→ klein innen am rechten Rand**, nur 0 und die
-  beiden runden Ränder, ohne Titel, gezeichnet im `chartOverlay`
-  (`DeficitInsideLabels`); die Zahl steht knapp über ihrer Höhe, damit sie die
-  Nulllinie nicht durchkreuzt. **Verworfen:** eine zweite Achse rechts - Swift
-  Charts setzt je Seite eine Spalte, die Zahlen lägen übereinander.
+  beiden runden Ränder, ohne Titel, gezeichnet im `chartBackground`
+  (`DeficitInsideLabels`) - hinter den Kurven, damit die Sprechblase sie
+  verdeckt und nicht umgekehrt; die Zahl steht knapp über ihrer Höhe, damit
+  sie die Nulllinie nicht durchkreuzt. **Verworfen:** eine zweite Achse rechts
+  - Swift Charts setzt je Seite eine Spalte, die Zahlen lägen übereinander;
+  das `chartOverlay` (die Zahlen lagen dort über der Sprechblase).
 - **Die Fläche besteht aus Stücken einer Farbe** (`EnergyBand`): je Stück eine
   `AreaMark`-Reihe, getrennt an jeder Lücke einer der beiden Kurven und am
   Schnittpunkt, der zwischen zwei Tagen genau ausgerechnet wird (die Linien

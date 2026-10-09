@@ -7,14 +7,15 @@ import SwiftUI
 /// Nur 0 und die beiden runden Raender, ohne Titel: mehr Zahlen im Diagramm
 /// verdeckten die Kurven. Innen statt als zweite Achse, weil Swift Charts auf
 /// einer Seite nur eine Spalte Beschriftungen setzt - zwei Skalen ueberdeckten
-/// sich dort. Gehoert in `chartOverlay`.
+/// sich dort. Gehoert in `chartBackground`: im Overlay laegen die Zahlen ueber
+/// der Sprechblase.
 struct DeficitInsideLabels: View {
 
     let scale: DeficitScale
     /// Der Wertebereich des Diagramms, in den das Defizit hineingerechnet ist.
     let target: ClosedRange<Double>
     let proxy: ChartProxy
-    /// Die Zeichenflaeche im Koordinatenraum des Overlays.
+    /// Die Zeichenflaeche im Koordinatenraum des Hintergrunds.
     let plot: CGRect
 
     /// Halbe Hoehe einer Beschriftung - so weit bleibt sie vom Rand weg.

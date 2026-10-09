@@ -290,7 +290,7 @@ struct WeightChartView: View {
                 }
             }
             // Ohne kcal-Skala gehoert die rechte Seite dem Defizit - aussen.
-            // Mit ihr steht es klein innen (`chartOverlay`).
+            // Mit ihr steht es klein innen (`chartBackground`).
             if deficitOutside {
                 AxisMarks(position: .trailing, values: deficitScale.ticks.map(deficitPosition)) { value in
                     if let mapped = value.as(Double.self) {
@@ -311,28 +311,32 @@ struct WeightChartView: View {
                     .foregroundStyle(Palette.deficit)
             }
         }
+        // Hinter den Kurven: die Sprechblase soll die kleinen Zahlen
+        // verdecken, nicht umgekehrt.
+        .chartBackground { proxy in
+            GeometryReader { geometry in
+                if deficitInside, let plot = proxy.plotFrame {
+                    DeficitInsideLabels(scale: deficitScale, target: yDomain,
+                                        proxy: proxy, plot: geometry[plot])
+                }
+            }
+        }
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                ZStack(alignment: .topLeading) {
-                    if deficitInside, let plot = proxy.plotFrame {
-                        DeficitInsideLabels(scale: deficitScale, target: yDomain,
-                                            proxy: proxy, plot: geometry[plot])
-                    }
-                    Rectangle()
-                        .fill(.clear)
-                        .contentShape(Rectangle())
-                        // Der Wert steht, sobald der Finger aufliegt. Wem die
-                        // Beruehrung gehoert, entscheidet die erste deutliche
-                        // Bewegung: eher seitwaerts heisst ablesen, und die
-                        // Liste bleibt stehen; eher hoch oder runter heisst
-                        // scrollen, und der Wert verschwindet wieder. Ein Tipp
-                        // ohne Bewegung laesst den Wert stehen, bis man woanders
-                        // tippt. Vorher musste man erst kurz halten - das kam
-                        // als Verzoegerung an.
-                        .gesture(ScrubGesture(
-                            onChange: { location in select(at: location.x, in: proxy, geometry) },
-                            onEnd: { wasTap in if !wasTap { selectedDay = nil } }))
-                }
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    // Der Wert steht, sobald der Finger aufliegt. Wem die
+                    // Beruehrung gehoert, entscheidet die erste deutliche
+                    // Bewegung: eher seitwaerts heisst ablesen, und die
+                    // Liste bleibt stehen; eher hoch oder runter heisst
+                    // scrollen, und der Wert verschwindet wieder. Ein Tipp
+                    // ohne Bewegung laesst den Wert stehen, bis man woanders
+                    // tippt. Vorher musste man erst kurz halten - das kam
+                    // als Verzoegerung an.
+                    .gesture(ScrubGesture(
+                        onChange: { location in select(at: location.x, in: proxy, geometry) },
+                        onEnd: { wasTap in if !wasTap { selectedDay = nil } }))
             }
         }
         // Hoeher als vorher (260): die Kurve schwankt um wenige Kilogramm,

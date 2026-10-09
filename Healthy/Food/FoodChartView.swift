@@ -233,7 +233,7 @@ struct FoodChartView: View {
                 }
             }
             // Ohne Kilogramm gehoert die rechte Seite dem Defizit - aussen wie
-            // die kg-Skala. Mit ihnen steht es klein innen (`chartOverlay`).
+            // die kg-Skala. Mit ihnen steht es klein innen (`chartBackground`).
             AxisMarks(position: .trailing,
                       values: deficitOutside ? deficitScale.ticks.map(deficitPosition) : []) { value in
                 if let mapped = value.as(Double.self) {
@@ -265,15 +265,19 @@ struct FoodChartView: View {
                 }
             }
         }
+        // Hinter den Kurven: die Sprechblase soll die kleinen Zahlen
+        // verdecken, nicht umgekehrt.
+        .chartBackground { proxy in
+            GeometryReader { geometry in
+                if deficitInside, let plot = proxy.plotFrame {
+                    DeficitInsideLabels(scale: deficitScale, target: kcalDomain,
+                                        proxy: proxy, plot: geometry[plot])
+                }
+            }
+        }
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                ZStack(alignment: .topLeading) {
-                    if deficitInside, let plot = proxy.plotFrame {
-                        DeficitInsideLabels(scale: deficitScale, target: kcalDomain,
-                                            proxy: proxy, plot: geometry[plot])
-                    }
-                    gestureLayer(proxy, geometry)
-                }
+                gestureLayer(proxy, geometry)
             }
         }
         .frame(height: 220)
