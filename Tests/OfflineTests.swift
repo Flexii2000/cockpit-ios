@@ -68,6 +68,41 @@ final class OfflineTests: XCTestCase {
         XCTAssertNotNil(OfflineStatus.shared.staleSince[.habits], "die Leiste muss wissen, dass das alt ist")
     }
 
+    /// Weckt HealthKit die App bei gesperrtem iPhone, ist die Datei des
+    /// Postausgangs nicht lesbar. Frueher hiess das „leer" - und der naechste
+    /// Eintrag ueberschrieb, was dort wartete. Ein Verzeichnis an ihrer Stelle
+    /// ist im Test dasselbe: da, aber nicht zu lesen.
+    @MainActor
+    func testUnreadableOutboxIsNeitherOverwrittenNorForgotten() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "outbox.json")
+        try FileManager.default.createDirectory(at: file, withIntermediateDirectories: true)
+
+        let outbox = Outbox(file: file)
+        let count = await outbox.count
+        XCTAssertEqual(count, 0, "nichts zu lesen - aber auch nichts gelesen")
+        var request = URLRequest(url: URL(string: "https://weight.fherrmann.com/api/weight")!)
+        request.httpMethod = "POST"
+        request.httpBody = Data(#"{"date":"2026-10-09","weightKg":82.4}"#.utf8)
+        await outbox.enqueue(request, backend: .weight)
+        var isDirectory: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path, isDirectory: &isDirectory))
+        XCTAssertTrue(isDirectory.boolValue, "eine ungelesene Datei wird nicht ueberschrieben")
+
+        // Entsperrt: die wartenden Eintraege aus der Datei kommen zuerst, der
+        // neue haengt hinten an, und erst jetzt wird gespeichert.
+        try FileManager.default.removeItem(at: file)
+        let waiting = Outbox.Item(id: UUID(), backend: Backend.food.rawValue,
+                                  url: "https://food.fherrmann.com/api/food/entries", method: "POST",
+                                  body: Data("{}".utf8), createdAt: Date(timeIntervalSince1970: 1_790_000_000))
+        try JSONEncoder().encode([waiting]).write(to: file)
+        let merged = await outbox.count
+        XCTAssertEqual(merged, 2)
+        let stored = try JSONDecoder().decode([Outbox.Item].self, from: Data(contentsOf: file))
+        XCTAssertEqual(stored.map(\.backend), ["food", "weight"])
+    }
+
     @MainActor
     func testWriteWithoutNetworkGoesToTheOutbox() async throws {
         setenv("COCKPIT_URL_HABITS", "http://127.0.0.1:9/habits", 1)

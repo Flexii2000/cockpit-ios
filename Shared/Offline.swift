@@ -111,6 +111,12 @@ final class OfflineStatus {
 }
 
 /// Aenderungen, die auf Netz warten.
+///
+/// Die Datei wird erst beim ersten Zugriff gelesen - und **so lange erneut,
+/// bis das gelingt**. Sie liegt mit `.completeFileProtection` und ist bei
+/// gesperrtem iPhone nicht lesbar; weckt HealthKit die App in genau diesem
+/// Moment, sah der Postausgang frueher „leer" und schrieb beim naechsten
+/// Eintrag eine Datei mit nur diesem einen darueber. Die wartenden waren weg.
 actor Outbox {
 
     static let shared = Outbox()
@@ -124,26 +130,30 @@ actor Outbox {
         let createdAt: Date
     }
 
-    private var items: [Item]
+    private var items: [Item] = []
+    /// Ob `items` den Stand der Datei kennt. Solange nicht, wird nichts
+    /// gespeichert - ein leerer Stand ueberschriebe sonst, was dort wartet.
+    private var isLoaded = false
     private var isReplaying = false
+    private let file: URL?
 
-    private static var file: URL? {
+    static var defaultFile: URL? {
         OfflineCache.directory?.appending(path: "outbox.json")
     }
 
-    private init() {
-        if let file = Self.file, let data = try? Data(contentsOf: file),
-           let stored = try? JSONDecoder().decode([Item].self, from: data) {
-            items = stored
-        } else {
-            items = []
-        }
+    /// - Parameter file: nur fuer Tests eine andere Datei.
+    init(file: URL? = Outbox.defaultFile) {
+        self.file = file
     }
 
-    var count: Int { items.count }
+    var count: Int {
+        load()
+        return items.count
+    }
 
     func enqueue(_ request: URLRequest, backend: Backend) async {
         guard let url = request.url?.absoluteString else { return }
+        load()
         items.append(Item(id: UUID(), backend: backend.rawValue, url: url,
                           method: request.httpMethod ?? "POST",
                           body: request.httpBody, createdAt: Date()))
@@ -158,6 +168,9 @@ actor Outbox {
     /// fliegt sie raus und der Grund steht in der Leiste: nochmal versuchen
     /// hiesse, dieselbe Ablehnung bei jedem Start zu kassieren.
     func replay() async {
+        // Auch hier lesen: im Vordergrund ist das iPhone entsperrt, und was
+        // beim Wecken im Hintergrund nicht lesbar war, kommt jetzt dazu.
+        load()
         guard !isReplaying, !items.isEmpty else { return }
         isReplaying = true
         defer { isReplaying = false }
@@ -188,8 +201,38 @@ actor Outbox {
         await OfflineStatus.shared.outbox(pending: items.count, lastError: lastError)
     }
 
+    /// Liest die Datei, solange das noch nicht gelungen ist.
+    ///
+    /// Drei Faelle: keine Datei - nichts zu verlieren, der Stand ist leer. Die
+    /// Datei ist da, laesst sich aber nicht lesen (gesperrtes iPhone) - dann
+    /// bleibt es beim Stand im Speicher, und beim naechsten Zugriff wird es
+    /// wieder versucht. Gelesen - dann kommt, was inzwischen im Speicher
+    /// dazukam, hinten an, in der Reihenfolge, in der es entstand.
+    private func load() {
+        guard !isLoaded else { return }
+        guard let file, FileManager.default.fileExists(atPath: file.path) else {
+            isLoaded = true
+            return
+        }
+        guard let data = try? Data(contentsOf: file) else { return }
+        // Unlesbares JSON ist nicht mehr zu retten - anders als eine gesperrte
+        // Datei wird es mit dem naechsten Speichern ersetzt.
+        let stored = (try? JSONDecoder().decode([Item].self, from: data)) ?? []
+        let known = Set(stored.map(\.id))
+        let added = items.filter { !known.contains($0.id) }
+        items = stored + added
+        isLoaded = true
+        if !added.isEmpty { persist() }
+        let pending = items.count
+        if pending > 0 {
+            // Die Leiste soll wissen, dass etwas wartet - auch wenn es schon
+            // vor diesem Start in der Datei lag.
+            Task { await OfflineStatus.shared.outbox(pending: pending, lastError: nil) }
+        }
+    }
+
     private func persist() {
-        guard let file = Self.file else { return }
+        guard isLoaded, let file else { return }
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(items) {

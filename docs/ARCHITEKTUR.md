@@ -378,6 +378,14 @@ nach, sobald irgendeine Anfrage wieder durchkommt oder die App in den
 Vordergrund kehrt; wird der Ausgang leer, laden die Tabs neu. Bis dahin: alter
 Stand, Uhr statt Haken, „2 Änderungen warten auf Netz" in der Leiste.
 
+⚠️ **Der Postausgang liest seine Datei, bis es gelingt.** Sie liegt wie der
+Cache mit `.completeFileProtection` und ist bei gesperrtem iPhone nicht
+lesbar. Weckt HealthKit die App in diesem Moment, darf das nicht „leer"
+heißen: bis zum ersten erfolgreichen Lesen wird nichts gespeichert, jeder
+Zugriff (`count`, `enqueue`, `replay` im Vordergrund) versucht es erneut, und
+was inzwischen im Speicher dazukam, hängt hinter den gelesenen Einträgen
+(bis 09.10.2026 überschrieb der nächste Eintrag die wartenden).
+
 ⚠️ **Die App rechnet offline nichts nach.** Keine lokale Sträh­ne, keine
 Tagessumme, keine Kachel. Das ist Absicht: die Regeln stehen in den Diensten,
 und ein zweiter Rechner im Client wäre ein zweiter Datenstand.
