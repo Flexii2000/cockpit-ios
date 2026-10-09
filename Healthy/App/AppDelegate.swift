@@ -12,7 +12,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     /// Ein Tipp auf eine Mitteilung fuehrt dorthin, worum es geht
     /// (`HealthyRoute`): die Schnellerfassung in den Essen-Tab, die
-    /// Erinnerung der Evaluation in ihren (hinter Face ID). Die App macht im
+    /// Erinnerung der Evaluation in ihren (hinter Face ID), die des Logbooks
+    /// auf seine Seite im Dashboard. Die App macht im
     /// Dashboard auf - ohne das landete der fertige Vorschlag dort, und sein
     /// Blatt ginge erst auf, wenn jemand Essen antippt. Die APNs-Meldung des
     /// Kalorienzaehlers hat keine Art; ohne Art heisst deshalb Essen.

@@ -4,8 +4,8 @@
 #
 #   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> [tab] [screenshot.png]
 #
-# Tabs: Healthy dashboard|food|weight|evaluation|shopping|widget|recovery
-# (recovery = Dashboard samt Recovery-Seite), Vault grades|finance,
+# Tabs: Healthy dashboard|food|weight|evaluation|shopping|widget|recovery|logbook
+# (recovery, logbook = Dashboard samt dieser Seite), Vault grades|finance,
 # Fokus todo|forest|widget, Einkaufsliste (hat nur die eine Seite),
 # coHabit today|timeline|stats|profile|new|widget;
 # `setup` oeffnet in den ersten vier Apps das Zugang-Blatt.
@@ -73,8 +73,9 @@
 # Mit COCKPIT_NO_LOCK=1, sonst steht dort der Sperrbildschirm.
 #
 # COCKPIT_DASHBOARD_DEMO=1 zeigt in Healthy erfundene Werte: das Dashboard,
-# die Recovery-Seite und die Energie (Zeilen im Essen-Tab, Kacheln und Kurve
-# im Gewicht-Tab) - nur im Speicher, nie gesendet. Der Simulator bekommt keine
+# die Recovery-Seite, das Logbook (Platzhalter „Verhalten A") und die Energie
+# (Zeilen im Essen-Tab, Kacheln und Kurve im Gewicht-Tab) - nur im Speicher,
+# nie gesendet. Der Simulator bekommt keine
 # Health-Daten; ohne das waere nichts davon zu sehen:
 #
 #   COCKPIT_DASHBOARD_DEMO=1 COCKPIT_NO_HEALTH=1 tools/run-simulator.sh Healthy dashboard bild.png

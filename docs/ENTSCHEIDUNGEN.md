@@ -3,6 +3,47 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy: Logbook als Seite im Dashboard, Speichern von Hand
+Felix hat entschieden (Plan vom 09.10.): Logbook nach dem Whoop-Prinzip, die
+Daten beim Weight Tracker, eine Karte im Dashboard und eine eigene Seite, kein
+sechster Tab; Ja/Nein, optional mit Einheit und Menge; ein gespeicherter Tag
+heißt „nicht Angetipptes = nein", ein nie gespeicherter fehlt; Erinnerung um
+09:00 nur bei offenem Vortag. In der App:
+- **Tag von gestern bis vor 14 Tagen, Vorgabe gestern**, mit ‹ ›. Heute nicht:
+  eingetragen wird ein Tag, wenn er vorbei ist, und seine Wirkung misst die
+  Recovery am Morgen danach. **Verworfen:** auch heute anbieten (der Dienst
+  nähme es) - ein halber Tag sähe gespeichert aus.
+- **„Speichern" von Hand**, und erst dann ist der Tag ausgefüllt. Geschickt
+  wird nur, was an ist; den Rest setzt der Dienst auf 0. **Verworfen:** jeden
+  Tipp sofort speichern (ein einziger Tipp machte aus allen anderen ein
+  „nein"); ausdrücklich Nullen schicken (gleiches Ergebnis, aber eine gerade
+  gelöschte Verhaltensweise im Postausgang wäre wieder mitgeschickt worden).
+- **Eine angetippte Verhaltensweise mit Einheit braucht eine Menge**; bis dahin
+  ist „Speichern" aus. **Verworfen:** 1 vorbelegen - eine erfundene Menge sähe
+  hinterher aus wie eine eingetragene.
+- **Ein Tag im Postausgang zählt als gespeichert** (Uhr statt Haken, keine
+  Erinnerung für ihn): `LogbookMemory` merkt sich Tag und Werte, bis der
+  Postausgang leer ist. **Verworfen:** nur den Stand des Dienstes zählen -
+  dann käme morgens „gestern offen", obwohl der Tag offline gespeichert ist.
+- **Effekte: Farbe nur, wo nach Holm ein Stern steht** (grün besser, orange
+  schlechter); Zeilen ohne Effekt (`TOO_FEW`, `NOT_SEPARABLE`) eingeklappt unter
+  „Zu wenig Daten (n)" mit dem Stand („3/5 ja · 5/5 nein", „9/14 Tage",
+  „fällt aufs Wochenende"). Die Quelle als kleines Symbol (Logbook, coHabit,
+  Healthy). **Verworfen:** jede Zahl nach Vorzeichen färben - ein Effekt ohne
+  Stern ist noch kein Befund.
+- **Karte im Dashboard:** „gestern offen" (bzw. „gestern gespeichert"), die
+  ersten drei auswertbaren Effekte in der Reihenfolge des Dienstes und „› alle
+  Effekte". **Verworfen:** nur signifikante zeigen - anfangs stünde dort wegen
+  Holm lange nichts.
+- **Erinnerung**: Kennung `logbook-<Tag, an dem sie kommt>`, 14 Tage voraus; die
+  Erlaubnis fragt die App beim Anlegen der ersten Verhaltensweise. Ein Tipp
+  öffnet Dashboard und Logbook. **Verworfen:** nach der Erlaubnis beim Start
+  fragen (ohne Zusammenhang).
+- **Verhalten-Blatt**: Antippen benennt um, nach rechts wischen archiviert
+  (bzw. holt zurück), nach links wischen löscht nach Rückfrage - dasselbe im
+  Kontextmenü. Nur online. **Verworfen:** ein Bearbeiten-Modus mit eigener
+  Seite je Verhaltensweise (für Name und Archiv zu viel Weg).
+
 ## 2026-10-09 — Healthy: Dashboard als erster Tab, Recovery als Seite darin
 Felix hat entschieden (Plan vom 09.10.): neuer Tab **Dashboard ganz links, die
 App macht dort auf**; Recovery (und das Logbook) sind Seiten im Dashboard,

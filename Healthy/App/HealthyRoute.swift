@@ -12,6 +12,8 @@ enum HealthyRoute: Equatable, Sendable {
     /// Der Essen-Tab mit heute - die Kalorien-Kachel und die Energie-Karte.
     case foodToday
     case evaluation
+    /// Die Logbook-Seite im Dashboard - die Erinnerung um 09:00.
+    case logbook
 
     /// Die Art der lokalen „Vorschlag ist fertig"-Mitteilung.
     static let quickCaptureKind = "quick-capture"
@@ -28,6 +30,7 @@ enum HealthyRoute: Equatable, Sendable {
         switch kind {
         case quickCaptureKind:        return .food
         case EvaluationReminder.kind: return .evaluation
+        case LogbookReminder.kind:    return .logbook
         default:                      return nil
         }
     }

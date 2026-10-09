@@ -185,6 +185,69 @@ extension DashboardDemo {
     }
 
     static let steps = 8123
+
+    // MARK: - Logbook
+
+    /// Platzhalter - echte Verhaltensweisen gehoeren nicht ins Repo und nicht
+    /// in Bilder.
+    static let behaviors = [
+        Behavior(id: "b-demo-a", name: "Verhalten A", unit: nil, createdAt: nil, archived: false),
+        Behavior(id: "b-demo-b", name: "Verhalten B", unit: nil, createdAt: nil, archived: false),
+        Behavior(id: "b-demo-c", name: "Verhalten C", unit: "Stück", createdAt: nil, archived: false),
+        Behavior(id: "b-demo-d", name: "Verhalten D", unit: nil, createdAt: nil, archived: false),
+        Behavior(id: "b-demo-e", name: "Verhalten E", unit: nil, createdAt: nil, archived: true),
+    ]
+
+    /// Die Nachtragsfrist mit ein paar Luecken - gestern ist offen, damit die
+    /// Karte „gestern offen" zeigt.
+    static func logbookOverview(today: CalendarDate = .today()) -> LogbookOverview {
+        let days = (2...14).filter { $0 != 6 && $0 != 9 }.map { offset in
+            LogbookDay(date: today.adding(days: -offset), savedAt: nil, values: [
+                "b-demo-a": noise(offset, 11) > 0 ? 1 : 0,
+                "b-demo-b": noise(offset, 12) > 0.4 ? 1 : 0,
+                "b-demo-c": noise(offset, 13) > 0 ? (2 + 2 * noise(offset, 14)).rounded() : 0,
+                "b-demo-d": offset % 3 == 0 ? 1 : 0,
+            ])
+        }
+        return LogbookOverview(behaviors: behaviors, backfillDays: 14, backfillFrom: today.adding(days: -14),
+                               today: today, days: days)
+    }
+
+    /// Effekte wie aus dem Dienst, sortiert wie dort: signifikant zuerst, dann
+    /// nach Groesse, dann die nicht auswertbaren.
+    static func logbookInsights(days: Int, today: CalendarDate = .today()) -> LogbookInsights {
+        func row(_ key: String, _ source: PredictorSource, _ name: String, _ kind: PredictorKind,
+                 _ variant: PredictorVariant = .main, unit: String? = nil, perUnit: Double = 1,
+                 effect: Double? = nil, ci: (Double, Double)? = nil, p: Double? = nil, pAdjusted: Double? = nil,
+                 yes: Int? = nil, no: Int? = nil, n: Int, status: PredictorStatus = .ok) -> Predictor {
+            Predictor(key: key, source: source, sourceId: key, name: name, kind: kind, variant: variant,
+                      unitLabel: unit, perUnit: perUnit, effect: effect, ciLow: ci?.0, ciHigh: ci?.1, p: p,
+                      pAdjusted: pAdjusted, nYes: yes, nNo: no, n: n, meanYes: nil, meanNo: nil, status: status)
+        }
+        // Kuerzere Zeitraeume haben weniger Tage - und breitere Intervalle.
+        let scale = Double(min(days, 90)) / 90
+        let predictors = [
+            row("LOGBOOK:b-demo-a", .logbook, "Verhalten A", .binary, effect: 8.12, ci: (3.2, 13.04),
+                p: 0.0004, pAdjusted: 0.004, yes: Int(41 * scale), no: Int(37 * scale), n: Int(78 * scale)),
+            row("COHABIT:c-demo", .cohabit, "Gewohnheit A", .binary, effect: -6.4, ci: (-10.9, -1.9),
+                p: 0.003, pAdjusted: 0.03, yes: Int(30 * scale), no: Int(52 * scale), n: Int(82 * scale)),
+            row("HEALTHY:steps", .healthy, "Schritte", .amount, unit: "Schritte", perUnit: 1000,
+                effect: 1.3, ci: (0.2, 2.4), p: 0.02, pAdjusted: 0.12, n: Int(84 * scale)),
+            row("LOGBOOK:b-demo-c", .logbook, "Verhalten C", .binary, effect: -3.0, ci: (-7.5, 1.5),
+                p: 0.19, pAdjusted: 0.76, yes: Int(44 * scale), no: Int(34 * scale), n: Int(78 * scale)),
+            row("LOGBOOK:b-demo-c:DOSE", .logbook, "Verhalten C", .amount, .dose, unit: "Stück",
+                effect: -1.8, ci: (-3.9, 0.3), p: 0.09, pAdjusted: 0.45, n: Int(44 * scale)),
+            row("HEALTHY:deficit", .healthy, "Defizit", .amount, unit: "kcal", perUnit: 100,
+                effect: -0.4, ci: (-1.1, 0.3), p: 0.26, pAdjusted: 0.78, n: Int(70 * scale)),
+            row("LOGBOOK:b-demo-b", .logbook, "Verhalten B", .binary, yes: 3, no: 5, n: 8, status: .tooFew),
+            row("LOGBOOK:b-demo-d", .logbook, "Verhalten D", .binary, yes: 12, no: 2, n: 14, status: .tooFew),
+            row("HEALTHY:active", .healthy, "Aktive Energie", .amount, unit: "kcal", perUnit: 100, n: 9,
+                status: .tooFew),
+        ]
+        return LogbookInsights(days: days, from: today.adding(days: -days), to: today.adding(days: -1),
+                               nightsWithScore: Int(71 * scale), outcomeStatus: "OK",
+                               sources: ["cohabit": "OK", "food": "OK"], predictors: predictors)
+    }
 }
 
 private extension CalendarDate {

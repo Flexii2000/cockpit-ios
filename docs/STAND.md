@@ -157,7 +157,16 @@ je Branch `recovery`) sind fertig, aber nicht ausgerollt.
   `healthy://food` (eigene `Healthy/Info.plist` aus `project.yml`). Tests
   `HealthyRouteTests`, `RecoveryTests`, Recovery in `HealthyContractTests`;
   UI-Tests Start auf Dashboard, Karten, Tabs, Push → Essen.
-- [ ] Logbook-Seite, Verhalten, Erinnerung 09:00
+- [x] **Logbook** (`Healthy/Logbook/`): Karte im Dashboard („gestern offen",
+  drei stärkste Effekte, „› alle Effekte"), Seite mit Tag ‹ › von gestern bis
+  vor 14 Tagen, Schalter je Verhaltensweise (mit Einheit samt Mengenfeld,
+  Komma), „Speichern" (Haken; ohne Netz Uhr, Postausgang), Effekte 30 · 90 ·
+  180 · 365 Tage mit Intervall, Ja/Nein-Zahlen und Sternen nach Holm, zu wenig
+  Daten eingeklappt; Blatt „Verhalten" (anlegen, umbenennen, archivieren,
+  löschen - nur online). Erinnerung 09:00 „Logbook" / „gestern offen" 14 Tage
+  voraus (`LogbookReminder`), Tipp → Dashboard + Logbook. Tests
+  `LogbookReminderTests`, `LogbookFormatTests`, Logbook in
+  `HealthyContractTests`, UI-Test `testLogbookDayIsSavedFromTheDashboard`.
 
 ## Fokus: Feature Requests von anderen als Push · **ausgerollt, auf Felix' iPhone** (2026-10-05)
 

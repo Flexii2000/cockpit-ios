@@ -295,6 +295,14 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | GET | `/api/recovery/today` | `RecoveryDay` — `NO_NIGHT`, solange die Nacht von heute nicht da ist |
 | GET | `/api/recovery?from=&to=` | `[RecoveryDay]` — nur Tage mit Nacht (≤ 400 Tage) |
 | GET/PUT | `/api/recovery/settings` | `{sleepNeedMinutes}` (240–720, Vorgabe 480) — ändert auch alte Scores |
+| GET | `/api/logbook` | `LogbookView` — alle Verhaltensweisen (auch archivierte) und die gespeicherten Tage der Nachtragsfrist |
+| POST | `/api/logbook/behaviors` | `{name, unit?}` → 201 `Behavior` (Name 1–40, Einheit ≤ 16, höchstens 30 aktive) |
+| PUT | `/api/logbook/behaviors/{id}` | `{name?, archived?}` → `Behavior` — die Einheit bleibt |
+| DELETE | `/api/logbook/behaviors/{id}` | 204 — nimmt die Werte an allen Tagen mit |
+| PUT | `/api/logbook/days/{date}` | `{values: {id: Zahl}}` → `LogbookDay`; nur heute−14 … heute, sonst 400 „Außerhalb der Nachtragsfrist." |
+| DELETE | `/api/logbook/days/{date}` | 204 — zurück auf „nie ausgefüllt" (die App benutzt es nicht) |
+| GET | `/api/logbook/days?from=&to=` | `[LogbookDay]` |
+| GET | `/api/logbook/insights?days=30\|90\|180\|365` | `InsightsView` (Vorgabe 90, anderes → 400) |
 
 ```
 EnergyDayInput  date, activeKcal?, basalKcal?   (je Tag mindestens eins; aktiv 0–10.000, Ruhe 0–5.000)
@@ -317,7 +325,32 @@ RecoveryDay     date, status (OK | CALIBRATING | NO_HRV | TOO_SHORT | NO_NIGHT),
 RecoveryComponent key (HRV | SLEEPING_HEART_RATE | SLEEP | RESPIRATORY_RATE), value, unit
                 ("ms" | "bpm" | "min" | "/min"), baseline?, z?, weight
 HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | WITHIN | ABOVE | UNKNOWN)
+LogbookView     behaviors: [Behavior], backfillDays (14), backfillFrom, today, days: [LogbookDay]
+Behavior        id ("b-…"), name, unit?, createdAt, archived
+LogbookDay      date, savedAt, values: {behaviorId: 0 | 1 | Menge}
+InsightsView    days, from, to, nightsWithScore, outcomeStatus (OK | TOO_FEW_NIGHTS),
+                sources {cohabit, food: OK | UNAVAILABLE}, predictors: [PredictorView]
+PredictorView   key, source (LOGBOOK | COHABIT | HEALTHY), id, name, kind (BINARY | AMOUNT),
+                variant (MAIN | DOSE), unitLabel?, perUnit, effect?, ciLow?, ciHigh?, p?, pAdjusted?,
+                nYes?, nNo?, n, meanYes?, meanNo?, status (OK | TOO_FEW | NOT_SEPARABLE)
 ```
+
+⚠️ **Ein Logbook-Tag gilt erst als ausgefüllt, wenn er gespeichert ist.**
+Dann bekommt jede aktive Verhaltensweise einen Wert; was nicht genannt ist,
+wird 0 („nein"). Ein nie gespeicherter Tag fehlt - „vergessen" ist etwas
+anderes als „nein". Ohne Einheit nur 0 oder 1, mit Einheit 0 oder eine Menge
+(≤ 10.000). Das Speichern ist idempotent und darf in den Postausgang
+(`queueWhenOffline`); unbekannte Ids übergeht der Dienst, Werte archivierter
+bleiben stehen. Anlegen, Ändern und Löschen von Verhaltensweisen nur online.
+
+⚠️ **`id` ist bei `PredictorView` nicht eindeutig:** eine Verhaltensweise mit
+Einheit hat zwei Zeilen (`MAIN` ja/nein und `DOSE` je Einheit) mit derselben
+`id`; eindeutig ist `key`. Die App liest `id` als `sourceId`. `effect` steht
+in Prozentpunkten Recovery am nächsten Morgen, bei Mengen je `perUnit`
+(1.000 Schritte, 100 kcal); die Sterne richten sich nach `pAdjusted` (Holm).
+Die Reihenfolge kommt vom Dienst: signifikant zuerst, dann nach |Effekt|,
+dann die übrigen. coHabit-Werte holt der Dienst selbst
+(`/cohabit/api/me/days`, siehe coHabit), die App fragt dort nichts.
 
 ⚠️ **`score`, `band`, `composite` gibt es nur bei `OK`**, `hrvTrend` auch nur
 dann. Die Bausteine stehen trotzdem da, sobald die Nacht den Wert hat
@@ -563,6 +596,7 @@ mit dem Status.
 | GET/POST/DELETE | `/me/app-links[/{id}]` | „App verbinden"; `DELETE /me/app-links/current` beim Abmelden |
 | GET | `/me/export` | ZIP → Teilen |
 | DELETE | `/me` | `{"confirm":"LÖSCHEN"}` |
+| GET | `/me/days?from=&to=` | **nur für den Weight Tracker** (seit 09.10., Vertrag §3.11): jedes eigene Co-Habit als Tagesreihe für das Logbook in Healthy - keine App fragt das ab |
 | GET | `/today` | „Heute" (Dashboard und Liste) |
 | GET/POST/PUT/DELETE | `/classic/habits[/{id}[/marks[/{date}]]]` | „Heute" als klassische Liste (Schalter im Profil) - siehe unten |
 | GET/POST | `/cohabits` | Liste (Timeline-Filter), Anlegen mit `invitePersonIds` |

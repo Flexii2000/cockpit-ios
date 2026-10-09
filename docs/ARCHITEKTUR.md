@@ -52,9 +52,10 @@ Dreiteilig, und in M2 genauso wie in M1:
 ```
 Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
-  Dashboard/        der erste Tab: Karten für Recovery, Energie, Gewicht, Essen; Vorführdaten
+  Dashboard/        der erste Tab: Karten für Recovery, Energie, Gewicht, Essen, Logbook; Vorführdaten
   Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
   Energy/           Energiebilanz beim Weight Tracker, ihre Formate und Zeilen im Essen-Tab
+  Logbook/          Logbook-Seite (Tag, Verhalten, Effekte), Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync)
@@ -337,7 +338,8 @@ zuletzt war.
 **Healthy: eine Weiche für alles, was von außen kommt** (`HealthyRoute`).
 Seit die App im Dashboard aufmacht, muss jeder Weg sagen, wohin er will:
 Mitteilung **ohne** Art oder mit `quick-capture` → Essen (die APNs-Meldung des
-Kalorienzählers hat keine Art), `evaluation` → Evaluation; Link
+Kalorienzählers hat keine Art), `evaluation` → Evaluation, `logbook` →
+Dashboard und dort das Logbook; Link
 `healthy://food` (Kalorien-Kachel) → Essen mit heute. Das URL-Schema steht in
 einer eigenen `Healthy/Info.plist` (wie bei Fokus und coHabit erzeugt aus
 `project.yml`, die übrigen Schlüssel kommen weiter aus den
@@ -349,8 +351,8 @@ Essen-Tab mit `show(.today())` antwortet.
 rechnet nichts: Recovery, Energie-Summary, Gewichts-Summary und der Tag beim
 Kalorienzähler kommen parallel aus ihren Endpunkten (`DashboardStore`); jede
 Karte fällt für sich aus, ein 404 heißt „gibt es beim Dienst noch nicht" und
-lässt sie weg, nur fehlender Zugang wird zum Banner. Die Recovery-Seite (und
-später das Logbook) liegt als Seite im `NavigationStack` des Dashboards
+lässt sie weg, nur fehlender Zugang wird zum Banner. Recovery- und
+Logbook-Seite liegen als Seiten im `NavigationStack` des Dashboards
 (`Router.dashboardPath`), nicht als Tab: iOS zeigt höchstens fünf, und die
 Leiste ist mit Dashboard, Essen, Gewicht, Evaluation und Einkauf voll. Eine
 Offline-Leiste für beide Dienste (`OfflineBanner(backends:)`), sonst zählte sie
@@ -394,6 +396,17 @@ Tabwechsel sieht. Sichtschutz im App-Umschalter, solange der Tab offen ist.
 gerechnet wird ausnahmsweise in der App (`EvaluationChartData`). Die Erinnerung
 um 21:30 sind lokale Mitteilungen je Tag (`EvaluationReminder`).
 
+**Healthy: das Logbook liegt beim Dienst, die Erinnerung auf dem iPhone.**
+Verhaltensweisen und Tage stehen im Weight Tracker (je Person, die Effekte
+gegen die Recovery rechnet er dort). Die Erinnerung um 09:00 „Logbook" /
+„gestern offen" ist wie die der Evaluation eine lokale Mitteilung je Tag
+(`LogbookReminder`), aber nur 14 Tage voraus - iOS hält höchstens 64 je App
+bereit, die Evaluation belegt 30. Neu verteilt beim Speichern und bei jedem
+Wechsel in den Vordergrund, mit dem Stand des Dienstes (ohne Netz aus dem
+Cache); im Vorführmodus nie. Ein Tag, dessen Speichern im Postausgang wartet,
+zählt als gespeichert: `LogbookMemory` merkt ihn sich samt Werten, bis der
+Postausgang leer ist.
+
 **Das Passwort der Noten liegt hinter Face ID.** Als einziges Geheimnis der
 App: die übrigen sind Geräte-Token, die das Widget bei gesperrtem Bildschirm
 lesen können muss. Beim Entsperren des Tabs bleibt der geprüfte `LAContext`
@@ -416,7 +429,8 @@ Dienst, von wann sie ist. Die Tabs zeigen das als Leiste: „Offline – Stand v
 geantwortet.
 
 **Schreiben.** Änderungen, die später genauso gelten — Haken (mit Datum im
-Rumpf), Messwerte, Essenseinträge und deren Löschung — gehen mit
+Rumpf), Messwerte, Essenseinträge und deren Löschung, ein Logbook-Tag (Datum
+im Pfad) — gehen mit
 `queueWhenOffline: true` in den `Outbox`; der Aufrufer bekommt
 `APIError.queued` und behandelt das als Erfolg. Nachgesendet wird der Reihe
 nach, sobald irgendeine Anfrage wieder durchkommt oder die App in den

@@ -77,6 +77,41 @@ final class HealthyUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Gewicht"].isSelected)
     }
 
+    /// Das Logbook aus der Karte im Dashboard: gestern ist offen, ein
+    /// Schalter, „Speichern", und der Haken steht da. Mit erfundenen Werten -
+    /// nichts davon erreicht den Dienst.
+    func testLogbookDayIsSavedFromTheDashboard() {
+        let app = launch(tab: "dashboard", extra: demo)
+        let card = app.buttons["logbookCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        card.tap()
+        XCTAssertTrue(app.navigationBars["Logbook"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Gestern"].waitForExistence(timeout: 10))
+        shoot(app, "logbook-gestern")
+
+        // Den Schalter selbst treffen, nicht die Mitte der Zeile.
+        let toggle = app.switches["Verhalten A"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let save = app.buttons["logbookSave"]
+        save.tap()
+        let saved = app.images["logbookSaved"]
+        _ = saved.waitForExistence(timeout: 5)
+        shoot(app, "logbook-gespeichert")
+        XCTAssertTrue(saved.exists, "nach dem Speichern steht der Haken")
+
+        // Einen Tag zurueck: ein gespeicherter Tag zeigt seine Schalter.
+        app.buttons["Tag davor"].tap()
+        XCTAssertTrue(app.staticTexts["Vorgestern"].waitForExistence(timeout: 5))
+        scrollDown(app, times: 2)
+        shoot(app, "logbook-effekte")
+
+        app.buttons["Verhalten"].tap()
+        XCTAssertTrue(app.navigationBars["Verhalten"].waitForExistence(timeout: 5))
+        shoot(app, "logbook-verhalten")
+        XCTAssertTrue(app.staticTexts["Verhalten E"].exists, "archivierte stehen unten")
+    }
+
     /// Unter dem Verlauf: die Schalter brechen um, „Verbrauch ⌀" ist dabei
     /// und vorgewaehlt - unterhalb des ersten Bildschirms, den
     /// `run-simulator.sh` allein zeigt.

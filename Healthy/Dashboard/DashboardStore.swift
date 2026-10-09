@@ -17,12 +17,18 @@ final class DashboardStore {
     private let energyApi = EnergyAPI()
     private let weightApi = WeightAPI()
     private let foodApi = FoodAPI()
+    private let logbookApi = LogbookAPI()
 
     private(set) var recovery: RecoveryDay?
     private(set) var energy: EnergySummary?
     private(set) var weight: WeightSummary?
     private(set) var food: DaySummary?
     private(set) var steps: Int?
+    private(set) var logbook: LogbookOverview?
+    /// Die Effekte der letzten 90 Tage - die Vorgabe der Logbook-Seite.
+    private(set) var insights: LogbookInsights?
+    /// Tage, deren Speichern im Postausgang wartet.
+    private(set) var queuedLogbookDays: Set<CalendarDate> = []
 
     private(set) var isLoading = false
     /// Ob schon einmal geladen wurde - vorher zeigt der Tab einen Platzhalter
@@ -54,23 +60,32 @@ final class DashboardStore {
             weight = DashboardDemo.weightSummary()
             food = DashboardDemo.foodDay()
             steps = DashboardDemo.steps
+            logbook = DashboardDemo.logbookOverview()
+            insights = DashboardDemo.logbookInsights(days: LogbookAPI.defaultPeriod)
             return
         }
         #endif
         // Lokale Kopien: die Abfragen laufen nebenher, ohne den Store.
         let recoveryApi = recoveryApi, energyApi = energyApi
-        let weightApi = weightApi, foodApi = foodApi
+        let weightApi = weightApi, foodApi = foodApi, logbookApi = logbookApi
         async let recovery = Self.attempt { try await recoveryApi.today() }
         async let energy = Self.attempt { try await energyApi.summary() }
         async let weight = Self.attempt { try await weightApi.summary() }
         async let food = Self.attempt { try await foodApi.day(.today()) }
+        async let logbook = Self.attempt { try await logbookApi.overview() }
+        async let insights = Self.attempt { try await logbookApi.insights(days: LogbookAPI.defaultPeriod) }
 
         var problems: [Backend] = []
         self.recovery = Self.take(await recovery, previous: self.recovery, backend: .weight, problems: &problems)
         self.energy = Self.take(await energy, previous: self.energy, backend: .weight, problems: &problems)
         self.weight = Self.take(await weight, previous: self.weight, backend: .weight, problems: &problems)
         self.food = Self.take(await food, previous: self.food, backend: .food, problems: &problems)
+        self.logbook = Self.take(await logbook, previous: self.logbook, backend: .weight, problems: &problems)
+        self.insights = Self.take(await insights, previous: self.insights, backend: .weight, problems: &problems)
         accessProblems = problems
+        // Ein Tag im Postausgang ist gespeichert - nur noch nicht beim Dienst.
+        if await Outbox.shared.count == 0 { LogbookMemory.clear() }
+        queuedLogbookDays = Set(LogbookMemory.load().keys)
         await loadSteps()
     }
 

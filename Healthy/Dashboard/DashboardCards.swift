@@ -133,3 +133,57 @@ struct FoodHalfCard: View {
         }
     }
 }
+
+/// Logbook: „gestern offen", bis zu drei der staerksten Effekte und der Weg
+/// zu allen. Ohne Verhaltensweise und ohne Effekt nur der Weg zum Anlegen.
+struct LogbookCard: View {
+
+    let overview: LogbookOverview
+    let insights: LogbookInsights?
+    /// Tage, deren Speichern im Postausgang wartet - die gelten als gespeichert.
+    let queued: Set<CalendarDate>
+
+    private var yesterday: CalendarDate { .today().adding(days: -1) }
+
+    var body: some View {
+        let strongest = insights?.strongest ?? []
+        VStack(alignment: .leading, spacing: 8) {
+            CardTitle(title: "Logbook")
+            if !overview.active.isEmpty {
+                if overview.day(yesterday) != nil || queued.contains(yesterday) {
+                    Label("gestern gespeichert", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Label("gestern offen", systemImage: "circle.dashed")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Tone.warn.color)
+                }
+            }
+            ForEach(strongest) { predictor in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    LogbookSourceIcon(source: predictor.source)
+                    Text(predictor.name)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    if let effect = LogbookFormat.effectLine(predictor) {
+                        Text(effect)
+                            .font(.subheadline.monospacedDigit())
+                            .fixedSize()
+                    }
+                }
+            }
+            if !strongest.isEmpty {
+                Text("› alle Effekte")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.tint)
+            } else if overview.active.isEmpty {
+                Text("Verhalten anlegen")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.tint)
+            }
+        }
+        .dashboardCard()
+    }
+}

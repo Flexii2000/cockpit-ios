@@ -18,6 +18,11 @@ final class HealthyRouteTests: XCTestCase {
         XCTAssertEqual(HealthyRoute.notification(kind: EvaluationReminder.kind), .evaluation)
     }
 
+    /// Die Erinnerung um 09:00 fuehrt ins Dashboard und dort aufs Logbook.
+    func testLogbookReminderOpensTheLogbook() {
+        XCTAssertEqual(HealthyRoute.notification(kind: "logbook"), .logbook)
+    }
+
     /// Eine unbekannte Art fuehrt nirgends hin, statt zu raten.
     func testUnknownKindGoesNowhere() {
         XCTAssertNil(HealthyRoute.notification(kind: "grade"))
@@ -55,5 +60,10 @@ final class HealthyRouteTests: XCTestCase {
         router.open(.recovery)
         XCTAssertEqual(router.selection, .dashboard)
         XCTAssertEqual(router.dashboardPath, [.recovery])
+
+        router.show(.food)
+        router.follow(.logbook)
+        XCTAssertEqual(router.selection, .dashboard)
+        XCTAssertEqual(router.dashboardPath, [.logbook], "frisch oben, nicht auf die Recovery gestapelt")
     }
 }

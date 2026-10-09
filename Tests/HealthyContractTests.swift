@@ -135,6 +135,68 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(json, #"{"sleepNeedMinutes":495}"#)
     }
 
+    // MARK: - Logbook
+
+    /// `LogbookView` mit `Behavior` und `LogbookDay` - Platzhalter statt Namen.
+    func testDecodesLogbookOverview() throws {
+        let overview = try decode(LogbookOverview.self, """
+        {"behaviors":[{"id":"b-1a2b3c4d","name":"Verhalten A","unit":null,"createdAt":"2026-10-01T08:00:00.123456Z","archived":false},
+                      {"id":"b-5e6f7a8b","name":"Verhalten B","unit":"Stück","createdAt":"2026-10-02T08:00:00Z","archived":false},
+                      {"id":"b-9c0d1e2f","name":"Verhalten C","unit":null,"createdAt":"2026-09-01T08:00:00Z","archived":true}],
+         "backfillDays":14,"backfillFrom":"2026-09-25","today":"2026-10-09",
+         "days":[{"date":"2026-10-08","savedAt":"2026-10-09T06:12:00Z","values":{"b-1a2b3c4d":1.0,"b-5e6f7a8b":0.0}}]}
+        """)
+        XCTAssertEqual(overview.backfillDays, 14)
+        XCTAssertEqual(overview.active.map(\.id), ["b-1a2b3c4d", "b-5e6f7a8b"])
+        XCTAssertEqual(overview.archived.first?.name, "Verhalten C")
+        XCTAssertEqual(overview.behaviors[1].unit, "Stück")
+        XCTAssertEqual(overview.day(CalendarDate(year: 2026, month: 10, day: 8))?.values["b-1a2b3c4d"], 1)
+        XCTAssertNil(overview.day(CalendarDate(year: 2026, month: 10, day: 7)), "nie gespeichert heisst: fehlt")
+    }
+
+    /// `InsightsView` mit `PredictorView` - das Beispiel aus dem Vertrag §4.1,
+    /// dazu eine Dosis- und eine Zeile ohne Effekt. `id` heisst in der App
+    /// `sourceId`; eindeutig ist `key`.
+    func testDecodesInsights() throws {
+        let insights = try decode(LogbookInsights.self, """
+        {"days":90,"from":"2026-07-11","to":"2026-10-08","nightsWithScore":71,"outcomeStatus":"OK",
+         "sources":{"cohabit":"UNAVAILABLE","food":"OK"},
+         "predictors":[{"key":"LOGBOOK:b-1a2b3c4d","source":"LOGBOOK","id":"b-1a2b3c4d","name":"Verhalten A",
+           "kind":"BINARY","variant":"MAIN","unitLabel":null,"perUnit":1.0,
+           "effect":8.12,"ciLow":3.2,"ciHigh":13.04,"p":0.0021,"pAdjusted":0.019,
+           "nYes":41,"nNo":37,"n":78,"meanYes":61.3,"meanNo":52.4,"status":"OK"},
+          {"key":"LOGBOOK:b-5e6f7a8b:DOSE","source":"LOGBOOK","id":"b-5e6f7a8b","name":"Verhalten B",
+           "kind":"AMOUNT","variant":"DOSE","unitLabel":"Stück","perUnit":1.0,
+           "effect":-1.8,"ciLow":-3.9,"ciHigh":0.3,"p":0.09,"pAdjusted":0.45,
+           "nYes":null,"nNo":null,"n":23,"meanYes":null,"meanNo":null,"status":"OK"},
+          {"key":"HEALTHY:active","source":"HEALTHY","id":"active","name":"Aktive Energie",
+           "kind":"AMOUNT","variant":"MAIN","unitLabel":"kcal","perUnit":100.0,
+           "effect":null,"ciLow":null,"ciHigh":null,"p":null,"pAdjusted":null,
+           "nYes":null,"nNo":null,"n":9,"meanYes":null,"meanNo":null,"status":"TOO_FEW"}]}
+        """)
+        XCTAssertTrue(insights.hasEnoughNights)
+        XCTAssertEqual(insights.evaluated.map(\.key), ["LOGBOOK:b-1a2b3c4d", "LOGBOOK:b-5e6f7a8b:DOSE"])
+        XCTAssertEqual(insights.notEvaluated.first?.status, .tooFew)
+        XCTAssertEqual(insights.strongest.count, 2)
+        XCTAssertEqual(insights.predictors[1].variant, .dose)
+        XCTAssertEqual(insights.predictors[1].sourceId, "b-5e6f7a8b")
+        XCTAssertEqual(insights.predictors[2].perUnit, 100)
+        XCTAssertEqual(insights.unavailableSources, ["coHabit"])
+    }
+
+    /// Was die App schickt: beim Aendern fehlt, was gleich bleibt; ein Tag
+    /// nennt nur, was angetippt ist.
+    func testLogbookRequests() throws {
+        func object(_ value: some Encodable) throws -> [String: Any] {
+            try XCTUnwrap(JSONSerialization.jsonObject(with: APIClient.encoder().encode(value)) as? [String: Any])
+        }
+        XCTAssertEqual(Set(try object(BehaviorUpdateRequest(name: nil, archived: true)).keys), ["archived"])
+        XCTAssertEqual(Set(try object(BehaviorUpdateRequest(name: "Verhalten Z", archived: nil)).keys), ["name"])
+        XCTAssertEqual(Set(try object(NewBehaviorRequest(name: "Verhalten Z", unit: nil)).keys), ["name"])
+        let day = try object(LogbookDayRequest(values: ["b-1": 1, "b-2": 2.5]))
+        XCTAssertEqual(day["values"] as? [String: Double], ["b-1": 1, "b-2": 2.5])
+    }
+
     // MARK: - Naechte
 
     /// `Night` wie `GET /api/nights` sie liefert (Jackson mit Bruchteilen).

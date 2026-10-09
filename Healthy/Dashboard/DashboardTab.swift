@@ -3,9 +3,9 @@ import SwiftUI
 /// Das Dashboard - ganz links, und dort macht die App auf (Felix, 09.10.).
 ///
 /// Ein Blick auf den Tag: Recovery, Energie, Gewicht, was vom kcal-Ziel
-/// uebrig ist, Schritte. Jede Karte fuehrt dorthin, wo das Einzelne steht:
-/// Recovery auf ihre Seite, Energie und kcal in den Essen-Tab mit heute,
-/// Gewicht in seinen Tab.
+/// uebrig ist, Schritte, Logbook. Jede Karte fuehrt dorthin, wo das Einzelne
+/// steht: Recovery und Logbook auf ihre Seite, Energie und kcal in den
+/// Essen-Tab mit heute, Gewicht in seinen Tab.
 ///
 /// Nicht zu verwechseln mit `/api/dashboard` des Weight Trackers - das ist die
 /// Auswahl der Kacheln im Gewicht-Tab.
@@ -37,6 +37,7 @@ struct DashboardTab: View {
             .navigationDestination(for: DashboardPage.self) { page in
                 switch page {
                 case .recovery: RecoveryView()
+                case .logbook:  LogbookView()
                 }
             }
             .toolbar {
@@ -109,6 +110,13 @@ struct DashboardTab: View {
             }
             // Beide Haelften gleich hoch, auch wenn eine eine Zeile mehr hat.
             .fixedSize(horizontal: false, vertical: true)
+        }
+        if let logbook = store.logbook {
+            NavigationLink(value: DashboardPage.logbook) {
+                LogbookCard(overview: logbook, insights: store.insights, queued: store.queuedLogbookDays)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("logbookCard")
         }
     }
 }

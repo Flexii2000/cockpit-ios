@@ -17,7 +17,7 @@ enum TabSelection: Hashable {
     #endif
 
     /// Womit die App aufmacht. Im Debug-Build ueber `COCKPIT_TAB` vorgebbar;
-    /// `recovery` oeffnet das Dashboard samt dieser Seite.
+    /// `recovery` und `logbook` oeffnen das Dashboard samt dieser Seite.
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
@@ -37,7 +37,7 @@ enum TabSelection: Hashable {
 /// Die Seiten im Dashboard. Keine Tabs: iOS zeigt hoechstens fuenf, und die
 /// Leiste ist mit Dashboard, Essen, Gewicht, Evaluation und Einkauf voll.
 enum DashboardPage: Hashable {
-    case recovery
+    case recovery, logbook
 
     /// Womit der Stapel im Dashboard aufmacht - im Debug-Build ueber
     /// `COCKPIT_TAB` vorgebbar, damit sich jede Seite aufnehmen laesst.
@@ -45,6 +45,7 @@ enum DashboardPage: Hashable {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "recovery": return [.recovery]
+        case "logbook":  return [.logbook]
         default:         return []
         }
         #else
@@ -59,7 +60,7 @@ enum DashboardPage: Hashable {
 final class Router {
     static let shared = Router()
     var selection: TabSelection = .initial
-    /// Der Stapel im Dashboard (Recovery-Seite).
+    /// Der Stapel im Dashboard (Recovery- und Logbook-Seite).
     var dashboardPath: [DashboardPage] = DashboardPage.initialPath
     /// Zaehlt die Bitten, im Essen-Tab heute zu zeigen. Ein Zaehler und kein
     /// Datum: der Tab soll auch dann springen, wenn schon heute gefragt war
@@ -86,6 +87,7 @@ final class Router {
         case .food:       show(.food)
         case .foodToday:  showFoodToday()
         case .evaluation: show(.evaluation)
+        case .logbook:    open(.logbook)
         }
     }
 }
@@ -155,6 +157,7 @@ struct RootView: View {
                 Task {
                     await Outbox.shared.replay()
                     await EvaluationReminder.refresh()
+                    await LogbookReminder.refresh()
                     // Die Nacht von heute frueh, die Energie bis jetzt -
                     // hoechstens alle zehn Minuten.
                     await HealthSync.shared.syncIfDue()
@@ -177,6 +180,7 @@ struct RootView: View {
         }
         .task {
             await EvaluationReminder.refresh()
+            await LogbookReminder.refresh()
             // Start direkt im Tab (Antippen der Erinnerung, COCKPIT_TAB):
             // dann gibt es keinen Wechsel, der fragen koennte.
             if router.selection == .evaluation { await evaluationLock.show() }
