@@ -1,8 +1,15 @@
 # Stand
 
-> **Healthy, Dashboard/Energie/Recovery/Logbook (09.10.):** Branch `recovery`,
-> in Arbeit - was steht und was fehlt, im Abschnitt „Healthy: Dashboard,
-> Energie, Recovery, Logbook" unten. Nichts davon ist ausgerollt.
+> **Nächster Schritt - Healthy: Dashboard, Energie, Recovery, Logbook (09.10.):**
+> Branch `recovery`, gebaut und geprüft, nicht gemergt, nicht gepusht.
+> Reihenfolge: **erst die Dienste ausrollen** (Branch `recovery` in
+> `../food`, `../habits`, `../weight-app`, dann Felix' Healthy-Token per
+> `setup-health-users.sh felix` - Rollout-Skript laut Plan), **dann**
+> `tools/install-device.sh Healthy --launch`. Ein älterer Weight Tracker lässt
+> die neuen Karten, Zeilen und Kacheln still weg (404), die App läuft. Die drei
+> Energie-Kacheln erst hinzufügen, wenn Web und Android sie auch kennen (jedes
+> Register wirft Unbekanntes beim Speichern weg). Was auf dem Gerät zu prüfen
+> ist, steht im Abschnitt unten.
 >
 > **coHabit, Typfarben je Person (05.10., abends):** Branch `type-colors` (auf
 > `today-types`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `ce4cc3a`
@@ -122,7 +129,7 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
-## Healthy: Dashboard, Energie, Recovery, Logbook · **in Arbeit, nicht ausgerollt** (2026-10-09)
+## Healthy: Dashboard, Energie, Recovery, Logbook · **gebaut, nicht ausgerollt** (2026-10-09)
 
 Felix' Freigabe vom 09.10. (Plan „Energiebilanz, Recovery, Dashboard, Logbook",
 Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`). Branch `recovery`, nicht
@@ -167,6 +174,45 @@ je Branch `recovery`) sind fertig, aber nicht ausgerollt.
   voraus (`LogbookReminder`), Tipp → Dashboard + Logbook. Tests
   `LogbookReminderTests`, `LogbookFormatTests`, Logbook in
   `HealthyContractTests`, UI-Test `testLogbookDayIsSavedFromTheDashboard`.
+- [x] **Befunde aus dem Android-Review:** unplausible Energie- und
+  Nachtwerte fehlen lieber, statt die ganze Anfrage scheitern zu lassen
+  (`b7cc2b4`); ein neuerer PUT überholt einen wartenden an dieselbe Adresse im
+  Postausgang (`d0e76ef`, alle fünf Apps); das Logbook springt nach Mitternacht
+  und von der Erinnerung zurück auf gestern (`0e7d5c5`). Defizit/Überschuss
+  nach dem gerundeten Wert hatte iOS schon.
+
+**Geprüft (09.10.):** `tools/verify.sh` grün - alle fünf Apps gebaut,
+Unit-Tests Healthy 219 (vorher 132), coHabit 170. `tools/uitest.sh Healthy`:
+alle 12 grün (Start auf Dashboard, Karten → Recovery/Essen/Gewicht, Logbook
+speichern samt Haken, Verlauf mit „Verbrauch ⌀", Tabs), `tools/pushtest.sh
+Healthy`: Start im Dashboard, Tipp auf die Meldung ohne Art landet in Essen.
+Zwei alte UI-Tests (`testFoodTabShowsHistoryBelowTheMeals`,
+`testFoodHistoryOffersHalfAYear`) scheiterten schon vor dieser Arbeit (auf
+`5fe303e` nachgestellt): die Liste scrollte nicht, wenn der Wisch auf Tacho
+oder Mahlzeit-Überschrift ansetzt - sie scrollen jetzt am Rand. Bilder hell
+und dunkel mit `COCKPIT_DASHBOARD_DEMO=1` angesehen (Dashboard, Recovery,
+Logbook, Essen, Gewicht); dazu Dashboard, Recovery und Logbook gegen einen
+lokal gestarteten Weight Tracker (Branch `recovery`, eingespielte Nächte,
+Energie, Logbook-Tage) - die echten Antworten werden gelesen und gezeigt.
+
+**Nur auf dem Gerät prüfbar** (der Simulator bekommt keine Health-Daten, hat
+nur iOS 26.5):
+- der Health-Dialog im Dashboard mit den neuen Arten, danach sofort Werte;
+- Nächte gegen die Health-App (Schlafdauer, Stadien, HRV), RMSSD erst ab
+  iOS 27; die Rückholung (365 Nächte, zehn Jahre Energie) beim ersten Start -
+  Dauer und Akku;
+- der Schlaf-Weckruf: steht die Recovery morgens, ohne dass die App offen war?
+- Tipp auf die Kalorien-Kachel → Essen mit heute, Schnellerfassungs-Push → Essen;
+- die Erinnerung um 09:00 (nicht, wenn gestern gespeichert ist), Tipp → Logbook;
+- Logbook offline speichern (Uhr), mit Netz zurück (Haken), dabei derselbe Tag
+  noch einmal gespeichert - der neuere Stand muss bleiben;
+- Scrollen im Essen-Tab, wenn der Finger auf Tacho oder Überschrift ansetzt
+  (im Simulator blockiert, schon vor dieser Arbeit).
+
+**Offen:** Der Vertrag (§2.2) sagt nicht, worauf sich „gibt es Segmente der
+Apple Watch" bezieht; iOS wählt die Quelle je Aufwachtag (ENTSCHEIDUNGEN) -
+Android sollte es genauso machen. Die UI-Tests werfen mit Xcode 27 Warnungen
+zur MainActor-Isolierung (XCUIAutomation), schon vor dieser Arbeit.
 
 ## Fokus: Feature Requests von anderen als Push · **ausgerollt, auf Felix' iPhone** (2026-10-05)
 

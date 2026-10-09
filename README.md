@@ -5,7 +5,7 @@ bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Essen (Kalorienzähler), Gewicht (Weight Tracker), Einkaufsliste | `com.fherrmann.cockpit` | – |
+| **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker), Evaluation, Einkaufsliste | `com.fherrmann.cockpit` | Evaluation, Face ID |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | To-Do, Wald | `com.fherrmann.fokus` | – |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
@@ -17,6 +17,14 @@ eine geteilte Keychain-Gruppe in allen Apps — außer coHabit: dort hat jede
 Person ihren eigenen Token, eingefügt als Link.
 
 ## Was die Apps können
+
+**Dashboard** — der erste Tab in Healthy, dort macht die App auf: die
+**Recovery** des Morgens (Score aus HRV, Puls im Schlaf, Schlaf und
+Atemfrequenz gegen die eigenen 60 Nächte, mit eigener Seite), die
+**Energiebilanz** (Verbrauch, gegessen, Defizit), Gewicht und was vom kcal-Ziel
+übrig ist, und das **Logbook**: eigene Verhaltensweisen je Tag eintragen und
+sehen, was davon mit der Recovery am nächsten Morgen zusammenhängt. Gerechnet
+wird im Weight Tracker; die App liest Apple Health und zeigt.
 
 **Essen** — Tagesansicht nach Mahlzeiten mit Teilsumme gegen das jeweilige
 Mahlzeitenziel, vier Tachos (kcal plus die drei Makros), Gerichte-Merkliste,
@@ -154,7 +162,7 @@ Keychain und werden von da an als Cookies gesetzt:
 | Token | Wofür | Wo er steht (auf dem Server) |
 |---|---|---|
 | `fh_private` | Essen-Tab und das Widget (gilt für alles unter `.fherrmann.com`) | `/etc/nginx/conf.d/private-mode.conf` |
-| `weight_app_token` | Gewicht-Tab, Schritte | `/etc/health-viz.env` |
+| `weight_app_token` | Gewicht-Tab, Schritte, Dashboard (Recovery, Energie, Logbook) | `/etc/health-viz.env` |
 | `grades_token` + Benutzer + Passwort | Noten-Tab | `~/services/grades/grades.env` |
 
 Die Noten haben als einziger Dienst **zwei** Schranken: den Geräte-Token und
@@ -167,8 +175,9 @@ Der Finanzen-Tab hat kein Token: dort meldet man sich im WebView mit Passwort
 und TOTP-Code an; das Session-Cookie hält sieben Tage und verlängert sich bei
 Nutzung.
 
-**Health** fragt beim ersten Öffnen des Gewicht-Tabs nach Erlaubnis für
-Gewicht und Schritte. **Benachrichtigungen** fragt die erste Schnellerfassung
-ab. Beides lässt sich später in den iOS-Einstellungen ändern. Meldungen über
+**Health** fragt beim ersten Öffnen des Dashboards nach Erlaubnis für
+Gewicht, Schritte, Energie, Schlaf und Herzwerte. **Benachrichtigungen** fragt
+die erste Schnellerfassung ab (oder die ersten Fragen der Evaluation bzw. die
+erste Verhaltensweise im Logbook). Beides lässt sich später in den iOS-Einstellungen ändern. Meldungen über
 neue Noten gibt es erst, **nachdem der Noten-Tab einmal offen war** — die
 Kennung des Geräts meldet die App dort erst an, wenn eine Sitzung steht.

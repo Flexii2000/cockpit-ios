@@ -158,6 +158,12 @@ offensichtlich sind und je einen halben Anlauf gekostet haben:
   = .dark` wirkt dort erst, nachdem einmal `xcrun simctl ui "<Geraet>"
   appearance light` lief (vorher meldet `simctl ui … appearance` „unknown“) -
   die „dunkel“-Bilder sind sonst still hell (05.10.).
+* **„Busy (Application failed preflight checks)" beim Start des Testwirts**:
+  der Simulator wurde von `xcodebuild` kalt gebootet, und SpringBoard ist
+  noch nicht so weit. Tritt in `verify.sh` meist bei coHabit auf (nach dem
+  Healthy-Lauf); vorher booten hilft: `xcrun simctl boot "iPhone 17 Pro" &&
+  xcrun simctl bootstatus "iPhone 17 Pro" -b` - `verify.sh` nimmt das erste
+  iPhone der Liste, `uitest.sh` das „iPhone 17" (09.10.).
 * **Aufraeumen per `addTeardownBlock`, nicht per `defer`.** Schlaegt eine
   Pruefung fehl, bricht XCTest die Methode ab, ohne `defer` auszufuehren - was
   der Test im Dienst angelegt hat, bliebe liegen.
