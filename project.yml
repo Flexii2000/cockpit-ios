@@ -101,6 +101,19 @@ targets:
       # die Erweiterung zwar, aber iOS findet sie nie.
       - target: HealthyWidget
         embed: true
+    info:
+      # Eigene Info.plist nur wegen des URL-Schemas: healthy://food oeffnet den
+      # Essen-Tab mit heute (die Kalorien-Kachel, HealthyRoute). Fuer
+      # CFBundleURLTypes gibt es keinen INFOPLIST_KEY_-Schalter; alles andere
+      # erzeugt Xcode weiter aus den INFOPLIST_KEY_-Settings.
+      path: Healthy/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.fherrmann.cockpit
+            CFBundleURLSchemes: [healthy]
     entitlements:
       path: Healthy/Healthy.entitlements
       properties:
@@ -533,6 +546,12 @@ schemes:
       targets:
         - CockpitTests
         - HealthyUITests
+      # Fuer die App, in der die Unit-Tests laufen: sie macht im Dashboard
+      # auf, und das fragt nach der Health-Erlaubnis - ein Systemdialog
+      # mitten im Testlauf. Die UI-Tests setzen ihre Schalter selbst
+      # (UITests/Harness.swift).
+      environmentVariables:
+        COCKPIT_NO_HEALTH: "1"
     run:
       config: Debug
   Vault:

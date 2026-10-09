@@ -3,6 +3,47 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy: Dashboard als erster Tab, Recovery als Seite darin
+Felix hat entschieden (Plan vom 09.10.): neuer Tab **Dashboard ganz links, die
+App macht dort auf**; Recovery (und das Logbook) sind Seiten im Dashboard,
+kein eigener Tab; das Layout der Karten ist freigegeben. In der App:
+- **Jede Karte fällt für sich aus.** Ein 404 heißt „kennt dieser Dienst noch
+  nicht" - die Karte fehlt ohne Meldung, damit die App vor dem Ausrollen des
+  Weight Trackers genauso aussieht wie danach ohne Daten. Ein Banner nur bei
+  fehlendem Zugang; bei anderen Fehlern bleibt der letzte Stand. **Verworfen:**
+  eine Fehlermeldung je Karte (vor dem Ausrollen stünden drei da) und Flags
+  „kann Recovery" beim Dienst.
+- **Der Ring ohne Zielkerbe** (`GaugeView.showsTarget`) und ohne Unterzeile
+  beim Score - daneben oder darüber steht ohnehin „Recovery". Beim Kalibrieren
+  „9/14" / „Nächte", ohne Score ein Strich mit dem Grund („Keine Nacht",
+  „Keine HRV", „Zu kurz"). **Verworfen:** ein eigener Kreisring statt
+  `GaugeView` - der Tacho ist die Form, die man aus dem Essen-Tab kennt.
+- **Die Energie-Karte bleibt eine Zeile** und wird lieber etwas kleiner
+  (`minimumScaleFactor`), als nach einem „·" umzubrechen. **Verworfen:** drei
+  Spalten mit Beschriftung über der Zahl (nicht das freigegebene Layout) und
+  ein Umbruch an den Trennern (ein Punkt am Zeilenende sah verloren aus).
+- **Eine Mitteilung ohne Art führt in den Essen-Tab** (`HealthyRoute`): die
+  APNs-Meldung des Kalorienzählers hat keine, und vorher landete sie nur
+  deshalb richtig, weil die App ohnehin dort aufmachte. Die lokale „Vorschlag
+  ist fertig" bekommt die Art `quick-capture`. **Verworfen:** dem Dienst eine
+  Art beibringen (älteren App-Fassungen wäre sie egal, neueren fehlte sie bis
+  zum Ausrollen).
+- **Kalorien-Kachel → `healthy://food`, Essen mit heute.** Dafür hat Healthy
+  jetzt eine eigene `Info.plist` aus `project.yml` (wie Fokus und coHabit).
+  **Verworfen:** die Kachel ohne Link lassen - sie öffnete dann das Dashboard.
+- **Die Health-Erlaubnis fragt das Dashboard**, der Gewicht-Tab gleicht nur
+  noch ab, wenn es fällig ist. **Verworfen:** weiter im Gewicht-Tab fragen -
+  die App macht dort nicht mehr auf, und die neuen Arten (Schlaf, Herz) gehören
+  zur Recovery im Dashboard.
+- **Eine Offline-Leiste für das Dashboard**, über beide Dienste
+  (`OfflineBanner(backends:)`). **Verworfen:** zwei Leisten - die zählten die
+  wartenden Änderungen doppelt.
+- **Vorführmodus `COCKPIT_DASHBOARD_DEMO=1`** mit erfundenen Werten für
+  Dashboard, Recovery und Energie, nur im Speicher. Der Simulator bekommt keine
+  Health-Daten, und ohne Nächte gibt es keine Recovery. **Verworfen:** gegen
+  einen lokalen Weight Tracker mit eingespielten Nächten (geht zusätzlich, ist
+  aber für jede Aufnahme ein Dienst samt Daten).
+
 ## 2026-10-09 — Healthy: Energiebilanz im Essen- und im Gewicht-Tab
 Felix hat entschieden (Plan vom 09.10.): Verbrauch = Ruhe- + Aktivenergie,
 **am Gewicht kalibriert**, Defizit heute als Prognose fürs Tagesende, die

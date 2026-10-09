@@ -72,6 +72,31 @@ enum EnergyFormat {
         return word + " " + approx(day) + kcal(abs(deficit))
     }
 
+    // MARK: - Dashboard
+
+    /// Die Energie-Karte: „Verbrauch ≈ 2.840", „gegessen 2.150", „Defizit ≈
+    /// 690 kcal" - die Einheit einmal am Ende. Ohne Kalorienzaehler nur der
+    /// Verbrauch: das Gegessene ist dann unbekannt, nicht 0.
+    static func dashboardParts(_ day: EnergyDay, foodAvailable: Bool) -> [String] {
+        var parts: [String] = []
+        if let expenditure = day.expenditureKcal {
+            parts.append("Verbrauch " + approx(day) + GermanNumber.string(expenditure))
+        }
+        if foodAvailable {
+            // Heute ohne Eintrag ist das Gegessene bisher null - genau so
+            // rechnet der Dienst die Prognose.
+            if let intake = day.intakeKcal ?? (day.projected ? 0 : nil) {
+                parts.append("gegessen " + GermanNumber.string(intake))
+            }
+            if let deficit = day.deficitKcal {
+                let word = deficit.rounded() < 0 ? "Überschuss" : "Defizit"
+                parts.append(word + " " + approx(day) + GermanNumber.string(abs(deficit)))
+            }
+        }
+        if let last = parts.popLast() { parts.append(last + " kcal") }
+        return parts
+    }
+
     // MARK: - Kacheln im Gewicht-Tab
 
     /// „Defizit ⌀ 7 T": „460 kcal", ein Ueberschuss als „−120 kcal".

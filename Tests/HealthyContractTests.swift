@@ -68,6 +68,73 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertFalse(summary.foodAvailable)
     }
 
+    // MARK: - Recovery
+
+    /// `RecoveryDay` mit allen Bausteinen - das Beispiel aus dem Vertrag §3.1.
+    func testDecodesRecoveryDay() throws {
+        let day = try decode(RecoveryDay.self, """
+        {"date":"2026-10-09","status":"OK","score":72,"band":"GREEN","composite":0.581,"hrvMethod":"SDNN",
+         "calibration":{"nights":60,"required":14},
+         "components":[{"key":"HRV","value":58.0,"unit":"ms","baseline":49.7,"z":1.12,"weight":0.5},
+                       {"key":"SLEEPING_HEART_RATE","value":51.2,"unit":"bpm","baseline":54.0,"z":0.94,"weight":0.25},
+                       {"key":"SLEEP","value":461.0,"unit":"min","baseline":448.0,"z":0.31,"weight":0.15},
+                       {"key":"RESPIRATORY_RATE","value":14.1,"unit":"/min","baseline":14.3,"z":0.0,"weight":0.1}],
+         "hrvTrend":{"mean7Ms":52.1,"nights7":6,"normalLowMs":46.9,"normalHighMs":52.6,"status":"WITHIN"}}
+        """)
+        XCTAssertEqual(day.status, .ok)
+        XCTAssertEqual(day.score, 72)
+        XCTAssertEqual(day.band, .green)
+        XCTAssertEqual(day.hrvMethod, .sdnn)
+        XCTAssertEqual(day.components.map(\.key), [.hrv, .sleepingHeartRate, .sleep, .respiratoryRate])
+        XCTAssertEqual(day.component(.sleepingHeartRate)?.z, 0.94)
+        XCTAssertEqual(day.hrvTrend?.status, .within)
+        XCTAssertEqual(day.hrvTrend?.normalHighMs, 52.6)
+    }
+
+    /// Beim Kalibrieren: kein Score, die Bausteine mit Gewicht 0, kein Trend.
+    func testDecodesCalibratingDay() throws {
+        let day = try decode(RecoveryDay.self, """
+        {"date":"2026-10-09","status":"CALIBRATING","score":null,"band":null,"composite":null,"hrvMethod":"SDNN",
+         "calibration":{"nights":9,"required":14},
+         "components":[{"key":"HRV","value":58.0,"unit":"ms","baseline":null,"z":null,"weight":0.0},
+                       {"key":"SLEEP","value":461.0,"unit":"min","baseline":448.0,"z":0.31,"weight":0.0}],
+         "hrvTrend":null}
+        """)
+        XCTAssertEqual(day.status, .calibrating)
+        XCTAssertNil(day.score)
+        XCTAssertEqual(day.calibration, RecoveryCalibration(nights: 9, required: 14))
+        XCTAssertNil(day.component(.hrv)?.baseline)
+        XCTAssertNil(day.hrvTrend)
+    }
+
+    /// `NO_NIGHT` aus `RecoveryCalculator.day`: leere Bausteine, alles andere
+    /// `null` - und ein neuer Baustein beim Dienst macht nichts kaputt.
+    func testDecodesDayWithoutNightAndUnknownValues() throws {
+        let empty = try decode(RecoveryDay.self, """
+        {"date":"2026-10-09","status":"NO_NIGHT","score":null,"band":null,"composite":null,"hrvMethod":null,
+         "calibration":{"nights":0,"required":14},"components":[],"hrvTrend":null}
+        """)
+        XCTAssertEqual(empty.status, .noNight)
+        XCTAssertTrue(empty.components.isEmpty)
+        let novel = try decode(RecoveryDay.self, """
+        {"date":"2026-10-09","status":"SOMETHING","score":null,"band":"PURPLE","composite":null,"hrvMethod":"PNN50",
+         "calibration":{"nights":0,"required":14},
+         "components":[{"key":"SKIN","value":1.0,"unit":"°C","baseline":null,"z":null,"weight":0.0}],"hrvTrend":null}
+        """)
+        XCTAssertEqual(novel.status, .unknown)
+        XCTAssertEqual(novel.band, .unknown)
+        XCTAssertEqual(novel.hrvMethod, .unknown)
+        XCTAssertEqual(novel.components.first?.key, .unknown)
+    }
+
+    func testRecoverySettingsRoundTrip() throws {
+        let settings = try decode(RecoverySettings.self, #"{"sleepNeedMinutes":480}"#)
+        XCTAssertEqual(settings.sleepNeedMinutes, 480)
+        let json = String(decoding: try APIClient.encoder().encode(RecoverySettings(sleepNeedMinutes: 495)),
+                          as: UTF8.self)
+        XCTAssertEqual(json, #"{"sleepNeedMinutes":495}"#)
+    }
+
     // MARK: - Naechte
 
     /// `Night` wie `GET /api/nights` sie liefert (Jackson mit Bruchteilen).

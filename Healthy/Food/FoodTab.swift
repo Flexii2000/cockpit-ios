@@ -67,6 +67,11 @@ struct FoodTab: View {
             .onChange(of: OfflineStatus.shared.pending) { before, after in
                 if before > 0, after == 0 { Task { await store.load() } }
             }
+            // Kalorien-Kachel oder Energie-Karte im Dashboard: heute, auch
+            // wenn hier gerade ein anderer Tag offen war.
+            .onChange(of: Router.shared.foodTodayRequests) {
+                if !store.isToday { show(.today()) }
+            }
             .task {
                 await store.load()
                 #if DEBUG

@@ -292,6 +292,9 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | GET | `/api/energy/summary` | `EnergySummary` — heute und die letzten 7 vollen Tage |
 | POST | `/api/nights` | `{nights:[Night]}` → die gespeicherten Nächte (≤ 400 je Anfrage; die App schickt ≤ 200) |
 | GET | `/api/nights?from=&to=` | `[Night]` |
+| GET | `/api/recovery/today` | `RecoveryDay` — `NO_NIGHT`, solange die Nacht von heute nicht da ist |
+| GET | `/api/recovery?from=&to=` | `[RecoveryDay]` — nur Tage mit Nacht (≤ 400 Tage) |
+| GET/PUT | `/api/recovery/settings` | `{sleepNeedMinutes}` (240–720, Vorgabe 480) — ändert auch alte Scores |
 
 ```
 EnergyDayInput  date, activeKcal?, basalKcal?   (je Tag mindestens eins; aktiv 0–10.000, Ruhe 0–5.000)
@@ -308,7 +311,26 @@ Night           date (Aufwachtag), sleepStart?, sleepEnd? (Instant mit "Z"), asl
                 inBedMinutes?, awakeMinutes?, deepMinutes?, remMinutes?, coreMinutes?,
                 hrvSdnnMs?, hrvSdnnSamples?, hrvRmssdMs?, hrvRmssdSamples?,
                 sleepingHeartRate?, respiratoryRate?, source? ("ios" | "android")
+RecoveryDay     date, status (OK | CALIBRATING | NO_HRV | TOO_SHORT | NO_NIGHT), score?, band?
+                (GREEN | YELLOW | RED), composite?, hrvMethod? (SDNN | RMSSD),
+                calibration {nights, required}, components: [RecoveryComponent], hrvTrend?
+RecoveryComponent key (HRV | SLEEPING_HEART_RATE | SLEEP | RESPIRATORY_RATE), value, unit
+                ("ms" | "bpm" | "min" | "/min"), baseline?, z?, weight
+HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | WITHIN | ABOVE | UNKNOWN)
 ```
+
+⚠️ **`score`, `band`, `composite` gibt es nur bei `OK`**, `hrvTrend` auch nur
+dann. Die Bausteine stehen trotzdem da, sobald die Nacht den Wert hat
+(`NO_HRV`, `CALIBRATING` mit Gewicht 0), `baseline`/`z` erst mit genug Nächten
+(HRV 14, andere 7). **`z` ist schon „positiv = besser"**, auch beim Puls und
+beim Atem; die App dreht nichts um. Unbekannte Werte der Aufzählungen
+(neuer Status, neuer Baustein) liest die App als `unknown`
+(`LenientEnum`), statt an der ganzen Antwort zu scheitern.
+
+⚠️ **`/api/dashboard` ist nicht das Dashboard der App.** Der Endpunkt hält die
+Auswahl der Kacheln im Gewicht-Tab (siehe oben); das Dashboard ist ein Tab
+in Healthy, der Recovery, Energie, Gewicht und Essen aus ihren eigenen
+Endpunkten zusammensetzt.
 
 ⚠️ **Verbrauch ist kalibriert.** `expenditureKcal` = `watchKcal × factor`; der
 Faktor gleicht die Uhr über die 28 Tage davor am Gewicht ab (0,7–1,3, ohne

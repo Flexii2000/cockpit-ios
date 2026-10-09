@@ -86,11 +86,9 @@ struct WeightTab: View {
             }
             .task {
                 await store.load()
-                // Erlaubnis im Zusammenhang erfragen, nicht beim ersten Start
-                // der App: hier ist erkennbar, wofuer sie gebraucht wird. iOS
-                // zeigt seine Nachfrage ohnehin nur einmal. Abgeglichen wird
-                // danach nur, wenn es faellig ist - nicht bei jedem Erscheinen.
-                await HealthSync.shared.connect()
+                // Nicht bei jedem Erscheinen: hoechstens alle zehn Minuten.
+                // Nach der Erlaubnis fragt das Dashboard, wo die App aufmacht.
+                await HealthSync.shared.syncIfDue()
             }
             // Hat der Abgleich etwas hochgeladen, kennt der Dienst neue Werte.
             .onChange(of: HealthSync.shared.uploads) {

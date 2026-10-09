@@ -50,11 +50,15 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Healthy/            App: Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
-  App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung)
+Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
+  App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
+  Dashboard/        der erste Tab: Karten für Recovery, Energie, Gewicht, Essen; Vorführdaten
+  Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
+  Energy/           Energiebilanz beim Weight Tracker, ihre Formate und Zeilen im Essen-Tab
   Charts/           Callout, DaySeries, SeriesChip, Palette
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist
-  Food/ Weight/ Health/
+  Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync)
+  Food/ Weight/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
 Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
@@ -251,19 +255,22 @@ Server gerade nicht erreichbar war. Beim Schlaf bildet der Weckruf die letzten
 und das iPhone entsperrt ist.
 
 Den Rest macht `HealthSync` als Dirigent im Vordergrund: Nächte → Energie →
-Schritte → Gewicht, beim Wechsel in den Vordergrund und beim Öffnen des
-Gewicht-Tabs höchstens alle zehn Minuten (`syncIfDue`), beim Ziehen sofort
-(`syncAll(force:)`). Gelesen wird in `HealthReader` (jede
+Schritte → Gewicht, beim Wechsel in den Vordergrund und beim Öffnen von
+Dashboard und Gewicht-Tab höchstens alle zehn Minuten (`syncIfDue`), beim
+Ziehen sofort (`syncAll(force:)`). Die Erlaubnis fragt das Dashboard
+(`connect()`), und war die Frage neu, wird gleich alles geholt. Gelesen wird in `HealthReader` (jede
 Abfrage `async`, Ergebnis sofort in eigene Typen), aus Rohdaten werden Tage
 und Nächte in `HealthEnergy` und `HealthNights` — rein und getestet, genau nach
 den Regeln im Healthy-Vertrag, damit iOS und Android dieselbe Nacht bilden.
 Danach, nicht abgewartet und nur im Vordergrund, die einmalige Rückholung
 (`HealthBackfill`: 365 Nächte in Blöcken zu 60, zehn Jahre Energie in Blöcken
 zu 365, Cursor in den UserDefaults). Wer etwas hochgeladen hat, zählt
-`HealthSync.uploads` hoch; der Gewicht-Tab lädt darauf neu.
+`HealthSync.uploads` hoch; Dashboard, Recovery-Seite und Gewicht-Tab laden
+darauf neu.
 
 **Die Kacheln.** Healthy hat die Kalorien (Homebildschirm klein/mittel,
-Sperrbildschirm als Ring und Rechteck), Fokus den Countdown der Session (ohne
+Sperrbildschirm als Ring und Rechteck; ein Tipp öffnet `healthy://food`, also
+Essen mit heute), Fokus den Countdown der Session (ohne
 Session den Stand von heute aus der App-Gruppe); die Habits-Kachel ist mit den
 Habits nach coHabit umgezogen (siehe oben). Eigener Prozess, eigener
 Container.
@@ -326,6 +333,29 @@ verschickt selbst. `NotificationDelegate` in `Core` zeigt an und meldet
 Die Nutzlast trägt ein `kind`; daran entscheidet der `AppDelegate`, welcher Tab
 sich öffnet, wenn jemand die Meldung antippt. Ohne das landete man dort, wo man
 zuletzt war.
+
+**Healthy: eine Weiche für alles, was von außen kommt** (`HealthyRoute`).
+Seit die App im Dashboard aufmacht, muss jeder Weg sagen, wohin er will:
+Mitteilung **ohne** Art oder mit `quick-capture` → Essen (die APNs-Meldung des
+Kalorienzählers hat keine Art), `evaluation` → Evaluation; Link
+`healthy://food` (Kalorien-Kachel) → Essen mit heute. Das URL-Schema steht in
+einer eigenen `Healthy/Info.plist` (wie bei Fokus und coHabit erzeugt aus
+`project.yml`, die übrigen Schlüssel kommen weiter aus den
+`INFOPLIST_KEY_`-Settings). `Router.follow(_:)` setzt den Tab, `Router.open`
+eine Seite im Dashboard, `showFoodToday()` zählt eine Bitte hoch, auf die der
+Essen-Tab mit `show(.today())` antwortet.
+
+**Healthy: das Dashboard.** Der erste Tab, und dort macht die App auf. Er
+rechnet nichts: Recovery, Energie-Summary, Gewichts-Summary und der Tag beim
+Kalorienzähler kommen parallel aus ihren Endpunkten (`DashboardStore`); jede
+Karte fällt für sich aus, ein 404 heißt „gibt es beim Dienst noch nicht" und
+lässt sie weg, nur fehlender Zugang wird zum Banner. Die Recovery-Seite (und
+später das Logbook) liegt als Seite im `NavigationStack` des Dashboards
+(`Router.dashboardPath`), nicht als Tab: iOS zeigt höchstens fünf, und die
+Leiste ist mit Dashboard, Essen, Gewicht, Evaluation und Einkauf voll. Eine
+Offline-Leiste für beide Dienste (`OfflineBanner(backends:)`), sonst zählte sie
+die wartenden Änderungen doppelt. Nicht zu verwechseln mit `/api/dashboard`
+des Weight Trackers - das ist die Auswahl der Kacheln im Gewicht-Tab.
 
 ⚠️ **Die Noten melden ihre Kennung erst an, wenn eine Sitzung steht** — ihr
 Endpunkt liegt hinter der Anmeldung. Der Kalorienzähler bekommt sie beim Start,

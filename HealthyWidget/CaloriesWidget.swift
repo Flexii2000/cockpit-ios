@@ -9,9 +9,9 @@ struct CaloriesWidget: Widget {
                 // die Kachel steht in der Galerie und bleibt auf dem
                 // Homebildschirm ein leeres Rechteck.
                 .containerBackground(.fill.tertiary, for: .widget)
-                // Ohne .widgetURL: die App macht ohnehin im Essen-Tab auf
-                // (TabSelection.initial). Die Habits-Kachel hat eine - dort
-                // waere der Essen-Tab der falsche Ort.
+                // Die App macht im Dashboard auf - die Kachel will aber zu
+                // dem, was sie zeigt: Essen, heute (HealthyRoute).
+                .widgetURL(URL(string: "healthy://food"))
         }
         .configurationDisplayName("Kalorien")
         .description("Wie viel du heute noch übrig hast.")

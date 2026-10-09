@@ -43,12 +43,24 @@ struct LoadingPlaceholder: View {
 /// ist schlimmer als gar keiner.
 struct OfflineBanner: View {
 
-    let backend: Backend
+    /// Die Dienste, deren Stand der Tab zeigt. Mehrere, wo ein Tab mehrere
+    /// zeigt (das Dashboard in Healthy: Essen und Gewicht) - eine Leiste je
+    /// Dienst zaehlte die wartenden Aenderungen doppelt.
+    let backends: [Backend]
+
+    init(backend: Backend) {
+        backends = [backend]
+    }
+
+    init(backends: [Backend]) {
+        self.backends = backends
+    }
 
     private var status: OfflineStatus { OfflineStatus.shared }
 
     var body: some View {
-        let stale = status.staleSince[backend]
+        // Der aelteste Stand zaehlt: so alt ist das Bild mindestens.
+        let stale = backends.compactMap { status.staleSince[$0] }.min()
         let pending = status.pending
         if stale != nil || pending > 0 || status.lastOutboxError != nil {
             VStack(alignment: .leading, spacing: 2) {

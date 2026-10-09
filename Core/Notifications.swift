@@ -83,11 +83,14 @@ enum Notifications {
         UserDefaults.standard.set(deviceToken, forKey: deviceTokenKey)
     }
 
-    static func post(title: String, body: String) async {
+    /// - Parameter kind: landet als `kind` in der Nutzlast, wie bei einer
+    ///   Meldung vom Server - daran entscheidet die App beim Antippen, wohin.
+    static func post(title: String, body: String, kind: String? = nil) async {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+        if let kind { content.userInfo = ["kind": kind] }
         // Ohne Ausloeser wird sofort zugestellt.
         let request = UNNotificationRequest(identifier: UUID().uuidString,
                                             content: content, trigger: nil)

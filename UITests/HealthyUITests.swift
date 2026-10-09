@@ -1,10 +1,95 @@
 import XCTest
 
-/// Essen und Gewicht - und der Tipp auf die Meldung der Schnellerfassung.
+/// Dashboard, Essen, Gewicht, Evaluation - und der Tipp auf die Meldung der
+/// Schnellerfassung.
 final class HealthyUITests: XCTestCase {
 
     override func setUp() {
         continueAfterFailure = false
+    }
+
+    /// Wie `start`, dazu die Umleitung auf einen lokal gestarteten Weight
+    /// Tracker oder Kalorienzaehler, falls `uitest.sh` sie durchreicht.
+    private func launch(tab: String, extra: [String: String] = [:]) -> XCUIApplication {
+        let environment = ProcessInfo.processInfo.environment
+        var merged = extra
+        for key in ["COCKPIT_URL_WEIGHT", "COCKPIT_URL_FOOD"] {
+            if let value = environment[key], !value.isEmpty { merged[key] = value }
+        }
+        return start(tab: tab, extra: merged)
+    }
+
+    /// Erfundene Recovery und Energie (`DashboardDemo`) - der Simulator
+    /// bekommt keine Health-Daten.
+    private let demo = ["COCKPIT_DASHBOARD_DEMO": "1"]
+
+    /// Scrollt die Liste des Essen-Tabs ueber ihren Rand links.
+    ///
+    /// Nicht ueber die Zeilen: Tachos, Mahlzeit-Ueberschriften und
+    /// „Hinzufuegen" tragen die Ziehgeste zum Blaettern zwischen Tagen
+    /// (`simultaneousGesture`), und unter iOS 26 haelt die das Scrollen der
+    /// Liste auf, sobald der Finger dort ansetzt. Welche Zeile unter einem
+    /// festen Punkt liegt, haengt vom Tag ab - der Rand links gehoert keiner.
+    private func scrollFoodList(_ app: XCUIApplication) {
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.75))
+        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.3))
+        start.press(forDuration: 0.05, thenDragTo: end)
+    }
+
+    // MARK: - Dashboard
+
+    /// Ohne Vorgabe macht die App im Dashboard auf (Felix, 09.10.).
+    func testAppOpensOnTheDashboard() {
+        let app = launch(tab: "")
+        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 20))
+        shoot(app, "dashboard-start")
+        XCTAssertTrue(app.tabBars.buttons["Dashboard"].isSelected)
+    }
+
+    /// Jede Karte fuehrt dorthin, wo das Einzelne steht: Recovery auf ihre
+    /// Seite, Energie in den Essen-Tab mit heute, Gewicht in seinen Tab.
+    func testDashboardCardsLeadToTheirPlaces() {
+        let app = launch(tab: "dashboard", extra: demo)
+        let recovery = app.buttons["recoveryCard"]
+        XCTAssertTrue(recovery.waitForExistence(timeout: 20))
+        shoot(app, "dashboard-demo")
+        recovery.tap()
+        XCTAssertTrue(app.navigationBars["Recovery"].waitForExistence(timeout: 10))
+        shoot(app, "recovery-top")
+        scrollDown(app, times: 3)
+        _ = app.descendants(matching: .any).matching(identifier: "hrvChart").firstMatch.waitForExistence(timeout: 5)
+        shoot(app, "recovery-hrv")
+        XCTAssertTrue(app.staticTexts["Atemfrequenz"].exists)
+        app.navigationBars["Recovery"].buttons.firstMatch.tap()
+
+        let energy = app.buttons["energyCard"]
+        XCTAssertTrue(energy.waitForExistence(timeout: 10))
+        energy.tap()
+        XCTAssertTrue(app.navigationBars["Heute"].waitForExistence(timeout: 10))
+        shoot(app, "dashboard-energie-essen")
+        XCTAssertTrue(app.tabBars.buttons["Essen"].isSelected)
+
+        app.tabBars.buttons["Dashboard"].tap()
+        let weight = app.buttons["weightCard"]
+        XCTAssertTrue(weight.waitForExistence(timeout: 10))
+        weight.tap()
+        XCTAssertTrue(app.navigationBars["Gewicht"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.tabBars.buttons["Gewicht"].isSelected)
+    }
+
+    /// Unter dem Verlauf: die Schalter brechen um, „Verbrauch ⌀" ist dabei
+    /// und vorgewaehlt - unterhalb des ersten Bildschirms, den
+    /// `run-simulator.sh` allein zeigt.
+    func testFoodHistoryOffersTheExpenditure() {
+        let app = launch(tab: "food", extra: demo)
+        XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
+        let chip = app.buttons["Verbrauch ⌀"]
+        for _ in 0..<12 where !chip.isHittable {
+            scrollFoodList(app)
+        }
+        shoot(app, "essen-verlauf-verbrauch")
+        XCTAssertTrue(chip.isHittable, "„Verbrauch ⌀“ steht bei den Schaltern")
+        XCTAssertTrue(app.buttons["Gewicht täglich"].isHittable, "kein Schalter hinter dem Rand")
     }
 
     /// Ein Tipp auf eine Benachrichtigung darf die App nicht umbringen.
@@ -17,8 +102,9 @@ final class HealthyUITests: XCTestCase {
         try XCTSkipIf(ProcessInfo.processInfo.environment["COCKPIT_PUSH_TEST"] != "1",
                       "nur mit tools/pushtest.sh")
         // Erlaubnis erfragen lassen und den Systemdialog wegtippen - ohne sie
-        // zeigt der Simulator keine Benachrichtigung.
-        let app = start(tab: "food", extra: ["COCKPIT_ASK_PUSH": "1"])
+        // zeigt der Simulator keine Benachrichtigung. Start im Dashboard: der
+        // Tipp muss in den Essen-Tab fuehren, die Meldung hat keine Art.
+        let app = launch(tab: "dashboard", extra: ["COCKPIT_ASK_PUSH": "1"])
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let allow = springboard.buttons["Allow"].exists ? springboard.buttons["Allow"]
                                                          : springboard.buttons["Erlauben"]
@@ -39,10 +125,11 @@ final class HealthyUITests: XCTestCase {
         sleep(2)
         XCTAssertEqual(app.state, .runningForeground, "App ist nach dem Tipp weg")
         shoot(app, "push-getippt")
+        XCTAssertTrue(app.tabBars.buttons["Essen"].isSelected, "eine Meldung ohne Art fuehrt in den Essen-Tab")
     }
 
     func testWeightTabShowsStepsCardBelowTheChart() {
-        let app = start(tab: "weight")
+        let app = launch(tab: "weight")
         XCTAssertTrue(app.staticTexts["Gewicht"].waitForExistence(timeout: 20))
 
         // Erst warten, bis der Inhalt vollstaendig steht. Wischt man frueher,
@@ -78,12 +165,15 @@ final class HealthyUITests: XCTestCase {
     }
 
     func testFoodTabShowsHistoryBelowTheMeals() {
-        let app = start(tab: "food")
+        let app = launch(tab: "food")
         XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
 
-        scrollDown(app, times: 6)
+        let history = app.staticTexts["Verlauf"]
+        for _ in 0..<10 where !history.isHittable {
+            scrollFoodList(app)
+        }
 
-        _ = app.staticTexts["Verlauf"].waitForExistence(timeout: 5)
+        _ = history.waitForExistence(timeout: 5)
         shoot(app, "essen-verlauf")
         XCTAssertTrue(app.staticTexts["Verlauf"].exists,
                       "Der Verlauf muss unterhalb der Mahlzeiten erreichbar sein")
@@ -92,26 +182,22 @@ final class HealthyUITests: XCTestCase {
     /// Der Verlauf geht bis 180 Tage zurueck: vier Zeitraeume nebeneinander,
     /// und der laengste laesst sich waehlen.
     func testFoodHistoryOffersHalfAYear() {
-        let app = start(tab: "food")
+        let app = launch(tab: "food")
         XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
 
-        // Unterhalb der Ringe ansetzen: dort liegt die Liste, nicht der
-        // Pager mit den Tagen. Die Liste baut den Verlauf erst, wenn er ins
-        // Bild kommt - deshalb scrollen, bis der Umschalter da ist.
+        // Am Rand der Liste scrollen (`scrollFoodList`). Die Liste baut den
+        // Verlauf erst, wenn er ins Bild kommt - deshalb scrollen, bis der
+        // Umschalter da ist.
         let halfYear = app.buttons["180 Tage"]
         for _ in 0..<10 where !halfYear.isHittable {
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
-            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
-            start.press(forDuration: 0.05, thenDragTo: end)
+            scrollFoodList(app)
         }
         XCTAssertTrue(halfYear.waitForExistence(timeout: 5))
         halfYear.tap()
         // Das Diagramm laedt nach - kurz Zeit lassen, sonst zeigt das Bild
         // noch die 30 Tage.
         sleep(3)
-        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.75))
-        let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.40))
-        start.press(forDuration: 0.05, thenDragTo: end)
+        scrollFoodList(app)
         shoot(app, "essen-verlauf-180")
         XCTAssertTrue(halfYear.isSelected)
     }
@@ -119,7 +205,7 @@ final class HealthyUITests: XCTestCase {
     /// Wischt einen Eintrag an, ohne zu loeschen: die Muelltonne muss
     /// erscheinen, und zwar ohne das Wort daneben.
     func testSwipeOnAnEntryRevealsTheTrashButton() throws {
-        let app = start(tab: "food")
+        let app = launch(tab: "food")
         XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
 
         // Ueber die Kennung und nicht ueber die Position: `cells[1]` war die
@@ -142,7 +228,7 @@ final class HealthyUITests: XCTestCase {
     /// Regel wie der Pfeil. Der einzige Ort, an dem sich die Geste pruefen
     /// laesst: simctl kann nicht wischen.
     func testSwipingLeftOnTheGaugesShowsTheNextDay() {
-        let app = start(tab: "food")
+        let app = launch(tab: "food")
         XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.navigationBars["Heute"].waitForExistence(timeout: 10))
 
@@ -166,7 +252,7 @@ final class HealthyUITests: XCTestCase {
     /// Linien, je Frage eine Heatmap und die Zusammenhaenge - unterhalb des
     /// ersten Bildschirms, den `run-simulator.sh` allein zeigt.
     func testEvaluationShowsAnswersChartAndHeatmaps() {
-        let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_DEMO": "1"])
+        let app = launch(tab: "evaluation", extra: ["COCKPIT_EVALUATION_DEMO": "1"])
         XCTAssertTrue(app.staticTexts["Frage A"].firstMatch.waitForExistence(timeout: 15))
         shoot(app, "evaluation-top")
 
@@ -194,7 +280,7 @@ final class HealthyUITests: XCTestCase {
     /// Ohne Fragen: festlegen, eine beantworten - mit einer frischen Datei je
     /// Lauf (`COCKPIT_EVALUATION_SCRATCH`), damit nichts liegen bleibt.
     func testEvaluationQuestionsCanBeSetUp() {
-        let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_SCRATCH": "1"])
+        let app = launch(tab: "evaluation", extra: ["COCKPIT_EVALUATION_SCRATCH": "1"])
         let setUp = app.buttons["Fragen festlegen"]
         XCTAssertTrue(setUp.waitForExistence(timeout: 15))
         shoot(app, "evaluation-empty")
@@ -217,10 +303,12 @@ final class HealthyUITests: XCTestCase {
     }
 
     func testTabsAreReachable() {
-        let app = start(tab: "food")
-        for tab in ["Gewicht", "Evaluation", "Essen"] {
+        let app = launch(tab: "dashboard")
+        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 20))
+        for tab in ["Essen", "Gewicht", "Evaluation", "Dashboard"] {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10), tab)
+            XCTAssertTrue(app.tabBars.buttons[tab].isSelected, tab)
         }
         shoot(app, "tabs")
     }

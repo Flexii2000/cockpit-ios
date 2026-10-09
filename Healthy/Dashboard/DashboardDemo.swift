@@ -85,6 +85,108 @@ enum DashboardDemo {
     }
 }
 
+extension DashboardDemo {
+
+    // MARK: - Recovery
+
+    /// Die Recovery `offset` Tage vor heute. Heute so wie das freigegebene
+    /// Dashboard („HRV 58 ms · RHF 49 · 7:41 h", 72 % gruen); davor ein paar
+    /// Wochen mit Luecken, Naechten ohne HRV und einem Normalband, das sich
+    /// langsam bewegt.
+    static func recoveryDay(offset: Int, today: CalendarDate = .today()) -> RecoveryDay? {
+        let date = today.adding(days: -offset)
+        if offset == 0 {
+            return RecoveryDay(
+                date: date, status: .ok, score: 72, band: .green, composite: 0.581, hrvMethod: .sdnn,
+                calibration: RecoveryCalibration(nights: 60, required: 14),
+                components: [
+                    RecoveryComponent(key: .hrv, value: 58, unit: "ms", baseline: 49.7, z: 1.12, weight: 0.5),
+                    RecoveryComponent(key: .sleepingHeartRate, value: 49.2, unit: "bpm", baseline: 52.0,
+                                      z: 1.85, weight: 0.25),
+                    RecoveryComponent(key: .sleep, value: 461, unit: "min", baseline: 448, z: 0.31, weight: 0.15),
+                    RecoveryComponent(key: .respiratoryRate, value: 14.6, unit: "/min", baseline: 14.3,
+                                      z: -0.9, weight: 0.1),
+                ],
+                hrvTrend: HrvTrend(mean7Ms: 52.1, nights7: 6, normalLowMs: 46.9, normalHighMs: 52.6,
+                                   status: .within))
+        }
+        // Die Uhr am Ladekabel: keine Nacht.
+        if offset % 11 == 6 { return nil }
+        let low = (46 + 1.2 * sin(Double(offset) * 0.08)) * 10
+        let band = (low.rounded() / 10, (low + 58).rounded() / 10)
+        let heart = 52 + 2.5 * noise(offset, 5)
+        let sleep = (440 + 45 * noise(offset, 6)).rounded()
+        let breath = 14.3 + 0.4 * noise(offset, 7)
+        let heartComponent = RecoveryComponent(key: .sleepingHeartRate, value: (heart * 10).rounded() / 10,
+                                               unit: "bpm", baseline: 52, z: -(heart - 52) / 1.5, weight: 0.25)
+        let sleepComponent = RecoveryComponent(key: .sleep, value: sleep, unit: "min", baseline: 448,
+                                               z: (sleep - 448) / 30, weight: 0.15)
+        let breathComponent = RecoveryComponent(key: .respiratoryRate, value: (breath * 10).rounded() / 10,
+                                                unit: "/min", baseline: 14.3, z: -max(0, (breath - 14.3) / 0.3),
+                                                weight: 0.1)
+        // Ab und zu misst die Uhr nachts keine HRV - die Werte stehen trotzdem da.
+        if offset % 17 == 9 {
+            return RecoveryDay(date: date, status: .noHrv, score: nil, band: nil, composite: nil, hrvMethod: nil,
+                               calibration: RecoveryCalibration(nights: 60, required: 14),
+                               components: [heartComponent, sleepComponent, breathComponent], hrvTrend: nil)
+        }
+        let hrv = (49.5 + 5 * sin(Double(offset) * 0.7) + 4 * noise(offset, 3)).rounded()
+        let middle = (band.0 + band.1) / 2
+        let score = Int(max(4, min(96, 50 + (hrv - middle) * 5 + 8 * noise(offset, 4))).rounded())
+        return RecoveryDay(
+            date: date, status: .ok, score: score,
+            band: score >= 67 ? .green : score <= 33 ? .red : .yellow, composite: nil, hrvMethod: .sdnn,
+            calibration: RecoveryCalibration(nights: 60, required: 14),
+            components: [RecoveryComponent(key: .hrv, value: hrv, unit: "ms", baseline: middle,
+                                           z: (log(hrv) - log(middle)) / 0.12, weight: 0.5),
+                         heartComponent, sleepComponent, breathComponent],
+            hrvTrend: HrvTrend(mean7Ms: nil, nights7: 0, normalLowMs: band.0, normalHighMs: band.1,
+                               status: .unknown))
+    }
+
+    /// Die Tage mit einer Nacht zwischen `from` und `to`, wie `GET /api/recovery`.
+    static func recoveryDays(from: CalendarDate, to: CalendarDate,
+                             today: CalendarDate = .today()) -> [RecoveryDay] {
+        var days: [RecoveryDay] = []
+        var day = from
+        while day <= min(to, today) {
+            if let recovery = recoveryDay(offset: today.daysBetween(day), today: today) {
+                days.append(recovery)
+            }
+            day = day.adding(days: 1)
+        }
+        return days
+    }
+
+    // MARK: - Gewicht und Essen
+
+    /// Ein erfundenes Gewicht - nicht Felix' echtes, das Bild landet in Doku
+    /// und Berichten.
+    static func weightSummary(today: CalendarDate = .today()) -> WeightSummary {
+        let json = """
+        {"date":"\(today.iso)","current":82.6,"avg7":82.9,"avg14":83.1,"avg30":83.6,"target":83.2,
+         "targetDate":"2026-12-20","goalWeight":80.0,"startWeight":92.0,"recordingStart":"2025-01-05",
+         "corridorLower":null,"corridorUpper":null,"corridorReachedOn":null,
+         "residual7":-0.3,"residual7Days":7}
+        """
+        // Fest im Code und vom selben Decoder gelesen wie die echte Antwort.
+        return try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8))
+    }
+
+    static func foodDay(today: CalendarDate = .today()) -> DaySummary {
+        let json = """
+        {"date":"\(today.iso)",
+         "targets":{"kcal":2300,"proteinG":180,"carbsG":240,"fatG":70},
+         "consumed":{"kcal":2150,"proteinG":150,"carbsG":220,"fatG":64},
+         "remaining":{"kcal":150,"proteinG":30,"carbsG":20,"fatG":6},
+         "entries":[],"mealTargets":{}}
+        """
+        return try! APIClient.decoder().decode(DaySummary.self, from: Data(json.utf8))
+    }
+
+    static let steps = 8123
+}
+
 private extension CalendarDate {
     /// Tage von `other` bis hierher - positiv, wenn `other` frueher liegt.
     func daysBetween(_ other: CalendarDate) -> Int {

@@ -11,6 +11,9 @@ struct GaugeView: View {
     var lineWidth: CGFloat = 9
     var mainFont: Font = .title3
     var subFont: Font = .caption2
+    /// Die Kerbe am Ziel. Aus beim Recovery-Ring in Healthy - einen Zielwert
+    /// gibt es dort nicht, und eine Kerbe bei 80 % sähe aus wie einer.
+    var showsTarget = true
 
     /// Anteil des Kreises, den der Bogen einnimmt (270°).
     private let sweep = 0.75
@@ -43,9 +46,11 @@ struct GaugeView: View {
                 // Ausserhalb des Bogens statt quer hindurch: eine Linie mitten
                 // durch die Fuellung zerschneidet sie optisch, eine Kerbe
                 // daneben markiert genauso gut.
-                GaugeTick(fraction: sweep / headroom, inset: lineWidth / 2)
-                    .stroke(Color.primary.opacity(0.55),
-                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                if showsTarget {
+                    GaugeTick(fraction: sweep / headroom, inset: lineWidth / 2)
+                        .stroke(Color.primary.opacity(0.55),
+                                style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                }
             }
             .rotationEffect(.degrees(135))
 
@@ -54,11 +59,15 @@ struct GaugeView: View {
                     .font(mainFont.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
-                Text(sub)
-                    .font(subFont)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                // Ohne Unterzeile steht die Zahl in der Mitte - eine leere
+                // Zeile schoebe sie nach oben.
+                if !sub.isEmpty {
+                    Text(sub)
+                        .font(subFont)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
             }
             .padding(.horizontal, lineWidth + 6)
         }

@@ -10,12 +10,15 @@ import UserNotifications
 /// dann nie.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
-    /// Die Erinnerung der Evaluation oeffnet ihren Tab (hinter Face ID). Sonst
-    /// nichts umschalten: Essen ist ohnehin der erste Tab, und die
-    /// Schnellerfassung meldet sich von dort.
+    /// Ein Tipp auf eine Mitteilung fuehrt dorthin, worum es geht
+    /// (`HealthyRoute`): die Schnellerfassung in den Essen-Tab, die
+    /// Erinnerung der Evaluation in ihren (hinter Face ID). Die App macht im
+    /// Dashboard auf - ohne das landete der fertige Vorschlag dort, und sein
+    /// Blatt ginge erst auf, wenn jemand Essen antippt. Die APNs-Meldung des
+    /// Kalorienzaehlers hat keine Art; ohne Art heisst deshalb Essen.
     private let notifications = NotificationDelegate(onOpen: { kind in
-        guard kind == EvaluationReminder.kind else { return }
-        Task { @MainActor in Router.shared.show(.evaluation) }
+        guard let route = HealthyRoute.notification(kind: kind) else { return }
+        Task { @MainActor in Router.shared.follow(route) }
     })
 
     func application(

@@ -471,8 +471,11 @@ final class FoodStore {
         // Ist die App im Bild, sieht man das Blatt ohnehin aufgehen - eine
         // Benachrichtigung obendrauf waere Laerm.
         if UIApplication.shared.applicationState != .active {
+            // Mit Art, damit der Tipp sicher im Essen-Tab landet - die App
+            // macht im Dashboard auf (HealthyRoute).
             await Notifications.post(title: "Vorschlag ist fertig",
-                                     body: "\(preview.name) – antippen zum Übernehmen.")
+                                     body: "\(preview.name) – antippen zum Übernehmen.",
+                                     kind: HealthyRoute.quickCaptureKind)
         }
     }
 

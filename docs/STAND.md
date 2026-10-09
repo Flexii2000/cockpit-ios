@@ -145,7 +145,18 @@ je Branch `recovery`) sind fertig, aber nicht ausgerollt.
   (`TileInput`). Vorführmodus `COCKPIT_DASHBOARD_DEMO=1` für Aufnahmen. Tests
   `EnergyFormatTests`, `HealthyContractTests`, angepasste `WeightModelTests`
   und `FoodChartDataTests`.
-- [ ] Dashboard-Tab mit Recovery-Seite, Routing, URL-Schema `healthy://`
+- [x] **Dashboard-Tab** ganz links, die App macht dort auf (`Healthy/Dashboard/`):
+  Recovery-Karte (Ring, „HRV · RHF · Schlaf"), Energie-Karte, Gewicht ⌀ 7 mit
+  Residuum, kcal übrig mit Schritten; Tipps führen auf die Recovery-Seite, in
+  Essen mit heute bzw. in den Gewicht-Tab. Jede Karte fällt für sich aus (404 =
+  fehlt), Banner nur bei fehlendem Zugang. **Recovery-Seite**
+  (`Healthy/Recovery/`): großer Ring (kalibrierend „9/14 Nächte"), Bausteine mit
+  Baseline und z-Balken um die Mitte, HRV 30/90 Tage mit Normalband, Menü
+  „Schlafbedarf …". **Routing** über `HealthyRoute`: Mitteilung ohne Art oder
+  `quick-capture` → Essen, `evaluation` → Evaluation; Kalorien-Kachel →
+  `healthy://food` (eigene `Healthy/Info.plist` aus `project.yml`). Tests
+  `HealthyRouteTests`, `RecoveryTests`, Recovery in `HealthyContractTests`;
+  UI-Tests Start auf Dashboard, Karten, Tabs, Push → Essen.
 - [ ] Logbook-Seite, Verhalten, Erinnerung 09:00
 
 ## Fokus: Feature Requests von anderen als Push · **ausgerollt, auf Felix' iPhone** (2026-10-05)

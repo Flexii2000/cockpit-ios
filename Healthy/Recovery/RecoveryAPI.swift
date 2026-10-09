@@ -25,3 +25,33 @@ struct RecoveryAPI: Sendable {
         }
     }
 }
+
+extension RecoveryAPI {
+
+    /// Hoechstens so viele Tage nimmt `GET /api/recovery` auf einmal.
+    static let maxDays = 400
+
+    /// Heute - `noNight`, solange die Nacht noch nicht angekommen ist.
+    func today() async throws -> RecoveryDay {
+        try await client.get("/api/recovery/today")
+    }
+
+    /// Tage mit einer Nacht im Zeitraum; Tage ohne fehlen.
+    func days(from: CalendarDate, to: CalendarDate) async throws -> [RecoveryDay] {
+        try await client.get("/api/recovery", query: [
+            URLQueryItem(name: "from", value: from.iso),
+            URLQueryItem(name: "to", value: to.iso),
+        ])
+    }
+
+    func settings() async throws -> RecoverySettings {
+        try await client.get("/api/recovery/settings")
+    }
+
+    /// Ohne Postausgang: eine Einstellung will man sofort bestaetigt sehen -
+    /// und sie aendert auch alte Scores, die die Seite gleich neu zeigt.
+    func updateSettings(sleepNeedMinutes: Int) async throws -> RecoverySettings {
+        try await client.send("PUT", "/api/recovery/settings",
+                              body: RecoverySettings(sleepNeedMinutes: sleepNeedMinutes))
+    }
+}
