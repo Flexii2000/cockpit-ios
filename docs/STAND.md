@@ -169,7 +169,11 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
   haben, Farbwechsel am Schnittpunkt, hinter den Linien. Antippen zeigt
   „Defizit ⌀ 7 Tage: 460 kcal" bzw. „−120 kcal". Tests `DeficitChartTests`,
   `WeightModelTests`.
-- [ ] Vorführmodus auch für Essen- und Gewicht-Tab
+- [x] **Vorführmodus auch für Essen- und Gewicht-Tab**: mit
+  `COCKPIT_DASHBOARD_DEMO=1` ist jetzt alles erfunden - vorher zeigten Essen-
+  und Gewicht-Tab trotz des Schalters echte Tage, Verläufe und Gewichte.
+  Schreiben tut dort nichts. Dazu `COCKPIT_SERIES=deficit` (Gewicht-Tab, auch
+  in `run-simulator.sh`).
 
 ## Healthy: Dashboard, Energie, Recovery, Logbook · **gebaut, nicht ausgerollt** (2026-10-09)
 

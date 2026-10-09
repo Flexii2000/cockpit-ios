@@ -141,6 +141,14 @@ final class FoodStore {
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        #if DEBUG
+        if DashboardDemo.isOn {
+            day = DashboardDemo.foodDay(date)
+            await loadHistory()
+            await prefetchNeighbours()
+            return
+        }
+        #endif
         do {
             async let day = api.day(date)
             async let dishes = api.dishes()
@@ -161,6 +169,12 @@ final class FoodStore {
     func prefetchNeighbours() async {
         let missing = pageDates.filter { $0 != date && summaries[$0] == nil }
         guard !missing.isEmpty else { return }
+        #if DEBUG
+        if DashboardDemo.isOn {
+            for day in missing { summaries[day] = DashboardDemo.foodDay(day) }
+            return
+        }
+        #endif
         await withTaskGroup(of: DaySummary?.self) { group in
             for day in missing {
                 group.addTask { [api] in try? await api.day(day) }
@@ -185,6 +199,15 @@ final class FoodStore {
                                 day: parts.day ?? to.day)
         historyFrom = from
         historyTo = to
+        #if DEBUG
+        if DashboardDemo.isOn {
+            history = DashboardDemo.foodTotals(from: from, to: to)
+            historyAverage = DashboardDemo.foodAverages(from: from, to: to)
+            weightPoints = DashboardDemo.weightPoints(Self.weightRange(forHistoryDays: historyDays))
+            await loadEnergy(from: from, to: to)
+            return
+        }
+        #endif
         do {
             async let totals = api.daily(from: from, to: to)
             async let averages = api.dailyAverage(from: from, to: to)
@@ -259,6 +282,14 @@ final class FoodStore {
     func show(_ date: CalendarDate) async {
         self.date = date
         day = summaries[date]
+        #if DEBUG
+        if DashboardDemo.isOn {
+            day = DashboardDemo.foodDay(date)
+            await loadEnergyIfNeeded(around: date)
+            await prefetchNeighbours()
+            return
+        }
+        #endif
         do {
             let fresh = try await api.day(date)
             // Nur uebernehmen, wenn inzwischen nicht weitergeblaettert wurde.
@@ -276,6 +307,7 @@ final class FoodStore {
     }
 
     func addEntry(dishId: String?, dish: DishRequest?, grams: Double, meal: Meal?) async -> Bool {
+        guard !isDemo else { return true }
         do {
             day = try await api.addEntry(NewEntryRequest(date: date, dishId: dishId,
                                                          dish: dish, grams: grams, meal: meal))
@@ -304,6 +336,7 @@ final class FoodStore {
     /// Berichtigt einen Eintrag. Wandert er auf einen anderen Tag, bleibt die
     /// Ansicht auf dem aktuellen - sonst spraenge sie dem Eintrag hinterher.
     func updateEntry(_ entry: FoodEntry, grams: Double, meal: Meal?, date: CalendarDate?) async -> Bool {
+        guard !isDemo else { return true }
         do {
             let updatedDay = try await api.updateEntry(id: entry.id, grams: grams, meal: meal, date: date)
             summaries[updatedDay.date] = updatedDay
@@ -326,6 +359,7 @@ final class FoodStore {
     }
 
     func deleteEntry(_ entry: FoodEntry) async {
+        guard !isDemo else { return }
         do {
             day = try await api.deleteEntry(id: entry.id)
             clearError()
@@ -339,6 +373,7 @@ final class FoodStore {
     }
 
     func createDish(_ request: DishRequest) async -> Bool {
+        guard !isDemo else { return true }
         do {
             let dish = try await api.createDish(request)
             dishes = (dishes + [dish])
@@ -352,6 +387,7 @@ final class FoodStore {
     }
 
     func updateDish(id: String, _ request: DishRequest) async -> Bool {
+        guard !isDemo else { return true }
         do {
             let updated = try await api.updateDish(id: id, request)
             dishes = dishes.map { $0.id == id ? updated : $0 }
@@ -365,6 +401,7 @@ final class FoodStore {
     }
 
     func deleteDish(_ dish: Dish) async {
+        guard !isDemo else { return }
         do {
             try await api.deleteDish(id: dish.id)
             dishes.removeAll { $0.id == dish.id }
@@ -375,6 +412,7 @@ final class FoodStore {
     }
 
     func updateTargets(_ request: TargetsRequest) async -> Bool {
+        guard !isDemo else { return true }
         do {
             _ = try await api.updateTargets(request)
             // Die Ziele stecken in der Tagesantwort - die muss also neu geholt
@@ -417,6 +455,7 @@ final class FoodStore {
     /// Schickt Text und Foto weg und kehrt sofort zurueck. Das Nachfragen
     /// laeuft im Hintergrund; ist der Vorschlag da, meldet sich die App.
     func startQuickCapture(text: String, meal: Meal?, photo: UIImage? = nil) {
+        guard !isDemo else { return }
         captureTask?.cancel()
         captureError = nil
         pendingPreview = nil
@@ -443,7 +482,7 @@ final class FoodStore {
 
     /// Nimmt einen Auftrag wieder auf, der beim letzten Start noch lief.
     func resumeQuickCaptureIfNeeded() async {
-        guard running == nil, pendingPreview == nil,
+        guard !isDemo, running == nil, pendingPreview == nil,
               let id = UserDefaults.standard.string(forKey: Self.runningJobKey),
               let job = try? await api.quickCaptureStatus(id: id) else { return }
         running = RunningCapture(id: id, text: "", meal: nil, startedAt: Date())
@@ -503,6 +542,16 @@ final class FoodStore {
 
     func clearCaptureError() {
         captureError = nil
+    }
+
+    /// Im Vorfuehrmodus (`COCKPIT_DASHBOARD_DEMO`) ist der Tab erfunden, und
+    /// nichts geht an den Dienst - auch Eintragen und Loeschen nicht.
+    private var isDemo: Bool {
+        #if DEBUG
+        DashboardDemo.isOn
+        #else
+        false
+        #endif
     }
 
     // MARK: - Fehler

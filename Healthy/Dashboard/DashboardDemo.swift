@@ -39,21 +39,22 @@ enum DashboardDemo {
     }
 
     /// Gegessen laut Kalorienzaehler. Vorgestern ein Ueberschuss-Tag (die
-    /// Woche der Energie-Karte braucht einen), vor zwei bis drei Wochen eine
-    /// Woche drueber (der Verlauf zeigt eine Ueberschuss-Stelle). An nicht
-    /// getrackten Tagen steht nur ein Teil da - wie im Leben, wenn nur das
-    /// Fruehstueck eingetragen ist; die Flaeche ist dort breiter, als die
-    /// Linie „Defizit ⌀" hoch ist (Vertrag §5).
+    /// Woche der Energie-Karte braucht einen), vor gut drei Wochen eine Woche
+    /// drueber (der Verlauf zeigt eine Ueberschuss-Stelle). An nicht
+    /// getrackten Tagen fehlt etwas - wie im Leben, wenn das Abendessen nicht
+    /// eingetragen ist; die Flaeche ist dort breiter, als die Linie „Defizit
+    /// ⌀" hoch ist (Vertrag §5).
     private static func intake(_ offset: Int) -> Double {
         if offset == 0 { return 2150 }
-        if !tracked(offset) { return (1150 + 250 * noise(offset, 8)).rounded() }
+        if !tracked(offset) { return (1600 + 150 * noise(offset, 8)).rounded() }
         if offset == 2 { return 3160 }
-        if (14...20).contains(offset) { return (3250 + 180 * noise(offset, 9)).rounded() }
+        if (16...22).contains(offset) { return (3250 + 180 * noise(offset, 9)).rounded() }
         return (2150 + 320 * noise(offset, 2)).rounded()
     }
 
-    /// Ein paar Tage sind nicht getrackt - dort gibt es kein Defizit.
-    private static func tracked(_ offset: Int) -> Bool { offset % 9 != 4 }
+    /// Ein paar Tage sind nicht getrackt - dort gibt es kein Defizit. Vor vier
+    /// Tagen einer, damit die Woche der Karte einen Tag ohne Wert hat.
+    private static func tracked(_ offset: Int) -> Bool { offset % 11 != 4 }
 
     /// Verbrauch minus gegessen - wie beim Dienst nur an getrackten Tagen und
     /// heute.
@@ -203,15 +204,100 @@ extension DashboardDemo {
         return try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8))
     }
 
-    static func foodDay(today: CalendarDate = .today()) -> DaySummary {
+    /// Das kcal-Ziel der Vorfuehrung.
+    static let kcalTarget: Double = 2300
+
+    /// Ein Tag des Essen-Tabs: gegessen wie in der Energie (heute 2.150),
+    /// aber ohne Eintraege - Gerichte waeren Namen, und mit einer kurzen Liste
+    /// kommt der Verlauf schneller ins Bild. Kuenftige Tage sind leer.
+    static func foodDay(_ date: CalendarDate = .today(), today: CalendarDate = .today()) -> DaySummary {
+        let offset = today.daysBetween(date)
+        let kcal = offset >= 0 ? intake(offset) : 0
+        // Eiweiss, Kohlenhydrate und Fett im Verhaeltnis des freigegebenen
+        // Tages (150 / 220 / 64 g bei 2.150 kcal).
+        let protein = (150 * kcal / 2150).rounded(), carbs = (220 * kcal / 2150).rounded()
+        let fat = (64 * kcal / 2150).rounded()
         let json = """
-        {"date":"\(today.iso)",
-         "targets":{"kcal":2300,"proteinG":180,"carbsG":240,"fatG":70},
-         "consumed":{"kcal":2150,"proteinG":150,"carbsG":220,"fatG":64},
-         "remaining":{"kcal":150,"proteinG":30,"carbsG":20,"fatG":6},
+        {"date":"\(date.iso)",
+         "targets":{"kcal":\(kcalTarget),"proteinG":180,"carbsG":240,"fatG":70},
+         "consumed":{"kcal":\(kcal),"proteinG":\(protein),"carbsG":\(carbs),"fatG":\(fat)},
+         "remaining":{"kcal":\(kcalTarget - kcal),"proteinG":\(180 - protein),"carbsG":\(240 - carbs),
+                      "fatG":\(70 - fat)},
          "entries":[],"mealTargets":{}}
         """
         return try! APIClient.decoder().decode(DaySummary.self, from: Data(json.utf8))
+    }
+
+    /// Die Tagessummen des Kalorienzaehlers - jeder Tag bis heute hat etwas,
+    /// die nicht getrackten nur einen Teil.
+    static func foodTotals(from: CalendarDate, to: CalendarDate,
+                           today: CalendarDate = .today()) -> [DayTotal] {
+        days(from: from, to: to, today: today).map { offset, date in
+            DayTotal(date: date, consumed: Nutrients(kcal: intake(offset), proteinG: 0, carbsG: 0, fatG: 0))
+        }
+    }
+
+    /// „kcal ⌀" wie im Kalorienzaehler (`dailyAverages`): zentriert ueber die
+    /// abgeschlossenen Tage mit Eintrag - die halb erfassten zaehlen mit, und
+    /// genau deshalb ist die Flaeche dort breiter, als die Linie „Defizit ⌀"
+    /// hoch ist.
+    static func foodAverages(from: CalendarDate, to: CalendarDate,
+                             today: CalendarDate = .today()) -> [DayAverage] {
+        days(from: from, to: to, today: today).compactMap { offset, date in
+            let window = (offset - 3...offset + 3).filter { $0 >= 1 }
+            guard !window.isEmpty else { return nil }
+            let kcal = window.map(intake).reduce(0, +) / Double(window.count)
+            return DayAverage(date: date, kcal: kcal.rounded(), days: window.count, complete: offset > 3)
+        }
+    }
+
+    /// Die Tage zwischen `from` und `to` bis heute, mit ihrem Abstand zu heute.
+    private static func days(from: CalendarDate, to: CalendarDate,
+                             today: CalendarDate) -> [(offset: Int, date: CalendarDate)] {
+        var result: [(offset: Int, date: CalendarDate)] = []
+        var day = from
+        while day <= min(to, today) {
+            result.append((today.daysBetween(day), day))
+            day = day.adding(days: 1)
+        }
+        return result
+    }
+
+    /// Das Gewicht `offset` Tage vor heute: langsam fallend, mit Rauschen;
+    /// heute genau der Wert der Karte.
+    private static func weight(_ offset: Int) -> Double {
+        if offset == 0 { return 82.6 }
+        return ((82.6 + 0.018 * Double(offset) + 0.35 * noise(offset, 21)) * 10).rounded() / 10
+    }
+
+    /// An manchen Tagen wird nicht gewogen.
+    private static func weighed(_ offset: Int) -> Bool { offset % 5 != 3 }
+
+    /// Die Kurve des Gewicht-Tabs fuer einen Zeitraum - dieselbe Form wie beim
+    /// Dienst: das Fenster bis heute und ein paar Tage Vorgriff fuer die
+    /// Zielkurve, die Mittel zentriert und am offenen Rand unvollstaendig.
+    static func weightPoints(_ range: WeightRange, today: CalendarDate = .today()) -> [WeightPoint] {
+        let recordingStart = CalendarDate(year: 2025, month: 1, day: 5)
+        let (back, ahead): (Int, Int) = switch range {
+        case .month:   (29, 3)
+        case .last90:  (89, 7)
+        case .last180: (179, 7)
+        case .year:    (364, 7)
+        case .threeYears, .allTime: (today.daysBetween(recordingStart), 7)
+        }
+        return (-ahead...back).reversed().map { offset in
+            func mean(_ half: Int) -> Double? {
+                let values = (offset - half...offset + half).filter { $0 >= 0 && weighed($0) }.map(weight)
+                return values.isEmpty ? nil : values.reduce(0, +) / Double(values.count)
+            }
+            return WeightPoint(date: today.adding(days: -offset),
+                               measured: offset >= 0 && weighed(offset) ? weight(offset) : nil,
+                               avg7: mean(3), avg14: mean(7), avg30: mean(15),
+                               avg7Complete: offset >= 3, avg14Complete: offset >= 7,
+                               avg30Complete: offset >= 15,
+                               // Knapp ueber dem Gewicht - das Residuum der Karte ist −0,3.
+                               target: 83.2 + 0.018 * Double(offset))
+        }
     }
 
     static let steps = 8123

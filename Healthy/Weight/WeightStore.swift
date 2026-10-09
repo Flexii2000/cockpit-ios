@@ -73,8 +73,20 @@ final class WeightStore {
     /// Die sichtbaren Serien, je Sichtweise gemerkt: „Alles" hat ein eigenes
     /// Angebot (30-Tage- statt 7-Tage-Mittel) und darum eine eigene Auswahl -
     /// sonst tauschte jeder Wechsel des Zeitraums die Haken aus.
-    private var windowVisible: Set<WeightSeries> = WeightSeries.defaultVisible
-    private var allTimeVisible: Set<WeightSeries> = WeightRange.allTime.defaultVisible
+    private var windowVisible: Set<WeightSeries> = WeightStore.initialVisible(WeightSeries.defaultVisible)
+    private var allTimeVisible: Set<WeightSeries> = WeightStore.initialVisible(WeightRange.allTime.defaultVisible)
+
+    /// Im Debug-Build zuschaltbar (`COCKPIT_SERIES=deficit,expenditure`):
+    /// „Defizit ⌀" und „Verbrauch ⌀" sind hier nur angeboten, und tippen kann
+    /// der Simulator nicht.
+    private static func initialVisible(_ defaults: Set<WeightSeries>) -> Set<WeightSeries> {
+        #if DEBUG
+        if let raw = ProcessInfo.processInfo.environment["COCKPIT_SERIES"] {
+            return defaults.union(raw.split(separator: ",").compactMap { WeightSeries(rawValue: String($0)) })
+        }
+        #endif
+        return defaults
+    }
 
     var visibleSeries: Set<WeightSeries> {
         get { range == .allTime ? allTimeVisible : windowVisible }
@@ -109,6 +121,12 @@ final class WeightStore {
     func load() async {
         isLoading = true
         defer { isLoading = false }
+        #if DEBUG
+        if DashboardDemo.isOn {
+            showDemo()
+            return
+        }
+        #endif
         do {
             // Vier unabhaengige Abfragen - nacheinander waere hier nur langsamer.
             async let summary = api.summary()
@@ -132,12 +150,6 @@ final class WeightStore {
     /// Wie die kcal: faellt das aus (aelterer Dienst ohne Energie, keine Uhr),
     /// zeigen nur die drei Kacheln „–".
     private func loadEnergySummary() async {
-        #if DEBUG
-        if DashboardDemo.isOn {
-            energySummary = DashboardDemo.energySummary()
-            return
-        }
-        #endif
         energySummary = try? await energyApi.summary()
     }
 
@@ -157,6 +169,7 @@ final class WeightStore {
     }
 
     func updateStepsGoal(_ stepsPerDay: Int) async -> Bool {
+        guard !isDemo else { return true }
         do {
             stepsGoal = try await api.updateStepsGoal(stepsPerDay).stepsPerDay
             clearError()
@@ -195,18 +208,12 @@ final class WeightStore {
             deficitAverage = []
             return
         }
-        let days = await energyDays(from: EnergyAPI.clampedStart(from: first, to: end), to: end)
+        // Still: ohne Uhr, mit einem aelteren Dienst oder ohne Netz fehlen
+        // nur die beiden Kurven.
+        let start = EnergyAPI.clampedStart(from: first, to: end)
+        let days = (try? await energyApi.days(from: start, to: end)) ?? []
         expenditureAverage = days.compactMap(\.expenditureAverage)
         deficitAverage = days.compactMap(\.deficitAverage)
-    }
-
-    /// Still: ohne Uhr, mit einem aelteren Dienst oder ohne Netz fehlen nur
-    /// die beiden Kurven.
-    private func energyDays(from: CalendarDate, to: CalendarDate) async -> [EnergyDay] {
-        #if DEBUG
-        if DashboardDemo.isOn { return DashboardDemo.energyDays(from: from, to: to) }
-        #endif
-        return (try? await energyApi.days(from: from, to: to)) ?? []
     }
 
     func select(_ range: WeightRange) async {
@@ -214,6 +221,12 @@ final class WeightStore {
         // Serien, die es in diesem Zeitraum nicht gibt, abwaehlen - sonst
         // bliebe ein Haken stehen, zu dem keine Linie gehoert.
         visibleSeries.formIntersection(range.availableSeries)
+        #if DEBUG
+        if DashboardDemo.isOn {
+            showDemoSeries()
+            return
+        }
+        #endif
         do {
             points = Self.trim(try await api.points(range), to: range)
             clearError()
@@ -224,6 +237,7 @@ final class WeightStore {
     }
 
     func add(date: CalendarDate, weightKg: Double) async -> Bool {
+        guard !isDemo else { return true }
         do {
             summary = try await api.add(date: date, weightKg: weightKg, queueWhenOffline: true)
             points = Self.trim(try await api.points(range), to: range)
@@ -241,6 +255,7 @@ final class WeightStore {
     }
 
     func updateTarget(_ weightKg: Double) async -> Bool {
+        guard !isDemo else { return true }
         do {
             summary = try await api.updateTarget(weightKg)
             // Die Zielkurve haengt am Ziel: die Punkte muessen mit.
@@ -254,6 +269,7 @@ final class WeightStore {
     }
 
     func addHighlight(_ request: NewHighlightRequest) async -> Bool {
+        guard !isDemo else { return true }
         do {
             highlights = try await api.addHighlight(request)
             clearError()
@@ -268,6 +284,7 @@ final class WeightStore {
     /// anfuehlen. Schlaegt es fehl, kommt der Eintrag zurueck, und die
     /// Meldung sagt, warum.
     func removeHighlight(_ highlight: Highlight) async {
+        guard !isDemo else { return }
         let previous = highlights
         highlights.removeAll { $0.id == highlight.id }
         do {
@@ -292,6 +309,7 @@ final class WeightStore {
     }
 
     private func saveWidgets(_ next: [WeightWidget]) async {
+        guard !isDemo else { return }
         // Erst anzeigen, dann speichern: das Umsortieren soll sich sofort
         // anfuehlen, und schlaegt das Speichern fehl, sagt es die Meldung.
         let previous = widgets
@@ -337,6 +355,16 @@ final class WeightStore {
         }
     }
 
+    /// Im Vorfuehrmodus (`COCKPIT_DASHBOARD_DEMO`) ist der Tab erfunden, und
+    /// nichts geht an den Dienst - auch Speichern nicht.
+    private var isDemo: Bool {
+        #if DEBUG
+        DashboardDemo.isOn
+        #else
+        false
+        #endif
+    }
+
     private func clearError() {
         error = nil
         accessProblem = false
@@ -352,3 +380,38 @@ final class WeightStore {
         }
     }
 }
+
+#if DEBUG
+extension WeightStore {
+
+    /// Der ganze Tab erfunden: Gewicht, Kacheln, kcal, Energie, Schritte. Nur
+    /// im Speicher - kein Bild zeigt so echte Daten, obwohl `run-simulator.sh`
+    /// die echten Token mitgibt.
+    fileprivate func showDemo() {
+        summary = DashboardDemo.weightSummary()
+        highlights = []
+        // Eine Kachel zu den drei der Energie (`shownWidgets`): so steht das
+        // Diagramm noch ganz im ersten Bildschirm - scrollen kann simctl nicht.
+        widgets = [.current]
+        energySummary = DashboardDemo.energySummary()
+        stepsGoal = 10_000
+        stepsToday = DashboardDemo.steps
+        showDemoSeries()
+    }
+
+    /// Die Reihen des gewaehlten Zeitraums - kcal und Energie passen zueinander,
+    /// so stimmen Flaeche und „Defizit ⌀" ueberein.
+    fileprivate func showDemoSeries() {
+        points = Self.trim(DashboardDemo.weightPoints(range), to: range)
+        clearError()
+        guard let first = points.first?.date, let last = points.last?.date else { return }
+        kcalByDay = DashboardDemo.foodTotals(from: first, to: last)
+            .map { DayValue(date: $0.date, value: $0.consumed.kcal) }
+        kcalAverage = DashboardDemo.foodAverages(from: first, to: last)
+        kcalTarget = DashboardDemo.kcalTarget
+        let days = DashboardDemo.energyDays(from: first, to: last)
+        expenditureAverage = days.compactMap(\.expenditureAverage)
+        deficitAverage = days.compactMap(\.deficitAverage)
+    }
+}
+#endif

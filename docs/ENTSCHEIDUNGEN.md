@@ -3,6 +3,25 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy: Vorführmodus auch für Essen- und Gewicht-Tab
+`COCKPIT_DASHBOARD_DEMO=1` ersetzte bisher nur Dashboard, Recovery, Logbook
+und die Energie. Essen- und Gewicht-Tab luden weiter die echten Tage, Verläufe
+und Gewichte - `run-simulator.sh` gibt die echten Token mit, und ein Bild vom
+Essen-Tab zeigte echte Einträge. Jetzt lesen auch diese beiden Tabs im
+Vorführmodus nur `DashboardDemo` (eine Weiche in `FoodStore.load`,
+`loadHistory`, `show`, `prefetchNeighbours` und `WeightStore.load`, `select`),
+und Eintragen, Speichern und Löschen tun dort nichts. Die kcal je Tag und ihr
+Mittel passen zur erfundenen Energie, damit Fläche und „Defizit ⌀" im Bild
+übereinstimmen; im Gewicht-Tab steht neben den drei Energie-Kacheln nur
+„Aktuell", damit das Diagramm ganz in den ersten Bildschirm passt.
+**Verworfen:** lokal gestartete Dienste mit eingespielten
+Daten - für jede Aufnahme zwei Dienste, und deren kcal passten nicht zur
+erfundenen Energie, Fläche und Linie widersprächen sich.
+- **`COCKPIT_SERIES=deficit`** schaltet im Gewicht-Tab Reihen zu - „Defizit
+  ⌀" ist dort nur angeboten, und `simctl` kann nicht tippen. **Verworfen:**
+  ein weiterer UI-Test, der den Schalter antippt - für ein Bild ein ganzer
+  Testlauf.
+
 ## 2026-10-09 — Healthy: „Defizit ⌀" als eigene Linie und als Fläche
 Felix hat entschieden (09.10., Runde 2): Das Defizit steht in den Verläufen
 **als eigene Linie** („Defizit ⌀" aus `deficitAvg7`, eigene Skala mit

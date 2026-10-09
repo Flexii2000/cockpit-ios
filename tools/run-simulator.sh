@@ -73,12 +73,18 @@
 # Mit COCKPIT_NO_LOCK=1, sonst steht dort der Sperrbildschirm.
 #
 # COCKPIT_DASHBOARD_DEMO=1 zeigt in Healthy erfundene Werte: das Dashboard,
-# die Recovery-Seite, das Logbook (Platzhalter „Verhalten A") und die Energie
-# (Zeilen im Essen-Tab, Kacheln und Kurve im Gewicht-Tab) - nur im Speicher,
-# nie gesendet. Der Simulator bekommt keine
-# Health-Daten; ohne das waere nichts davon zu sehen:
+# die Recovery-Seite, das Logbook (Platzhalter „Verhalten A"), den ganzen
+# Essen-Tab (Tage ohne Eintraege, Verlauf) und den ganzen Gewicht-Tab samt
+# Energie und „Defizit ⌀" - nur im Speicher, nie gesendet, Speichern tut
+# nichts. Die Token oben gehen trotzdem mit, aber kein Bild zeigt echte Daten.
+# Der Simulator bekommt keine Health-Daten; ohne das waere nichts davon zu
+# sehen:
 #
 #   COCKPIT_DASHBOARD_DEMO=1 COCKPIT_NO_HEALTH=1 tools/run-simulator.sh Healthy dashboard bild.png
+#
+# COCKPIT_SERIES=deficit schaltet im Gewicht-Tab Reihen zusaetzlich ein
+# (Komma-Liste: deficit, expenditure, kcalDay, measured, avg14, ...) - „Defizit
+# ⌀" ist dort nur angeboten, und tippen kann simctl nicht.
 #
 # Gegen einen lokal gestarteten Weight Tracker oder Kalorienzaehler
 # (COCKPIT_URL_WEIGHT=http://127.0.0.1:48180, COCKPIT_URL_FOOD=…) samt dessen
@@ -162,6 +168,7 @@ SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
 SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
 SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
+SIMCTL_CHILD_COCKPIT_SERIES="${COCKPIT_SERIES:-}" \
 SIMCTL_CHILD_COCKPIT_EVALUATION_DEMO="${COCKPIT_EVALUATION_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_DASHBOARD_DEMO="${COCKPIT_DASHBOARD_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}" \
