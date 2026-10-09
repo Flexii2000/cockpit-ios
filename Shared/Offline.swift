@@ -154,9 +154,28 @@ actor Outbox {
     func enqueue(_ request: URLRequest, backend: Backend) async {
         guard let url = request.url?.absoluteString else { return }
         load()
+        let method = request.httpMethod ?? "POST"
+        // Ein PUT ersetzt beim Dienst den ganzen Stand seiner Adresse - ein
+        // aelterer, der dorthin noch wartet, ist damit ueberholt. Nachgesendet
+        // ueberschriebe er den neueren. POST und DELETE bleiben alle stehen.
+        if method == "PUT" {
+            items.removeAll { $0.method == "PUT" && $0.url == url }
+        }
         items.append(Item(id: UUID(), backend: backend.rawValue, url: url,
-                          method: request.httpMethod ?? "POST",
-                          body: request.httpBody, createdAt: Date()))
+                          method: method, body: request.httpBody, createdAt: Date()))
+        persist()
+        await OfflineStatus.shared.outbox(pending: items.count, lastError: nil)
+    }
+
+    /// Ein PUT an diese Adresse ist gerade beim Dienst angekommen: was fuer
+    /// sie noch wartet, ist ueberholt. Etwa ein Logbook-Tag, offline
+    /// gespeichert und danach mit Netz noch einmal - das Nachsenden schickte
+    /// sonst den alten Rumpf hinterher.
+    func discardPuts(to url: URL) async {
+        load()
+        let before = items.count
+        items.removeAll { $0.method == "PUT" && $0.url == url.absoluteString }
+        guard items.count < before else { return }
         persist()
         await OfflineStatus.shared.outbox(pending: items.count, lastError: nil)
     }
@@ -187,12 +206,14 @@ actor Outbox {
             guard let (data, response) = try? await URLSession.shared.data(for: request),
                   let status = (response as? HTTPURLResponse)?.statusCode
             else { break }
+            // Nach der Kennung, nicht „den ersten": waehrend der Anfrage kann
+            // ein neuer PUT einen wartenden ersetzt haben.
             if (200..<300).contains(status) {
-                items.removeFirst()
+                items.removeAll { $0.id == item.id }
             } else if (400..<500).contains(status) {
                 lastError = "Nicht angenommen (HTTP \(status)): "
                     + (APIClient.shortMessage(from: data) ?? item.method + " " + url.path())
-                items.removeFirst()
+                items.removeAll { $0.id == item.id }
             } else {
                 break
             }

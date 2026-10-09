@@ -103,6 +103,62 @@ final class OfflineTests: XCTestCase {
         XCTAssertEqual(stored.map(\.backend), ["food", "weight"])
     }
 
+    // MARK: - Ueberholte PUTs
+
+    private func request(_ method: String, _ path: String, body: String? = nil) -> URLRequest {
+        var request = URLRequest(url: URL(string: "https://weight.fherrmann.com" + path)!)
+        request.httpMethod = method
+        request.httpBody = body.map { Data($0.utf8) }
+        return request
+    }
+
+    private func stored(_ file: URL) throws -> [Outbox.Item] {
+        try JSONDecoder().decode([Outbox.Item].self, from: Data(contentsOf: file))
+    }
+
+    /// Ein Logbook-Tag zweimal offline gespeichert: nur der neuere wartet. Ein
+    /// PUT ersetzt beim Dienst den ganzen Stand der Adresse - der aeltere,
+    /// nachgesendet, ueberschriebe den neueren. POST und DELETE bleiben.
+    @MainActor
+    func testNewerPutReplacesTheWaitingOne() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "outbox.json")
+        let outbox = Outbox(file: file)
+
+        await outbox.enqueue(request("PUT", "/api/logbook/days/2026-10-08", body: "alt"), backend: .weight)
+        await outbox.enqueue(request("POST", "/api/weight", body: "a"), backend: .weight)
+        await outbox.enqueue(request("POST", "/api/weight", body: "b"), backend: .weight)
+        await outbox.enqueue(request("PUT", "/api/logbook/days/2026-10-07", body: "anderer Tag"), backend: .weight)
+        await outbox.enqueue(request("PUT", "/api/logbook/days/2026-10-08", body: "neu"), backend: .weight)
+
+        let items = try stored(file)
+        XCTAssertEqual(items.map(\.method), ["POST", "POST", "PUT", "PUT"])
+        XCTAssertEqual(items.compactMap { $0.body.map { String(decoding: $0, as: UTF8.self) } },
+                       ["a", "b", "anderer Tag", "neu"], "zwei POSTs bleiben beide, der alte PUT faellt weg")
+    }
+
+    /// Kam ein PUT mit Netz an, ist der wartende an dieselbe Adresse ueberholt -
+    /// nur der, nichts sonst.
+    @MainActor
+    func testDeliveredPutDiscardsOnlyWaitingPutsToTheSameAddress() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "outbox.json")
+        let outbox = Outbox(file: file)
+
+        await outbox.enqueue(request("PUT", "/api/logbook/days/2026-10-08", body: "alt"), backend: .weight)
+        await outbox.enqueue(request("PUT", "/api/logbook/days/2026-10-07", body: "anderer Tag"), backend: .weight)
+        await outbox.enqueue(request("DELETE", "/api/logbook/days/2026-10-08"), backend: .weight)
+        await outbox.discardPuts(to: URL(string: "https://weight.fherrmann.com/api/logbook/days/2026-10-08")!)
+
+        let items = try stored(file)
+        XCTAssertEqual(items.map(\.method), ["PUT", "DELETE"])
+        XCTAssertEqual(items.first?.url, "https://weight.fherrmann.com/api/logbook/days/2026-10-07")
+        let count = await outbox.count
+        XCTAssertEqual(count, 2)
+    }
+
     @MainActor
     func testWriteWithoutNetworkGoesToTheOutbox() async throws {
         setenv("COCKPIT_URL_HABITS", "http://127.0.0.1:9/habits", 1)

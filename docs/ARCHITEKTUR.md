@@ -445,6 +445,16 @@ Zugriff (`count`, `enqueue`, `replay` im Vordergrund) versucht es erneut, und
 was inzwischen im Speicher dazukam, hängt hinter den gelesenen Einträgen
 (bis 09.10.2026 überschrieb der nächste Eintrag die wartenden).
 
+⚠️ **Ein neuerer PUT überholt einen wartenden an dieselbe Adresse.** Ein PUT
+ersetzt beim Dienst den ganzen Stand (Logbook-Tag, Essenseintrag,
+Einkaufs-Eintrag). Kommt ein zweiter in den Postausgang, fliegt der ältere
+raus; kommt einer mit Netz an, fallen die wartenden an dieselbe Adresse weg -
+und zwar bevor `APIClient` das Nachsenden anstößt, sonst schickte das den
+alten Rumpf hinterher. POST und DELETE bleiben alle stehen; das Nachsenden
+nimmt Erledigtes nach der Kennung heraus, nicht als „den ersten". Offen bleibt
+ein schmales Fenster: startet ein Nachsenden, während der neue PUT noch
+unterwegs ist, ist die Reihenfolge beim Dienst nicht sicher.
+
 ⚠️ **Die App rechnet offline nichts nach.** Keine lokale Sträh­ne, keine
 Tagessumme, keine Kachel. Das ist Absicht: die Regeln stehen in den Diensten,
 und ein zweiter Rechner im Client wäre ein zweiter Datenstand.

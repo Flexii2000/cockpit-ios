@@ -115,6 +115,12 @@ struct APIClient: Sendable {
         // Der Dienst hat geantwortet - also ist Netz da. Was noch im
         // Postausgang liegt, kann jetzt raus.
         await OfflineStatus.shared.online(backend)
+        // Erst aber, was dieser PUT ueberholt hat: er ersetzt beim Dienst den
+        // ganzen Stand seiner Adresse, und ein aelterer aus dem Postausgang
+        // ueberschriebe ihn sonst gleich wieder.
+        if request.httpMethod == "PUT", (200..<300).contains(status), let url = request.url {
+            await Outbox.shared.discardPuts(to: url)
+        }
         if await Outbox.shared.count > 0 {
             Task { await Outbox.shared.replay() }
         }
