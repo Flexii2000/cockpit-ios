@@ -147,6 +147,22 @@ struct FoodChartView: View {
                     lineWidth: run.id.hasPrefix(WeightSeries.measured.rawValue) ? 1.3 : 2))
                 .interpolationMethod(.linear)
             }
+
+            // Die Sprechblase zum angetippten Tag: alle sichtbaren Reihen,
+            // wie im Gewicht-Diagramm. Zuletzt gezeichnet, damit keine Kurve
+            // sie verdeckt.
+            if let day = effectiveSelection, !entries(for: day).isEmpty {
+                RuleMark(x: .value("Tag", day.startOfDay()))
+                    .foregroundStyle(.secondary.opacity(0.4))
+                    .lineStyle(StrokeStyle(lineWidth: 1))
+                    // `y: .fit(to: .chart)` haelt sie im Diagramm - sonst ragte
+                    // sie nach oben ueber den Zeitraum-Umschalter.
+                    .annotation(position: .top, spacing: 4,
+                                overflowResolution: .init(x: .fit(to: .chart),
+                                                          y: .fit(to: .chart))) {
+                        ChartCallout(title: day.short, entries: entries(for: day))
+                    }
+            }
         }
         .chartYScale(domain: kcalDomain)
         .chartXScale(domain: from.startOfDay()...to.startOfDay())
@@ -230,7 +246,7 @@ struct FoodChartView: View {
     /// nur an Tagen mit Eintrag Werte - dazwischen springt die Markierung auf
     /// den naechstgelegenen.
     private var tageImDiagramm: [CalendarDate] {
-        Array(Set(history.map(\.date) + averages.map(\.date))).sorted()
+        Array(Set(history.map(\.date) + averages.map(\.date) + expenditure.map(\.date))).sorted()
     }
 
     /// Alle sichtbaren Reihen fuer diesen Tag.
@@ -243,6 +259,10 @@ struct FoodChartView: View {
         if showDaily, let total = history.first(where: { $0.date == day }) {
             result.append(CalloutEntry(label: "kcal", value: total.consumed.kcal.whole,
                                        color: Palette.kcal.opacity(0.55)))
+        }
+        if showExpenditure, let spent = expenditure.first(where: { $0.date == day }) {
+            result.append(CalloutEntry(label: "Verbrauch ⌀", value: GermanNumber.string(spent.kcal),
+                                       color: Palette.expenditure))
         }
         for series in [WeightSeries.avg7, .measured] where weightOverlay.contains(series) {
             if let value = FoodChartData

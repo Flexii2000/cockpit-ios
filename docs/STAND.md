@@ -1,6 +1,10 @@
 # Stand
 
-> **Nächster Schritt - Healthy: Dashboard, Energie, Recovery, Logbook (09.10.):**
+> **Nächster Schritt - Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀"
+> (09.10., Runde 2):** Branch `energy-ui`, in Arbeit, nicht gemergt, nicht
+> gepusht - Stand im Abschnitt unten.
+>
+> **Healthy: Dashboard, Energie, Recovery, Logbook (09.10.):**
 > Branch `recovery`, gebaut und geprüft, nicht gemergt, nicht gepusht.
 > Reihenfolge: **erst die Dienste ausrollen** (Branch `recovery` in
 > `../food`, `../habits`, `../weight-app`, dann Felix' Healthy-Token per
@@ -128,6 +132,21 @@
 > Kamera mit „+" (zweites, drittes Foto), Galerie mit Mehrfachauswahl, Wischen
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
+
+## Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" · **in Arbeit** (2026-10-09)
+
+Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`
+§1.2 `deficitAvg7`, §5). Branch `energy-ui`, nicht gemergt, nicht gepusht.
+
+- [x] **Sprechblase im Essen-Verlauf wieder da** (`FoodChartView`): seit
+  `91d22e9` (20.09.) lief die Auswahl beim Antippen und Ziehen mit, gezeichnet
+  wurde aber nichts - eine Regression, keine Entscheidung (der Commit sagt
+  „callouts follow what is visible", `COCKPIT_SELECT` ist genau dafür da). Sie
+  zeigt wieder alle sichtbaren Reihen des Tages, dazu jetzt „Verbrauch ⌀".
+- [ ] `deficitAvg7` und die Farben aus dem Vertrag
+- [ ] Energie-Karte „Balken + Woche"
+- [ ] „Defizit ⌀" samt Fläche im Essen-Verlauf und im Gewicht-Diagramm
+- [ ] Vorführmodus auch für Essen- und Gewicht-Tab
 
 ## Healthy: Dashboard, Energie, Recovery, Logbook · **gebaut, nicht ausgerollt** (2026-10-09)
 
