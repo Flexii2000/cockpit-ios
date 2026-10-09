@@ -64,37 +64,34 @@ enum EnergyFormat {
         return [expenditure, watch(day)].compactMap { $0 }.joined(separator: " · ")
     }
 
-    /// „Defizit ≈ 460 kcal" bzw. „Überschuss ≈ 120 kcal" - nur an getrackten
-    /// Tagen und heute, sonst gibt der Dienst keins.
-    static func balanceLine(_ day: EnergyDay) -> String? {
+    /// Die Bilanz in zwei Teilen: „Defizit" und „≈ 460 kcal" bzw.
+    /// „Überschuss" und „120 kcal" - das Wort nach dem gerundeten Wert (−0,3
+    /// ist „Defizit 0 kcal"), der Betrag ohne Vorzeichen, das Wort sagt die
+    /// Richtung. Nur an getrackten Tagen und heute, sonst gibt der Dienst
+    /// keins. Getrennt, weil die Energie-Karte nur den Betrag einfaerbt.
+    static func balance(_ day: EnergyDay) -> (word: String, amount: String, isSurplus: Bool)? {
         guard let deficit = day.deficitKcal else { return nil }
-        let word = deficit.rounded() < 0 ? "Überschuss" : "Defizit"
-        return word + " " + approx(day) + kcal(abs(deficit))
+        let isSurplus = deficit.rounded() < 0
+        return (isSurplus ? "Überschuss" : "Defizit", approx(day) + kcal(abs(deficit)), isSurplus)
     }
 
-    // MARK: - Dashboard
+    /// „Defizit ≈ 460 kcal" bzw. „Überschuss ≈ 120 kcal".
+    static func balanceLine(_ day: EnergyDay) -> String? {
+        balance(day).map { $0.word + " " + $0.amount }
+    }
 
-    /// Die Energie-Karte: „Verbrauch ≈ 2.840", „gegessen 2.150", „Defizit ≈
-    /// 690 kcal" - die Einheit einmal am Ende. Ohne Kalorienzaehler nur der
-    /// Verbrauch: das Gegessene ist dann unbekannt, nicht 0.
-    static func dashboardParts(_ day: EnergyDay, foodAvailable: Bool) -> [String] {
-        var parts: [String] = []
-        if let expenditure = day.expenditureKcal {
-            parts.append("Verbrauch " + approx(day) + GermanNumber.string(expenditure))
-        }
-        if foodAvailable {
-            // Heute ohne Eintrag ist das Gegessene bisher null - genau so
-            // rechnet der Dienst die Prognose.
-            if let intake = day.intakeKcal ?? (day.projected ? 0 : nil) {
-                parts.append("gegessen " + GermanNumber.string(intake))
-            }
-            if let deficit = day.deficitKcal {
-                let word = deficit.rounded() < 0 ? "Überschuss" : "Defizit"
-                parts.append(word + " " + approx(day) + GermanNumber.string(abs(deficit)))
-            }
-        }
-        if let last = parts.popLast() { parts.append(last + " kcal") }
-        return parts
+    // MARK: - Energie-Karte im Dashboard
+
+    /// „gegessen 2.150" unter dem Bilanzbalken. Heute ohne Eintrag 0 - genau
+    /// so rechnet der Dienst die Prognose.
+    static func eaten(_ day: EnergyDay) -> String {
+        "gegessen " + GermanNumber.string(day.intakeKcal ?? 0)
+    }
+
+    /// „Verbrauch ≈ 2.840" unter dem Bilanzbalken - ohne Einheit, die steht
+    /// gross darueber.
+    static func expenditureShort(_ day: EnergyDay) -> String? {
+        day.expenditureKcal.map { "Verbrauch " + approx(day) + GermanNumber.string($0) }
     }
 
     // MARK: - Kacheln im Gewicht-Tab

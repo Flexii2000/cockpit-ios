@@ -86,11 +86,13 @@ struct DashboardTab: View {
             // ein Container ist nie „hittable".
             .accessibilityIdentifier("recoveryCard")
         }
-        // Ohne Verbrauch (keine Uhr, kein Wert heute) gaebe es nur „gegessen" -
-        // das zeigt die halbe Karte daneben schon.
-        if let today = store.energy?.today, today.expenditureKcal != nil {
+        // Ohne Defizit heute und ohne Wert in der Woche fehlt die Karte
+        // (Vertrag §5) - etwa ohne Kalorienzaehler: dann ist die Aufnahme
+        // unbekannt, und der Verbrauch allein ist keine Bilanz.
+        if let energy = EnergyCardModel(summary: store.energy, week: store.energyWeek ?? [],
+                                        today: .today()) {
             Button { router.showFoodToday() } label: {
-                EnergyCard(day: today, foodAvailable: store.energy?.foodAvailable ?? false)
+                EnergyCard(model: energy)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("energyCard")

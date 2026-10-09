@@ -50,22 +50,31 @@ final class EnergyFormatTests: XCTestCase {
         XCTAssertNil(EnergyFormat.expenditureLine(day(expenditure: nil)), "ohne Uhr keine Zeile")
     }
 
-    /// Die Energie-Karte im Dashboard - die Einheit einmal am Ende.
-    func testDashboardParts() {
+    /// Die Energie-Karte im Dashboard: Wort und Betrag getrennt (nur der
+    /// Betrag ist farbig), unter dem Balken „gegessen …" und „Verbrauch ≈ …"
+    /// ohne Einheit.
+    func testEnergyCardTexts() {
         let today = EnergyDay(date: CalendarDate(year: 2026, month: 10, day: 9), activeKcal: nil,
                               basalKcal: nil, basalImputed: false, watchKcal: 3087, factor: 0.92,
                               calibrationStatus: .ok, expenditureKcal: 2840, intakeKcal: 2150, tracked: true,
                               deficitKcal: 690, projected: true, expenditureAvg7: nil, deficitAvg7: nil,
                               avg7Complete: false)
-        XCTAssertEqual(EnergyFormat.dashboardParts(today, foodAvailable: true),
-                       ["Verbrauch ≈ 2.840", "gegessen 2.150", "Defizit ≈ 690 kcal"])
-        XCTAssertEqual(EnergyFormat.dashboardParts(today, foodAvailable: false), ["Verbrauch ≈ 2.840 kcal"],
-                       "ohne Kalorienzaehler ist das Gegessene unbekannt, nicht 0")
+        let balance = EnergyFormat.balance(today)
+        XCTAssertEqual(balance?.word, "Defizit")
+        XCTAssertEqual(balance?.amount, "≈ 690 kcal")
+        XCTAssertEqual(balance?.isSurplus, false)
+        XCTAssertEqual(EnergyFormat.eaten(today), "gegessen 2.150")
+        XCTAssertEqual(EnergyFormat.expenditureShort(today), "Verbrauch ≈ 2.840")
 
         // Heute noch nichts gegessen: null, und das Defizit ist der Verbrauch.
         let fasting = day(expenditure: 2840, watch: 3087, factor: 0.92, deficit: 2840, projected: true)
-        XCTAssertEqual(EnergyFormat.dashboardParts(fasting, foodAvailable: true),
-                       ["Verbrauch ≈ 2.840", "gegessen 0", "Defizit ≈ 2.840 kcal"])
+        XCTAssertEqual(EnergyFormat.eaten(fasting), "gegessen 0")
+        XCTAssertEqual(EnergyFormat.balanceLine(fasting), "Defizit ≈ 2.840 kcal")
+
+        let surplus = EnergyFormat.balance(day(expenditure: 2600, deficit: -300.4))
+        XCTAssertEqual(surplus?.word, "Überschuss")
+        XCTAssertEqual(surplus?.amount, "300 kcal", "ohne Vorzeichen - das Wort sagt die Richtung")
+        XCTAssertEqual(surplus?.isSurplus, true)
     }
 
     /// „Defizit [≈ ]460 kcal" bzw. „Überschuss [≈ ]120 kcal" - ohne Vorzeichen,

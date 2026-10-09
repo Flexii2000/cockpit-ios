@@ -21,6 +21,8 @@ final class DashboardStore {
 
     private(set) var recovery: RecoveryDay?
     private(set) var energy: EnergySummary?
+    /// Die Woche der Energie-Karte: D−6 … heute aus `GET /api/energy`.
+    private(set) var energyWeek: [EnergyDay]?
     private(set) var weight: WeightSummary?
     private(set) var food: DaySummary?
     private(set) var steps: Int?
@@ -57,6 +59,7 @@ final class DashboardStore {
         if DashboardDemo.isOn {
             recovery = DashboardDemo.recoveryDay(offset: 0)
             energy = DashboardDemo.energySummary()
+            energyWeek = DashboardDemo.energyDays(from: .today().adding(days: -6), to: .today())
             weight = DashboardDemo.weightSummary()
             food = DashboardDemo.foodDay()
             steps = DashboardDemo.steps
@@ -68,8 +71,10 @@ final class DashboardStore {
         // Lokale Kopien: die Abfragen laufen nebenher, ohne den Store.
         let recoveryApi = recoveryApi, energyApi = energyApi
         let weightApi = weightApi, foodApi = foodApi, logbookApi = logbookApi
+        let today = CalendarDate.today()
         async let recovery = Self.attempt { try await recoveryApi.today() }
         async let energy = Self.attempt { try await energyApi.summary() }
+        async let energyWeek = Self.attempt { try await energyApi.days(from: today.adding(days: -6), to: today) }
         async let weight = Self.attempt { try await weightApi.summary() }
         async let food = Self.attempt { try await foodApi.day(.today()) }
         async let logbook = Self.attempt { try await logbookApi.overview() }
@@ -78,6 +83,8 @@ final class DashboardStore {
         var problems: [Backend] = []
         self.recovery = Self.take(await recovery, previous: self.recovery, backend: .weight, problems: &problems)
         self.energy = Self.take(await energy, previous: self.energy, backend: .weight, problems: &problems)
+        self.energyWeek = Self.take(await energyWeek, previous: self.energyWeek, backend: .weight,
+                                    problems: &problems)
         self.weight = Self.take(await weight, previous: self.weight, backend: .weight, problems: &problems)
         self.food = Self.take(await food, previous: self.food, backend: .food, problems: &problems)
         self.logbook = Self.take(await logbook, previous: self.logbook, backend: .weight, problems: &problems)

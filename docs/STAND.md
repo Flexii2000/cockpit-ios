@@ -150,7 +150,15 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
   und die Flächen mit 16 % bzw. 20 % (`Color.adaptive` kennt dafür jetzt eine
   Deckkraft je Erscheinungsbild). Der Vorführmodus rechnet `deficitAvg7` wie
   der Dienst.
-- [ ] Energie-Karte „Balken + Woche"
+- [x] **Energie-Karte „Balken + Woche"** (`EnergyCardModel`, `EnergyCard`):
+  groß „Defizit ≈ 690 kcal" (das Wort in Textfarbe, der Betrag farbig), der
+  Bilanzbalken mit „gegessen …" links und „Verbrauch ≈ …" rechts, die Woche D−6
+  … heute an einer Nulllinie (eine Skala für beide Richtungen, Tag ohne Wert
+  leer, heute blasser) mit „⌀ 7 T". Das Dashboard holt dafür zusätzlich
+  `GET /api/energy?from=D−6&to=D` - parallel, fällt für sich aus. Ohne Defizit
+  heute fehlen Kopfzeile und Balken, ohne Wert in der Woche die Woche, ohne
+  beides die Karte. Der Vorführmodus hat eine Woche mit Überschuss-Tag, einem
+  Tag ohne Wert und der Prognose von heute. Tests `EnergyCardModelTests`.
 - [ ] „Defizit ⌀" samt Fläche im Essen-Verlauf und im Gewicht-Diagramm
 - [ ] Vorführmodus auch für Essen- und Gewicht-Tab
 

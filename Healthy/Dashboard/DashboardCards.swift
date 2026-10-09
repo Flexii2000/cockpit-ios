@@ -57,22 +57,136 @@ struct RecoveryCard: View {
     }
 }
 
-/// Energie: „Verbrauch ≈ 2.840 · gegessen 2.150 · Defizit ≈ 690 kcal" - eine
-/// Zeile, die lieber etwas kleiner wird, als nach einem „·" umzubrechen.
+/// Energie (Vertrag §5, Felix 09.10.: „Balken + Woche"): gross die Bilanz
+/// von heute, darunter der Bilanzbalken, unten die Woche. Was wohin gehoert,
+/// rechnet `EnergyCardModel`; hier wird nur gezeichnet.
 struct EnergyCard: View {
 
-    let day: EnergyDay
-    let foodAvailable: Bool
+    let model: EnergyCardModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             CardTitle(title: "Energie")
-            Text(EnergyFormat.dashboardParts(day, foodAvailable: foodAvailable).joined(separator: " · "))
-                .font(.subheadline.monospacedDigit())
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            if let headline = model.headline {
+                let color = headline.isSurplus ? Palette.surplus : Palette.deficit
+                Text("\(headline.word) \(Text(headline.amount).foregroundStyle(color))")
+                    .font(.title2.weight(.semibold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            if let bar = model.bar {
+                EnergyBalanceBar(bar: bar)
+            }
+            if let week = model.week {
+                EnergyWeek(week: week)
+                    .padding(.top, model.bar == nil ? 0 : 4)
+            }
         }
         .dashboardCard()
+    }
+}
+
+/// Gegessen gegen Verbrauch als ein Balken: gelb bis „gegessen", die Luecke
+/// bis zum Verbrauch in Defizit-Farbe, was darueber hinausgeht, in
+/// Ueberschuss-Farbe, und eine Marke beim Verbrauch.
+private struct EnergyBalanceBar: View {
+
+    let bar: EnergyCardModel.BalanceBar
+
+    private let barHeight: CGFloat = 10
+    /// Die Marke steht oben und unten etwas ueber - sonst verschwaende sie am
+    /// Ende des Balkens im Gelb.
+    private let markHeight: CGFloat = 18
+
+    var body: some View {
+        VStack(spacing: 4) {
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        Rectangle().fill(Palette.kcal).frame(width: width * bar.eaten)
+                        Rectangle().fill(Palette.deficit).frame(width: width * bar.gap)
+                        Rectangle().fill(Palette.surplus).frame(width: width * bar.overflow)
+                    }
+                    .frame(height: barHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    Capsule()
+                        .fill(Palette.expenditure)
+                        .frame(width: 3, height: markHeight)
+                        .offset(x: min(max(width * bar.mark - 1.5, 0), width - 3))
+                }
+                .frame(width: width, height: markHeight)
+            }
+            .frame(height: markHeight)
+            HStack {
+                Text(bar.eatenLabel)
+                Spacer(minLength: 8)
+                Text(bar.expenditureLabel)
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// Die Woche: sieben Balken von einer Nulllinie aus - Defizit nach oben,
+/// Ueberschuss nach unten, heute blasser -, darunter die Wochentage, rechts
+/// „⌀ 7 T".
+private struct EnergyWeek: View {
+
+    let week: EnergyCardModel.Week
+
+    private let plotHeight: CGFloat = 52
+    private let barWidth: CGFloat = 14
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(spacing: 4) {
+                GeometryReader { geometry in
+                    plot(in: geometry.size)
+                }
+                .frame(height: plotHeight)
+                HStack(spacing: 0) {
+                    ForEach(week.bars) { bar in
+                        Text(bar.label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("⌀ 7 T")
+                    .font(.caption)
+                Text(week.average)
+                    .font(.subheadline.weight(.semibold).monospacedDigit())
+            }
+            .fixedSize()
+        }
+    }
+
+    private func plot(in size: CGSize) -> some View {
+        let column = size.width / CGFloat(max(week.bars.count, 1))
+        let zero = size.height * week.zeroLine
+        return ZStack(alignment: .topLeading) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.4))
+                .frame(width: size.width, height: 1)
+                .offset(y: min(max(zero - 0.5, 0), size.height - 1))
+            ForEach(Array(week.bars.enumerated()), id: \.element.id) { index, bar in
+                if let share = bar.height, share > 0 {
+                    let length = size.height * share
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill((bar.isSurplus ? Palette.surplus : Palette.deficit)
+                            .opacity(bar.isProjected ? 0.45 : 1))
+                        .frame(width: barWidth, height: length)
+                        .offset(x: column * (CGFloat(index) + 0.5) - barWidth / 2,
+                                y: bar.isSurplus ? zero : zero - length)
+                }
+            }
+        }
+        .frame(width: size.width, height: size.height, alignment: .topLeading)
     }
 }
 

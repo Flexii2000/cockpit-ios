@@ -3,6 +3,37 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy: Energie-Karte „Balken + Woche"
+Felix hat entschieden (09.10., Runde 2): Die Energie-Karte im Dashboard zeigt
+groß die Bilanz von heute, darunter einen **Bilanzbalken** (gegessen gegen
+Verbrauch) und die **Woche** als sieben Balken von einer Nulllinie aus - genau
+wie im Healthy-Vertrag §5 beschrieben, Android baut dasselbe. **Verworfen:** die
+einzeilige Karte aus Runde 1 („Verbrauch ≈ 2.840 · gegessen 2.150 · Defizit ≈
+690 kcal") - eine Zahlenreihe sagt nicht, wie die Woche lief. In der App:
+- **Was gezeichnet wird, rechnet `EnergyCardModel`** (Anteile, Höhen, Lage der
+  Nulllinie, Beschriftungen), die View setzt nur um. **Verworfen:** die
+  Rechnung in der View - jeder Sonderfall (nichts gegessen, Überschuss, Tag
+  ohne Wert, Prognose, leere Woche) wäre nur im Bild prüfbar, und der
+  Simulator bekommt keine Health-Daten.
+- **Heute kommt aus der Summary, ersatzweise aus der Woche.** Beide Abfragen
+  fallen für sich aus; scheitert nur die Summary, steht derselbe Tag auch in
+  `GET /api/energy`. „⌀ 7 T" ist dann „–". **Verworfen:** nur die Summary -
+  die Karte verlöre Kopfzeile und Balken, obwohl die Zahl da ist.
+- **Die Woche wird gerundet, bevor die Richtung feststeht**: was auf 0 rundet,
+  ist kein Überschuss - dieselbe Regel wie beim Wort in der Kopfzeile.
+  **Verworfen:** das rohe Vorzeichen (ein Tag „Defizit 0 kcal" bekäme einen
+  roten Stummel und schöbe die Nulllinie).
+- **Ohne Kalorienzähler fehlt die Karte** (Vertrag §5 Punkt 5: ohne Defizit
+  heute und ohne Wert in der Woche). **Verworfen:** als Rest nur den Verbrauch
+  zeigen wie in Runde 1 - ohne Aufnahme ist das keine Bilanz, und der
+  Verbrauch steht im Essen-Tab.
+- **Balken als einfache Formen, nicht Swift Charts.** **Verworfen:** `BarMark` -
+  Achsen, Ränder und Gesten für einen 52 Punkte hohen Streifen in einer Karte,
+  die selbst ein Knopf ist.
+- **Die Marke des Verbrauchs ist 3 Punkte breit und steht über den Balken
+  hinaus.** **Verworfen:** eine Haarlinie in Balkenhöhe - am Ende des Balkens
+  ging sie in der Defizit-Farbe unter.
+
 ## 2026-10-09 — Healthy holt 425 Nächte zurück, nicht 365
 Felix hat entschieden (09.10., vor dem Ausrollen): Die einmalige Rückholung
 holt 425 Nächte. Der längste Logbook-Zeitraum ist ein Jahr, und der Weight
@@ -77,7 +108,8 @@ kein eigener Tab; das Layout der Karten ist freigegeben. In der App:
   „Keine HRV", „Zu kurz"). **Verworfen:** ein eigener Kreisring statt
   `GaugeView` - der Tacho ist die Form, die man aus dem Essen-Tab kennt.
 - **Die Energie-Karte bleibt eine Zeile** und wird lieber etwas kleiner
-  (`minimumScaleFactor`), als nach einem „·" umzubrechen. **Verworfen:** drei
+  (`minimumScaleFactor`), als nach einem „·" umzubrechen. *Abgelöst am selben
+  Tag durch „Balken + Woche" (oben).* **Verworfen:** drei
   Spalten mit Beschriftung über der Zahl (nicht das freigegebene Layout) und
   ein Umbruch an den Trennern (ein Punkt am Zeilenende sah verloren aus).
 - **Eine Mitteilung ohne Art führt in den Essen-Tab** (`HealthyRoute`): die
