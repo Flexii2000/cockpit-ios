@@ -52,11 +52,12 @@ Dreiteilig, und in M2 genauso wie in M1:
 ```
 Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
-  Dashboard/        der erste Tab: Karten für Recovery, Energie, Gewicht, Essen, Logbook; Vorführdaten
+  Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, Logbook;
+                    Vorführdaten - auch für Essen- und Gewicht-Tab
   Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
   Energy/           Energiebilanz beim Weight Tracker, ihre Formate und Zeilen im Essen-Tab
   Logbook/          Logbook-Seite (Tag, Verhalten, Effekte), Erinnerung 09:00, beim Weight Tracker
-  Charts/           Callout, DaySeries, SeriesChip, Palette
+  Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync)
   Food/ Weight/

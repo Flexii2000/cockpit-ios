@@ -1,8 +1,12 @@
 # Stand
 
 > **Nächster Schritt - Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀"
-> (09.10., Runde 2):** Branch `energy-ui`, in Arbeit, nicht gemergt, nicht
-> gepusht - Stand im Abschnitt unten.
+> (09.10., Runde 2):** Branch `energy-ui`, gebaut und geprüft, nicht gemergt,
+> nicht gepusht. Reihenfolge: erst den Weight Tracker mit `deficitAvg7`
+> ausrollen (Branch `energy-ui` in `../weight-app`), dann `tools/install-device.sh
+> Healthy --launch`. Ein Weight Tracker ohne das Feld lässt nur die Linie
+> „Defizit ⌀" weg - Karte, Fläche und Schalter laufen schon mit dem heutigen
+> Dienst. Was auf dem Gerät zu prüfen ist, steht im Abschnitt unten.
 >
 > **Healthy: Dashboard, Energie, Recovery, Logbook (09.10.):**
 > Branch `recovery`, gebaut und geprüft, nicht gemergt, nicht gepusht.
@@ -133,7 +137,7 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
-## Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" · **in Arbeit** (2026-10-09)
+## Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" · **gebaut, nicht ausgerollt** (2026-10-09)
 
 Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`
 §1.2 `deficitAvg7`, §5). Branch `energy-ui`, nicht gemergt, nicht gepusht.
@@ -174,6 +178,33 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
   und Gewicht-Tab trotz des Schalters echte Tage, Verläufe und Gewichte.
   Schreiben tut dort nichts. Dazu `COCKPIT_SERIES=deficit` (Gewicht-Tab, auch
   in `run-simulator.sh`).
+
+**Geprüft (09.10.):** `tools/verify.sh` grün - alle fünf Apps gebaut,
+Unit-Tests Healthy 243 (vorher 219), coHabit 170. `tools/uitest.sh Healthy`:
+13 Tests, 12 grün, einer übersprungen (Push, braucht `COCKPIT_PUSH_TEST=1`).
+Bilder hell und dunkel mit `COCKPIT_DASHBOARD_DEMO=1` angesehen: Dashboard
+(Karte mit Überschuss-Tag, leerem Tag und blasser Prognose), Essen-Verlauf
+(Linie, Fläche mit Überschuss-Stelle, Skala außen mit Titel - über
+`testFoodHistoryOffersTheExpenditure`, nur dort kommt man hin),
+Gewicht-Diagramm mit „Defizit ⌀" (Zahlen innen neben der kcal-Skala), mit
+Fläche und mit Sprechblase („Defizit ⌀ 7 Tage −573 kcal"). Noch nicht gegen
+einen Weight Tracker mit `deficitAvg7` gelaufen - nur Tests und Vorführdaten.
+
+**Nur auf dem Gerät prüfbar:**
+- die Karte mit echten Werten: morgens noch nichts gegessen (der ganze Balken
+  Defizit), ein Überschuss-Tag, ein nicht getrackter Tag leer; Tipp → Essen
+  mit heute;
+- Antippen und Ziehen im Essen-Verlauf: die Sprechblase (wieder da) samt
+  „Defizit ⌀ 7 Tage", und dass das Blättern der Tageskarten daneben weiter
+  geht;
+- im Gewicht-Diagramm „Defizit ⌀" antippen, Ziehen mit Sprechblase;
+- der Essen-Verlauf mit „Gewicht ⌀" an: dann steht die Defizit-Skala klein
+  innen neben den kg (im Simulator nicht aufgenommen - der Schalter wäre
+  anzutippen; derselbe Code wie im Gewicht-Diagramm).
+
+**Offen:** Die Sprechblase der Diagramme ist im hellen Erscheinungsbild
+dunkelgrau statt hell (das Material in der Annotation von Swift Charts) -
+schon vor dieser Arbeit so, auf dem Gerät ansehen.
 
 ## Healthy: Dashboard, Energie, Recovery, Logbook · **gebaut, nicht ausgerollt** (2026-10-09)
 
