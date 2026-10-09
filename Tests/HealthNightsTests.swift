@@ -180,6 +180,27 @@ final class HealthNightsTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(night(main, inBed: bed)).inBedMinutes, 510)
     }
 
+    /// Eine Phase aus kurzen Schlafsegmenten mit Wachzeiten dazwischen kann
+    /// laenger als ein Tag werden. Keine ihrer Minutenzahlen darf dann ueber
+    /// 1.440 gehen - eine einzige liesse beim Dienst die ganze Anfrage
+    /// scheitern; was ueber den Rand geht, fehlt lieber.
+    func testNoMinutesBeyondADayEvenInAVeryLongPhase() throws {
+        var segments: [SleepSegment] = []
+        var start = at(7, 18)
+        while start < at(9, 10) {
+            segments.append(segment(start, start.addingTimeInterval(10 * 60)))
+            segments.append(segment(start.addingTimeInterval(10 * 60), start.addingTimeInterval(100 * 60), .awake))
+            start = start.addingTimeInterval(100 * 60)
+        }
+        let main = try XCTUnwrap(mains(segments, [october9]).first)
+        XCTAssertGreaterThan(main.end.timeIntervalSince(main.start), 24 * 3600, "die Phase ist laenger als ein Tag")
+        let result = try XCTUnwrap(night(main))
+        XCTAssertLessThanOrEqual(result.asleepMinutes, 1440)
+        XCTAssertNil(result.awakeMinutes, "ueber 1.440 Minuten wach: lieber unbekannt")
+        XCTAssertLessThanOrEqual(try XCTUnwrap(result.coreMinutes), 1440)
+        XCTAssertGreaterThan(try XCTUnwrap(result.sleepEnd), try XCTUnwrap(result.sleepStart))
+    }
+
     // MARK: - HRV, Atem, Puls
 
     /// Messungen, die zwischen Schlafbeginn und 30 Minuten nach dem Aufwachen

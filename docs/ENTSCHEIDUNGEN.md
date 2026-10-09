@@ -139,9 +139,12 @@ Vertrags, damit iOS und Android dieselbe Nacht schicken.
   - ein Nickerchen mit Uhr am Vortag verdrängte die Nacht des iPhones. Android
   sollte dieselbe Lesart nehmen.
 - **Unplausibles fehlt lieber, als dass es geschickt wird** (HRV außerhalb
-  1–400 ms, Puls 20–220, Atem 3–60, Nächte über 24 h). Eine einzige solche Zahl
-  lässt beim Dienst die ganze Anfrage mit 400 scheitern. **Verworfen:**
-  schicken und den Fehler hinnehmen - dann fehlten alle 14 Nächte.
+  1–400 ms, Puls 20–220, Atem 3–60, Minuten über 1.440 auch bei Wach- und
+  Stadienzeit; Energie aktiv außerhalb 0–10.000, Ruhe 0–5.000 - fehlen beide,
+  fällt der Tag weg). Eine einzige solche Zahl lässt beim Dienst die ganze
+  Anfrage mit 400 scheitern (Befund aus dem Android-Review, 09.10.).
+  **Verworfen:** schicken und den Fehler hinnehmen - dann fehlten alle 14
+  Nächte bzw. 30 Tage Energie, bis der Wert aus dem Fenster fällt.
 - **Abgleich höchstens alle zehn Minuten**, Ziehen erzwingt ihn; der
   Gewicht-Tab gleicht nicht mehr bei jedem Erscheinen ab. **Verworfen:** wie
   bisher bei jedem Erscheinen - seit Nächte und Energie dazukommen, wären das

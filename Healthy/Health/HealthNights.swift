@@ -142,11 +142,13 @@ enum HealthNights {
         // waeren Nullen eine Behauptung ueber eine Nacht ohne Stadien.
         let staged = sleep.contains { [.core, .deep, .rem].contains($0.stage) }
         func stage(_ stage: SleepSegment.Stage) -> Int? {
-            staged ? minutes(unionSeconds(sleep.filter { $0.stage == stage }, within: window)) : nil
+            staged ? plausibleMinutes(minutes(unionSeconds(sleep.filter { $0.stage == stage }, within: window))) : nil
         }
         let awakeSegments = main.segments.filter { $0.stage == .awake }
+        // Eine Phase kann laenger als ein Tag sein (Segmente mit kurzen Luecken
+        // ueber 30 Stunden) - dann darf ihre Wachzeit nicht ueber 1.440 gehen.
         let awake = staged || !awakeSegments.isEmpty
-            ? minutes(unionSeconds(awakeSegments, within: window)) : nil
+            ? plausibleMinutes(minutes(unionSeconds(awakeSegments, within: window))) : nil
 
         let bed = inBed.filter { $0.stage == .inBed && $0.start < main.end && $0.end > main.start }
         let bedMinutes = bed.isEmpty ? nil : minutes(unionSeconds(bed, within: nil))
@@ -156,7 +158,7 @@ enum HealthNights {
 
         return Night(date: main.date, sleepStart: main.start, sleepEnd: main.end,
                      asleepMinutes: asleep,
-                     inBedMinutes: bedMinutes.flatMap { $0 <= maxMinutes ? $0 : nil },
+                     inBedMinutes: bedMinutes.flatMap(plausibleMinutes),
                      awakeMinutes: awake,
                      deepMinutes: stage(.deep), remMinutes: stage(.rem), coreMinutes: stage(.core),
                      hrvSdnnMs: sdnn?.value, hrvSdnnSamples: sdnn?.count,
@@ -221,6 +223,11 @@ enum HealthNights {
     /// Minuten ganz, wie im Vertrag.
     private static func minutes(_ seconds: TimeInterval) -> Int {
         Int((seconds / 60).rounded())
+    }
+
+    /// Minuten nimmt der Dienst von 0 bis 1.440 an - alles andere fehlt lieber.
+    private static func plausibleMinutes(_ value: Int) -> Int? {
+        (0...maxMinutes).contains(value) ? value : nil
     }
 
     /// Eine Nachkommastelle, wie im Vertrag.

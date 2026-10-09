@@ -378,12 +378,15 @@ gestrichelt, solange `avg7Complete` falsch ist.
 ersetzt der neue Wert (dann hat Health iPhone und Uhr fertig
 zusammengeführt). Ein fehlendes Feld lässt den gespeicherten Wert stehen. Die
 App schickt bei jedem Abgleich die letzten 30 Tage und einmalig zehn Jahre in
-Blöcken zu 365 Tagen.
+Blöcken zu 365 Tagen. **Ein einziger Wert außerhalb (aktiv 0–10.000, Ruhe
+0–5.000) lässt die ganze Anfrage mit 400 scheitern** - `HealthEnergy` lässt
+ihn weg (der Tag geht mit dem anderen Feld, ohne beide gar nicht).
 
 ⚠️ **Eine Nacht wird als Ganzes ersetzt.** Die App schickt deshalb nur, wenn
 **jede** Health-Abfrage des Laufs glückte — sonst ersetzte eine Nacht ohne
 HRV eine mit. Und **eine** unplausible Zahl (HRV außerhalb 1–400 ms, Puls
-20–220, Atem 3–60, Minuten über 1.440, `sleepEnd` nicht nach `sleepStart`)
+20–220, Atem 3–60, irgendwelche Minuten über 1.440 - auch die Wachzeit einer
+Phase, die länger als ein Tag ist -, `sleepEnd` nicht nach `sleepStart`)
 lässt die ganze Anfrage mit 400 scheitern: `HealthNights` lässt solche Werte
 weg, statt sie zu schicken.
 

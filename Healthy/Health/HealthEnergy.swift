@@ -2,13 +2,20 @@ import Foundation
 
 enum HealthEnergy {
 
+    /// Was der Dienst je Tag annimmt (`EnergyController.check`). Liegt ein
+    /// einziger Wert ausserhalb, lehnt er die **ganze** Anfrage mit 400 ab - ein
+    /// falscher Wert einer Uhr blockierte sonst 30 Tage lang jeden Abgleich.
+    static let activeRange = 0.0...10_000
+    static let basalRange = 0.0...5_000
+
     /// Aktive Energie und Ruheenergie zu Tagen, in der Zeitzone des Geraets.
     ///
     /// Ein Tag mit nur einem der beiden Werte geht trotzdem raus - das fehlende
     /// Feld laesst beim Dienst den gespeicherten Wert stehen. Ein Tag ohne
     /// beide faellt weg: Health unterscheidet „nichts gemessen" nicht von
     /// „nichts verbraucht", also unterscheidet es der Bestand, indem der Tag
-    /// fehlt (Vertrag §1.1).
+    /// fehlt (Vertrag §1.1). Ein unplausibler Wert zaehlt wie ein fehlender
+    /// (wie auf Android).
     static func days(active: [DaySum], basal: [DaySum],
                      in timeZone: TimeZone = .current) -> [EnergyDayUpload] {
         var activeByDay: [CalendarDate: Double] = [:]
@@ -17,8 +24,8 @@ enum HealthEnergy {
         for sum in basal { basalByDay[CalendarDate(date: sum.dayStart, in: timeZone)] = sum.value }
         let dates = Set(activeByDay.keys).union(basalByDay.keys)
         return dates.sorted().compactMap { date in
-            let active = activeByDay[date].map(round1)
-            let basal = basalByDay[date].map(round1)
+            let active = activeByDay[date].map(round1).flatMap { activeRange.contains($0) ? $0 : nil }
+            let basal = basalByDay[date].map(round1).flatMap { basalRange.contains($0) ? $0 : nil }
             guard active != nil || basal != nil else { return nil }
             return EnergyDayUpload(date: date, activeKcal: active, basalKcal: basal)
         }

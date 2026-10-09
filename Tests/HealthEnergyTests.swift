@@ -33,6 +33,23 @@ final class HealthEnergyTests: XCTestCase {
         XCTAssertTrue(HealthEnergy.days(active: [], basal: [], in: berlin).isEmpty)
     }
 
+    /// Der Dienst lehnt die ganze Anfrage ab, wenn ein Wert ausserhalb liegt
+    /// (aktiv 0–10.000, Ruhe 0–5.000). Ein solcher Wert fehlt deshalb; fehlen
+    /// beide, faellt der Tag weg - die anderen Tage gehen trotzdem hinaus.
+    func testImplausibleValuesAreLeftOut() {
+        let days = HealthEnergy.days(
+            active: [DaySum(dayStart: dayStart(6), value: 12_000), DaySum(dayStart: dayStart(7), value: 480),
+                     DaySum(dayStart: dayStart(8), value: -3), DaySum(dayStart: dayStart(9), value: 10_000)],
+            basal: [DaySum(dayStart: dayStart(6), value: 1_850), DaySum(dayStart: dayStart(7), value: 5_000.04),
+                    DaySum(dayStart: dayStart(8), value: 7_200), DaySum(dayStart: dayStart(9), value: 0)],
+            in: berlin)
+        XCTAssertEqual(days, [
+            EnergyDayUpload(date: date(6), activeKcal: nil, basalKcal: 1_850),
+            EnergyDayUpload(date: date(7), activeKcal: 480, basalKcal: 5_000),
+            EnergyDayUpload(date: date(9), activeKcal: 10_000, basalKcal: 0),
+        ], "der 8. hat keinen brauchbaren Wert und fehlt; Grenzen gehoeren dazu")
+    }
+
     /// Was zum Dienst geht: fehlende Felder fehlen, `replace` auch.
     func testUploadLeavesUnknownFieldsOut() throws {
         let upload = EnergyUpload(days: [EnergyDayUpload(date: date(8), activeKcal: 512, basalKcal: nil)],
