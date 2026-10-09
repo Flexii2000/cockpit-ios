@@ -27,19 +27,46 @@ enum DashboardDemo {
     static let factor = 0.92
 
     /// Verbrauch der Uhr `offset` Tage vor heute. Heute so, dass das Dashboard
-    /// „Verbrauch ≈ 2.840 · gegessen 2.150 · Defizit ≈ 690 kcal" zeigt.
+    /// „Defizit ≈ 690 kcal" aus „gegessen 2.150" und „Verbrauch ≈ 2.840" zeigt.
     private static func watch(_ offset: Int) -> Double {
         if offset == 0 { return 3087 }
         return (2980 + 160 * sin(Double(offset) * 0.9) + 140 * noise(offset, 1)).rounded()
     }
 
+    /// Der kalibrierte Verbrauch, wie ihn der Dienst rechnet.
+    private static func expenditure(_ offset: Int) -> Double {
+        (watch(offset) * factor).rounded()
+    }
+
+    /// Gegessen laut Kalorienzaehler. Vorgestern ein Ueberschuss-Tag (die
+    /// Woche der Energie-Karte braucht einen), vor zwei bis drei Wochen eine
+    /// Woche drueber (der Verlauf zeigt eine Ueberschuss-Stelle). An nicht
+    /// getrackten Tagen steht nur ein Teil da - wie im Leben, wenn nur das
+    /// Fruehstueck eingetragen ist; die Flaeche ist dort breiter, als die
+    /// Linie „Defizit ⌀" hoch ist (Vertrag §5).
     private static func intake(_ offset: Int) -> Double {
         if offset == 0 { return 2150 }
+        if !tracked(offset) { return (1150 + 250 * noise(offset, 8)).rounded() }
+        if offset == 2 { return 3160 }
+        if (14...20).contains(offset) { return (3250 + 180 * noise(offset, 9)).rounded() }
         return (2150 + 320 * noise(offset, 2)).rounded()
     }
 
     /// Ein paar Tage sind nicht getrackt - dort gibt es kein Defizit.
     private static func tracked(_ offset: Int) -> Bool { offset % 9 != 4 }
+
+    /// Verbrauch minus gegessen - wie beim Dienst nur an getrackten Tagen und
+    /// heute.
+    private static func deficit(_ offset: Int) -> Double? {
+        offset == 0 || tracked(offset) ? expenditure(offset) - intake(offset) : nil
+    }
+
+    /// Mittel ueber D−3 … D+3, nur abgeschlossene Tage mit Wert - heute zaehlt
+    /// nie mit (`centeredAverage` beim Dienst).
+    private static func centered(_ offset: Int, _ value: (Int) -> Double?) -> Double? {
+        let values = (offset - 3...offset + 3).filter { $0 >= 1 }.compactMap(value)
+        return values.isEmpty ? nil : (values.reduce(0, +) / Double(values.count)).rounded()
+    }
 
     /// Tage zwischen `from` und `to`, nie nach heute.
     static func energyDays(from: CalendarDate, to: CalendarDate,
@@ -55,27 +82,30 @@ enum DashboardDemo {
 
     private static func energyDay(offset: Int, date: CalendarDate) -> EnergyDay {
         let watch = watch(offset)
-        let expenditure = (watch * factor).rounded()
-        let intake = intake(offset)
         let projected = offset == 0
-        // Zentriertes Mittel ueber abgeschlossene Tage, wie beim Dienst; erst
-        // vollstaendig, wenn auch der letzte Tag des Fensters vorbei ist.
-        let window = (offset - 3...offset + 3).filter { $0 >= 1 }
-        let average = window.isEmpty ? nil
-            : window.map { (Self.watch($0) * factor).rounded() }.reduce(0, +) / Double(window.count)
+        let average = centered(offset) { expenditure($0) }
+        // Beide Mittel erst vollstaendig, wenn auch der letzte Tag des
+        // Fensters vorbei ist - wie beim Dienst.
         return EnergyDay(date: date, activeKcal: (watch - 2050).rounded(), basalKcal: 2050,
                          basalImputed: false, watchKcal: watch, factor: factor,
-                         calibrationStatus: .ok, expenditureKcal: expenditure,
-                         intakeKcal: intake, tracked: projected || tracked(offset),
-                         deficitKcal: projected || tracked(offset) ? expenditure - intake : nil,
-                         projected: projected, expenditureAvg7: average.map { $0.rounded() },
-                         avg7Complete: offset > 3)
+                         calibrationStatus: .ok, expenditureKcal: expenditure(offset),
+                         intakeKcal: intake(offset), tracked: projected || tracked(offset),
+                         deficitKcal: deficit(offset), projected: projected,
+                         expenditureAvg7: average, deficitAvg7: centered(offset, deficit),
+                         avg7Complete: average != nil && offset > 3)
     }
 
+    /// Die Kacheln und die Karte: die sieben vollen Tage bis gestern, wie
+    /// beim Dienst - so passen „⌀ 7 T" und die Woche zusammen.
     static func energySummary(today: CalendarDate = .today()) -> EnergySummary {
-        EnergySummary(
+        let deficits = (1...7).compactMap(deficit)
+        let expenditures = (1...7).map(expenditure)
+        return EnergySummary(
             today: energyDay(offset: 0, date: today),
-            deficit7: 460, deficit7Days: 6, expenditure7: 2610, expenditure7Days: 7,
+            deficit7: deficits.isEmpty ? nil : (deficits.reduce(0, +) / Double(deficits.count)).rounded(),
+            deficit7Days: deficits.count,
+            expenditure7: (expenditures.reduce(0, +) / Double(expenditures.count)).rounded(),
+            expenditure7Days: expenditures.count,
             calibration: Calibration(status: .ok, factor: factor, rawFactor: factor,
                                      windowFrom: today.adding(days: -28), windowTo: today.adding(days: -1),
                                      measuredKcal: 2610, measuredSeKcal: 96, watchKcal: 2837,

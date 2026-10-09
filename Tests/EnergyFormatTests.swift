@@ -11,7 +11,8 @@ final class EnergyFormatTests: XCTestCase {
                   basalImputed: false, watchKcal: watch, factor: factor,
                   calibrationStatus: factor == 1 ? .tooFewTrackedDays : .ok,
                   expenditureKcal: expenditure, intakeKcal: nil, tracked: deficit != nil,
-                  deficitKcal: deficit, projected: projected, expenditureAvg7: nil, avg7Complete: false)
+                  deficitKcal: deficit, projected: projected, expenditureAvg7: nil, deficitAvg7: nil,
+                  avg7Complete: false)
     }
 
     /// Deutsch, egal wie das Geraet eingestellt ist; negative mit U+2212.
@@ -54,7 +55,8 @@ final class EnergyFormatTests: XCTestCase {
         let today = EnergyDay(date: CalendarDate(year: 2026, month: 10, day: 9), activeKcal: nil,
                               basalKcal: nil, basalImputed: false, watchKcal: 3087, factor: 0.92,
                               calibrationStatus: .ok, expenditureKcal: 2840, intakeKcal: 2150, tracked: true,
-                              deficitKcal: 690, projected: true, expenditureAvg7: nil, avg7Complete: false)
+                              deficitKcal: 690, projected: true, expenditureAvg7: nil, deficitAvg7: nil,
+                              avg7Complete: false)
         XCTAssertEqual(EnergyFormat.dashboardParts(today, foodAvailable: true),
                        ["Verbrauch ≈ 2.840", "gegessen 2.150", "Defizit ≈ 690 kcal"])
         XCTAssertEqual(EnergyFormat.dashboardParts(today, foodAvailable: false), ["Verbrauch ≈ 2.840 kcal"],

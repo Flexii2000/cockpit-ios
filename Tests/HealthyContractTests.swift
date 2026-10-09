@@ -13,13 +13,13 @@ final class HealthyContractTests: XCTestCase {
 
     // MARK: - Energie
 
-    /// `EnergyDayView` - das Beispiel aus dem Vertrag §1.2.
+    /// `EnergyDayView` - das Beispiel aus dem Vertrag §1.2, samt `deficitAvg7`.
     func testDecodesEnergyDay() throws {
         let day = try decode(EnergyDay.self, """
         {"date":"2026-10-08","activeKcal":512.0,"basalKcal":1834.0,"basalImputed":false,
          "watchKcal":2346.0,"factor":0.921,"calibrationStatus":"OK",
          "expenditureKcal":2161.0,"intakeKcal":1904.0,"tracked":true,"deficitKcal":257.0,
-         "projected":false,"expenditureAvg7":2210.0,"avg7Complete":true}
+         "projected":false,"expenditureAvg7":2210.0,"deficitAvg7":318.0,"avg7Complete":true}
         """)
         XCTAssertEqual(day.date, CalendarDate(year: 2026, month: 10, day: 8))
         XCTAssertEqual(day.watchKcal, 2346)
@@ -28,6 +28,41 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(day.deficitKcal, 257)
         XCTAssertEqual(day.expenditureAverage?.kcal, 2210)
         XCTAssertEqual(day.expenditureAverage?.complete, true)
+        XCTAssertEqual(day.deficitAvg7, 318)
+        XCTAssertEqual(day.deficitAverage?.kcal, 318)
+        XCTAssertEqual(day.deficitAverage?.complete, true, "avg7Complete gilt fuer beide Mittel")
+    }
+
+    /// Ein Weight Tracker von vor dem Feld schickt kein `deficitAvg7` - der Tag
+    /// bleibt lesbar, nur die Kurve fehlt. `null` (kein getrackter Tag im
+    /// Fenster) heisst dasselbe, und ein Ueberschuss ist negativ.
+    func testDeficitAverageIsOptionalAndSigned() throws {
+        let older = try decode(EnergyDay.self, """
+        {"date":"2026-10-08","activeKcal":512.0,"basalKcal":1834.0,"basalImputed":false,
+         "watchKcal":2346.0,"factor":0.921,"calibrationStatus":"OK",
+         "expenditureKcal":2161.0,"intakeKcal":1904.0,"tracked":true,"deficitKcal":257.0,
+         "projected":false,"expenditureAvg7":2210.0,"avg7Complete":true}
+        """)
+        XCTAssertNil(older.deficitAvg7)
+        XCTAssertNil(older.deficitAverage)
+
+        let untracked = try decode(EnergyDay.self, """
+        {"date":"2026-10-07","activeKcal":400.0,"basalKcal":1830.0,"basalImputed":false,
+         "watchKcal":2230.0,"factor":0.921,"calibrationStatus":"OK","expenditureKcal":2054.0,
+         "intakeKcal":null,"tracked":false,"deficitKcal":null,"projected":false,
+         "expenditureAvg7":2190.0,"deficitAvg7":null,"avg7Complete":false}
+        """)
+        XCTAssertNil(untracked.deficitAverage)
+        XCTAssertEqual(untracked.expenditureAverage?.complete, false)
+
+        let surplus = try decode(EnergyDay.self, """
+        {"date":"2026-10-06","activeKcal":420.0,"basalKcal":1830.0,"basalImputed":false,
+         "watchKcal":2250.0,"factor":0.921,"calibrationStatus":"OK","expenditureKcal":2072.0,
+         "intakeKcal":2500.0,"tracked":true,"deficitKcal":-428.0,"projected":false,
+         "expenditureAvg7":2180.0,"deficitAvg7":-120.0,"avg7Complete":false}
+        """)
+        XCTAssertEqual(surplus.deficitAverage?.kcal, -120)
+        XCTAssertEqual(surplus.deficitAverage?.complete, false, "gestrichelt wie „Verbrauch ⌀\"")
     }
 
     /// `EnergySummary` mit `Calibration` (§1.3, §1.4); heute als Prognose.

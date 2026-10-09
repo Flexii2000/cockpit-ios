@@ -57,7 +57,11 @@ struct EnergyDay: Decodable, Identifiable, Equatable, Sendable {
     let projected: Bool
     /// Zentriertes 7-Tage-Mittel des Verbrauchs - die Kurve „Verbrauch ⌀".
     let expenditureAvg7: Double?
-    /// Ob das Fenster des Mittels schon ganz vorbei ist; sonst gestrichelt.
+    /// Zentriertes 7-Tage-Mittel des Defizits ueber die **getrackten**,
+    /// abgeschlossenen Tage D−3 … D+3 - die Kurve „Defizit ⌀". `nil`, wenn
+    /// keiner dabei ist, und bei einem Dienst von vor dem Feld.
+    let deficitAvg7: Double?
+    /// Ob das Fenster der beiden Mittel schon ganz vorbei ist; sonst gestrichelt.
     let avg7Complete: Bool
 
     var id: CalendarDate { date }
@@ -67,6 +71,12 @@ struct EnergyDay: Decodable, Identifiable, Equatable, Sendable {
     /// Rand wie „kcal ⌀".
     var expenditureAverage: DayAverage? {
         expenditureAvg7.map { DayAverage(date: date, kcal: $0, days: 7, complete: avg7Complete) }
+    }
+
+    /// „Defizit ⌀" ebenso. Negativ ist ein Ueberschuss; `avg7Complete` gilt
+    /// fuer beide Mittel (Vertrag §1.2).
+    var deficitAverage: DayAverage? {
+        deficitAvg7.map { DayAverage(date: date, kcal: $0, days: 7, complete: avg7Complete) }
     }
 }
 

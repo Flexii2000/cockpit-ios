@@ -18,13 +18,19 @@ extension Color {
     /// die sind dunkel. Dieselben hellen Pastelltoene auf weissem Grund haben
     /// zu wenig Kontrast; im Hellmodus kommt deshalb die kraeftigere Stufe
     /// derselben Farbe zum Zug.
-    static func adaptive(light: UInt32, dark: UInt32) -> Color {
+    /// - Parameters:
+    ///   - lightOpacity: Deckkraft im hellen Erscheinungsbild - wo eine
+    ///     Vorgabe sie je Erscheinungsbild verschieden festlegt (Flaechen).
+    ///   - darkOpacity: dasselbe im dunklen.
+    static func adaptive(light: UInt32, dark: UInt32,
+                         lightOpacity: Double = 1, darkOpacity: Double = 1) -> Color {
         Color(uiColor: UIColor { traits in
-            let hex = traits.userInterfaceStyle == .dark ? dark : light
+            let isDark = traits.userInterfaceStyle == .dark
+            let hex = isDark ? dark : light
             return UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255,
                            green: CGFloat((hex >> 8) & 0xFF) / 255,
                            blue: CGFloat(hex & 0xFF) / 255,
-                           alpha: 1)
+                           alpha: isDark ? darkOpacity : lightOpacity)
         })
     }
 }

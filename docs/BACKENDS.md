@@ -308,7 +308,7 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 EnergyDayInput  date, activeKcal?, basalKcal?   (je Tag mindestens eins; aktiv 0–10.000, Ruhe 0–5.000)
 EnergyDay       date, activeKcal?, basalKcal?, basalImputed, watchKcal?, factor, calibrationStatus,
                 expenditureKcal?, intakeKcal?, tracked, deficitKcal?, projected,
-                expenditureAvg7?, avg7Complete
+                expenditureAvg7?, deficitAvg7?, avg7Complete
 EnergySummary   today: EnergyDay?, deficit7?, deficit7Days, expenditure7?, expenditure7Days,
                 calibration: Calibration, sources {food: "OK" | "UNAVAILABLE"}
 Calibration     status (OK | CLAMPED | TOO_FEW_TRACKED_DAYS | TOO_FEW_WEIGHTS | TOO_FEW_WATCH_DAYS |
@@ -373,6 +373,16 @@ wenn der Kalorienzähler nicht antwortete (dann ist die Aufnahme unbekannt,
 nicht 0). Die App zeigt das nur an (Formate in `EnergyFormat`, Vertrag §5)
 und rechnet nichts nach. `expenditureAvg7` ist die Kurve „Verbrauch ⌀",
 gestrichelt, solange `avg7Complete` falsch ist.
+
+⚠️ **`deficitAvg7` zählt nur getrackte Tage** (Branch `energy-ui` im Weight
+Tracker, `EnergyCalculator.deficitAverage`): das zentrierte 7-Tage-Mittel von
+`deficitKcal` über die getrackten, abgeschlossenen Tage D−3 … D+3 - heute und
+die Zukunft nie, `null`, wenn keiner dabei ist. Negativ ist ein Überschuss.
+`avg7Complete` gilt für beide Mittel. Es ist die Kurve „Defizit ⌀"; die
+Fläche zwischen „Verbrauch ⌀" und „kcal ⌀" rechnet dagegen mit allen Tagen
+mit Eintrag (das Mittel des Kalorienzählers) - in Wochen mit lückenhaften
+Einträgen ist sie deshalb breiter, als die Linie hoch ist. Ein älterer Dienst
+schickt das Feld nicht; die App liest es dann als `null`.
 
 ⚠️ **Energie: heute und gestern gewinnt je Feld das Maximum**, ältere Tage
 ersetzt der neue Wert (dann hat Health iPhone und Uhr fertig

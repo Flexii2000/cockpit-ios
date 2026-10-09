@@ -143,7 +143,13 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
   wurde aber nichts - eine Regression, keine Entscheidung (der Commit sagt
   „callouts follow what is visible", `COCKPIT_SELECT` ist genau dafür da). Sie
   zeigt wieder alle sichtbaren Reihen des Tages, dazu jetzt „Verbrauch ⌀".
-- [ ] `deficitAvg7` und die Farben aus dem Vertrag
+- [x] **`deficitAvg7`** in `EnergyDay` (samt `deficitAverage` für die
+  Kurve), Decodier-Tests mit dem JSON aus §1.2 und ohne das Feld. **Farben aus
+  dem Vertrag** in `Palette`: kcal `#D49C00`/`#FFD54F` mit 85 % (vorher
+  `#F9A825`), neu Defizit `#0D9488`/`#2DD4BF`, Überschuss `#D33131`/`#EF5350`
+  und die Flächen mit 16 % bzw. 20 % (`Color.adaptive` kennt dafür jetzt eine
+  Deckkraft je Erscheinungsbild). Der Vorführmodus rechnet `deficitAvg7` wie
+  der Dienst.
 - [ ] Energie-Karte „Balken + Woche"
 - [ ] „Defizit ⌀" samt Fläche im Essen-Verlauf und im Gewicht-Diagramm
 - [ ] Vorführmodus auch für Essen- und Gewicht-Tab
