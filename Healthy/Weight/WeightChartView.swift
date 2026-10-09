@@ -419,8 +419,12 @@ struct WeightChartView: View {
         deficitScale.position(value, in: yDomain)
     }
 
+    /// Skala und Bereich einmal, nicht je Punkt - in „Alles" sind es
+    /// Tausende Tage, und gezeichnet wird bei jedem Schritt des Fingers neu.
     private var deficitRuns: [AverageRun] {
-        DaySeries.averageRuns(deficitAverage, key: "deficit", map: deficitPosition)
+        let scale = deficitScale, domain = yDomain
+        return DaySeries.averageRuns(deficitAverage, key: "deficit",
+                                     map: { scale.position($0, in: domain) })
     }
 
     /// Rechts aussen steht die Defizit-Skala nur, solange dort keine kcal
@@ -440,7 +444,11 @@ struct WeightChartView: View {
     }
 
     private var bandSegments: [BandSegment] {
-        EnergyBand.segments(expenditure: expenditureAverage, intake: kcalAverage, map: toWeightScale)
+        // Wie `toWeightScale`, nur mit einmal ausgerechneten Bereichen.
+        let kcal = kcalDomain, weight = yDomain
+        return EnergyBand.segments(expenditure: expenditureAverage, intake: kcalAverage, map: { value in
+            FoodChartData.scale(value, from: kcal, to: weight)
+        })
     }
 
     // MARK: - kcal auf der Gewichtsskala
