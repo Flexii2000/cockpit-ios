@@ -1,5 +1,9 @@
 # Stand
 
+> **Healthy, Dashboard/Energie/Recovery/Logbook (09.10.):** Branch `recovery`,
+> in Arbeit - was steht und was fehlt, im Abschnitt „Healthy: Dashboard,
+> Energie, Recovery, Logbook" unten. Nichts davon ist ausgerollt.
+>
 > **coHabit, Typfarben je Person (05.10., abends):** Branch `type-colors` (auf
 > `today-types`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `ce4cc3a`
 > (`../habits`, Branch `type-colors`) - ein älterer Dienst lässt die App mit
@@ -117,6 +121,25 @@
 > Kamera mit „+" (zweites, drittes Foto), Galerie mit Mehrfachauswahl, Wischen
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
+
+## Healthy: Dashboard, Energie, Recovery, Logbook · **in Arbeit, nicht ausgerollt** (2026-10-09)
+
+Felix' Freigabe vom 09.10. (Plan „Energiebilanz, Recovery, Dashboard, Logbook",
+Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`). Branch `recovery`, nicht
+gemergt, nicht gepusht. Die Dienste (`../weight-app`, `../food`, `../habits`,
+je Branch `recovery`) sind fertig, aber nicht ausgerollt.
+
+- [x] **Postausgang** liest seine Datei, bis es gelingt, statt bei gesperrtem
+  iPhone „leer" zu sehen und Wartendes zu überschreiben (`25fef4d`).
+- [x] **Health lesen** (`Healthy/Health/`): `HealthReader` (Abfragen),
+  `HealthEnergy` (Tage aus aktiv + Ruhe), `HealthNights` (Nächte nach §2.2),
+  `HealthBackfill` (Blöcke der Rückholung); `HealthSync` ist der Dirigent
+  (Nächte → Energie → Schritte → Gewicht, `syncIfDue`/`syncAll(force:)`,
+  Weckruf für Schlaf, Rückholung im Vordergrund). Neue Leserechte, neuer
+  Health-Text. Tests `HealthNightsTests`, `HealthEnergyTests`.
+- [ ] Energie im Essen- und Gewicht-Tab
+- [ ] Dashboard-Tab mit Recovery-Seite, Routing, URL-Schema `healthy://`
+- [ ] Logbook-Seite, Verhalten, Erinnerung 09:00
 
 ## Fokus: Feature Requests von anderen als Push · **ausgerollt, auf Felix' iPhone** (2026-10-05)
 

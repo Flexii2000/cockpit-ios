@@ -242,10 +242,25 @@ Zwei Dinge passieren, ohne dass jemand die App offen hat — und beide brauchen
 deshalb einen `AppDelegate` statt einer `.task` an einer View: wird die App im
 Hintergrund geweckt, gibt es gar keine Oberfläche.
 
-**HealthKit.** Eine `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
-App, wenn ein neuer Gewichtswert geschrieben wird. Ein Anker merkt sich, was
-schon geholt wurde, und wird erst **nach** erfolgreichem Senden gespeichert —
-sonst gingen Werte verloren, wenn der Server gerade nicht erreichbar war.
+**HealthKit.** Zwei `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
+App, wenn ein neuer Gewichtswert oder Schlaf geschrieben wird. Beim Gewicht
+merkt sich ein Anker, was schon geholt wurde, und wird erst **nach**
+erfolgreichem Senden gespeichert — sonst gingen Werte verloren, wenn der
+Server gerade nicht erreichbar war. Beim Schlaf bildet der Weckruf die letzten
+14 Nächte neu und schickt sie nur, wenn sich ihr Inhalt geändert hat (Hash)
+und das iPhone entsperrt ist.
+
+Den Rest macht `HealthSync` als Dirigent im Vordergrund: Nächte → Energie →
+Schritte → Gewicht, beim Wechsel in den Vordergrund und beim Öffnen des
+Gewicht-Tabs höchstens alle zehn Minuten (`syncIfDue`), beim Ziehen sofort
+(`syncAll(force:)`). Gelesen wird in `HealthReader` (jede
+Abfrage `async`, Ergebnis sofort in eigene Typen), aus Rohdaten werden Tage
+und Nächte in `HealthEnergy` und `HealthNights` — rein und getestet, genau nach
+den Regeln im Healthy-Vertrag, damit iOS und Android dieselbe Nacht bilden.
+Danach, nicht abgewartet und nur im Vordergrund, die einmalige Rückholung
+(`HealthBackfill`: 365 Nächte in Blöcken zu 60, zehn Jahre Energie in Blöcken
+zu 365, Cursor in den UserDefaults). Wer etwas hochgeladen hat, zählt
+`HealthSync.uploads` hoch; der Gewicht-Tab lädt darauf neu.
 
 **Die Kacheln.** Healthy hat die Kalorien (Homebildschirm klein/mittel,
 Sperrbildschirm als Ring und Rechteck), Fokus den Countdown der Session (ohne

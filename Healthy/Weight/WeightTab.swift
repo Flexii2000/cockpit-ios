@@ -52,7 +52,7 @@ struct WeightTab: View {
                             Button("Aus Health holen") {
                                 Task {
                                     await HealthSync.shared.requestPermission()
-                                    await HealthSync.shared.syncNow()
+                                    await HealthSync.shared.syncAll(force: true)
                                     await store.load()
                                 }
                             }
@@ -81,18 +81,20 @@ struct WeightTab: View {
                 }
             }
             .refreshable {
-                await HealthSync.shared.syncNow()
-                await HealthSync.shared.syncSteps()
+                await HealthSync.shared.syncAll(force: true)
                 await store.load()
             }
             .task {
+                await store.load()
                 // Erlaubnis im Zusammenhang erfragen, nicht beim ersten Start
                 // der App: hier ist erkennbar, wofuer sie gebraucht wird. iOS
-                // zeigt seine Nachfrage ohnehin nur einmal.
-                await HealthSync.shared.requestPermission()
-                await HealthSync.shared.syncNow()
-                await HealthSync.shared.syncSteps()
-                await store.load()
+                // zeigt seine Nachfrage ohnehin nur einmal. Abgeglichen wird
+                // danach nur, wenn es faellig ist - nicht bei jedem Erscheinen.
+                await HealthSync.shared.connect()
+            }
+            // Hat der Abgleich etwas hochgeladen, kennt der Dienst neue Werte.
+            .onChange(of: HealthSync.shared.uploads) {
+                Task { await store.load() }
             }
             .sheet(isPresented: $showingEntry) { WeightEntrySheet(store: store) }
             .sheet(isPresented: $showingTarget) { WeightTargetSheet(store: store) }

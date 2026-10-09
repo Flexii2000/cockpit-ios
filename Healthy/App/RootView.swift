@@ -98,6 +98,9 @@ struct RootView: View {
                 Task {
                     await Outbox.shared.replay()
                     await EvaluationReminder.refresh()
+                    // Die Nacht von heute frueh, die Energie bis jetzt -
+                    // hoechstens alle zehn Minuten.
+                    await HealthSync.shared.syncIfDue()
                 }
             }
             // Die Frist der Evaluation zaehlt auch, wenn man die App verlaesst

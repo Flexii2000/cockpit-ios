@@ -3,6 +3,46 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy liest Energie, Schlaf und Herzwerte aus Health
+Teil von Felix' Freigabe „Energiebilanz, Recovery, Dashboard, Logbook" (Plan
+und Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`). Gerechnet wird im
+Weight Tracker; die App bildet nur Tage und Nächte, nach den Regeln des
+Vertrags, damit iOS und Android dieselbe Nacht schicken.
+- **Gelesen:** Gewicht, Schritte, aktive und Ruheenergie, Schlaf, HRV (SDNN,
+  ab iOS 27 zusätzlich RMSSD - beide gehen hin, der Dienst wählt),
+  Herzfrequenz, Atemfrequenz. **Verworfen:** Hauttemperatur, Sauerstoff und
+  Apples Tages-Ruhepuls - sie gehen in das gewählte Modell nicht ein, und jede
+  Art mehr ist eine Zeile mehr im Health-Dialog.
+- **Die Quelle einer Nacht wird je Aufwachtag gewählt.** Je Quelle wird die
+  Hauptschlafphase für den Tag D nach §2.2 gesucht; hat die Uhr eine, zählt nur
+  sie, sonst die Quelle, deren Phase die meisten Schlafminuten hat - nie zwei
+  zusammen. Der Vertrag sagt „gibt es Segmente der Apple Watch, zählen nur
+  diese", aber nicht, worauf sich das bezieht. **Verworfen:** (a) eine Quelle
+  für das ganze 14-Nächte-Fenster - eine Nacht mit der Uhr am Ladekabel fiele
+  weg, obwohl das iPhone sie hat; (b) „irgendein Segment der Uhr in der Nähe"
+  - ein Nickerchen mit Uhr am Vortag verdrängte die Nacht des iPhones. Android
+  sollte dieselbe Lesart nehmen.
+- **Unplausibles fehlt lieber, als dass es geschickt wird** (HRV außerhalb
+  1–400 ms, Puls 20–220, Atem 3–60, Nächte über 24 h). Eine einzige solche Zahl
+  lässt beim Dienst die ganze Anfrage mit 400 scheitern. **Verworfen:**
+  schicken und den Fehler hinnehmen - dann fehlten alle 14 Nächte.
+- **Abgleich höchstens alle zehn Minuten**, Ziehen erzwingt ihn; der
+  Gewicht-Tab gleicht nicht mehr bei jedem Erscheinen ab. **Verworfen:** wie
+  bisher bei jedem Erscheinen - seit Nächte und Energie dazukommen, wären das
+  bei jedem Tabwechsel zwei Uploads.
+- **Ein unverändertes Nächte-Fenster geht nicht noch einmal raus** (Hash des
+  JSON), beim Weckruf und beim normalen Abgleich; wer zieht, schickt immer.
+  **Verworfen:** jedes Mal schicken - die Uhr schreibt Schlaf in Raten, und
+  jeder Weckruf hätte 14 Nächte ersetzt, die sich nicht geändert haben.
+- **Die Historie kommt einmalig, in Blöcken, nur im Vordergrund und ohne dass
+  jemand darauf wartet** (Nächte 365 in 60er-Blöcken, Energie zehn Jahre in
+  365er-Blöcken, Cursor nach jedem Block). **Verworfen:** in einem Zug beim
+  ersten Start (eine Minute Ladekreisel beim Ziehen) oder im Hintergrund (dort
+  hat die App Sekunden, und ein abgebrochener Block käme doppelt).
+- **Gesperrtes iPhone: keine Nacht.** HealthKit meldet dann
+  `errorDatabaseInaccessible`; jede Abfrage bricht den Nacht-Upload ab
+  (`HealthReader.Failure.locked`), `errorNoData` dagegen heißt „leer".
+
 ## 2026-10-05 — coHabit: Typfarben wählt jede Person selbst, aus zehn Farben
 Torben fand nach der Farbe nach Typ (Eintrag darunter) alles braun: fast alles
 sind Streaks, und Pfirsich ist im Dunkeln braun. Entschieden hat Felix:

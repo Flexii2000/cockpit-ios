@@ -273,6 +273,49 @@ unvollständige Schnitte gestrichelt. Das Ziel ist eine **Sättigungskurve**
 (0,75 % Körpergewicht pro Woche), kein Datumsziel; der Korridor (±1,5 kg) wird
 erst ab dem Tag gezeichnet, an dem seine Oberkante erstmals unterschritten war.
 
+### Energie, Nächte, Recovery, Logbook — für Healthy (seit 2026-10-09, Branch `recovery`)
+
+Der Vertrag dazu ist `../weight-app/docs/HEALTHY-CONTRACT.md`: JSON-Formen, die
+Regeln, nach denen iOS **und** Android Tage und Nächte aus Health bilden, und
+die Anzeigeformate. Gerechnet wird im Dienst; die App liest Health
+(`Healthy/Health/`), schickt Tage und Nächte und zeigt, was zurückkommt.
+Nachgesehen in den Controllern und Records unter
+`../weight-app/src/main/java/…/{energy,nights,recovery,logbook}/`.
+
+⚠️ **Noch nicht ausgerollt.** Ein älterer Dienst antwortet auf jeden Pfad
+unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
+
+| Methode | Pfad | Rumpf → Antwort |
+|---|---|---|
+| POST | `/api/energy` | `{days:[EnergyDayInput], replace?}` → der **gespeicherte** Stand dieser Tage (≤ 5.000 Tage, keiner nach morgen) |
+| POST | `/api/nights` | `{nights:[Night]}` → die gespeicherten Nächte (≤ 400 je Anfrage; die App schickt ≤ 200) |
+| GET | `/api/nights?from=&to=` | `[Night]` |
+
+```
+EnergyDayInput  date, activeKcal?, basalKcal?   (je Tag mindestens eins; aktiv 0–10.000, Ruhe 0–5.000)
+Night           date (Aufwachtag), sleepStart?, sleepEnd? (Instant mit "Z"), asleepMinutes (0–1.440),
+                inBedMinutes?, awakeMinutes?, deepMinutes?, remMinutes?, coreMinutes?,
+                hrvSdnnMs?, hrvSdnnSamples?, hrvRmssdMs?, hrvRmssdSamples?,
+                sleepingHeartRate?, respiratoryRate?, source? ("ios" | "android")
+```
+
+⚠️ **Energie: heute und gestern gewinnt je Feld das Maximum**, ältere Tage
+ersetzt der neue Wert (dann hat Health iPhone und Uhr fertig
+zusammengeführt). Ein fehlendes Feld lässt den gespeicherten Wert stehen. Die
+App schickt bei jedem Abgleich die letzten 30 Tage und einmalig zehn Jahre in
+Blöcken zu 365 Tagen.
+
+⚠️ **Eine Nacht wird als Ganzes ersetzt.** Die App schickt deshalb nur, wenn
+**jede** Health-Abfrage des Laufs glückte — sonst ersetzte eine Nacht ohne
+HRV eine mit. Und **eine** unplausible Zahl (HRV außerhalb 1–400 ms, Puls
+20–220, Atem 3–60, Minuten über 1.440, `sleepEnd` nicht nach `sleepStart`)
+lässt die ganze Anfrage mit 400 scheitern: `HealthNights` lässt solche Werte
+weg, statt sie zu schicken.
+
+⚠️ **nginx nimmt bei `weight.fherrmann.com` höchstens 1 MB an**, und eine 413
+ist eine HTML-Seite. 200 Nächte sind rund 75 kB (`RecoveryAPI.nightsPerRequest`,
+geprüft in `HealthEnergyTests`).
+
 ## Kalorienzähler — `/api/food`
 
 | Methode | Pfad | Antwort |
