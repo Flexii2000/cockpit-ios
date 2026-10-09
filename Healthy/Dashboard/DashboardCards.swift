@@ -129,9 +129,9 @@ private struct EnergyBalanceBar: View {
     }
 }
 
-/// Die Woche: sieben Balken von einer Nulllinie aus - Defizit nach oben,
-/// Ueberschuss nach unten, heute blasser -, darunter die Wochentage, rechts
-/// „⌀ 7 T".
+/// Die Woche: die sieben vollen Tage als Balken von einer Nulllinie aus -
+/// Defizit nach oben, Ueberschuss nach unten -, darunter die Wochentage,
+/// rechts „⌀ 7 T".
 private struct EnergyWeek: View {
 
     let week: EnergyCardModel.Week
@@ -175,14 +175,14 @@ private struct EnergyWeek: View {
                 .frame(width: size.width, height: 1)
                 .offset(y: min(max(zero - 0.5, 0), size.height - 1))
             ForEach(Array(week.bars.enumerated()), id: \.element.id) { index, bar in
-                if let share = bar.height, share > 0 {
-                    let length = size.height * share
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill((bar.isSurplus ? Palette.surplus : Palette.deficit)
-                            .opacity(bar.isProjected ? 0.45 : 1))
+                if let share = bar.height {
+                    let length = CGFloat(EnergyCardModel.barLength(share, in: size.height))
+                    // Im Bild bleiben, auch wenn ein Strich an einem Rand liegt.
+                    let top = min(max(bar.isSurplus ? zero : zero - length, 0), size.height - length)
+                    RoundedRectangle(cornerRadius: min(2, length / 2))
+                        .fill(bar.isSurplus ? Palette.surplus : Palette.deficit)
                         .frame(width: barWidth, height: length)
-                        .offset(x: column * (CGFloat(index) + 0.5) - barWidth / 2,
-                                y: bar.isSurplus ? zero : zero - length)
+                        .offset(x: column * (CGFloat(index) + 0.5) - barWidth / 2, y: top)
                 }
             }
         }

@@ -40,20 +40,20 @@ struct EnergyCardModel: Equatable {
     /// Ein Tag der Woche.
     struct WeekBar: Equatable, Identifiable {
         let date: CalendarDate
-        /// „Mo" … „So", heute „heute".
+        /// „Mo" … „So".
         let label: String
         /// Hoehe als Anteil der ganzen Hoehe. `nil` ist ein Tag ohne Wert:
-        /// kein Balken, auch keine Null.
+        /// kein Balken. Ein Tag mit 0 hat 0 und wird trotzdem gezeichnet -
+        /// als duenner Strich (`barLength`).
         let height: Double?
         /// Nach unten in Ueberschuss-Farbe statt nach oben in Defizit-Farbe.
         let isSurplus: Bool
-        /// Die Prognose von heute - blasser.
-        let isProjected: Bool
 
         var id: CalendarDate { date }
     }
 
-    /// Sieben Balken D−6 … heute an einer Nulllinie, dazu „⌀ 7 T".
+    /// Die sieben vollen Tage D−7 … D−1 an einer Nulllinie, dazu „⌀ 7 T" ueber
+    /// dieselben Tage. Heute steht im Bilanzbalken (Felix, 09.10.).
     struct Week: Equatable {
         let bars: [WeekBar]
         /// Lage der Nulllinie, von oben gemessen: 1 ist unten (kein
@@ -75,7 +75,8 @@ extension EnergyCardModel {
 
     /// - Parameters:
     ///   - summary: `GET /api/energy/summary` - der Tag heute und `deficit7`.
-    ///   - week: `GET /api/energy?from=D−6&to=D`.
+    ///   - week: `GET /api/energy?from=D−7&to=D` - heute nur fuer Kopfzeile und
+    ///     Balken, falls die Summary fehlt.
     /// - Returns: `nil` ohne Defizit heute und ohne Wert in der Woche - dann
     ///   fehlt die Karte (§5 Punkt 5).
     init?(summary: EnergySummary?, week: [EnergyDay], today: CalendarDate) {
@@ -110,11 +111,13 @@ extension EnergyCardModel {
                           expenditureLabel: expenditureLabel)
     }
 
-    /// Die sieben Tage bis heute an **einer** Skala fuer beide Richtungen:
-    /// der groesste Betrag jeder Richtung reicht an ihren Rand.
-    /// - Parameter average: `deficit7` der Summary.
+    /// Die sieben vollen Tage bis gestern an **einer** Skala fuer beide
+    /// Richtungen: der groesste Betrag jeder Richtung reicht an ihren Rand.
+    /// Heute bleibt draussen - die Prognose waere morgens fast der ganze
+    /// Verbrauch und stauchte die uebrigen Tage.
+    /// - Parameter average: `deficit7` der Summary - dieselben sieben Tage.
     static func week(_ days: [EnergyDay], today: CalendarDate, average: Double?) -> Week? {
-        let dates = (-6...0).map { today.adding(days: $0) }
+        let dates = (-7 ... -1).map { today.adding(days: $0) }
         let byDate = Dictionary(days.map { ($0.date, $0) }, uniquingKeysWith: { _, newer in newer })
         // Gerundet wie die Zahlen: was auf 0 rundet, ist kein Ueberschuss -
         // dieselbe Regel wie beim Wort in der Kopfzeile.
@@ -126,19 +129,25 @@ extension EnergyCardModel {
         let span = largestDeficit + largestSurplus
         let bars = zip(dates, values).map { date, value in
             WeekBar(date: date,
-                    label: weekdayLabel(date, today: today),
+                    label: weekdayLabel(date),
                     height: value.map { span > 0 ? abs($0) / span : 0 },
-                    isSurplus: (value ?? 0) < 0,
-                    isProjected: byDate[date]?.projected ?? false)
+                    isSurplus: (value ?? 0) < 0)
         }
         return Week(bars: bars,
                     zeroLine: span > 0 ? largestDeficit / span : 1,
                     average: average.map(EnergyFormat.kcal) ?? "–")
     }
 
-    /// „Mo" … „So", heute „heute".
-    static func weekdayLabel(_ date: CalendarDate, today: CalendarDate) -> String {
-        if date == today { return "heute" }
+    /// Wie lang ein Balken gezeichnet wird: mindestens ein duenner Strich -
+    /// sonst saehe ein Tag mit 0 aus wie einer ohne Wert (Android: 2 dp).
+    static func barLength(_ share: Double, in height: Double) -> Double {
+        max(share * height, minimumBarLength)
+    }
+
+    static let minimumBarLength: Double = 2
+
+    /// „Mo" … „So".
+    static func weekdayLabel(_ date: CalendarDate) -> String {
         // Der Wochentag haengt nur am Kalendertag - in UTC gerechnet, damit
         // keine Zeitzone ihn auf den Vortag schiebt.
         let utc = TimeZone(identifier: "UTC") ?? .current

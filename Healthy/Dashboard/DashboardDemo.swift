@@ -38,9 +38,10 @@ enum DashboardDemo {
         (watch(offset) * factor).rounded()
     }
 
-    /// Gegessen laut Kalorienzaehler. Vorgestern ein Ueberschuss-Tag (die
-    /// Woche der Energie-Karte braucht einen), vor gut drei Wochen eine Woche
-    /// drueber (der Verlauf zeigt eine Ueberschuss-Stelle). An nicht
+    /// Gegessen laut Kalorienzaehler. Vorgestern ein Ueberschuss-Tag und vor
+    /// sechs Tagen ein fast ausgeglichener (die Woche der Energie-Karte zeigt
+    /// beides: Balken nach unten, duenner Strich), vor gut drei Wochen eine
+    /// Woche drueber (der Verlauf zeigt eine Ueberschuss-Stelle). An nicht
     /// getrackten Tagen fehlt etwas - wie im Leben, wenn das Abendessen nicht
     /// eingetragen ist; die Flaeche ist dort breiter, als die Linie „Defizit
     /// ⌀" hoch ist (Vertrag §5).
@@ -48,6 +49,7 @@ enum DashboardDemo {
         if offset == 0 { return 2150 }
         if !tracked(offset) { return (1600 + 150 * noise(offset, 8)).rounded() }
         if offset == 2 { return 3160 }
+        if offset == 6 { return expenditure(6) - 15 }
         if (16...22).contains(offset) { return (3250 + 180 * noise(offset, 9)).rounded() }
         return (2150 + 320 * noise(offset, 2)).rounded()
     }

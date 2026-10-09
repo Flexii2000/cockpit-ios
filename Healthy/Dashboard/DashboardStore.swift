@@ -21,7 +21,9 @@ final class DashboardStore {
 
     private(set) var recovery: RecoveryDay?
     private(set) var energy: EnergySummary?
-    /// Die Woche der Energie-Karte: D−6 … heute aus `GET /api/energy`.
+    /// Die Woche der Energie-Karte: D−7 … heute aus `GET /api/energy` - die
+    /// Balken zeigen die vollen Tage, heute dient nur als Ersatz fuer die
+    /// Summary.
     private(set) var energyWeek: [EnergyDay]?
     private(set) var weight: WeightSummary?
     private(set) var food: DaySummary?
@@ -59,7 +61,7 @@ final class DashboardStore {
         if DashboardDemo.isOn {
             recovery = DashboardDemo.recoveryDay(offset: 0)
             energy = DashboardDemo.energySummary()
-            energyWeek = DashboardDemo.energyDays(from: .today().adding(days: -6), to: .today())
+            energyWeek = DashboardDemo.energyDays(from: .today().adding(days: -7), to: .today())
             weight = DashboardDemo.weightSummary()
             food = DashboardDemo.foodDay()
             steps = DashboardDemo.steps
@@ -74,7 +76,7 @@ final class DashboardStore {
         let today = CalendarDate.today()
         async let recovery = Self.attempt { try await recoveryApi.today() }
         async let energy = Self.attempt { try await energyApi.summary() }
-        async let energyWeek = Self.attempt { try await energyApi.days(from: today.adding(days: -6), to: today) }
+        async let energyWeek = Self.attempt { try await energyApi.days(from: today.adding(days: -7), to: today) }
         async let weight = Self.attempt { try await weightApi.summary() }
         async let food = Self.attempt { try await foodApi.day(.today()) }
         async let logbook = Self.attempt { try await logbookApi.overview() }

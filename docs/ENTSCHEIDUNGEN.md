@@ -90,6 +90,16 @@ einzeilige Karte aus Runde 1 („Verbrauch ≈ 2.840 · gegessen 2.150 · Defizi
 - **Die Marke des Verbrauchs ist 3 Punkte breit und steht über den Balken
   hinaus.** **Verworfen:** eine Haarlinie in Balkenhöhe - am Ende des Balkens
   ging sie in der Defizit-Farbe unter.
+- **Die Woche zeigt nur volle Tage** (Felix, 09.10., Vertrag §5 Punkt 4): die
+  sieben Tage D−7 … D−1, „⌀ 7 T" über dieselben Tage; heute steht schon im
+  Bilanzbalken. Geholt wird D−7 … heute - heute dient nur als Ersatz, wenn die
+  Summary fehlt. **Verworfen:** heute wie bisher blasser mit (morgens ist die
+  Prognose fast der ganze Verbrauch und staucht die übrigen Balken) und heute
+  gekappt (ein abgeschnittener Balken sähe aus wie ein Wert).
+- **Ein Tag mit 0 oder fast 0 bekommt einen 2 Punkte hohen Strich**
+  (`EnergyCardModel.barLength`, wie Android 2 dp), damit er sich vom Tag ohne
+  Wert unterscheidet. **Verworfen:** nichts zeichnen (0 sähe aus wie
+  „nicht getrackt").
 
 ## 2026-10-09 — Healthy holt 425 Nächte zurück, nicht 365
 Felix hat entschieden (09.10., vor dem Ausrollen): Die einmalige Rückholung

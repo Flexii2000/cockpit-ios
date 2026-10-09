@@ -156,13 +156,16 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
   der Dienst.
 - [x] **Energie-Karte „Balken + Woche"** (`EnergyCardModel`, `EnergyCard`):
   groß „Defizit ≈ 690 kcal" (das Wort in Textfarbe, der Betrag farbig), der
-  Bilanzbalken mit „gegessen …" links und „Verbrauch ≈ …" rechts, die Woche D−6
-  … heute an einer Nulllinie (eine Skala für beide Richtungen, Tag ohne Wert
-  leer, heute blasser) mit „⌀ 7 T". Das Dashboard holt dafür zusätzlich
-  `GET /api/energy?from=D−6&to=D` - parallel, fällt für sich aus. Ohne Defizit
-  heute fehlen Kopfzeile und Balken, ohne Wert in der Woche die Woche, ohne
-  beides die Karte. Der Vorführmodus hat eine Woche mit Überschuss-Tag, einem
-  Tag ohne Wert und der Prognose von heute. Tests `EnergyCardModelTests`.
+  Bilanzbalken mit „gegessen …" links und „Verbrauch ≈ …" rechts, die Woche
+  als die **sieben vollen Tage D−7 … D−1** (Felix, 09.10.; heute steht im
+  Bilanzbalken) an einer Nulllinie - eine Skala für beide Richtungen, Tag ohne
+  Wert leer, ein Tag mit 0 oder fast 0 ein dünner Strich (2 Punkte, wie
+  Android) - mit „⌀ 7 T" über dieselben Tage. Das Dashboard holt dafür
+  zusätzlich `GET /api/energy?from=D−7&to=D` (heute nur als Ersatz, falls die
+  Summary fehlt) - parallel, fällt für sich aus. Ohne Defizit heute fehlen
+  Kopfzeile und Balken, ohne Wert in der Woche die Woche, ohne beides die
+  Karte. Der Vorführmodus hat eine Woche mit Überschuss-Tag, einem Tag ohne
+  Wert und einem fast ausgeglichenen Tag. Tests `EnergyCardModelTests`.
 - [x] **„Defizit ⌀" samt Fläche** im Essen-Verlauf (vorgewählt) und im
   Gewicht-Diagramm (angeboten, direkt hinter „Verbrauch ⌀"): Linie auf eigener
   Skala (`DeficitScale`, wie im Web) mit gestrichelter Nulllinie, gestrichelt
@@ -183,7 +186,7 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
 Unit-Tests Healthy 243 (vorher 219), coHabit 170. `tools/uitest.sh Healthy`:
 13 Tests, 12 grün, einer übersprungen (Push, braucht `COCKPIT_PUSH_TEST=1`).
 Bilder hell und dunkel mit `COCKPIT_DASHBOARD_DEMO=1` angesehen: Dashboard
-(Karte mit Überschuss-Tag, leerem Tag und blasser Prognose), Essen-Verlauf
+(Woche der vollen Tage mit Überschuss-Tag, leerem Tag und Strich), Essen-Verlauf
 (Linie, Fläche mit Überschuss-Stelle, Skala außen mit Titel - über
 `testFoodHistoryOffersTheExpenditure`, nur dort kommt man hin),
 Gewicht-Diagramm mit „Defizit ⌀" (Zahlen innen neben der kcal-Skala), mit

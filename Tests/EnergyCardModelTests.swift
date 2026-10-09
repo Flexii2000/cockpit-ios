@@ -84,34 +84,33 @@ final class EnergyCardModelTests: XCTestCase {
         XCTAssertNotNil(model.week)
     }
 
-    /// Die Prognose von heute: „≈" vor den Zahlen, ihr Balken in der Woche
-    /// blasser. Ein vergangener Tag ist keine Prognose.
+    /// Die Prognose von heute: „≈" vor den Zahlen in Kopfzeile und Balken.
     func testTodayIsAProjection() throws {
         let day = energy(0, deficit: 690, intake: 2150, projected: true)
         let model = try XCTUnwrap(EnergyCardModel(summary: summary(today: day),
                                                   week: [energy(1, deficit: 500), day], today: today))
         XCTAssertTrue(model.headline?.amount.hasPrefix("≈ ") ?? false)
         XCTAssertTrue(model.bar?.expenditureLabel.contains("≈") ?? false)
-        let bars = try XCTUnwrap(model.week?.bars)
-        XCTAssertEqual(bars.last?.isProjected, true)
-        XCTAssertEqual(bars[5].isProjected, false)
     }
 
     // MARK: - Woche
 
-    /// Sieben Tage D−6 … heute; ein Tag ohne Wert bleibt leer, ein
-    /// Ueberschuss geht nach unten. Beide Richtungen an einer Skala: der
-    /// groesste Betrag jeder Richtung reicht an ihren Rand.
+    /// Die sieben vollen Tage D−7 … D−1 (Felix, 09.10.); ein Tag ohne Wert
+    /// bleibt leer, ein Ueberschuss geht nach unten. Beide Richtungen an einer
+    /// Skala: der groesste Betrag jeder Richtung reicht an ihren Rand.
     func testWeekWithSurplusAndDayWithoutValue() throws {
-        let week = [energy(6, deficit: 400), energy(5, deficit: nil), energy(4, deficit: 600),
-                    energy(3, deficit: -300), energy(2, deficit: 200), energy(1, deficit: 500),
-                    energy(0, deficit: 690, intake: 2150, projected: true)]
+        let week = [energy(7, deficit: 400), energy(6, deficit: nil), energy(5, deficit: 600),
+                    energy(4, deficit: -300), energy(3, deficit: 200), energy(2, deficit: 500),
+                    energy(1, deficit: 690), energy(0, deficit: 2400, intake: 400, projected: true)]
         let model = try XCTUnwrap(EnergyCardModel(summary: summary(today: week.last), week: week,
                                                   today: today))
         let days = try XCTUnwrap(model.week)
-        XCTAssertEqual(days.bars.map(\.label), ["Sa", "So", "Mo", "Di", "Mi", "Do", "heute"])
+        XCTAssertEqual(days.bars.map(\.date), (1...7).reversed().map { today.adding(days: -$0) })
+        XCTAssertEqual(days.bars.map(\.label), ["Fr", "Sa", "So", "Mo", "Di", "Mi", "Do"])
+        // Die Prognose von heute (2.400) zaehlt nicht mit - sonst reichte sie an
+        // den Rand und stauchte die uebrigen Tage.
         XCTAssertEqual(days.zeroLine, 690.0 / 990, accuracy: 1e-9)
-        XCTAssertNil(days.bars[1].height, "ein Tag ohne Wert: kein Balken, keine Null")
+        XCTAssertNil(days.bars[1].height, "ein Tag ohne Wert: kein Balken")
         XCTAssertEqual(days.bars[3].isSurplus, true)
         XCTAssertEqual(days.bars[3].height ?? 0, 300.0 / 990, accuracy: 1e-9)
         XCTAssertEqual(days.bars[6].height ?? 0, 690.0 / 990, accuracy: 1e-9)
@@ -119,7 +118,7 @@ final class EnergyCardModelTests: XCTestCase {
         // Ueberschuss bis unten.
         XCTAssertEqual(days.bars[6].height ?? 0, days.zeroLine, accuracy: 1e-9)
         XCTAssertEqual((days.bars[3].height ?? 0) + days.zeroLine, 1, accuracy: 1e-9)
-        XCTAssertEqual(days.average, "312 kcal")
+        XCTAssertEqual(days.average, "312 kcal", "deficit7 - dieselben sieben Tage")
     }
 
     /// Ohne Ueberschuss liegt die Nulllinie unten, ohne Defizit oben.
@@ -127,15 +126,15 @@ final class EnergyCardModelTests: XCTestCase {
         let deficits = [energy(3, deficit: 250), energy(1, deficit: 500)]
         let up = try XCTUnwrap(EnergyCardModel.week(deficits, today: today, average: 300))
         XCTAssertEqual(up.zeroLine, 1)
-        XCTAssertEqual(up.bars[6 - 1].height, 1)
-        XCTAssertEqual(up.bars[6 - 3].height, 0.5)
+        XCTAssertEqual(up.bars[7 - 1].height, 1)
+        XCTAssertEqual(up.bars[7 - 3].height, 0.5)
 
         let surpluses = [energy(2, deficit: -100), energy(1, deficit: -400)]
         let down = try XCTUnwrap(EnergyCardModel.week(surpluses, today: today, average: -250))
         XCTAssertEqual(down.zeroLine, 0)
-        XCTAssertEqual(down.bars[6 - 1].height, 1)
-        XCTAssertEqual(down.bars[6 - 2].height, 0.25)
-        XCTAssertTrue(down.bars[6 - 2].isSurplus)
+        XCTAssertEqual(down.bars[7 - 1].height, 1)
+        XCTAssertEqual(down.bars[7 - 2].height, 0.25)
+        XCTAssertTrue(down.bars[7 - 2].isSurplus)
         XCTAssertEqual(down.average, "\u{2212}250 kcal", "Ueberschuss mit echtem Minus")
     }
 
@@ -143,18 +142,35 @@ final class EnergyCardModelTests: XCTestCase {
     func testRoundedZeroIsNoSurplus() throws {
         let week = [energy(2, deficit: -0.3), energy(1, deficit: 400)]
         let days = try XCTUnwrap(EnergyCardModel.week(week, today: today, average: nil))
-        XCTAssertFalse(days.bars[4].isSurplus)
-        XCTAssertEqual(days.bars[4].height, 0)
+        XCTAssertFalse(days.bars[5].isSurplus)
+        XCTAssertEqual(days.bars[5].height, 0)
         XCTAssertEqual(days.zeroLine, 1)
-        XCTAssertEqual(days.average, "–", "ohne deficit7 ein Strich")
+        XCTAssertEqual(days.average, "–", "ohne Summary ein Strich")
+    }
+
+    /// Ein Tag mit 0 oder fast 0 bekommt einen duennen Strich und sieht damit
+    /// anders aus als ein Tag ohne Wert.
+    func testZeroDayGetsAThinStroke() throws {
+        let week = [energy(3, deficit: 0), energy(2, deficit: 12), energy(1, deficit: 800)]
+        let days = try XCTUnwrap(EnergyCardModel.week(week, today: today, average: nil))
+        XCTAssertEqual(days.bars[4].height, 0, "0 ist ein Wert")
+        XCTAssertNil(days.bars[3].height, "ohne Wert bleibt es leer")
+        XCTAssertEqual(EnergyCardModel.barLength(days.bars[4].height ?? 0, in: 52),
+                       EnergyCardModel.minimumBarLength)
+        XCTAssertEqual(EnergyCardModel.barLength(days.bars[5].height ?? 0, in: 52),
+                       EnergyCardModel.minimumBarLength, "12 von 800 waeren keine Linie")
+        XCTAssertEqual(EnergyCardModel.barLength(days.bars[6].height ?? 0, in: 52), 52)
+        XCTAssertEqual(EnergyCardModel.minimumBarLength, 2)
     }
 
     /// Eine Woche ohne einen einzigen Wert fehlt - und ohne Defizit heute
-    /// dazu die ganze Karte.
+    /// dazu die ganze Karte. Heute zaehlt fuer die Woche nicht.
     func testEmptyWeek() throws {
         let untracked = [energy(3, deficit: nil, intake: 1200), energy(1, deficit: nil, intake: 900)]
         XCTAssertNil(EnergyCardModel.week(untracked, today: today, average: nil))
         XCTAssertNil(EnergyCardModel.week([], today: today, average: 312))
+        XCTAssertNil(EnergyCardModel.week([energy(0, deficit: 690, intake: 2150, projected: true)],
+                                          today: today, average: nil), "nur heute ist keine Woche")
 
         let day = energy(0, deficit: 690, intake: 2150, projected: true)
         let onlyToday = try XCTUnwrap(EnergyCardModel(summary: summary(today: day), week: [], today: today))
@@ -176,10 +192,11 @@ final class EnergyCardModelTests: XCTestCase {
         XCTAssertEqual(model.week?.average, "–")
     }
 
-    /// Ueber einen Monatswechsel: die Wochentage folgen dem Kalender.
+    /// Ueber einen Monatswechsel: die Wochentage folgen dem Kalender, ein
+    /// „heute" gibt es nicht mehr.
     func testWeekdayLabels() {
         let monday = CalendarDate(year: 2026, month: 11, day: 2)
-        let labels = (-6...0).map { EnergyCardModel.weekdayLabel(monday.adding(days: $0), today: monday) }
-        XCTAssertEqual(labels, ["Di", "Mi", "Do", "Fr", "Sa", "So", "heute"])
+        let labels = (1...7).reversed().map { EnergyCardModel.weekdayLabel(monday.adding(days: -$0)) }
+        XCTAssertEqual(labels, ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"])
     }
 }
