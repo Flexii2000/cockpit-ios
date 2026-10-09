@@ -43,6 +43,8 @@ final class WeightStore {
     private(set) var energySummary: EnergySummary?
     /// „Verbrauch ⌀" zum sichtbaren Zeitraum - hier nur angeboten.
     private(set) var expenditureAverage: [DayAverage] = []
+    /// „Defizit ⌀" ebenso - aus denselben Energietagen.
+    private(set) var deficitAverage: [DayAverage] = []
 
     private(set) var stepsToday: Int?
     /// Bis das Backend geantwortet hat. Ohne Vorgabe zeigte die Karte im
@@ -183,27 +185,28 @@ final class WeightStore {
         await loadExpenditure(from: first, to: last)
     }
 
-    /// Das Verbrauchsmittel zum Zeitraum. Nie nach heute (den Vorgriff der
+    /// Verbrauchs- und Defizitmittel zum Zeitraum. Nie nach heute (den Vorgriff der
     /// Zielkurve kennt der Dienst nicht), hoechstens 4.000 Tage - „Alles"
     /// reicht bis 2018 zurueck.
     private func loadExpenditure(from first: CalendarDate, to last: CalendarDate) async {
         let end = min(last, CalendarDate.today())
         guard first <= end else {
             expenditureAverage = []
+            deficitAverage = []
             return
         }
-        let start = EnergyAPI.clampedStart(from: first, to: end)
-        #if DEBUG
-        if DashboardDemo.isOn {
-            expenditureAverage = DashboardDemo.energyDays(from: start, to: end).compactMap(\.expenditureAverage)
-            return
-        }
-        #endif
-        guard let days = try? await energyApi.days(from: start, to: end) else {
-            expenditureAverage = []
-            return
-        }
+        let days = await energyDays(from: EnergyAPI.clampedStart(from: first, to: end), to: end)
         expenditureAverage = days.compactMap(\.expenditureAverage)
+        deficitAverage = days.compactMap(\.deficitAverage)
+    }
+
+    /// Still: ohne Uhr, mit einem aelteren Dienst oder ohne Netz fehlen nur
+    /// die beiden Kurven.
+    private func energyDays(from: CalendarDate, to: CalendarDate) async -> [EnergyDay] {
+        #if DEBUG
+        if DashboardDemo.isOn { return DashboardDemo.energyDays(from: from, to: to) }
+        #endif
+        return (try? await energyApi.days(from: from, to: to)) ?? []
     }
 
     func select(_ range: WeightRange) async {

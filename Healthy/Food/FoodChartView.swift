@@ -1,13 +1,13 @@
 import Charts
 import SwiftUI
 
-/// Verlauf: kcal je Tag als Saeulen, das Tagesziel als Linie, darueber die
-/// Gewichtskurve.
+/// Verlauf: die kcal (Mittel und Tageswert), das Tagesziel als Linie, der
+/// Verbrauch, das Defizit und darueber die Gewichtskurve.
 ///
-/// Swift Charts kennt nur **eine** y-Skala. Das Gewicht wird deshalb in den
-/// kcal-Bereich hineingerechnet und rechts mit eigenen Beschriftungen
-/// versehen - die Kurve stimmt dadurch in ihrem Verlauf, und die Achse sagt,
-/// welche Kilogramm dahinterstehen.
+/// Swift Charts kennt nur **eine** y-Skala. Gewicht und Defizit werden
+/// deshalb in den kcal-Bereich hineingerechnet und rechts mit eigenen
+/// Beschriftungen versehen - die Kurve stimmt dadurch in ihrem Verlauf, und
+/// die Achse sagt, welche Kilogramm bzw. kcal Defizit dahinterstehen.
 struct FoodChartView: View {
 
     let history: [DayTotal]
@@ -22,6 +22,11 @@ struct FoodChartView: View {
     /// zwischen ihm und „kcal ⌀" ist das Defizit.
     let expenditure: [DayAverage]
     let showExpenditure: Bool
+    /// „Defizit ⌀" aus dem Weight Tracker, auf eigener Skala - hier
+    /// vorgewaehlt. Mit „Verbrauch ⌀" und „kcal ⌀" faerbt es die Flaeche
+    /// zwischen den beiden (Vertrag §5).
+    let deficit: [DayAverage]
+    let showDeficit: Bool
     /// Der gewaehlte Zeitraum. Bewusst von aussen gesetzt und nicht aus
     /// `history` abgeleitet: sonst zeigt das Diagramm nur die Tage, an denen
     /// etwas eingetragen wurde, und der Umschalter bliebe wirkungslos.
@@ -46,6 +51,21 @@ struct FoodChartView: View {
 
     var body: some View {
         Chart {
+            // Die Flaeche zwischen Verbrauch und Aufnahme zuerst - sie liegt
+            // hinter allen Linien.
+            if showsBand {
+                ForEach(bandSegments) { segment in
+                    ForEach(segment.points, id: \.date) { point in
+                        AreaMark(x: .value("Tag", point.date),
+                                 yStart: .value("kcal ⌀", point.intake),
+                                 yEnd: .value("Verbrauch ⌀", point.expenditure),
+                                 series: .value("Fläche", segment.id))
+                    }
+                    .foregroundStyle(segment.isDeficit ? Palette.deficitFill : Palette.surplusFill)
+                    .interpolationMethod(.linear)
+                }
+            }
+
             if let kcalTarget {
                 RuleMark(y: .value("Ziel", kcalTarget))
                     .foregroundStyle(Palette.kcal.opacity(0.6))
@@ -133,6 +153,32 @@ struct FoodChartView: View {
                 }
             }
 
+            // Das Defizit auf eigener Skala: ueber der gestrichelten Nulllinie
+            // Defizit, darunter Ueberschuss. Gestrichelt wie „Verbrauch ⌀",
+            // solange das Fenster nicht ganz vorbei ist.
+            if showDeficit && !deficit.isEmpty {
+                RuleMark(y: .value("Defizit", deficitPosition(0)))
+                    .foregroundStyle(Palette.deficit.opacity(0.8))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                ForEach(deficitRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kcal", only.value))
+                        .foregroundStyle(Palette.deficit)
+                        .symbolSize(18)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kcal", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.deficit)
+                        .lineStyle(StrokeStyle(lineWidth: 2.2, dash: run.complete ? [] : [4, 4]))
+                        .interpolationMethod(.linear)
+                    }
+                }
+            }
+
             // Gewicht: Mittel und Tageswerte einzeln zuschaltbar. Auch hier
             // an Luecken getrennt - an Tagen ohne Messung steht nichts.
             ForEach(weightRuns) { run in
@@ -186,6 +232,26 @@ struct FoodChartView: View {
                     }
                 }
             }
+            // Ohne Kilogramm gehoert die rechte Seite dem Defizit - aussen wie
+            // die kg-Skala. Mit ihnen steht es klein innen (`chartOverlay`).
+            AxisMarks(position: .trailing,
+                      values: deficitOutside ? deficitScale.ticks.map(deficitPosition) : []) { value in
+                if let mapped = value.as(Double.self) {
+                    AxisValueLabel {
+                        Text(GermanNumber.string(deficitScale.value(at: mapped, in: kcalDomain)))
+                            .font(.caption2)
+                            .foregroundStyle(Palette.deficit)
+                    }
+                }
+            }
+        }
+        // Der Titel der Defizit-Skala, wenn sie aussen steht (Vertrag §5).
+        .chartYAxisLabel(position: .top, alignment: .trailing, spacing: 4) {
+            if deficitOutside {
+                Text("Defizit")
+                    .font(.caption2)
+                    .foregroundStyle(Palette.deficit)
+            }
         }
         .chartXAxis {
             // `.aligned` haelt die aeusseren Beschriftungen im Bild - ohne das
@@ -201,52 +267,64 @@ struct FoodChartView: View {
         }
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    // `simultaneousGesture` und eine Mindeststrecke, nicht
-                    // `gesture(minimumDistance: 0)`: sonst nimmt das Diagramm
-                    // jede Beruehrung fuer sich und die Seite laesst sich nicht
-                    // mehr scrollen, sobald der Finger darauf landet. Der
-                    // UI-Test hat genau das gefunden - zweimal nach oben
-                    // gewischt, und die Karte darunter blieb angeschnitten.
-                    .simultaneousGesture(DragGesture(minimumDistance: 8)
-                        .onChanged { value in
-                            // Nur waagerechte Bewegungen lesen Werte ab.
-                            // Senkrechte gehoeren der Liste.
-                            guard abs(value.translation.width)
-                                    > abs(value.translation.height) else { return }
-                            guard let plot = proxy.plotFrame else { return }
-                            let x = value.location.x - geometry[plot].origin.x
-                            guard let date: Date = proxy.value(atX: x) else { return }
-                            // Der Verlauf hat nur an Tagen mit Eintrag Werte -
-                            // gesucht wird trotzdem im ganzen Fenster, sonst
-                            // springt die Markierung ueber Luecken.
-                            selectedDay = ChartSelection.nearestDay(
-                                to: date, in: tageImDiagramm)
-                        }
-                        .onEnded { _ in selectedDay = nil })
-                    .simultaneousGesture(SpatialTapGesture()
-                        .onEnded { tap in
-                            // Antippen soll auch ohne Bewegung einen Wert
-                            // zeigen - eine Ziehgeste mit Mindeststrecke tut
-                            // das nicht mehr.
-                            guard let plot = proxy.plotFrame else { return }
-                            let x = tap.location.x - geometry[plot].origin.x
-                            guard let date: Date = proxy.value(atX: x) else { return }
-                            selectedDay = ChartSelection.nearestDay(
-                                to: date, in: tageImDiagramm)
-                        })
+                ZStack(alignment: .topLeading) {
+                    if deficitInside, let plot = proxy.plotFrame {
+                        DeficitInsideLabels(scale: deficitScale, target: kcalDomain,
+                                            proxy: proxy, plot: geometry[plot])
+                    }
+                    gestureLayer(proxy, geometry)
+                }
             }
         }
         .frame(height: 220)
+    }
+
+    /// Antippen und waagerechtes Ziehen lesen Werte ab.
+    private func gestureLayer(_ proxy: ChartProxy, _ geometry: GeometryProxy) -> some View {
+        Rectangle()
+            .fill(.clear)
+            .contentShape(Rectangle())
+            // `simultaneousGesture` und eine Mindeststrecke, nicht
+            // `gesture(minimumDistance: 0)`: sonst nimmt das Diagramm
+            // jede Beruehrung fuer sich und die Seite laesst sich nicht
+            // mehr scrollen, sobald der Finger darauf landet. Der
+            // UI-Test hat genau das gefunden - zweimal nach oben
+            // gewischt, und die Karte darunter blieb angeschnitten.
+            .simultaneousGesture(DragGesture(minimumDistance: 8)
+                .onChanged { value in
+                    // Nur waagerechte Bewegungen lesen Werte ab.
+                    // Senkrechte gehoeren der Liste.
+                    guard abs(value.translation.width)
+                            > abs(value.translation.height) else { return }
+                    guard let plot = proxy.plotFrame else { return }
+                    let x = value.location.x - geometry[plot].origin.x
+                    guard let date: Date = proxy.value(atX: x) else { return }
+                    // Der Verlauf hat nur an Tagen mit Eintrag Werte -
+                    // gesucht wird trotzdem im ganzen Fenster, sonst
+                    // springt die Markierung ueber Luecken.
+                    selectedDay = ChartSelection.nearestDay(
+                        to: date, in: tageImDiagramm)
+                }
+                .onEnded { _ in selectedDay = nil })
+            .simultaneousGesture(SpatialTapGesture()
+                .onEnded { tap in
+                    // Antippen soll auch ohne Bewegung einen Wert
+                    // zeigen - eine Ziehgeste mit Mindeststrecke tut
+                    // das nicht mehr.
+                    guard let plot = proxy.plotFrame else { return }
+                    let x = tap.location.x - geometry[plot].origin.x
+                    guard let date: Date = proxy.value(atX: x) else { return }
+                    selectedDay = ChartSelection.nearestDay(
+                        to: date, in: tageImDiagramm)
+                })
     }
 
     /// Die Tage, auf die sich eine Beruehrung zuordnen laesst. Der Verlauf hat
     /// nur an Tagen mit Eintrag Werte - dazwischen springt die Markierung auf
     /// den naechstgelegenen.
     private var tageImDiagramm: [CalendarDate] {
-        Array(Set(history.map(\.date) + averages.map(\.date) + expenditure.map(\.date))).sorted()
+        Array(Set(history.map(\.date) + averages.map(\.date) + expenditure.map(\.date)
+                  + deficit.map(\.date))).sorted()
     }
 
     /// Alle sichtbaren Reihen fuer diesen Tag.
@@ -263,6 +341,11 @@ struct FoodChartView: View {
         if showExpenditure, let spent = expenditure.first(where: { $0.date == day }) {
             result.append(CalloutEntry(label: "Verbrauch ⌀", value: GermanNumber.string(spent.kcal),
                                        color: Palette.expenditure))
+        }
+        // Der Wert aus der unveraenderten Reihe, nicht aus der hineingerechneten.
+        if showDeficit, let average = deficit.first(where: { $0.date == day }) {
+            result.append(CalloutEntry(label: "Defizit ⌀ 7 Tage", value: EnergyFormat.kcal(average.kcal),
+                                       color: Palette.deficit))
         }
         for series in [WeightSeries.avg7, .measured] where weightOverlay.contains(series) {
             if let value = FoodChartData
@@ -291,6 +374,38 @@ struct FoodChartView: View {
 
     private var expenditureRuns: [AverageRun] {
         FoodChartData.expenditureRuns(expenditure)
+    }
+
+    private var deficitScale: DeficitScale {
+        DeficitScale(values: deficit.map(\.kcal))
+    }
+
+    private func deficitPosition(_ value: Double) -> Double {
+        deficitScale.position(value, in: kcalDomain)
+    }
+
+    private var deficitRuns: [AverageRun] {
+        FoodChartData.deficitRuns(deficit, scale: deficitScale, onto: kcalDomain)
+    }
+
+    /// Rechts aussen steht die Defizit-Skala nur, solange dort keine
+    /// Kilogramm stehen.
+    private var deficitOutside: Bool {
+        showDeficit && !deficit.isEmpty && weightOverlay.isEmpty
+    }
+
+    private var deficitInside: Bool {
+        showDeficit && !deficit.isEmpty && !weightOverlay.isEmpty
+    }
+
+    /// Die Flaeche gehoert zu „Defizit ⌀" und braucht beide Kurven, die sie
+    /// einfassen (Vertrag §5).
+    private var showsBand: Bool {
+        showDeficit && showExpenditure && showAverage
+    }
+
+    private var bandSegments: [BandSegment] {
+        EnergyBand.segments(expenditure: expenditure, intake: averages)
     }
 
     /// Alle sichtbaren Gewichtswerte - sie teilen sich eine Skala, sonst

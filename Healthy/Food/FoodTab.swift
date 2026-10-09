@@ -526,11 +526,13 @@ struct FoodTab: View {
                           showDaily: store.showKcalDaily,
                           expenditure: expenditure,
                           showExpenditure: store.showExpenditure,
+                          deficit: store.deficitAverage,
+                          showDeficit: store.showDeficit,
                           from: store.historyFrom,
                           to: store.historyTo,
                           weightOverlay: store.weightOverlay)
 
-            // Die Umschalter sind zugleich die Legende. Fuenf passen nicht in
+            // Die Umschalter sind zugleich die Legende. Sechs passen nicht in
             // eine iPhone-Breite - sie brechen um, statt seitlich zu scrollen:
             // was am Rand abgeschnitten ist, findet niemand.
             FlowLayout(spacing: 8) {
@@ -543,11 +545,16 @@ struct FoodTab: View {
                     store.showKcalDaily.toggle()
                 }
                 // Nur, wenn es einen Verbrauch gibt - ohne Uhr waere es ein
-                // Schalter ohne Kurve.
+                // Schalter ohne Kurve. „Defizit ⌀" direkt dahinter (Vertrag
+                // §5): ohne Verbrauch gibt es auch kein Defizit.
                 if !expenditure.isEmpty {
                     SeriesChip(title: "Verbrauch ⌀", color: Palette.expenditure,
                                isOn: store.showExpenditure) {
                         store.showExpenditure.toggle()
+                    }
+                    SeriesChip(title: "Defizit ⌀", color: Palette.deficit,
+                               isOn: store.showDeficit) {
+                        store.showDeficit.toggle()
                     }
                 }
                 SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,

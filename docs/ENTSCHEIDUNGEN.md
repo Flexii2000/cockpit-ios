@@ -3,6 +3,42 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy: „Defizit ⌀" als eigene Linie und als Fläche
+Felix hat entschieden (09.10., Runde 2): Das Defizit steht in den Verläufen
+**als eigene Linie** („Defizit ⌀" aus `deficitAvg7`, eigene Skala mit
+Nulllinie) **und als eingefärbte Fläche** zwischen „Verbrauch ⌀" und „kcal ⌀"
+(Defizit- bzw. Überschuss-Farbe). Im Essen-Verlauf **vorgewählt**, im
+Gewicht-Diagramm **nur angeboten** - wie „Verbrauch ⌀". Vertrag §5.
+**Verworfen:** nur die Fläche (sie zählt auch halb erfasste Tage mit, die
+Linie nur getrackte) oder nur die Linie (die Lücke zwischen den Kurven bliebe
+ungedeutet). In der App:
+- **Die Skala rechnet wie das Web** (`DeficitScale`): schließt 0 ein, Grenzen
+  auf 250er, ab 1.500 kcal Spanne auf 500er Schritte, mindestens zwei
+  Schritte; die Kurve wird in die Achse des Diagramms hineingerechnet wie das
+  Gewicht. **Verworfen:** die automatischen Marken von Swift Charts - App und
+  Web zeigten verschiedene Zahlen.
+- **Rechte Seite frei → außen wie die kg-Skala**, mit kleinem Titel „Defizit"
+  darüber (`chartYAxisLabel`). **Rechte Seite belegt** (kg im Essen-Verlauf,
+  kcal im Gewicht-Diagramm) **→ klein innen am rechten Rand**, nur 0 und die
+  beiden runden Ränder, ohne Titel, gezeichnet im `chartOverlay`
+  (`DeficitInsideLabels`); die Zahl steht knapp über ihrer Höhe, damit sie die
+  Nulllinie nicht durchkreuzt. **Verworfen:** eine zweite Achse rechts - Swift
+  Charts setzt je Seite eine Spalte, die Zahlen lägen übereinander.
+- **Die Fläche besteht aus Stücken einer Farbe** (`EnergyBand`): je Stück eine
+  `AreaMark`-Reihe, getrennt an jeder Lücke einer der beiden Kurven und am
+  Schnittpunkt, der zwischen zwei Tagen genau ausgerechnet wird (die Linien
+  sind gerade, `.linear`). Zuerst gezeichnet, also hinter allen Linien.
+  **Verworfen:** eine durchgehende Fläche mit Farbwechsel am Tagesrand (der
+  Vertrag will den Schnittpunkt) und eine Fläche über Lücken hinweg (die
+  Linien sind dort auch getrennt).
+- **Die Nulllinie ist fein gestrichelt** (1 Punkt, `[3, 3]`), die Kurve selbst
+  2,2 Punkte und erst am offenen Rand gestrichelt (`[4, 4]` wie „Verbrauch
+  ⌀"). **Verworfen:** gepunktet wie „kcal ⌀" - der Vertrag sagt gestrichelt.
+- **Der Schalter „Defizit ⌀" erscheint mit „Verbrauch ⌀"**, also sobald es im
+  Zeitraum einen Verbrauch gibt. **Verworfen:** nur mit Werten von
+  `deficitAvg7` - ein Zeitraum ohne getrackten Tag verlöre dann auch die
+  Fläche, die es dort gibt.
+
 ## 2026-10-09 — Healthy: Energie-Karte „Balken + Woche"
 Felix hat entschieden (09.10., Runde 2): Die Energie-Karte im Dashboard zeigt
 groß die Bilanz von heute, darunter einen **Bilanzbalken** (gegessen gegen

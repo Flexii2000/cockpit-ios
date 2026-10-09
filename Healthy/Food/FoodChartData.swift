@@ -51,6 +51,7 @@ enum FoodChartData {
             case .kcal:     nil
             case .kcalDay:  nil
             case .expenditure: nil
+            case .deficit:  nil
             }
             return raw.map { DayValue(date: point.date, value: $0) }
         }
@@ -65,6 +66,13 @@ enum FoodChartData {
     /// solange das Fenster nicht ganz vorbei ist.
     static func expenditureRuns(_ expenditure: [DayAverage]) -> [AverageRun] {
         DaySeries.averageRuns(expenditure, key: "expenditure")
+    }
+
+    /// „Defizit ⌀" auf seiner eigenen Skala, hineingerechnet in die kcal-Achse
+    /// - an Luecken getrennt und gestrichelt wie „Verbrauch ⌀".
+    static func deficitRuns(_ deficit: [DayAverage], scale: DeficitScale,
+                            onto domain: ClosedRange<Double>) -> [AverageRun] {
+        DaySeries.averageRuns(deficit, key: "deficit", map: { scale.position($0, in: domain) })
     }
 
     /// Ausgemessen an dem, was zu sehen ist - das Mittel braucht weniger

@@ -155,6 +155,7 @@ struct WeightTab: View {
                             kcalAverage: store.kcalAverage,
                             kcalTarget: store.kcalTarget,
                             expenditureAverage: store.expenditureAverage,
+                            deficitAverage: store.deficitAverage,
                             visible: store.visibleSeries)
 
             // Die Umschalter sind zugleich die Legende - eine zweite Liste
@@ -163,10 +164,11 @@ struct WeightTab: View {
             // lag der letzte Chip unsichtbar hinter dem Rand.
             FlowLayout(spacing: 8) {
                 ForEach(store.range.offeredSeries) { series in
-                    // „Verbrauch ⌀" nur, wenn es einen gibt - ohne Uhr oder mit
-                    // einem aelteren Dienst waere es ein Schalter ohne Kurve.
+                    // „Verbrauch ⌀" und „Defizit ⌀" nur, wenn es einen Verbrauch
+                    // gibt - ohne Uhr oder mit einem aelteren Dienst waeren es
+                    // Schalter ohne Kurve.
                     if store.range.availableSeries.contains(series),
-                       series != .expenditure || !store.expenditureAverage.isEmpty {
+                       ![.expenditure, .deficit].contains(series) || !store.expenditureAverage.isEmpty {
                         SeriesChip(title: series.title,
                                    color: series.color,
                                    isOn: store.visibleSeries.contains(series)) {

@@ -202,7 +202,7 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// Ein fuenfter Umschalter passte nicht in die Reihe.
     var offeredSeries: [WeightSeries] {
         switch self {
-        case .allTime: [.measured, .avg30, .target, .kcal, .kcalDay, .expenditure]
+        case .allTime: [.measured, .avg30, .target, .kcal, .kcalDay, .expenditure, .deficit]
         default:       WeightSeries.offered
         }
     }
@@ -221,8 +221,8 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// 14er darin kaum mehr - dieselbe Einschraenkung wie in der Weboberflaeche.
     var availableSeries: [WeightSeries] {
         switch self {
-        case .month: [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure]
-        default:     [.measured, .avg7, .avg14, .avg30, .target, .kcal, .kcalDay, .expenditure]
+        case .month: [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure, .deficit]
+        default:     [.measured, .avg7, .avg14, .avg30, .target, .kcal, .kcalDay, .expenditure, .deficit]
         }
     }
 }
@@ -240,6 +240,10 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// Weight Tracker, auf der kcal-Skala. Hier nur angeboten, nicht
     /// vorgewaehlt - im Essen-Verlauf ist es umgekehrt (Vertrag §5).
     case expenditure
+    /// „Defizit ⌀": das 7-Tage-Mittel des Defizits ueber die getrackten Tage,
+    /// auf eigener Skala mit Nulllinie. Wie der Verbrauch hier nur angeboten;
+    /// mit ihm und „kcal ⌀" faerbt es die Flaeche zwischen den beiden.
+    case deficit
 
     var id: String { rawValue }
 
@@ -253,6 +257,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
         case .kcal:     "kcal ⌀"
         case .kcalDay:  "kcal Tag"
         case .expenditure: "Verbrauch ⌀"
+        case .deficit:  "Defizit ⌀"
         }
     }
 
@@ -260,7 +265,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// Weboberflaeche (`offeredSeries` in app.js): die langen Mittel dort
     /// nicht anbieten, statt einen Umschalter zu zeigen, den niemand
     /// benutzt. „Alles" hat sein eigenes Angebot, siehe `WeightRange`.
-    static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure]
+    static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure, .deficit]
 
     static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .kcal]
 }

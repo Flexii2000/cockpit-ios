@@ -13,6 +13,8 @@ struct WeightChartView: View {
     let kcalTarget: Double?
     /// „Verbrauch ⌀" vom Weight Tracker - auf der kcal-Skala wie die kcal.
     let expenditureAverage: [DayAverage]
+    /// „Defizit ⌀" vom Weight Tracker - auf eigener Skala mit Nulllinie.
+    let deficitAverage: [DayAverage]
     let visible: Set<WeightSeries>
 
     @State private var selectedDay: CalendarDate?
@@ -75,6 +77,21 @@ struct WeightChartView: View {
                     yStart: .value("unten", corridor.lower),
                     yEnd: .value("oben", corridor.upper))
                 .foregroundStyle(Palette.target.opacity(0.12))
+            }
+
+            // Die Flaeche zwischen Verbrauch und Aufnahme gehoert zu „Defizit ⌀"
+            // und liegt hinter allen Kurven.
+            if showsBand {
+                ForEach(bandSegments) { segment in
+                    ForEach(segment.points, id: \.date) { point in
+                        AreaMark(x: .value("Tag", point.date),
+                                 yStart: .value("kcal ⌀", point.intake),
+                                 yEnd: .value("Verbrauch ⌀", point.expenditure),
+                                 series: .value("Fläche", segment.id))
+                    }
+                    .foregroundStyle(segment.isDeficit ? Palette.deficitFill : Palette.surplusFill)
+                    .interpolationMethod(.linear)
+                }
             }
 
             if visible.contains(.kcal) || visible.contains(.kcalDay) {
@@ -149,6 +166,32 @@ struct WeightChartView: View {
                                      series: .value("Serie", run.id))
                         }
                         .foregroundStyle(Palette.expenditure)
+                        .lineStyle(StrokeStyle(lineWidth: 1.8, dash: run.complete ? [] : [4, 4]))
+                        .interpolationMethod(.linear)
+                    }
+                }
+            }
+
+            if visible.contains(.deficit) && !deficitAverage.isEmpty {
+                // Das Defizit auf eigener Skala: ueber der gestrichelten
+                // Nulllinie Defizit, darunter Ueberschuss; gestrichelt, solange
+                // das Fenster nicht ganz vorbei ist.
+                RuleMark(y: .value("Defizit", deficitPosition(0)))
+                    .foregroundStyle(Palette.deficit.opacity(0.8))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                ForEach(deficitRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kg", only.value))
+                        .foregroundStyle(Palette.deficit)
+                        .symbolSize(14)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kg", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.deficit)
                         .lineStyle(StrokeStyle(lineWidth: 1.8, dash: run.complete ? [] : [4, 4]))
                         .interpolationMethod(.linear)
                     }
@@ -246,23 +289,50 @@ struct WeightChartView: View {
                     }
                 }
             }
+            // Ohne kcal-Skala gehoert die rechte Seite dem Defizit - aussen.
+            // Mit ihr steht es klein innen (`chartOverlay`).
+            if deficitOutside {
+                AxisMarks(position: .trailing, values: deficitScale.ticks.map(deficitPosition)) { value in
+                    if let mapped = value.as(Double.self) {
+                        AxisValueLabel {
+                            Text(GermanNumber.string(deficitScale.value(at: mapped, in: yDomain)))
+                                .font(.caption2)
+                                .foregroundStyle(Palette.deficit)
+                        }
+                    }
+                }
+            }
+        }
+        // Der Titel der Defizit-Skala, wenn sie aussen steht (Vertrag §5).
+        .chartYAxisLabel(position: .top, alignment: .trailing, spacing: 4) {
+            if deficitOutside {
+                Text("Defizit")
+                    .font(.caption2)
+                    .foregroundStyle(Palette.deficit)
+            }
         }
         .chartOverlay { proxy in
             GeometryReader { geometry in
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    // Der Wert steht, sobald der Finger aufliegt. Wem die
-                    // Beruehrung gehoert, entscheidet die erste deutliche
-                    // Bewegung: eher seitwaerts heisst ablesen, und die
-                    // Liste bleibt stehen; eher hoch oder runter heisst
-                    // scrollen, und der Wert verschwindet wieder. Ein Tipp
-                    // ohne Bewegung laesst den Wert stehen, bis man woanders
-                    // tippt. Vorher musste man erst kurz halten - das kam
-                    // als Verzoegerung an.
-                    .gesture(ScrubGesture(
-                        onChange: { location in select(at: location.x, in: proxy, geometry) },
-                        onEnd: { wasTap in if !wasTap { selectedDay = nil } }))
+                ZStack(alignment: .topLeading) {
+                    if deficitInside, let plot = proxy.plotFrame {
+                        DeficitInsideLabels(scale: deficitScale, target: yDomain,
+                                            proxy: proxy, plot: geometry[plot])
+                    }
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        // Der Wert steht, sobald der Finger aufliegt. Wem die
+                        // Beruehrung gehoert, entscheidet die erste deutliche
+                        // Bewegung: eher seitwaerts heisst ablesen, und die
+                        // Liste bleibt stehen; eher hoch oder runter heisst
+                        // scrollen, und der Wert verschwindet wieder. Ein Tipp
+                        // ohne Bewegung laesst den Wert stehen, bis man woanders
+                        // tippt. Vorher musste man erst kurz halten - das kam
+                        // als Verzoegerung an.
+                        .gesture(ScrubGesture(
+                            onChange: { location in select(at: location.x, in: proxy, geometry) },
+                            onEnd: { wasTap in if !wasTap { selectedDay = nil } }))
+                }
             }
         }
         // Hoeher als vorher (260): die Kurve schwankt um wenige Kilogramm,
@@ -327,7 +397,46 @@ struct WeightChartView: View {
             result.append(CalloutEntry(label: "Verbrauch ⌀", value: GermanNumber.string(expenditure.kcal),
                                        color: Palette.expenditure))
         }
+        if visible.contains(.deficit),
+           let deficit = deficitAverage.first(where: { $0.date == point.date }) {
+            result.append(CalloutEntry(label: "Defizit ⌀ 7 Tage", value: EnergyFormat.kcal(deficit.kcal),
+                                       color: Palette.deficit))
+        }
         return result
+    }
+
+    // MARK: - Defizit auf eigener Skala
+
+    private var deficitScale: DeficitScale {
+        DeficitScale(values: deficitAverage.map(\.kcal))
+    }
+
+    private func deficitPosition(_ value: Double) -> Double {
+        deficitScale.position(value, in: yDomain)
+    }
+
+    private var deficitRuns: [AverageRun] {
+        DaySeries.averageRuns(deficitAverage, key: "deficit", map: deficitPosition)
+    }
+
+    /// Rechts aussen steht die Defizit-Skala nur, solange dort keine kcal
+    /// stehen.
+    private var deficitOutside: Bool {
+        visible.contains(.deficit) && !deficitAverage.isEmpty && !usesKcalScale
+    }
+
+    private var deficitInside: Bool {
+        visible.contains(.deficit) && !deficitAverage.isEmpty && usesKcalScale
+    }
+
+    /// Die Flaeche gehoert zu „Defizit ⌀" und braucht beide Kurven, die sie
+    /// einfassen (Vertrag §5).
+    private var showsBand: Bool {
+        visible.isSuperset(of: [.deficit, .expenditure, .kcal])
+    }
+
+    private var bandSegments: [BandSegment] {
+        EnergyBand.segments(expenditure: expenditureAverage, intake: kcalAverage, map: toWeightScale)
     }
 
     // MARK: - kcal auf der Gewichtsskala

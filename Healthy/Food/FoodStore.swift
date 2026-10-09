@@ -32,6 +32,10 @@ final class FoodStore {
     /// „Verbrauch ⌀" - vorgewaehlt: die Luecke zwischen ihm und „kcal ⌀" ist
     /// das Defizit, und genau das soll der Verlauf zeigen (Vertrag §5).
     var showExpenditure = true
+    /// „Defizit ⌀" - ebenfalls vorgewaehlt (Vertrag §5): die Linie sagt, wie
+    /// die getrackten Tage liefen, die Flaeche zwischen „Verbrauch ⌀" und
+    /// „kcal ⌀" faerbt die Luecke.
+    var showDeficit = true
     /// Die Energiebilanz je Tag vom Weight Tracker: Verbrauch, Defizit, das
     /// Mittel fuer die Kurve. Faellt er aus (oder kennt sie noch nicht),
     /// fehlen nur die Zeilen und die Kurve - der Tag steht trotzdem da.
@@ -101,6 +105,14 @@ final class FoodStore {
         energyByDay.values
             .filter { $0.date >= historyFrom && $0.date <= historyTo }
             .compactMap(\.expenditureAverage)
+            .sorted { $0.date < $1.date }
+    }
+
+    /// „Defizit ⌀" im Fenster des Verlaufs.
+    var deficitAverage: [DayAverage] {
+        energyByDay.values
+            .filter { $0.date >= historyFrom && $0.date <= historyTo }
+            .compactMap(\.deficitAverage)
             .sorted { $0.date < $1.date }
     }
 

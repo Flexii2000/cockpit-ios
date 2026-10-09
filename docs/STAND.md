@@ -159,7 +159,16 @@ Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.m
   heute fehlen Kopfzeile und Balken, ohne Wert in der Woche die Woche, ohne
   beides die Karte. Der Vorführmodus hat eine Woche mit Überschuss-Tag, einem
   Tag ohne Wert und der Prognose von heute. Tests `EnergyCardModelTests`.
-- [ ] „Defizit ⌀" samt Fläche im Essen-Verlauf und im Gewicht-Diagramm
+- [x] **„Defizit ⌀" samt Fläche** im Essen-Verlauf (vorgewählt) und im
+  Gewicht-Diagramm (angeboten, direkt hinter „Verbrauch ⌀"): Linie auf eigener
+  Skala (`DeficitScale`, wie im Web) mit gestrichelter Nulllinie, gestrichelt
+  am offenen Rand; Beschriftung rechts außen mit Titel „Defizit", wenn die
+  Seite frei ist, sonst klein innen (0 und die Ränder,
+  `DeficitInsideLabels`). Die Fläche zwischen „Verbrauch ⌀" und „kcal ⌀"
+  (`EnergyBand`) ist da, wenn alle drei an sind - nur wo beide Kurven Werte
+  haben, Farbwechsel am Schnittpunkt, hinter den Linien. Antippen zeigt
+  „Defizit ⌀ 7 Tage: 460 kcal" bzw. „−120 kcal". Tests `DeficitChartTests`,
+  `WeightModelTests`.
 - [ ] Vorführmodus auch für Essen- und Gewicht-Tab
 
 ## Healthy: Dashboard, Energie, Recovery, Logbook · **gebaut, nicht ausgerollt** (2026-10-09)
