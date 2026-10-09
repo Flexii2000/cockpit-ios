@@ -66,6 +66,9 @@ final class Router {
     /// Datum: der Tab soll auch dann springen, wenn schon heute gefragt war
     /// und inzwischen weitergeblaettert wurde.
     private(set) var foodTodayRequests = 0
+    /// Zaehlt die Tipps auf die Erinnerung des Logbooks: eine offene Seite
+    /// springt dann auf gestern (`LogbookStore.followToday`).
+    private(set) var logbookRequests = 0
 
     private init() {}
 
@@ -87,7 +90,9 @@ final class Router {
         case .food:       show(.food)
         case .foodToday:  showFoodToday()
         case .evaluation: show(.evaluation)
-        case .logbook:    open(.logbook)
+        case .logbook:
+            open(.logbook)
+            logbookRequests += 1
         }
     }
 }

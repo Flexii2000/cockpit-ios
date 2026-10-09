@@ -12,6 +12,7 @@ struct LogbookView: View {
 
     @State private var store = LogbookStore()
     @State private var showingBehaviors = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ScrollView {
@@ -54,6 +55,30 @@ struct LogbookView: View {
         .onChange(of: OfflineStatus.shared.pending) { before, after in
             if before > 0, after == 0 { Task { await store.load() } }
         }
+        // Bleibt die Seite ueber Mitternacht offen oder kommt sie spaeter
+        // wieder in den Vordergrund, ist „gestern" ein anderer Tag.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { store.followToday() }
+        }
+        .onChange(of: Router.shared.logbookRequests) {
+            store.followToday(reminder: true)
+        }
+        .task {
+            // Um Mitternacht, falls die App dabei offen im Vordergrund ist.
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(Self.secondsUntilTomorrow()))
+                if Task.isCancelled { return }
+                store.followToday()
+            }
+        }
+    }
+
+    /// Bis kurz nach Mitternacht - ueber den Kalender, wegen der Zeitumstellung.
+    private static func secondsUntilTomorrow(now: Date = Date()) -> Double {
+        let calendar = Calendar.current
+        let tomorrow = calendar.startOfDay(for: now).addingTimeInterval(36 * 3600)
+        let midnight = calendar.startOfDay(for: tomorrow)
+        return max(midnight.timeIntervalSince(now) + 1, 1)
     }
 
     // MARK: - Leer

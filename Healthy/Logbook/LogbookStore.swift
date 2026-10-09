@@ -16,8 +16,16 @@ final class LogbookStore {
 
     /// Der Tag der Eingabe - von gestern bis heute−14, Vorgabe gestern.
     private(set) var day = CalendarDate.today().adding(days: -1)
+    /// An welchem Tag `day` gewaehlt wurde - nach Mitternacht ist „gestern"
+    /// ein anderer Tag.
+    private var chosenOn = CalendarDate.today()
     /// Was fuer diesen Tag angetippt ist, je Verhaltensweise.
     var entries: [String: LogbookEntry] = [:]
+    /// Die Eingabe, wie sie beim Zeigen (oder nach dem Speichern) war.
+    private var shownEntries: [String: LogbookEntry] = [:]
+
+    /// Ob seit dem Zeigen etwas angetippt wurde, das noch nicht gespeichert ist.
+    var isEdited: Bool { entries != shownEntries }
     /// Tage, deren Speichern im Postausgang wartet.
     private(set) var queued: [CalendarDate: [String: Double]] = LogbookMemory.load()
 
@@ -100,16 +108,31 @@ final class LogbookStore {
     /// sonst alles aus.
     func show(_ date: CalendarDate) {
         day = min(max(date, earliestDay), latestDay)
-        guard let overview else {
+        chosenOn = today
+        if let overview {
+            entries = LogbookDraft.entries(for: overview.active,
+                                           values: queued[day] ?? overview.day(day)?.values)
+        } else {
             entries = [:]
-            return
         }
-        entries = LogbookDraft.entries(for: overview.active,
-                                       values: queued[day] ?? overview.day(day)?.values)
+        shownEntries = entries
     }
 
     func step(_ days: Int) {
         show(day.adding(days: days))
+    }
+
+    /// Wenn die Seite wieder zu sehen ist (Vordergrund, Mitternacht, Tipp auf
+    /// die Erinnerung): gestern, wenn inzwischen ein neuer Tag ist - ein
+    /// angefangener Tag in der Frist bleibt (`LogbookDraft.day`).
+    func followToday(reminder: Bool = false) {
+        let target = LogbookDraft.day(showing: day, chosenOn: chosenOn, today: today, edited: isEdited,
+                                      backfillDays: overview?.backfillDays ?? 14, reminder: reminder)
+        if target != day {
+            show(target)
+        } else {
+            chosenOn = today
+        }
     }
 
     /// Speichert den Tag. Ohne Netz in den Postausgang - das zeigt die Uhr.
@@ -130,6 +153,7 @@ final class LogbookStore {
         } catch APIError.queued {
             LogbookMemory.remember(date, values: values)
             queued = LogbookMemory.load()
+            shownEntries = entries
             clearError()
         } catch {
             report(error)
@@ -145,6 +169,7 @@ final class LogbookStore {
         self.overview = LogbookOverview(behaviors: overview.behaviors, backfillDays: overview.backfillDays,
                                         backfillFrom: overview.backfillFrom, today: overview.today,
                                         days: days.sorted { $0.date < $1.date })
+        shownEntries = entries
     }
 
     // MARK: - Verhaltensweisen

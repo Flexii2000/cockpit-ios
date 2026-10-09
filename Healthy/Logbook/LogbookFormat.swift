@@ -112,6 +112,27 @@ enum LogbookDraft {
         return result
     }
 
+    /// Welcher Tag gezeigt wird, wenn die Seite wieder in den Blick kommt.
+    ///
+    /// Nach Mitternacht (oder beim Tipp auf die Erinnerung) zurueck auf
+    /// gestern - sonst rutscht der gewaehlte Tag mit jedem Tag weiter nach
+    /// hinten und faellt irgendwann aus der Frist, und der Dienst lehnt das
+    /// Speichern ab. Ausnahme: ein angefangener, nicht gespeicherter Tag bleibt,
+    /// solange er noch in der Frist liegt - sonst waere die Eingabe weg.
+    ///
+    /// - Parameters:
+    ///   - chosenOn: der Tag, an dem `selected` gewaehlt wurde
+    ///   - edited: ob seit dem Zeigen etwas angetippt wurde
+    ///   - reminder: die Seite kommt von der Erinnerung „gestern offen"
+    static func day(showing selected: CalendarDate, chosenOn: CalendarDate, today: CalendarDate,
+                    edited: Bool, backfillDays: Int, reminder: Bool) -> CalendarDate {
+        let yesterday = today.adding(days: -1)
+        let inWindow = selected >= today.adding(days: -backfillDays) && selected <= yesterday
+        if edited, inWindow { return selected }
+        if reminder || chosenOn != today || !inWindow { return yesterday }
+        return selected
+    }
+
     /// Was zum Dienst geht: nur, was angetippt ist - der Rest wird dort 0.
     /// Ohne Einheit 1, mit Einheit die Menge. `nil`, solange eine angetippte
     /// Verhaltensweise mit Einheit keine gueltige Menge hat: dann soll nicht

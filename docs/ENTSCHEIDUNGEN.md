@@ -13,6 +13,13 @@ heißt „nicht Angetipptes = nein", ein nie gespeicherter fehlt; Erinnerung um
   eingetragen wird ein Tag, wenn er vorbei ist, und seine Wirkung misst die
   Recovery am Morgen danach. **Verworfen:** auch heute anbieten (der Dienst
   nähme es) - ein halber Tag sähe gespeichert aus.
+- **Über Mitternacht zurück auf gestern** (`LogbookDraft.day`): bleibt die
+  Seite offen oder kommt sie nach Mitternacht wieder in den Vordergrund, und
+  beim Tipp auf die Erinnerung, steht wieder „gestern" da - außer ein
+  angefangener, nicht gespeicherter Tag liegt noch in der Frist (Befund aus
+  dem Android-Review, 09.10.). **Verworfen:** den gewählten Tag stehen lassen -
+  er rutschte jeden Morgen weiter nach hinten, bis der Dienst das Speichern
+  mit „Außerhalb der Nachtragsfrist." ablehnt.
 - **„Speichern" von Hand**, und erst dann ist der Tag ausgefüllt. Geschickt
   wird nur, was an ist; den Rest setzt der Dienst auf 0. **Verworfen:** jeden
   Tipp sofort speichern (ein einziger Tipp machte aus allen anderen ein

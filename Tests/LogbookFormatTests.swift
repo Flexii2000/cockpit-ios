@@ -110,6 +110,48 @@ final class LogbookFormatTests: XCTestCase {
         XCTAssertEqual(LogbookDraft.values([:], behaviors: behaviors), [:], "lauter nein ist auch ein Tag")
     }
 
+    // MARK: - Ueber Mitternacht
+
+    private let friday = CalendarDate(year: 2026, month: 10, day: 9)
+
+    private func day(_ selected: CalendarDate, chosenOn: CalendarDate, today: CalendarDate,
+                     edited: Bool = false, reminder: Bool = false) -> CalendarDate {
+        LogbookDraft.day(showing: selected, chosenOn: chosenOn, today: today, edited: edited,
+                         backfillDays: 14, reminder: reminder)
+    }
+
+    /// Am selben Tag bleibt, was gewaehlt ist - auch ein Tag weiter hinten.
+    func testSameDayKeepsTheChoice() {
+        XCTAssertEqual(day(friday.adding(days: -5), chosenOn: friday, today: friday), friday.adding(days: -5))
+    }
+
+    /// Ueber Mitternacht offen: zurueck auf gestern - sonst rutschte der Tag
+    /// mit jedem Morgen weiter nach hinten.
+    func testAfterMidnightItIsYesterdayAgain() {
+        let saturday = friday.adding(days: 1)
+        XCTAssertEqual(day(friday.adding(days: -1), chosenOn: friday, today: saturday), friday)
+        XCTAssertEqual(day(friday.adding(days: -9), chosenOn: friday, today: saturday), friday)
+    }
+
+    /// Ein angefangener, nicht gespeicherter Tag bleibt, solange er in der
+    /// Frist liegt - faellt er heraus, nimmt der Dienst ihn nicht mehr.
+    func testEditedDayStaysWhileInsideTheWindow() {
+        let saturday = friday.adding(days: 1)
+        XCTAssertEqual(day(friday.adding(days: -1), chosenOn: friday, today: saturday, edited: true),
+                       friday.adding(days: -1))
+        XCTAssertEqual(day(friday.adding(days: -14), chosenOn: friday, today: saturday, edited: true),
+                       friday, "vor 15 Tagen liegt ausserhalb der Frist")
+    }
+
+    /// Die Erinnerung „gestern offen" fuehrt auf gestern, auch am selben Tag -
+    /// ausser etwas ist angefangen.
+    func testReminderGoesToYesterday() {
+        XCTAssertEqual(day(friday.adding(days: -4), chosenOn: friday, today: friday, reminder: true),
+                       friday.adding(days: -1))
+        XCTAssertEqual(day(friday.adding(days: -4), chosenOn: friday, today: friday, edited: true, reminder: true),
+                       friday.adding(days: -4))
+    }
+
     /// Eine angetippte Menge ohne Zahl: nicht speichern, statt eine zu erfinden.
     func testMissingAmountBlocksSaving() {
         let entries = ["b-2": LogbookEntry(isOn: true, amount: "")]
