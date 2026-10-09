@@ -45,9 +45,9 @@ struct DayRange: Equatable, Sendable {
 }
 
 /// Die einmalige Rueckholung der Historie in Bloecken: Energie bis 3.650 Tage,
-/// Naechte bis 365 zurueck.
+/// Naechte bis 425 zurueck.
 ///
-/// In Bloecken, weil zehn Jahre Tageskuebel oder ein Jahr Schlafsegmente samt
+/// In Bloecken, weil zehn Jahre Tageskuebel oder gut ein Jahr Schlafsegmente samt
 /// HRV in einem Zug den Speicher und die Geduld von iOS strapazieren; neueste
 /// zuerst, weil die juengere Vergangenheit fuer Kalibrierung und Baseline
 /// zaehlt. Wie weit es schon ging, merkt sich ein Cursor in den UserDefaults -

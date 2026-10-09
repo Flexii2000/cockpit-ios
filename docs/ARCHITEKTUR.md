@@ -264,7 +264,7 @@ Abfrage `async`, Ergebnis sofort in eigene Typen), aus Rohdaten werden Tage
 und Nächte in `HealthEnergy` und `HealthNights` — rein und getestet, genau nach
 den Regeln im Healthy-Vertrag, damit iOS und Android dieselbe Nacht bilden.
 Danach, nicht abgewartet und nur im Vordergrund, die einmalige Rückholung
-(`HealthBackfill`: 365 Nächte in Blöcken zu 60, zehn Jahre Energie in Blöcken
+(`HealthBackfill`: 425 Nächte in Blöcken zu 60, zehn Jahre Energie in Blöcken
 zu 365, Cursor in den UserDefaults). Wer etwas hochgeladen hat, zählt
 `HealthSync.uploads` hoch; Dashboard, Recovery-Seite und Gewicht-Tab laden
 darauf neu.

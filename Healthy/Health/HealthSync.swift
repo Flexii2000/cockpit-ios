@@ -85,11 +85,13 @@ final class HealthSync {
     static let energyBlockDays = 365
     private let energyCursorKey = "health.energy.backfillCursor"
 
-    /// Naechte: die letzten 14 bei jedem Abgleich, einmalig ein Jahr in
-    /// Bloecken zu 60 (Vertrag §2.1). 60 Naechte sind gut 20 kB - weit unter
+    /// Naechte: die letzten 14 bei jedem Abgleich, einmalig 425 in Bloecken
+    /// zu 60 (Vertrag §2.1). 425 = ein Jahr, der laengste Logbook-Zeitraum,
+    /// plus die 60 Naechte, gegen die der Dienst die aeltesten davon rechnet -
+    /// sonst haetten sie keinen Score. 60 Naechte sind gut 20 kB - weit unter
     /// den 200 je Anfrage.
     static let nightWindowDays = 14
-    static let nightBackfillDays = 365
+    static let nightBackfillDays = 425
     static let nightBlockDays = 60
     private let nightsCursorKey = "health.nights.backfillCursor"
     /// Der Inhalt des zuletzt geschickten Naechte-Fensters. Ein Weckruf, der
@@ -330,7 +332,7 @@ final class HealthSync {
 
     // MARK: - Rueckholung
 
-    /// Die einmalige Rueckholung: ein Jahr Naechte, zehn Jahre Energie, in
+    /// Die einmalige Rueckholung: 425 Naechte, zehn Jahre Energie, in
     /// Bloecken mit Cursor. Nur im Vordergrund - im Hintergrund hat die App
     /// Sekunden, und ein abgebrochener Block wird ohnehin wiederholt.
     private func startBackfill() {

@@ -3,6 +3,16 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy holt 425 Nächte zurück, nicht 365
+Felix hat entschieden (09.10., vor dem Ausrollen): Die einmalige Rückholung
+holt 425 Nächte. Der längste Logbook-Zeitraum ist ein Jahr, und der Weight
+Tracker rechnet jede Nacht gegen die 60 Nächte davor (Healthy-Vertrag §3.2) -
+mit nur 365 hätten die ältesten gut zwei Monate dieses Jahres keinen Score.
+**Verworfen:** 365 (Lücke vorne im Jahr); die ganze Historie (keine Rechnung
+braucht Nächte, die älter als 425 Tage sind, und die erste Rückholung dauerte
+länger). Später erweitern ginge auf iOS von selbst weiter (Cursor), auf
+Android nicht (Merker „fertig") - deshalb vor dem ersten Ausrollen.
+
 ## 2026-10-09 — Healthy: Logbook als Seite im Dashboard, Speichern von Hand
 Felix hat entschieden (Plan vom 09.10.): Logbook nach dem Whoop-Prinzip, die
 Daten beim Weight Tracker, eine Karte im Dashboard und eine eigene Seite, kein

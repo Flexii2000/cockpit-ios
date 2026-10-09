@@ -199,7 +199,7 @@ Energie, Logbook-Tage) - die echten Antworten werden gelesen und gezeigt.
 nur iOS 26.5):
 - der Health-Dialog im Dashboard mit den neuen Arten, danach sofort Werte;
 - Nächte gegen die Health-App (Schlafdauer, Stadien, HRV), RMSSD erst ab
-  iOS 27; die Rückholung (365 Nächte, zehn Jahre Energie) beim ersten Start -
+  iOS 27; die Rückholung (425 Nächte, zehn Jahre Energie) beim ersten Start -
   Dauer und Akku;
 - der Schlaf-Weckruf: steht die Recovery morgens, ohne dass die App offen war?
 - Tipp auf die Kalorien-Kachel → Essen mit heute, Schnellerfassungs-Push → Essen;
