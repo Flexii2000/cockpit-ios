@@ -203,7 +203,13 @@ struct FoodTab: View {
                 Section { LoadingPlaceholder() }
             }
         }
-        .refreshable { await store.load() }
+        .refreshable {
+            // Nur die Energie aus Health: das Defizit haengt an ihr und an
+            // dem, was hier eingetragen ist. Naechte und Gewicht holt das
+            // Dashboard.
+            await HealthSync.shared.syncEnergy()
+            await store.load()
+        }
         .frame(width: pageWidth)
     }
 
@@ -388,8 +394,14 @@ struct FoodTab: View {
                     Text("\(day.consumed.kcal.whole) kcal").font(.title3.weight(.semibold))
                     Text("von \(day.targets.kcal.whole) kcal")
                         .font(.caption).foregroundStyle(.secondary)
+                    // Verbrauch und Defizit des Tages - nicht fuer Tage, die
+                    // erst kommen (`FoodStore.energy` liefert dort nichts).
+                    if let energy = store.energy(for: day.date) {
+                        EnergyLines(day: energy)
+                            .padding(.top, 4)
+                    }
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
         }
         .padding(.vertical, 8)
@@ -500,41 +512,47 @@ struct FoodTab: View {
             }
             .pickerStyle(.segmented)
 
+            let expenditure = store.expenditureAverage
             FoodChartView(history: store.history,
                           averages: store.historyAverage,
                           weightPoints: store.weightPoints,
                           kcalTarget: day.targets.kcal,
                           showAverage: store.showKcalAverage,
                           showDaily: store.showKcalDaily,
+                          expenditure: expenditure,
+                          showExpenditure: store.showExpenditure,
                           from: store.historyFrom,
                           to: store.historyTo,
                           weightOverlay: store.weightOverlay)
 
-            VStack(alignment: .leading, spacing: 8) {
-                // Vier Umschalter passen nicht in eine iPhone-Breite - seitlich scrollbar.
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        SeriesChip(title: "kcal ⌀", color: Palette.kcal,
-                                   isOn: store.showKcalAverage) {
-                            store.showKcalAverage.toggle()
-                        }
-                        SeriesChip(title: "kcal Tag", color: Palette.kcal.opacity(0.55),
-                                   isOn: store.showKcalDaily) {
-                            store.showKcalDaily.toggle()
-                        }
-                        SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,
-                                   isOn: store.weightOverlay.contains(.avg7)) {
-                            toggleWeight(.avg7)
-                        }
-                        SeriesChip(title: "Gewicht täglich", color: Palette.measured,
-                                   isOn: store.weightOverlay.contains(.measured)) {
-                            toggleWeight(.measured)
-                        }
+            // Die Umschalter sind zugleich die Legende. Fuenf passen nicht in
+            // eine iPhone-Breite - sie brechen um, statt seitlich zu scrollen:
+            // was am Rand abgeschnitten ist, findet niemand.
+            FlowLayout(spacing: 8) {
+                SeriesChip(title: "kcal ⌀", color: Palette.kcal,
+                           isOn: store.showKcalAverage) {
+                    store.showKcalAverage.toggle()
+                }
+                SeriesChip(title: "kcal Tag", color: Palette.kcal.opacity(0.55),
+                           isOn: store.showKcalDaily) {
+                    store.showKcalDaily.toggle()
+                }
+                // Nur, wenn es einen Verbrauch gibt - ohne Uhr waere es ein
+                // Schalter ohne Kurve.
+                if !expenditure.isEmpty {
+                    SeriesChip(title: "Verbrauch ⌀", color: Palette.expenditure,
+                               isOn: store.showExpenditure) {
+                        store.showExpenditure.toggle()
                     }
                 }
-                Text("Gelb: kcal im 7-Tage-Mittel, blass der Tageswert; rote Punkte mehr als 100 kcal über dem Ziel.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,
+                           isOn: store.weightOverlay.contains(.avg7)) {
+                    toggleWeight(.avg7)
+                }
+                SeriesChip(title: "Gewicht täglich", color: Palette.measured,
+                           isOn: store.weightOverlay.contains(.measured)) {
+                    toggleWeight(.measured)
+                }
             }
         }
     }

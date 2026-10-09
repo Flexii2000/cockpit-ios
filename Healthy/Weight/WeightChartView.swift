@@ -11,6 +11,8 @@ struct WeightChartView: View {
     /// Das 7-Tage-Mittel der kcal - die Kurve, die standardmaessig zu sehen ist.
     let kcalAverage: [DayAverage]
     let kcalTarget: Double?
+    /// „Verbrauch ⌀" vom Weight Tracker - auf der kcal-Skala wie die kcal.
+    let expenditureAverage: [DayAverage]
     let visible: Set<WeightSeries>
 
     @State private var selectedDay: CalendarDate?
@@ -130,6 +132,29 @@ struct WeightChartView: View {
                 }
             }
 
+            if visible.contains(.expenditure) {
+                // Der kalibrierte Verbrauch, ebenfalls hinter den
+                // Gewichtskurven. Gestrichelt, solange sein Fenster nicht ganz
+                // vorbei ist (Vertrag §5).
+                ForEach(expenditureRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kcal", only.value))
+                        .foregroundStyle(Palette.expenditure)
+                        .symbolSize(14)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kcal", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.expenditure)
+                        .lineStyle(StrokeStyle(lineWidth: 1.8, dash: run.complete ? [] : [4, 4]))
+                        .interpolationMethod(.linear)
+                    }
+                }
+            }
+
             if visible.contains(.measured) {
                 ForEach(samples(\.measured)) { sample in
                     LineMark(x: .value("Tag", sample.date),
@@ -209,7 +234,7 @@ struct WeightChartView: View {
                     }
                 }
             }
-            if visible.contains(.kcal) || visible.contains(.kcalDay) {
+            if usesKcalScale {
                 AxisMarks(position: .trailing, values: kcalTicks.map(toWeightScale)) { value in
                     if let mapped = value.as(Double.self),
                        let kcal = fromWeightScale(mapped) {
@@ -297,6 +322,11 @@ struct WeightChartView: View {
             result.append(CalloutEntry(label: "kcal", value: kcal.value.whole,
                                        color: WeightSeries.kcalDay.color))
         }
+        if visible.contains(.expenditure),
+           let expenditure = expenditureAverage.first(where: { $0.date == point.date }) {
+            result.append(CalloutEntry(label: "Verbrauch ⌀", value: GermanNumber.string(expenditure.kcal),
+                                       color: Palette.expenditure))
+        }
         return result
     }
 
@@ -307,12 +337,19 @@ struct WeightChartView: View {
     /// interessanten Bereich in ein paar Pixel zusammen.
     private static let kcalBase: Double = 1500
 
+    /// Ob rechts eine kcal-Achse steht: sobald eine Reihe auf ihr liegt.
+    private var usesKcalScale: Bool {
+        !visible.isDisjoint(with: [.kcal, .kcalDay, .expenditure])
+    }
+
     /// Ausgemessen an dem, was zu sehen ist: das Mittel braucht weniger
-    /// Platz als die Tageswerte, und beides soll ganz im Bild sein.
+    /// Platz als die Tageswerte, und beides soll ganz im Bild sein - der
+    /// Verbrauch ebenso, er liegt meist ueber allem Gegessenen.
     private var kcalDomain: ClosedRange<Double> {
         var values: [Double] = [kcalTarget].compactMap { $0 }
         if visible.contains(.kcal) { values += kcalAverage.map(\.kcal) }
         if visible.contains(.kcalDay) { values += kcalByDay.map(\.value) }
+        if visible.contains(.expenditure) { values += expenditureAverage.map(\.kcal) }
         let lower = min(Self.kcalBase, (values.min() ?? Self.kcalBase) - 100)
         let upper = max((values.max() ?? 2500) + 100, (kcalTarget ?? 2000) * 1.05)
         return lower...max(upper, lower + 100)
@@ -325,6 +362,10 @@ struct WeightChartView: View {
 
     private var kcalAverageRuns: [AverageRun] {
         DaySeries.averageRuns(kcalAverage, key: "kcalavg", map: toWeightScale)
+    }
+
+    private var expenditureRuns: [AverageRun] {
+        DaySeries.averageRuns(expenditureAverage, key: "expenditure", map: toWeightScale)
     }
 
     private var kcalTicks: [Double] {

@@ -16,4 +16,9 @@ enum Palette {
     static let vacation = Color.adaptive(light: 0x5C7CFA, dark: 0x7C9CFA)
     /// Ueber dem Ziel - im Verlauf des Kalorienzaehlers.
     static let over     = Color.adaptive(light: 0xD32F2F, dark: 0xEF5350)
+    /// „Verbrauch ⌀" - Indigo, auf allen Oberflaechen gleich (Vertrag §5).
+    /// Gegen die vorhandenen Reihen auf Farbfehlsicht geprueft: neben dem
+    /// Gelb der kcal und dem Blau des Messwerts bleibt es unterscheidbar, und
+    /// die Luecke zwischen ihm und „kcal ⌀" ist das Defizit.
+    static let expenditure = Color.adaptive(light: 0x4338CA, dark: 0x6E7BFF)
 }

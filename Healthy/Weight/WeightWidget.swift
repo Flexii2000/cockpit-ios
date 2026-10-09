@@ -13,17 +13,37 @@ enum Tone: Sendable {
     }
 }
 
+/// Was eine Kachel sehen darf: die Gewichts-Summary und - fuer die drei
+/// Energie-Kacheln - die Energie-Summary des Weight Trackers.
+struct TileInput: Sendable {
+    let weight: WeightSummary
+    /// `nil`, solange der Dienst keine Energie kennt (aelterer Dienst, keine
+    /// Uhr) - dann zeigen die Energie-Kacheln „–", die anderen wie immer.
+    let energy: EnergySummary?
+
+    init(weight: WeightSummary, energy: EnergySummary? = nil) {
+        self.weight = weight
+        self.energy = energy
+    }
+}
+
 /// Die Kacheln über dem Diagramm.
 ///
 /// Eins zu eins die Registry aus der Weboberflaeche
 /// (`weight-app/.../static/app.js`, `const WIDGETS`). Bewusst als Enum und
 /// nicht als Tabelle von Closures: so ist jede Kachel an einer Stelle
 /// vollstaendig beschrieben, und der Compiler merkt, wenn eine fehlt.
+///
+/// Die drei Energie-Kacheln stehen **hinter** `daysToTarget`, in allen drei
+/// Registern gleich (Web, iOS, Android - Vertrag §5). Jedes wirft beim
+/// Speichern unbekannte Schluessel weg: wer sie nur hier haette, verlöre sie
+/// beim naechsten Speichern im Browser.
 enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
     case current, goal, diff, residual7, bmi
     case avg7, avg14, avg30, target, corridor, targetDate
     case startWeight, recordingStart, lastEntry, totalDiff
     case lost, remaining, progress, daysToTarget
+    case deficit7, expenditure7, calibration
 
     var id: String { rawValue }
 
@@ -59,11 +79,15 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
         case .remaining:      "Noch bis Ziel"
         case .progress:       "Fortschritt"
         case .daysToTarget:   "Tage bis Zieltag"
+        case .deficit7:       "Defizit ⌀ 7 T"
+        case .expenditure7:   "Verbrauch ⌀ 7 T"
+        case .calibration:    "Kalibrierung"
         }
     }
 
-    func value(_ s: WeightSummary) -> String {
-        switch self {
+    func value(_ input: TileInput) -> String {
+        let s = input.weight
+        return switch self {
         case .current:        s.current.kg
         case .goal:           s.goalWeight.kg
         case .diff:
@@ -110,10 +134,16 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
             if let targetDate = s.targetDate {
                 targetDate.daysFromToday() <= 0 ? "erreicht" : "\(targetDate.daysFromToday())"
             } else { "–" }
+        // Die Energie-Kacheln: Formate aus dem Vertrag (§5), gerechnet im
+        // Dienst - siehe EnergyFormat.
+        case .deficit7:       EnergyFormat.deficit7(input.energy)
+        case .expenditure7:   EnergyFormat.expenditure7(input.energy)
+        case .calibration:    EnergyFormat.calibration(input.energy)
         }
     }
 
-    func tone(_ s: WeightSummary) -> Tone? {
+    func tone(_ input: TileInput) -> Tone? {
+        let s = input.weight
         switch self {
         case .diff:
             guard let current = s.current, let target = s.target else { return nil }
@@ -155,12 +185,19 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
 
     /// Eine Zeile Kleingedrucktes unter dem Wert - nur, wenn die Kachel etwas
     /// einzuschraenken hat. Das Wochen-Residuum sagt, wenn Tage fehlen: dann
-    /// ist das Mittel schmaler, als ihr Name verspricht.
-    func note(_ s: WeightSummary) -> String? {
+    /// ist das Mittel schmaler, als ihr Name verspricht. Das Defizit sagt
+    /// zusaetzlich, wenn es ein Ueberschuss ist; die Kalibrierung, auf wie
+    /// vielen getrackten Tagen sie steht.
+    func note(_ input: TileInput) -> String? {
+        let s = input.weight
         switch self {
         case .residual7:
             guard s.residual7 != nil, let days = s.residual7Days, days < 7 else { return nil }
             return "\(days) von 7 Tagen"
+        case .deficit7:
+            return EnergyFormat.deficit7Note(input.energy)
+        case .calibration:
+            return EnergyFormat.calibrationNote(input.energy)
         default:
             return nil
         }

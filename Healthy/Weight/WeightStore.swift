@@ -11,6 +11,7 @@ final class WeightStore {
 
     private let api = WeightAPI()
     private let foodApi = FoodAPI()
+    private let energyApi = EnergyAPI()
 
     private(set) var summary: WeightSummary?
     private(set) var points: [WeightPoint] = []
@@ -37,6 +38,11 @@ final class WeightStore {
     /// Das 7-Tage-Mittel dazu, fertig gerechnet vom Kalorienzaehler.
     private(set) var kcalAverage: [DayAverage] = []
     private(set) var kcalTarget: Double?
+    /// Fuer die drei Energie-Kacheln. Wie die kcal Beiwerk: ohne sie zeigen
+    /// diese Kacheln „–", der Tab ist deshalb nicht kaputt.
+    private(set) var energySummary: EnergySummary?
+    /// „Verbrauch ⌀" zum sichtbaren Zeitraum - hier nur angeboten.
+    private(set) var expenditureAverage: [DayAverage] = []
 
     private(set) var stepsToday: Int?
     /// Bis das Backend geantwortet hat. Ohne Vorgabe zeigte die Karte im
@@ -77,7 +83,25 @@ final class WeightStore {
 
     /// Kacheln, die man noch dazunehmen kann.
     var addableWidgets: [WeightWidget] {
-        WeightWidget.allCases.filter { !widgets.contains($0) }
+        WeightWidget.allCases.filter { !shownWidgets.contains($0) }
+    }
+
+    /// Was oben steht: die gespeicherte Liste. Im Vorfuehrmodus
+    /// (`COCKPIT_DASHBOARD_DEMO`) dazu die drei Energie-Kacheln, ohne sie zu
+    /// speichern - sonst waeren sie in keinem Bild zu sehen, ohne Felix'
+    /// Auswahl beim Dienst zu aendern.
+    var shownWidgets: [WeightWidget] {
+        #if DEBUG
+        if DashboardDemo.isOn {
+            return widgets + [WeightWidget.deficit7, .expenditure7, .calibration].filter { !widgets.contains($0) }
+        }
+        #endif
+        return widgets
+    }
+
+    /// Was eine Kachel sehen darf.
+    func tileInput(_ summary: WeightSummary) -> TileInput {
+        TileInput(weight: summary, energy: energySummary)
     }
 
     func load() async {
@@ -98,8 +122,21 @@ final class WeightStore {
         } catch {
             report(error)
         }
+        await loadEnergySummary()
         await loadKcal()
         await loadSteps()
+    }
+
+    /// Wie die kcal: faellt das aus (aelterer Dienst ohne Energie, keine Uhr),
+    /// zeigen nur die drei Kacheln „–".
+    private func loadEnergySummary() async {
+        #if DEBUG
+        if DashboardDemo.isOn {
+            energySummary = DashboardDemo.energySummary()
+            return
+        }
+        #endif
+        energySummary = try? await energyApi.summary()
     }
 
     /// Wie die kcal: faellt das hier aus, fehlt die Karte - den Gewicht-Tab
@@ -143,6 +180,30 @@ final class WeightStore {
         if kcalTarget == nil {
             kcalTarget = (try? await foodApi.targets())?.kcal
         }
+        await loadExpenditure(from: first, to: last)
+    }
+
+    /// Das Verbrauchsmittel zum Zeitraum. Nie nach heute (den Vorgriff der
+    /// Zielkurve kennt der Dienst nicht), hoechstens 4.000 Tage - „Alles"
+    /// reicht bis 2018 zurueck.
+    private func loadExpenditure(from first: CalendarDate, to last: CalendarDate) async {
+        let end = min(last, CalendarDate.today())
+        guard first <= end else {
+            expenditureAverage = []
+            return
+        }
+        let start = EnergyAPI.clampedStart(from: first, to: end)
+        #if DEBUG
+        if DashboardDemo.isOn {
+            expenditureAverage = DashboardDemo.energyDays(from: start, to: end).compactMap(\.expenditureAverage)
+            return
+        }
+        #endif
+        guard let days = try? await energyApi.days(from: start, to: end) else {
+            expenditureAverage = []
+            return
+        }
+        expenditureAverage = days.compactMap(\.expenditureAverage)
     }
 
     func select(_ range: WeightRange) async {

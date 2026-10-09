@@ -52,9 +52,10 @@ final class WeightModelTests: XCTestCase {
         """.utf8)
         let summary = try APIClient.decoder().decode(WeightSummary.self, from: json)
         XCTAssertNil(summary.residual7)
-        XCTAssertEqual(WeightWidget.residual7.value(summary), "–")
-        XCTAssertNil(WeightWidget.residual7.tone(summary))
-        XCTAssertNil(WeightWidget.residual7.note(summary))
+        let input = TileInput(weight: summary)
+        XCTAssertEqual(WeightWidget.residual7.value(input), "–")
+        XCTAssertNil(WeightWidget.residual7.tone(input))
+        XCTAssertNil(WeightWidget.residual7.note(input))
     }
 
     /// Solange der Korridor nie erreicht war, ist er kein Massstab - dann
@@ -145,9 +146,11 @@ final class WeightModelTests: XCTestCase {
 
 final class WeightWidgetTests: XCTestCase {
 
+    /// Die Kacheln sehen eine `TileInput` - hier ohne Energie, wie bei einem
+    /// Dienst, der sie noch nicht kennt.
     private func summary(current: Double? = 83.2, target: Double? = 82.7,
                          corridorReached: Bool = true,
-                         residual7: Double? = nil, residual7Days: Int = 0) -> WeightSummary {
+                         residual7: Double? = nil, residual7Days: Int = 0) -> TileInput {
         let json = """
         {"date":"2026-09-01","current":\(jsonNumber(current)),
          "avg7":83.5,"avg14":null,"avg30":null,
@@ -157,7 +160,7 @@ final class WeightWidgetTests: XCTestCase {
          "corridorReachedOn":\(corridorReached ? "\"2026-07-14\"" : "null"),
          "residual7":\(jsonNumber(residual7)),"residual7Days":\(residual7Days)}
         """
-        return try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8))
+        return TileInput(weight: try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8)))
     }
 
     /// Das Wochen-Residuum zeigt das Mittel mit Vorzeichen und faerbt sich
@@ -250,5 +253,76 @@ final class WeightWidgetTests: XCTestCase {
         XCTAssertEqual(FoodStore.weightRange(forHistoryDays: 14), .last90)
         XCTAssertEqual(FoodStore.weightRange(forHistoryDays: 90), .last90)
         XCTAssertEqual(FoodStore.weightRange(forHistoryDays: 180), .last180)
+    }
+
+    // MARK: - Energie-Kacheln
+
+    /// `GET /api/energy/summary`, Feld fuer Feld wie `EnergySummary.java`.
+    private func energy(deficit7: Double?, days: Int = 7, factor: Double = 0.921,
+                        tracked: Int = 25) -> EnergySummary {
+        let json = """
+        {"today":null,"deficit7":\(jsonNumber(deficit7)),"deficit7Days":\(days),
+         "expenditure7":2612.4,"expenditure7Days":7,
+         "calibration":{"status":"OK","factor":\(factor),"rawFactor":\(factor),
+           "windowFrom":"2026-09-11","windowTo":"2026-10-08","measuredKcal":2160.0,
+           "measuredSeKcal":96.0,"watchKcal":2346.0,"intakeKcal":1980.0,
+           "weightSlopeKgPerWeek":-0.164,"trackedDays":\(tracked),"weightDays":27,"watchDays":28},
+         "sources":{"food":"OK"}}
+        """
+        return try! APIClient.decoder().decode(EnergySummary.self, from: Data(json.utf8))
+    }
+
+    /// Die Formate aus dem Vertrag (§5): deutsch, ein Ueberschuss mit „−",
+    /// die Kalibrierung als Korrektur in ganzen Prozent.
+    func testEnergyTilesFollowTheContract() {
+        let weight = summary().weight
+        let deficit = TileInput(weight: weight, energy: energy(deficit7: 460.2))
+        XCTAssertEqual(WeightWidget.deficit7.value(deficit), "460 kcal")
+        XCTAssertNil(WeightWidget.deficit7.note(deficit))
+        XCTAssertEqual(WeightWidget.expenditure7.value(deficit), "2.612 kcal")
+        XCTAssertNil(WeightWidget.expenditure7.note(deficit))
+        XCTAssertEqual(WeightWidget.calibration.value(deficit), "−8 %")
+        XCTAssertEqual(WeightWidget.calibration.note(deficit), "25 Tage")
+
+        let surplus = TileInput(weight: weight, energy: energy(deficit7: -120, days: 5))
+        XCTAssertEqual(WeightWidget.deficit7.value(surplus), "−120 kcal")
+        XCTAssertEqual(WeightWidget.deficit7.note(surplus), "Überschuss · 5 von 7 Tagen")
+
+        XCTAssertEqual(WeightWidget.calibration.value(TileInput(weight: weight, energy: energy(deficit7: nil, factor: 1.03))), "+3 %")
+        XCTAssertEqual(WeightWidget.calibration.value(TileInput(weight: weight, energy: energy(deficit7: nil, factor: 1))), "0 %")
+        XCTAssertEqual(WeightWidget.calibration.note(TileInput(weight: weight, energy: energy(deficit7: nil, tracked: 1))), "1 Tag")
+    }
+
+    /// Ein Dienst ohne Energie: die drei Kacheln zeigen einen Strich, die
+    /// anderen bleiben, wie sie sind.
+    func testEnergyTilesWithoutEnergyShowADash() {
+        let input = summary()
+        for widget in [WeightWidget.deficit7, .expenditure7, .calibration] {
+            XCTAssertEqual(widget.value(input), "–", widget.rawValue)
+            XCTAssertNil(widget.note(input), widget.rawValue)
+            XCTAssertNil(widget.tone(input), widget.rawValue)
+        }
+        XCTAssertEqual(WeightWidget.deficit7.value(TileInput(weight: input.weight,
+                                                             energy: energy(deficit7: nil))), "–")
+    }
+
+    /// Hinter `daysToTarget`, in derselben Reihenfolge wie im Web und auf
+    /// Android - jedes Register wirft Unbekanntes beim Speichern weg.
+    func testEnergyTilesComeAfterDaysToTarget() {
+        XCTAssertEqual(WeightWidget.allCases.suffix(4).map(\.rawValue),
+                       ["daysToTarget", "deficit7", "expenditure7", "calibration"])
+        XCTAssertEqual(WeightWidget.deficit7.label, "Defizit ⌀ 7 T")
+        XCTAssertEqual(WeightWidget.expenditure7.label, "Verbrauch ⌀ 7 T")
+        XCTAssertEqual(WeightWidget.calibration.label, "Kalibrierung")
+    }
+
+    /// „Verbrauch ⌀" wird im Gewicht-Diagramm angeboten, aber nicht vorgewaehlt.
+    func testExpenditureIsOfferedButNotPreselected() {
+        for range in WeightRange.allCases {
+            XCTAssertTrue(range.offeredSeries.contains(.expenditure), range.title)
+            XCTAssertTrue(range.availableSeries.contains(.expenditure), range.title)
+            XCTAssertFalse(range.defaultVisible.contains(.expenditure), range.title)
+        }
+        XCTAssertEqual(WeightSeries.expenditure.title, "Verbrauch ⌀")
     }
 }

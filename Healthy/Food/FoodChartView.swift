@@ -18,6 +18,10 @@ struct FoodChartView: View {
     /// Welche kcal-Kurven zu sehen sind: das Mittel (Vorgabe) und der Tageswert.
     let showAverage: Bool
     let showDaily: Bool
+    /// „Verbrauch ⌀" aus dem Weight Tracker - hier vorgewaehlt: die Luecke
+    /// zwischen ihm und „kcal ⌀" ist das Defizit.
+    let expenditure: [DayAverage]
+    let showExpenditure: Bool
     /// Der gewaehlte Zeitraum. Bewusst von aussen gesetzt und nicht aus
     /// `history` abgeleitet: sonst zeigt das Diagramm nur die Tage, an denen
     /// etwas eingetragen wurde, und der Umschalter bliebe wirkungslos.
@@ -102,6 +106,28 @@ struct FoodChartView: View {
                         }
                         .foregroundStyle(Palette.kcal)
                         .lineStyle(StrokeStyle(lineWidth: 2.2, dash: run.complete ? [] : [1, 5]))
+                        .interpolationMethod(.linear)
+                    }
+                }
+            }
+
+            // Der Verbrauch: dieselbe Form wie das kcal-Mittel, eigene Farbe.
+            // Gestrichelt, solange sein Fenster nicht ganz vorbei ist.
+            if showExpenditure {
+                ForEach(expenditureRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kcal", only.value))
+                        .foregroundStyle(Palette.expenditure)
+                        .symbolSize(18)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kcal", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(Palette.expenditure)
+                        .lineStyle(StrokeStyle(lineWidth: 2.2, dash: run.complete ? [] : [4, 4]))
                         .interpolationMethod(.linear)
                     }
                 }
@@ -235,11 +261,16 @@ struct FoodChartView: View {
     private var kcalDomain: ClosedRange<Double> {
         FoodChartData.kcalDomain(daily: showDaily ? history : [],
                                  averages: showAverage ? averages : [],
+                                 expenditure: showExpenditure ? expenditure : [],
                                  target: kcalTarget)
     }
 
     private var averageRuns: [AverageRun] {
         FoodChartData.averageRuns(averages)
+    }
+
+    private var expenditureRuns: [AverageRun] {
+        FoodChartData.expenditureRuns(expenditure)
     }
 
     /// Alle sichtbaren Gewichtswerte - sie teilen sich eine Skala, sonst

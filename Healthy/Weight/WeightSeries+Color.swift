@@ -11,6 +11,7 @@ extension WeightSeries {
         case .target:   Palette.target
         case .kcal:     Palette.kcal
         case .kcalDay:  Palette.kcal.opacity(0.55)
+        case .expenditure: Palette.expenditure
         }
     }
 }

@@ -3,6 +3,40 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-09 — Healthy: Energiebilanz im Essen- und im Gewicht-Tab
+Felix hat entschieden (Plan vom 09.10.): Verbrauch = Ruhe- + Aktivenergie,
+**am Gewicht kalibriert**, Defizit heute als Prognose fürs Tagesende, die
+Formate wie im Vertrag §5 auf allen Oberflächen gleich. In der App:
+- **Energiezeilen im Tacho-Block unter „von … kcal"**, nicht für Folgetage.
+  Neben dem großen Tacho ist die Spalte schmal; passt „Verbrauch ≈ 2.840 kcal ·
+  Uhr 3.087 · −8 %" nicht, bricht die Zeile **vor „Uhr"** um (`ViewThatFits`).
+  **Verworfen:** die Zeilen über die ganze Breite unter den Tacho - dann
+  stünden sie nicht mehr bei „Verzehrt … von …", wo man nach der Bilanz sucht;
+  ein freier Umbruch irgendwo in der Zeile.
+- **Kurve „Verbrauch ⌀" im Essen-Verlauf vorgewählt, im Gewicht-Diagramm nur
+  angeboten**, Indigo `#4338CA`/`#6E7BFF`, gestrichelt (`[4, 4]`), solange ihr
+  Fenster nicht ganz vorbei ist - gepunktet sind schon die unvollständigen
+  kcal- und Gewichtsmittel. Der Schalter erscheint nur, wenn es einen Verbrauch
+  gibt. **Verworfen:** auch im Gewicht-Diagramm vorwählen (dort geht es um
+  Kilogramm, und eine fünfte Kurve macht die Zielkurve unleserlich); den
+  Schalter immer zeigen (ohne Uhr ein Schalter ohne Kurve).
+- **Die Schalter im Essen-Verlauf brechen um** (`FlowLayout` wie im
+  Gewicht-Tab), statt seitlich zu scrollen, und die Zeile „Gelb: kcal im
+  7-Tage-Mittel …" entfällt - die Schalter sind die Legende. **Verworfen:** die
+  Scroll-Leiste behalten - mit fünf Schaltern läge „Gewicht täglich" sicher
+  hinter dem Rand.
+- **Kacheln** „Defizit ⌀ 7 T", „Verbrauch ⌀ 7 T", „Kalibrierung" hinten in der
+  Registry (`WeightWidget`), Werte und Notizen wie im Vertrag; sie sehen über
+  `TileInput` neben der Gewichts- auch die Energie-Summary. Ohne Energie zeigen
+  sie „–". **Verworfen:** eigene Karte statt Kacheln (die Auswahl je Person
+  gäbe es dann nicht).
+- **Zahlen ausdrücklich `de_DE`** mit „−" (U+2212), nicht nach der
+  Gerätesprache (`GermanNumber`). **Verworfen:** `Double.whole` - auf einem
+  englisch eingestellten iPhone stünde „2,610" für zweitausend.
+- **Ziehen im Essen-Tab holt nur die Energie aus Health**, nicht Nächte und
+  Gewicht. **Verworfen:** den ganzen Abgleich - das Defizit hängt nur am
+  Verbrauch, und Ziehen soll schnell sein.
+
 ## 2026-10-09 — Healthy liest Energie, Schlaf und Herzwerte aus Health
 Teil von Felix' Freigabe „Energiebilanz, Recovery, Dashboard, Logbook" (Plan
 und Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`). Gerechnet wird im

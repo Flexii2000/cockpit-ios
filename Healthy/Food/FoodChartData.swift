@@ -50,6 +50,7 @@ enum FoodChartData {
             case .target:   point.target
             case .kcal:     nil
             case .kcalDay:  nil
+            case .expenditure: nil
             }
             return raw.map { DayValue(date: point.date, value: $0) }
         }
@@ -60,12 +61,21 @@ enum FoodChartData {
         DaySeries.averageRuns(averages, key: "kcalavg")
     }
 
+    /// „Verbrauch ⌀" genauso: an Luecken getrennt (Tage ohne Uhr), gestrichelt,
+    /// solange das Fenster nicht ganz vorbei ist.
+    static func expenditureRuns(_ expenditure: [DayAverage]) -> [AverageRun] {
+        DaySeries.averageRuns(expenditure, key: "expenditure")
+    }
+
     /// Ausgemessen an dem, was zu sehen ist - das Mittel braucht weniger
     /// Platz als die Tageswerte. Wer nur das Mittel zeigt, uebergibt keine
-    /// Tageswerte, und umgekehrt.
+    /// Tageswerte, und umgekehrt. Der Verbrauch liegt meist ueber allem, was
+    /// gegessen wurde; ohne ihn hier ragte seine Kurve oben hinaus.
     static func kcalDomain(daily: [DayTotal], averages: [DayAverage],
+                           expenditure: [DayAverage] = [],
                            target: Double?) -> ClosedRange<Double> {
-        let values = daily.map(\.consumed.kcal) + averages.map(\.kcal) + [target].compactMap { $0 }
+        let values = daily.map(\.consumed.kcal) + averages.map(\.kcal) + expenditure.map(\.kcal)
+            + [target].compactMap { $0 }
         let lower = min(kcalBase, (values.min() ?? kcalBase) - 100)
         let upper = max((values.max() ?? 2500) + 150, (target ?? 2000) * 1.1)
         return lower...max(upper, lower + 100)

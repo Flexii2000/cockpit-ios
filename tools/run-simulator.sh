@@ -71,6 +71,17 @@
 # Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie in der Datei.
 # Mit COCKPIT_NO_LOCK=1, sonst steht dort der Sperrbildschirm.
 #
+# COCKPIT_DASHBOARD_DEMO=1 zeigt in Healthy erfundene Energie (Zeilen im
+# Essen-Tab, Kacheln und Kurve im Gewicht-Tab) - nur im Speicher, nie
+# gesendet. Der Simulator bekommt keine Health-Daten; ohne das waere nichts
+# davon zu sehen:
+#
+#   COCKPIT_DASHBOARD_DEMO=1 COCKPIT_NO_HEALTH=1 tools/run-simulator.sh Healthy food bild.png
+#
+# Gegen einen lokal gestarteten Weight Tracker oder Kalorienzaehler
+# (COCKPIT_URL_WEIGHT=http://127.0.0.1:48180, COCKPIT_URL_FOOD=…) samt dessen
+# Token in COCKPIT_WEIGHT_TOKEN bzw. COCKPIT_FH_PRIVATE_TOKEN.
+#
 # COCKPIT_SELECT=2026-08-15 waehlt einen Tag im Diagramm vor, damit die
 # Sprechblase im Bild ist - eine Ziehgeste kann der Simulator nicht.
 #
@@ -150,6 +161,9 @@ SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
 SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_EVALUATION_DEMO="${COCKPIT_EVALUATION_DEMO:-}" \
+SIMCTL_CHILD_COCKPIT_DASHBOARD_DEMO="${COCKPIT_DASHBOARD_DEMO:-}" \
+SIMCTL_CHILD_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}" \
+SIMCTL_CHILD_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \
 SIMCTL_CHILD_COCKPIT_SCAN="${COCKPIT_SCAN:-}" \
 SIMCTL_CHILD_COCKPIT_FORCE_LOCK="${COCKPIT_FORCE_LOCK:-}" \

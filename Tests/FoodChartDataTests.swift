@@ -179,4 +179,46 @@ final class FoodChartDataTests: XCTestCase {
         let value = FoodChartData.scale(5, from: 3.0...3.0, to: 1000.0...2000.0)
         XCTAssertEqual(value, 1000)
     }
+
+    // MARK: - Verbrauch ⌀
+
+    /// Der Verbrauch liegt meist ueber allem Gegessenen - die Achse muss ihn
+    /// fassen, sonst ragte seine Kurve oben hinaus.
+    func testKcalDomainMakesRoomForTheExpenditure() {
+        let averages = [average(10, 1, kcal: 2100), average(10, 2, kcal: 2150)]
+        let expenditure = [average(10, 1, kcal: 2950), average(10, 2, kcal: 3010)]
+        let without = FoodChartData.kcalDomain(daily: [], averages: averages, target: 2300)
+        let with = FoodChartData.kcalDomain(daily: [], averages: averages, expenditure: expenditure,
+                                            target: 2300)
+        XCTAssertLessThan(without.upperBound, 3010)
+        XCTAssertGreaterThan(with.upperBound, 3010)
+    }
+
+    /// „Verbrauch ⌀" kommt aus dem Weight Tracker und zerfaellt wie „kcal ⌀":
+    /// an Luecken (Tage ohne Uhr) und am vorlaeufigen Rand, gestrichelt.
+    func testExpenditureRunsBreakAtGapsAndTheProvisionalEdge() throws {
+        let json = Data("""
+        [{"date":"2026-10-04","activeKcal":512.0,"basalKcal":1834.0,"basalImputed":false,"watchKcal":2346.0,
+          "factor":0.921,"calibrationStatus":"OK","expenditureKcal":2161.0,"intakeKcal":1904.0,"tracked":true,
+          "deficitKcal":257.0,"projected":false,"expenditureAvg7":2210.0,"avg7Complete":true},
+         {"date":"2026-10-05","activeKcal":400.0,"basalKcal":1830.0,"basalImputed":false,"watchKcal":2230.0,
+          "factor":0.921,"calibrationStatus":"OK","expenditureKcal":2054.0,"intakeKcal":null,"tracked":false,
+          "deficitKcal":null,"projected":false,"expenditureAvg7":2190.0,"avg7Complete":true},
+         {"date":"2026-10-06","activeKcal":420.0,"basalKcal":1830.0,"basalImputed":false,"watchKcal":2250.0,
+          "factor":0.921,"calibrationStatus":"OK","expenditureKcal":2072.0,"intakeKcal":2000.0,"tracked":true,
+          "deficitKcal":72.0,"projected":false,"expenditureAvg7":2180.0,"avg7Complete":false},
+         {"date":"2026-10-08","activeKcal":null,"basalKcal":null,"basalImputed":false,"watchKcal":null,
+          "factor":1.0,"calibrationStatus":"TOO_FEW_TRACKED_DAYS","expenditureKcal":null,"intakeKcal":1800.0,
+          "tracked":false,"deficitKcal":null,"projected":false,"expenditureAvg7":null,"avg7Complete":false}]
+        """.utf8)
+        let days = try APIClient.decoder().decode([EnergyDay].self, from: json)
+        let expenditure = days.compactMap(\.expenditureAverage)
+        XCTAssertEqual(expenditure.map(\.kcal), [2210, 2190, 2180], "ein Tag ohne Uhr hat keine Kurve")
+        let runs = FoodChartData.expenditureRuns(expenditure)
+        XCTAssertEqual(runs.map(\.complete), [true, false])
+        XCTAssertEqual(runs[1].samples.first?.value, 2190, "der gestrichelte Teil setzt am letzten festen an")
+        XCTAssertTrue(FoodChartData.weightValues([weightPoint(10, 4, avg7: 90)], series: .expenditure,
+                                                 from: day(10, 1), to: day(10, 31)).isEmpty,
+                      "der Verbrauch ist keine Gewichtsreihe")
+    }
 }

@@ -301,6 +301,16 @@ final class Access {
                 cookies.append(c)
             }
         }
+        // Der Weight Tracker nimmt nicht den Privat-Token, sondern seinen
+        // eigenen - ein lokal gestarteter (COCKPIT_URL_WEIGHT) antwortete
+        // sonst auf jede Anfrage mit 403.
+        let weightURL = Backend.weight.url
+        if let weightToken, let host = weightURL.host(), !host.hasSuffix("fherrmann.com"),
+           let c = Self.cookie(name: Self.weightTokenKey, value: weightToken,
+                               domain: host, path: weightURL.path().isEmpty ? "/" : weightURL.path(),
+                               secure: weightURL.scheme == "https") {
+            cookies.append(c)
+        }
         #endif
         // Erst alle in den gemeinsamen Speicher - der geht ohne Warten. Wer
         // beides verschraenkt, laesst zwischen dem ersten und dem letzten

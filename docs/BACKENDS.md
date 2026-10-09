@@ -288,16 +288,36 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | Methode | Pfad | Rumpf → Antwort |
 |---|---|---|
 | POST | `/api/energy` | `{days:[EnergyDayInput], replace?}` → der **gespeicherte** Stand dieser Tage (≤ 5.000 Tage, keiner nach morgen) |
+| GET | `/api/energy?from=&to=` | `[EnergyDay]` — nur Tage mit Werten der Uhr oder des Kalorienzählers, nie nach heute (≤ 4.000 Tage) |
+| GET | `/api/energy/summary` | `EnergySummary` — heute und die letzten 7 vollen Tage |
 | POST | `/api/nights` | `{nights:[Night]}` → die gespeicherten Nächte (≤ 400 je Anfrage; die App schickt ≤ 200) |
 | GET | `/api/nights?from=&to=` | `[Night]` |
 
 ```
 EnergyDayInput  date, activeKcal?, basalKcal?   (je Tag mindestens eins; aktiv 0–10.000, Ruhe 0–5.000)
+EnergyDay       date, activeKcal?, basalKcal?, basalImputed, watchKcal?, factor, calibrationStatus,
+                expenditureKcal?, intakeKcal?, tracked, deficitKcal?, projected,
+                expenditureAvg7?, avg7Complete
+EnergySummary   today: EnergyDay?, deficit7?, deficit7Days, expenditure7?, expenditure7Days,
+                calibration: Calibration, sources {food: "OK" | "UNAVAILABLE"}
+Calibration     status (OK | CLAMPED | TOO_FEW_TRACKED_DAYS | TOO_FEW_WEIGHTS | TOO_FEW_WATCH_DAYS |
+                FOOD_UNAVAILABLE), factor, rawFactor?, windowFrom, windowTo, measuredKcal?,
+                measuredSeKcal?, watchKcal?, intakeKcal?, weightSlopeKgPerWeek?,
+                trackedDays, weightDays, watchDays
 Night           date (Aufwachtag), sleepStart?, sleepEnd? (Instant mit "Z"), asleepMinutes (0–1.440),
                 inBedMinutes?, awakeMinutes?, deepMinutes?, remMinutes?, coreMinutes?,
                 hrvSdnnMs?, hrvSdnnSamples?, hrvRmssdMs?, hrvRmssdSamples?,
                 sleepingHeartRate?, respiratoryRate?, source? ("ios" | "android")
 ```
+
+⚠️ **Verbrauch ist kalibriert.** `expenditureKcal` = `watchKcal × factor`; der
+Faktor gleicht die Uhr über die 28 Tage davor am Gewicht ab (0,7–1,3, ohne
+genug Daten 1 mit Grund in `calibrationStatus`). `deficitKcal` gibt es nur an
+getrackten Tagen und heute — heute als Prognose (`projected`), und gar nicht,
+wenn der Kalorienzähler nicht antwortete (dann ist die Aufnahme unbekannt,
+nicht 0). Die App zeigt das nur an (Formate in `EnergyFormat`, Vertrag §5)
+und rechnet nichts nach. `expenditureAvg7` ist die Kurve „Verbrauch ⌀",
+gestrichelt, solange `avg7Complete` falsch ist.
 
 ⚠️ **Energie: heute und gestern gewinnt je Feld das Maximum**, ältere Tage
 ersetzt der neue Wert (dann hat Health iPhone und Uhr fertig
@@ -344,7 +364,9 @@ Dish           id, name, per100g: Nutrients, portionG?, lastUsedOn?
 FoodEntry      id, date, dishId?, name, grams, per100g, meal, createdAt: Instant
 DaySummary     date, targets, consumed, remaining,
                entries: [FoodEntry], mealTargets: [Meal: Double]
-DayTotal       date, consumed: Nutrients
+DayTotal       date, consumed: Nutrients, meals: [Meal]   (meals seit 2026-10-09, Branch recovery:
+               Mahlzeiten mit mindestens einem Eintrag - für die Regel „getrackter Tag" im
+               Weight Tracker; die App liest das Feld nicht)
 DayAverage     date, kcal, days, complete   (zentriertes 7-Tage-Fenster, nur abgeschlossene Tage
                mit Eintrag - heute und vorerfasste kuenftige Tage zaehlen nicht;
                complete = false, solange das Fenster bis heute oder darueber hinaus reicht)

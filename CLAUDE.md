@@ -187,6 +187,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`food`, `weight`, `evaluation`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
 | `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Healthy) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
 | `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
+| `COCKPIT_DASHBOARD_DEMO=1` | erfundene Energie (Zeilen im Essen-Tab, Kacheln und Kurve „Verbrauch ⌀" im Gewicht-Tab) - nur im Speicher, nie gesendet; der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
@@ -201,7 +202,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
-| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`) - gegen einen lokal gestarteten Dienst; beim Habits-Dienst wird der Privat-Token dann auch fuer diesen Rechner als Cookie gesetzt |
+| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`, `_WEIGHT`, `_FOOD`) - gegen einen lokal gestarteten Dienst; der Privat-Token (beim Weight Tracker dessen eigener) wird dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_URL_KLIPY=http://127.0.0.1:48793/api/v1` | GIF-Suche in coHabit gegen `tools/klipy-stub.py` statt KLIPY - ohne echten Schluessel (nur auf dem Server) antwortet KLIPY nicht. `uitest.sh` reicht es an `testSendAGifFromTheSearch` weiter |
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann. Wirkt auch ohne Zugang: ein Setup-Link (`cohabit://setup?token=…`) meldet dann an, ein Einladungslink oeffnet die Registrierung |

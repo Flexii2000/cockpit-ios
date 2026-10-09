@@ -104,17 +104,18 @@ struct WeightTab: View {
     }
 
     private func tiles(_ summary: WeightSummary) -> some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(store.widgets) { widget in
+        let input = store.tileInput(summary)
+        return LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(store.shownWidgets) { widget in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(widget.label)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Text(widget.value(summary))
+                    Text(widget.value(input))
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(widget.tone(summary)?.color ?? .primary)
-                    if let note = widget.note(summary) {
+                        .foregroundStyle(widget.tone(input)?.color ?? .primary)
+                    if let note = widget.note(input) {
                         Text(note)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -155,6 +156,7 @@ struct WeightTab: View {
                             kcalByDay: store.kcalByDay,
                             kcalAverage: store.kcalAverage,
                             kcalTarget: store.kcalTarget,
+                            expenditureAverage: store.expenditureAverage,
                             visible: store.visibleSeries)
 
             // Die Umschalter sind zugleich die Legende - eine zweite Liste
@@ -163,7 +165,10 @@ struct WeightTab: View {
             // lag der letzte Chip unsichtbar hinter dem Rand.
             FlowLayout(spacing: 8) {
                 ForEach(store.range.offeredSeries) { series in
-                    if store.range.availableSeries.contains(series) {
+                    // „Verbrauch ⌀" nur, wenn es einen gibt - ohne Uhr oder mit
+                    // einem aelteren Dienst waere es ein Schalter ohne Kurve.
+                    if store.range.availableSeries.contains(series),
+                       series != .expenditure || !store.expenditureAverage.isEmpty {
                         SeriesChip(title: series.title,
                                    color: series.color,
                                    isOn: store.visibleSeries.contains(series)) {

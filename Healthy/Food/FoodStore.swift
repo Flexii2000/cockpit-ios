@@ -8,6 +8,7 @@ final class FoodStore {
 
     private let api = FoodAPI()
     private let weightApi = WeightAPI()
+    private let energyApi = EnergyAPI()
 
     private(set) var date: CalendarDate = FoodStore.initialDate
     /// Der gezeigte Tag. Jede Fassung landet auch im Tagesspeicher.
@@ -28,6 +29,16 @@ final class FoodStore {
     /// Woche gepasst hat.
     var showKcalAverage = true
     var showKcalDaily = false
+    /// „Verbrauch ⌀" - vorgewaehlt: die Luecke zwischen ihm und „kcal ⌀" ist
+    /// das Defizit, und genau das soll der Verlauf zeigen (Vertrag §5).
+    var showExpenditure = true
+    /// Die Energiebilanz je Tag vom Weight Tracker: Verbrauch, Defizit, das
+    /// Mittel fuer die Kurve. Faellt er aus (oder kennt sie noch nicht),
+    /// fehlen nur die Zeilen und die Kurve - der Tag steht trotzdem da.
+    private(set) var energyByDay: [CalendarDate: EnergyDay] = [:]
+    /// Welche Tage schon gefragt wurden - auch die ohne Antwort, damit ein
+    /// Tag ohne Uhr nicht bei jedem Blaettern neu angefragt wird.
+    private var energyAsked: Set<CalendarDate> = []
     /// Die Gewichtskurve unter den kcal - dieselbe Zusammenschau wie in der
     /// Weboberflaeche. In der App braucht es dafuer kein CORS: die
     /// Same-Origin-Policy gilt nur im Browser.
@@ -77,6 +88,20 @@ final class FoodStore {
 
     func summary(for date: CalendarDate) -> DaySummary? {
         summaries[date]
+    }
+
+    /// Die Energiebilanz eines Tages - fuer kuenftige Tage nie: wer vorplant,
+    /// hat noch nichts verbraucht (Vertrag §5).
+    func energy(for date: CalendarDate) -> EnergyDay? {
+        date <= CalendarDate.today() ? energyByDay[date] : nil
+    }
+
+    /// „Verbrauch ⌀" im Fenster des Verlaufs.
+    var expenditureAverage: [DayAverage] {
+        energyByDay.values
+            .filter { $0.date >= historyFrom && $0.date <= historyTo }
+            .compactMap(\.expenditureAverage)
+            .sorted { $0.date < $1.date }
     }
 
     /// Eintraege des Tages nach Mahlzeiten.
@@ -162,6 +187,50 @@ final class FoodStore {
         }
         // Dasselbe fuer die Gewichtskurve - fehlt sie, fehlt nur sie.
         weightPoints = (try? await weightApi.points(Self.weightRange(forHistoryDays: historyDays))) ?? []
+        // Und fuer die Energie: das Fenster des Verlaufs deckt auch den Tag
+        // ab, der meist zu sehen ist - heute.
+        await loadEnergy(from: from, to: to)
+    }
+
+    /// Holt die Energiebilanz eines Zeitraums. Still: ohne Uhr, mit einem
+    /// aelteren Weight Tracker oder ohne Netz und Cache bleibt es beim
+    /// bisherigen Stand.
+    private func loadEnergy(from: CalendarDate, to: CalendarDate) async {
+        let end = min(to, CalendarDate.today())
+        guard from <= end else { return }
+        let days: [EnergyDay]
+        #if DEBUG
+        if DashboardDemo.isOn {
+            days = DashboardDemo.energyDays(from: from, to: end)
+            apply(days, from: from, to: end)
+            return
+        }
+        #endif
+        do {
+            days = try await energyApi.days(from: from, to: end)
+        } catch {
+            return
+        }
+        apply(days, from: from, to: end)
+    }
+
+    /// Uebernimmt die Antwort fuer einen Zeitraum - auch, dass ein Tag darin
+    /// fehlt: dann gibt es fuer ihn keine Bilanz (mehr).
+    private func apply(_ days: [EnergyDay], from: CalendarDate, to: CalendarDate) {
+        var day = from
+        while day <= to {
+            energyByDay[day] = nil
+            energyAsked.insert(day)
+            day = day.adding(days: 1)
+        }
+        for energy in days { energyByDay[energy.date] = energy }
+    }
+
+    /// Fuer einen Tag ausserhalb des Verlaufs (weit zurueckgeblaettert): die
+    /// Bilanz samt Nachbarn holen, sofern noch nicht gefragt.
+    private func loadEnergyIfNeeded(around date: CalendarDate) async {
+        guard date <= CalendarDate.today(), !energyAsked.contains(date) else { return }
+        await loadEnergy(from: date.adding(days: -1), to: date.adding(days: 1))
     }
 
     /// Welche Gewichtsreihe den Verlauf abdeckt. Bis 90 Tage weiter
@@ -186,6 +255,7 @@ final class FoodStore {
         } catch {
             report(error)
         }
+        await loadEnergyIfNeeded(around: date)
         await prefetchNeighbours()
     }
 

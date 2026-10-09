@@ -73,6 +73,9 @@ export TEST_RUNNER_COCKPIT_GRADES_USER="${COCKPIT_GRADES_USER:-}"
 export TEST_RUNNER_COCKPIT_GRADES_PASSWORD="${COCKPIT_GRADES_PASSWORD:-}"
 export TEST_RUNNER_COCKPIT_URL_HABITS="${COCKPIT_URL_HABITS:-}"
 export TEST_RUNNER_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}"
+# Healthy gegen einen lokal gestarteten Weight Tracker bzw. Kalorienzaehler.
+export TEST_RUNNER_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}"
+export TEST_RUNNER_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}"
 # coHabit: Adresse des lokalen Dienstes, der Token der Person, als die die
 # App laeuft, und der einer zweiten, die im Einladungs-Test einlaedt.
 export TEST_RUNNER_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}"

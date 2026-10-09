@@ -137,7 +137,14 @@ je Branch `recovery`) sind fertig, aber nicht ausgerollt.
   (Nächte → Energie → Schritte → Gewicht, `syncIfDue`/`syncAll(force:)`,
   Weckruf für Schlaf, Rückholung im Vordergrund). Neue Leserechte, neuer
   Health-Text. Tests `HealthNightsTests`, `HealthEnergyTests`.
-- [ ] Energie im Essen- und Gewicht-Tab
+- [x] **Energie im Essen- und Gewicht-Tab** (`Healthy/Energy/`): Zeilen
+  „Verbrauch ≈ … · Uhr … · −8 %" / „Defizit ≈ … kcal" unter „von … kcal" (nicht
+  für Folgetage), Kurve „Verbrauch ⌀" im Essen-Verlauf vorgewählt und im
+  Gewicht-Diagramm angeboten, Schalter im Essen-Verlauf umbrechend statt
+  scrollend, Kacheln „Defizit ⌀ 7 T", „Verbrauch ⌀ 7 T", „Kalibrierung"
+  (`TileInput`). Vorführmodus `COCKPIT_DASHBOARD_DEMO=1` für Aufnahmen. Tests
+  `EnergyFormatTests`, `HealthyContractTests`, angepasste `WeightModelTests`
+  und `FoodChartDataTests`.
 - [ ] Dashboard-Tab mit Recovery-Seite, Routing, URL-Schema `healthy://`
 - [ ] Logbook-Seite, Verhalten, Erinnerung 09:00
 
