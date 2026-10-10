@@ -6,26 +6,19 @@
 > Healthy --launch` mit aufs Gerät. Dort prüfen: neben dem großen Tacho stehen
 > nur „Verzehrt … kcal" und „von … kcal", darunter nichts mehr; Ziehen lädt den
 > Tag neu; Verbrauch und Defizit des Tages zeigt die Energie-Karte im
-> Dashboard. Was weggefallen ist, steht im Abschnitt unten.
+> Dashboard. Was weggefallen ist, steht im Abschnitt unten. Im selben Rollout
+> (`deploy-healthy-essen-recovery.sh`) rechnet der Weight Tracker die Recovery
+> als Rang unter den eigenen Nächten (nie 0 oder 100) - die App zeigt nur den
+> Score.
 >
-> **Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀"
-> (09.10., Runde 2):** Branch `energy-ui`, gebaut und geprüft, nicht gemergt,
-> nicht gepusht. Reihenfolge: erst den Weight Tracker mit `deficitAvg7`
-> ausrollen (Branch `energy-ui` in `../weight-app`), dann `tools/install-device.sh
-> Healthy --launch`. Ein Weight Tracker ohne das Feld lässt nur die Linie
-> „Defizit ⌀" weg - Karte, Fläche und Schalter laufen schon mit dem heutigen
-> Dienst. Was auf dem Gerät zu prüfen ist, steht im Abschnitt unten.
+> **Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" (09.10., Runde 2):**
+> ausgerollt am 09.10. abends (`deploy-healthy-energie.sh`: Weight Tracker,
+> Kalorienzähler, iPhone, Android 1.2). Was auf dem Gerät zu prüfen ist, steht im
+> Abschnitt unten.
 >
-> **Healthy: Dashboard, Energie, Recovery, Logbook (09.10.):**
-> Branch `recovery`, gebaut und geprüft, nicht gemergt, nicht gepusht.
-> Reihenfolge: **erst die Dienste ausrollen** (Branch `recovery` in
-> `../food`, `../habits`, `../weight-app`, dann Felix' Healthy-Token per
-> `setup-health-users.sh felix` - Rollout-Skript laut Plan), **dann**
-> `tools/install-device.sh Healthy --launch`. Ein älterer Weight Tracker lässt
-> die neuen Karten, Kurven und Kacheln still weg (404), die App läuft. Die drei
-> Energie-Kacheln erst hinzufügen, wenn Web und Android sie auch kennen (jedes
-> Register wirft Unbekanntes beim Speichern weg). Was auf dem Gerät zu prüfen
-> ist, steht im Abschnitt unten.
+> **Healthy: Dashboard, Energie, Recovery, Logbook (09.10.):** ausgerollt am
+> 09.10. (`deploy-healthy-recovery.sh`: Dienste, Felix' Healthy-Token, iPhone,
+> Android 1.1). Was auf dem Gerät zu prüfen ist, steht im Abschnitt unten.
 >
 > **coHabit, Typfarben je Person (05.10., abends):** Branch `type-colors` (auf
 > `today-types`), nicht gemergt, nicht gepusht. Braucht den Dienst ab `ce4cc3a`
@@ -182,13 +175,13 @@ Tageskarte. Bilder des Essen-Tabs hell und dunkel mit
 `COCKPIT_DASHBOARD_DEMO=1 COCKPIT_NO_HEALTH=1` angesehen. Kein UI-Test kannte
 `energyLines`.
 
-**Offen:** ob die Kurven „Verbrauch ⌀" und „Defizit ⌀" im Essen-Verlauf
-vorgewählt bleiben (Felix gefragt, 10.10.).
+Die Kurven „Verbrauch ⌀" und „Defizit ⌀" im Essen-Verlauf bleiben vorgewählt
+(Felix, 10.10.).
 
-## Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" · **gebaut, nicht ausgerollt** (2026-10-09)
+## Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" · **ausgerollt** (2026-10-09)
 
 Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`
-§1.2 `deficitAvg7`, §5). Branch `energy-ui`, nicht gemergt, nicht gepusht.
+§1.2 `deficitAvg7`, §5). Branch `energy-ui`, am 09.10. abends nach `main` und ausgerollt.
 
 - [x] **Sprechblase im Essen-Verlauf wieder da** (`FoodChartView`): seit
   `91d22e9` (20.09.) lief die Auswahl beim Antippen und Ziehen mit, gezeichnet
@@ -257,12 +250,13 @@ einen Weight Tracker mit `deficitAvg7` gelaufen - nur Tests und Vorführdaten.
 dunkelgrau statt hell (das Material in der Annotation von Swift Charts) -
 schon vor dieser Arbeit so, auf dem Gerät ansehen.
 
-## Healthy: Dashboard, Energie, Recovery, Logbook · **gebaut, nicht ausgerollt** (2026-10-09)
+## Healthy: Dashboard, Energie, Recovery, Logbook · **ausgerollt** (2026-10-09)
 
 Felix' Freigabe vom 09.10. (Plan „Energiebilanz, Recovery, Dashboard, Logbook",
-Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`). Branch `recovery`, nicht
-gemergt, nicht gepusht. Die Dienste (`../weight-app`, `../food`, `../habits`,
-je Branch `recovery`) sind fertig, aber nicht ausgerollt.
+Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`). Branch `recovery` samt der
+Dienste (`../weight-app`, `../food`, `../habits`) am 09.10. nach `main` und
+ausgerollt. Seit 10.10. ist der Score der Rang unter den eigenen Nächten (Weight
+Tracker, Vertrag §3.2) - die App zeigt ihn nur.
 
 - [x] **Postausgang** liest seine Datei, bis es gelingt, statt bei gesperrtem
   iPhone „leer" zu sehen und Wartendes zu überschreiben (`25fef4d`).

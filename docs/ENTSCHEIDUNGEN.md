@@ -24,6 +24,9 @@ und das Defizit als Text, und beides will Felix dort nicht.
 - **Ohne Kalorienzähler steht der Verbrauch des Tages nirgends mehr.** Die
   Energie-Karte fehlt dann (09.10., „Balken + Woche"); ihr Grund dort, „der
   Verbrauch steht im Essen-Tab", gilt seit heute nicht mehr.
+- **Die Kurven im Essen-Verlauf bleiben vorgewählt** (Felix, 10.10., auf
+  Nachfrage). **Verworfen:** sie nur anbieten - Felix wollte die Defizit-Kurve
+  dort ausdrücklich, „zu busy" galt den Zeilen unter dem Ziel.
 
 ## 2026-10-09 — Healthy: Vorführmodus auch für Essen- und Gewicht-Tab
 `COCKPIT_DASHBOARD_DEMO=1` ersetzte bisher nur Dashboard, Recovery, Logbook
