@@ -1,15 +1,13 @@
 # Stand
 
-> **Nächster Schritt - Healthy: Essen-Tab ohne Energiezeilen (10.10.):**
-> Branch `calmer` (von `main`), gebaut und geprüft, nicht gemergt, nicht
-> gepusht. Braucht keinen Dienst - beim nächsten `tools/install-device.sh
-> Healthy --launch` mit aufs Gerät. Dort prüfen: neben dem großen Tacho stehen
-> nur „Verzehrt … kcal" und „von … kcal", darunter nichts mehr; Ziehen lädt den
-> Tag neu; Verbrauch und Defizit des Tages zeigt die Energie-Karte im
-> Dashboard. Was weggefallen ist, steht im Abschnitt unten. Im selben Rollout
-> (`deploy-healthy-essen-recovery.sh`) rechnet der Weight Tracker die Recovery
-> als Rang unter den eigenen Nächten (nie 0 oder 100) - die App zeigt nur den
-> Score.
+> **Healthy: Essen-Tab ohne Energiezeilen (10.10., Runde 3):** ausgerollt am
+> 10.10. (`deploy-healthy-essen-recovery.sh`: Weight Tracker, Kalorienzähler,
+> iPhone, Android). Auf dem Gerät prüfen: neben dem großen Tacho stehen nur
+> „Verzehrt … kcal" und „von … kcal", darunter nichts mehr; Ziehen lädt den Tag
+> neu; Verbrauch und Defizit des Tages zeigt die Energie-Karte im Dashboard.
+> Was weggefallen ist, steht im Abschnitt unten. Im selben Rollout rechnet der
+> Weight Tracker die Recovery als Rang unter den eigenen Nächten (nie 0 oder
+> 100) - die App zeigt nur den Score.
 >
 > **Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" (09.10., Runde 2):**
 > ausgerollt am 09.10. abends (`deploy-healthy-energie.sh`: Weight Tracker,
@@ -138,12 +136,11 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
-## Healthy: Essen-Tab ohne Energiezeilen · **gebaut, nicht ausgerollt** (2026-10-10)
+## Healthy: Essen-Tab ohne Energiezeilen · **ausgerollt** (2026-10-10)
 
 Felix' Entscheidung vom 10.10. (ENTSCHEIDUNGEN): Im Essen-Tab sollen sich die
 Werte nicht ändern, das Kalorienziel bleibt fest, das Defizit steht dort nicht
-als Text - „zu busy". Branch `calmer` (von `main`), nicht gemergt, nicht
-gepusht.
+als Text - „zu busy". Branch `calmer`, am 10.10. nach `main` und ausgerollt.
 
 - [x] **Tageskarte wie vor `f0aadb5`** (`FoodTab.gauges`): „Verzehrt … kcal"
   und „von … kcal" neben dem großen Tacho, die Makros mit „von … g"; die Zeilen
