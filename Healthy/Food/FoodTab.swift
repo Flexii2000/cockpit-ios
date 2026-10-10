@@ -208,13 +208,7 @@ struct FoodTab: View {
                 Section { LoadingPlaceholder() }
             }
         }
-        .refreshable {
-            // Nur die Energie aus Health: das Defizit haengt an ihr und an
-            // dem, was hier eingetragen ist. Naechte und Gewicht holt das
-            // Dashboard.
-            await HealthSync.shared.syncEnergy()
-            await store.load()
-        }
+        .refreshable { await store.load() }
         .frame(width: pageWidth)
     }
 
@@ -399,14 +393,8 @@ struct FoodTab: View {
                     Text("\(day.consumed.kcal.whole) kcal").font(.title3.weight(.semibold))
                     Text("von \(day.targets.kcal.whole) kcal")
                         .font(.caption).foregroundStyle(.secondary)
-                    // Verbrauch und Defizit des Tages - nicht fuer Tage, die
-                    // erst kommen (`FoodStore.energy` liefert dort nichts).
-                    if let energy = store.energy(for: day.date) {
-                        EnergyLines(day: energy)
-                            .padding(.top, 4)
-                    }
                 }
-                Spacer(minLength: 0)
+                Spacer()
             }
         }
         .padding(.vertical, 8)

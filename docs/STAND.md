@@ -1,6 +1,14 @@
 # Stand
 
-> **Nächster Schritt - Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀"
+> **Nächster Schritt - Healthy: Essen-Tab ohne Energiezeilen (10.10.):**
+> Branch `calmer` (von `main`), gebaut und geprüft, nicht gemergt, nicht
+> gepusht. Braucht keinen Dienst - beim nächsten `tools/install-device.sh
+> Healthy --launch` mit aufs Gerät. Dort prüfen: neben dem großen Tacho stehen
+> nur „Verzehrt … kcal" und „von … kcal", darunter nichts mehr; Ziehen lädt den
+> Tag neu; Verbrauch und Defizit des Tages zeigt die Energie-Karte im
+> Dashboard. Was weggefallen ist, steht im Abschnitt unten.
+>
+> **Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀"
 > (09.10., Runde 2):** Branch `energy-ui`, gebaut und geprüft, nicht gemergt,
 > nicht gepusht. Reihenfolge: erst den Weight Tracker mit `deficitAvg7`
 > ausrollen (Branch `energy-ui` in `../weight-app`), dann `tools/install-device.sh
@@ -14,7 +22,7 @@
 > `../food`, `../habits`, `../weight-app`, dann Felix' Healthy-Token per
 > `setup-health-users.sh felix` - Rollout-Skript laut Plan), **dann**
 > `tools/install-device.sh Healthy --launch`. Ein älterer Weight Tracker lässt
-> die neuen Karten, Zeilen und Kacheln still weg (404), die App läuft. Die drei
+> die neuen Karten, Kurven und Kacheln still weg (404), die App läuft. Die drei
 > Energie-Kacheln erst hinzufügen, wenn Web und Android sie auch kennen (jedes
 > Register wirft Unbekanntes beim Speichern weg). Was auf dem Gerät zu prüfen
 > ist, steht im Abschnitt unten.
@@ -137,6 +145,46 @@
 > im Karussell (Chat und Timeline, auch neben dem senkrechten Scrollen), Fotos
 > beim Bearbeiten ergänzen/entfernen, drei Fotos ohne Netz.
 
+## Healthy: Essen-Tab ohne Energiezeilen · **gebaut, nicht ausgerollt** (2026-10-10)
+
+Felix' Entscheidung vom 10.10. (ENTSCHEIDUNGEN): Im Essen-Tab sollen sich die
+Werte nicht ändern, das Kalorienziel bleibt fest, das Defizit steht dort nicht
+als Text - „zu busy". Branch `calmer` (von `main`), nicht gemergt, nicht
+gepusht.
+
+- [x] **Tageskarte wie vor `f0aadb5`** (`FoodTab.gauges`): „Verzehrt … kcal"
+  und „von … kcal" neben dem großen Tacho, die Makros mit „von … g"; die Zeilen
+  „Verbrauch ≈ … · Uhr … · −8 %" und „Defizit ≈ … kcal" sind weg. Die Ziele
+  kamen schon immer fest aus `day.targets` - was sich über den Tag änderte,
+  waren die Zeilen darunter.
+- [x] **Ziehen lädt wieder nur `store.load()`**, ohne Health-Abgleich der
+  Energie - der war nur für die Zeilen da. Die Kurven im Verlauf mitteln nur
+  abgeschlossene Tage; für sie reicht der Abgleich beim Wechsel in den
+  Vordergrund (höchstens alle zehn Minuten) und beim Ziehen im Dashboard oder
+  im Gewicht-Tab.
+- [x] **Weggefallen, weil nur dafür da:** `Healthy/Energy/EnergyLines.swift`,
+  `EnergyFormat.expenditure`, `.watch`, `.expenditureLine`, `.balanceLine`,
+  `FoodStore.energy(for:)`, das Nachladen der Energie für einen Tag außerhalb
+  des Verlaufs (`loadEnergyIfNeeded`, `energyAsked`, die Kappung auf heute in
+  `loadEnergy`) und `HealthSync.syncEnergy()`; die Tests `testExpenditureLine`
+  und `testBalanceLine`. Deren Regeln zum Wort (−0,3 ist „Defizit", nicht
+  getrackt gibt es keins) prüft jetzt `testEnergyCardTexts` an `balance`, das
+  die Energie-Karte benutzt. Eigene Vorführdaten hatten die Zeilen nicht.
+- [x] **Unverändert:** Essen-Verlauf (Kurven „Verbrauch ⌀" und „Defizit ⌀" samt
+  Fläche, vorgewählt), Energie-Karte im Dashboard samt Tipp → Essen mit heute,
+  Kacheln und Diagramm im Gewicht-Tab.
+
+**Geprüft (10.10.):** `tools/verify.sh` grün - alle fünf Apps gebaut,
+Unit-Tests Healthy 242 (vorher 244, die zwei oben) und 31 Swift Testing,
+coHabit 170. `tools/uitest.sh Healthy testFoodHistoryOffersTheExpenditure`
+grün: der Verlauf samt „Verbrauch ⌀" und „Defizit ⌀" unter der kürzeren
+Tageskarte. Bilder des Essen-Tabs hell und dunkel mit
+`COCKPIT_DASHBOARD_DEMO=1 COCKPIT_NO_HEALTH=1` angesehen. Kein UI-Test kannte
+`energyLines`.
+
+**Offen:** ob die Kurven „Verbrauch ⌀" und „Defizit ⌀" im Essen-Verlauf
+vorgewählt bleiben (Felix gefragt, 10.10.).
+
 ## Healthy: Energie-Karte „Balken + Woche" und „Defizit ⌀" · **gebaut, nicht ausgerollt** (2026-10-09)
 
 Felix' Entscheidungen vom 09.10. (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md`
@@ -225,8 +273,8 @@ je Branch `recovery`) sind fertig, aber nicht ausgerollt.
   Weckruf für Schlaf, Rückholung im Vordergrund). Neue Leserechte, neuer
   Health-Text. Tests `HealthNightsTests`, `HealthEnergyTests`.
 - [x] **Energie im Essen- und Gewicht-Tab** (`Healthy/Energy/`): Zeilen
-  „Verbrauch ≈ … · Uhr … · −8 %" / „Defizit ≈ … kcal" unter „von … kcal" (nicht
-  für Folgetage), Kurve „Verbrauch ⌀" im Essen-Verlauf vorgewählt und im
+  „Verbrauch ≈ … · Uhr … · −8 %" / „Defizit ≈ … kcal" unter „von … kcal" (seit
+  10.10. wieder weg), Kurve „Verbrauch ⌀" im Essen-Verlauf vorgewählt und im
   Gewicht-Diagramm angeboten, Schalter im Essen-Verlauf umbrechend statt
   scrollend, Kacheln „Defizit ⌀ 7 T", „Verbrauch ⌀ 7 T", „Kalibrierung"
   (`TileInput`). Vorführmodus `COCKPIT_DASHBOARD_DEMO=1` für Aufnahmen. Tests

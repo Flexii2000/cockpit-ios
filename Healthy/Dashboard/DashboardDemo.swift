@@ -5,10 +5,10 @@ import Foundation
 ///
 /// Der Simulator bekommt keine Health-Daten (`simctl` kann keine einspielen),
 /// und ohne Naechte und Energie bleiben Dashboard, Recovery, Logbook und die
-/// Energiezeilen leer - ansehen liessen sie sich nie. Nur im Speicher, nie
-/// gespeichert, nie gesendet; Namen nur als Platzhalter („Verhalten A"), das
-/// Repo ist oeffentlich. Wie `EvaluationDemo` wiederholbar: jede Aufnahme
-/// zeigt dieselben Werte.
+/// Energie in Verlaeufen und Kacheln leer - ansehen liessen sie sich nie. Nur
+/// im Speicher, nie gespeichert, nie gesendet; Namen nur als Platzhalter
+/// („Verhalten A"), das Repo ist oeffentlich. Wie `EvaluationDemo`
+/// wiederholbar: jede Aufnahme zeigt dieselben Werte.
 enum DashboardDemo {
 
     static var isOn: Bool {

@@ -55,7 +55,7 @@ Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich,
   Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, Logbook;
                     Vorführdaten - auch für Essen- und Gewicht-Tab
   Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
-  Energy/           Energiebilanz beim Weight Tracker, ihre Formate und Zeilen im Essen-Tab
+  Energy/           Energiebilanz beim Weight Tracker und ihre Formate
   Logbook/          Logbook-Seite (Tag, Verhalten, Effekte), Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist

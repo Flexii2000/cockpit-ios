@@ -201,13 +201,6 @@ final class HealthSync {
         startBackfill()
     }
 
-    /// Nur die Energie - fuer das Ziehen im Essen-Tab. Das Defizit dort haengt
-    /// am Verbrauch, Naechte und Gewicht spielen keine Rolle.
-    func syncEnergy() async {
-        guard isAvailable else { return }
-        if (try? await syncEnergyWindow()) == true { uploads += 1 }
-    }
-
     private func runAll(force: Bool) async -> Bool {
         var succeeded = true
         var uploaded = false

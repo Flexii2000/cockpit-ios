@@ -35,21 +35,6 @@ final class EnergyFormatTests: XCTestCase {
         XCTAssertEqual(EnergyFormat.calibration(0.996), "0 %")
     }
 
-    /// „Verbrauch [≈ ]2.610 kcal · Uhr 2.840 · −8 %" - der Teil mit der Uhr
-    /// nur, wenn sie etwas gemeldet hat und korrigiert wurde.
-    func testExpenditureLine() {
-        let today = day(expenditure: 2612.8, watch: 2840, factor: 0.92, projected: true)
-        XCTAssertEqual(EnergyFormat.expenditureLine(today),
-                       "Verbrauch ≈ 2.613 kcal · Uhr 2.840 · \u{2212}8 %")
-        XCTAssertEqual(EnergyFormat.watch(today), "Uhr 2.840 · \u{2212}8 %")
-
-        let uncalibrated = day(expenditure: 2346, watch: 2346, factor: 1)
-        XCTAssertEqual(EnergyFormat.expenditureLine(uncalibrated), "Verbrauch 2.346 kcal")
-        XCTAssertNil(EnergyFormat.watch(uncalibrated))
-
-        XCTAssertNil(EnergyFormat.expenditureLine(day(expenditure: nil)), "ohne Uhr keine Zeile")
-    }
-
     /// Die Energie-Karte im Dashboard: Wort und Betrag getrennt (nur der
     /// Betrag ist farbig), unter dem Balken „gegessen …" und „Verbrauch ≈ …"
     /// ohne Einheit.
@@ -69,21 +54,18 @@ final class EnergyFormatTests: XCTestCase {
         // Heute noch nichts gegessen: null, und das Defizit ist der Verbrauch.
         let fasting = day(expenditure: 2840, watch: 3087, factor: 0.92, deficit: 2840, projected: true)
         XCTAssertEqual(EnergyFormat.eaten(fasting), "gegessen 0")
-        XCTAssertEqual(EnergyFormat.balanceLine(fasting), "Defizit ≈ 2.840 kcal")
+        XCTAssertEqual(EnergyFormat.balance(fasting)?.amount, "≈ 2.840 kcal")
 
         let surplus = EnergyFormat.balance(day(expenditure: 2600, deficit: -300.4))
         XCTAssertEqual(surplus?.word, "Überschuss")
         XCTAssertEqual(surplus?.amount, "300 kcal", "ohne Vorzeichen - das Wort sagt die Richtung")
         XCTAssertEqual(surplus?.isSurplus, true)
-    }
 
-    /// „Defizit [≈ ]460 kcal" bzw. „Überschuss [≈ ]120 kcal" - ohne Vorzeichen,
-    /// das Wort sagt die Richtung.
-    func testBalanceLine() {
-        XCTAssertEqual(EnergyFormat.balanceLine(day(expenditure: 2610, deficit: 460.4, projected: true)),
-                       "Defizit ≈ 460 kcal")
-        XCTAssertEqual(EnergyFormat.balanceLine(day(expenditure: 2610, deficit: -120)), "Überschuss 120 kcal")
-        XCTAssertEqual(EnergyFormat.balanceLine(day(expenditure: 2610, deficit: -0.3)), "Defizit 0 kcal")
-        XCTAssertNil(EnergyFormat.balanceLine(day(expenditure: 2610)), "nicht getrackt: kein Defizit")
+        // Das Wort nach dem gerundeten Wert: −0,3 ist kein Ueberschuss.
+        let even = EnergyFormat.balance(day(expenditure: 2610, deficit: -0.3))
+        XCTAssertEqual(even?.word, "Defizit")
+        XCTAssertEqual(even?.amount, "0 kcal")
+        XCTAssertEqual(even?.isSurplus, false)
+        XCTAssertNil(EnergyFormat.balance(day(expenditure: 2610)), "nicht getrackt: kein Defizit")
     }
 }

@@ -4,8 +4,9 @@ import Foundation
 /// mit „−" (U+2212) - unabhaengig von der Sprache des Geraets.
 ///
 /// `Double.whole` richtet sich nach der Geraetesprache; auf einem englisch
-/// eingestellten iPhone stuende dort „2,610" fuer zweitausend. Fuer die neuen
-/// Zeilen, die auf allen Oberflaechen gleich aussehen sollen, taugt das nicht.
+/// eingestellten iPhone stuende dort „2,610" fuer zweitausend. Fuer die
+/// Formate des Vertrags, die auf allen Oberflaechen gleich aussehen sollen,
+/// taugt das nicht.
 enum GermanNumber {
 
     static let minus = "\u{2212}"
@@ -25,7 +26,8 @@ enum GermanNumber {
 }
 
 /// Die Energiebilanz als Text - die Formate aus dem Vertrag (§5), fuer alle
-/// Oberflaechen gleich: Essen-Tab, Kacheln im Gewicht-Tab, Dashboard.
+/// Oberflaechen gleich: Dashboard, Kacheln im Gewicht-Tab, Sprechblasen der
+/// Verlaeufe.
 enum EnergyFormat {
 
     /// „2.610 kcal"; ein Ueberschuss als „−120 kcal".
@@ -34,7 +36,7 @@ enum EnergyFormat {
     }
 
     /// Die Korrektur der Uhr: Faktor − 1 in ganzen Prozent - „−8 %", „+3 %",
-    /// „0 %". Passt zur Energiezeile, in der dieselbe Zahl steht.
+    /// „0 %".
     static func calibration(_ factor: Double) -> String {
         GermanNumber.string((factor - 1) * 100, signed: true) + " %"
     }
@@ -44,25 +46,7 @@ enum EnergyFormat {
         day.projected ? "≈ " : ""
     }
 
-    // MARK: - Energiezeilen im Essen-Tab
-
-    /// „Verbrauch ≈ 2.610 kcal"
-    static func expenditure(_ day: EnergyDay) -> String? {
-        day.expenditureKcal.map { "Verbrauch " + approx(day) + kcal($0) }
-    }
-
-    /// „Uhr 2.840 · −8 %" - nur, wenn die Uhr etwas gemeldet hat und ihr
-    /// Wert korrigiert wurde. Sonst stuende dieselbe Zahl zweimal da.
-    static func watch(_ day: EnergyDay) -> String? {
-        guard let watch = day.watchKcal, day.factor != 1 else { return nil }
-        return "Uhr " + GermanNumber.string(watch) + " · " + calibration(day.factor)
-    }
-
-    /// „Verbrauch ≈ 2.610 kcal · Uhr 2.840 · −8 %"
-    static func expenditureLine(_ day: EnergyDay) -> String? {
-        guard let expenditure = expenditure(day) else { return nil }
-        return [expenditure, watch(day)].compactMap { $0 }.joined(separator: " · ")
-    }
+    // MARK: - Energie-Karte im Dashboard
 
     /// Die Bilanz in zwei Teilen: „Defizit" und „≈ 460 kcal" bzw.
     /// „Überschuss" und „120 kcal" - das Wort nach dem gerundeten Wert (−0,3
@@ -74,13 +58,6 @@ enum EnergyFormat {
         let isSurplus = deficit.rounded() < 0
         return (isSurplus ? "Überschuss" : "Defizit", approx(day) + kcal(abs(deficit)), isSurplus)
     }
-
-    /// „Defizit ≈ 460 kcal" bzw. „Überschuss ≈ 120 kcal".
-    static func balanceLine(_ day: EnergyDay) -> String? {
-        balance(day).map { $0.word + " " + $0.amount }
-    }
-
-    // MARK: - Energie-Karte im Dashboard
 
     /// „gegessen 2.150" unter dem Bilanzbalken. Heute ohne Eintrag 0 - genau
     /// so rechnet der Dienst die Prognose.

@@ -36,13 +36,10 @@ final class FoodStore {
     /// die getrackten Tage liefen, die Flaeche zwischen „Verbrauch ⌀" und
     /// „kcal ⌀" faerbt die Luecke.
     var showDeficit = true
-    /// Die Energiebilanz je Tag vom Weight Tracker: Verbrauch, Defizit, das
-    /// Mittel fuer die Kurve. Faellt er aus (oder kennt sie noch nicht),
-    /// fehlen nur die Zeilen und die Kurve - der Tag steht trotzdem da.
+    /// Die Energiebilanz je Tag vom Weight Tracker - fuer die Kurven
+    /// „Verbrauch ⌀" und „Defizit ⌀" im Verlauf. Faellt er aus (oder kennt
+    /// sie noch nicht), fehlen nur die Kurven - der Tag steht trotzdem da.
     private(set) var energyByDay: [CalendarDate: EnergyDay] = [:]
-    /// Welche Tage schon gefragt wurden - auch die ohne Antwort, damit ein
-    /// Tag ohne Uhr nicht bei jedem Blaettern neu angefragt wird.
-    private var energyAsked: Set<CalendarDate> = []
     /// Die Gewichtskurve unter den kcal - dieselbe Zusammenschau wie in der
     /// Weboberflaeche. In der App braucht es dafuer kein CORS: die
     /// Same-Origin-Policy gilt nur im Browser.
@@ -92,12 +89,6 @@ final class FoodStore {
 
     func summary(for date: CalendarDate) -> DaySummary? {
         summaries[date]
-    }
-
-    /// Die Energiebilanz eines Tages - fuer kuenftige Tage nie: wer vorplant,
-    /// hat noch nichts verbraucht (Vertrag §5).
-    func energy(for date: CalendarDate) -> EnergyDay? {
-        date <= CalendarDate.today() ? energyByDay[date] : nil
     }
 
     /// „Verbrauch ⌀" im Fenster des Verlaufs.
@@ -222,31 +213,29 @@ final class FoodStore {
         }
         // Dasselbe fuer die Gewichtskurve - fehlt sie, fehlt nur sie.
         weightPoints = (try? await weightApi.points(Self.weightRange(forHistoryDays: historyDays))) ?? []
-        // Und fuer die Energie: das Fenster des Verlaufs deckt auch den Tag
-        // ab, der meist zu sehen ist - heute.
+        // Und fuer die Energie: fehlt sie, fehlen nur „Verbrauch ⌀" und
+        // „Defizit ⌀".
         await loadEnergy(from: from, to: to)
     }
 
-    /// Holt die Energiebilanz eines Zeitraums. Still: ohne Uhr, mit einem
-    /// aelteren Weight Tracker oder ohne Netz und Cache bleibt es beim
-    /// bisherigen Stand.
+    /// Holt die Energiebilanz fuer das Fenster des Verlaufs (bis heute).
+    /// Still: ohne Uhr, mit einem aelteren Weight Tracker oder ohne Netz und
+    /// Cache bleibt es beim bisherigen Stand.
     private func loadEnergy(from: CalendarDate, to: CalendarDate) async {
-        let end = min(to, CalendarDate.today())
-        guard from <= end else { return }
         let days: [EnergyDay]
         #if DEBUG
         if DashboardDemo.isOn {
-            days = DashboardDemo.energyDays(from: from, to: end)
-            apply(days, from: from, to: end)
+            days = DashboardDemo.energyDays(from: from, to: to)
+            apply(days, from: from, to: to)
             return
         }
         #endif
         do {
-            days = try await energyApi.days(from: from, to: end)
+            days = try await energyApi.days(from: from, to: to)
         } catch {
             return
         }
-        apply(days, from: from, to: end)
+        apply(days, from: from, to: to)
     }
 
     /// Uebernimmt die Antwort fuer einen Zeitraum - auch, dass ein Tag darin
@@ -255,17 +244,9 @@ final class FoodStore {
         var day = from
         while day <= to {
             energyByDay[day] = nil
-            energyAsked.insert(day)
             day = day.adding(days: 1)
         }
         for energy in days { energyByDay[energy.date] = energy }
-    }
-
-    /// Fuer einen Tag ausserhalb des Verlaufs (weit zurueckgeblaettert): die
-    /// Bilanz samt Nachbarn holen, sofern noch nicht gefragt.
-    private func loadEnergyIfNeeded(around date: CalendarDate) async {
-        guard date <= CalendarDate.today(), !energyAsked.contains(date) else { return }
-        await loadEnergy(from: date.adding(days: -1), to: date.adding(days: 1))
     }
 
     /// Welche Gewichtsreihe den Verlauf abdeckt. Bis 90 Tage weiter
@@ -285,7 +266,6 @@ final class FoodStore {
         #if DEBUG
         if DashboardDemo.isOn {
             day = DashboardDemo.foodDay(date)
-            await loadEnergyIfNeeded(around: date)
             await prefetchNeighbours()
             return
         }
@@ -298,7 +278,6 @@ final class FoodStore {
         } catch {
             report(error)
         }
-        await loadEnergyIfNeeded(around: date)
         await prefetchNeighbours()
     }
 

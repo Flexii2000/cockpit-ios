@@ -3,6 +3,28 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-10 — Healthy: Essen-Tab ohne Energiezeilen, Ziele fest wie vorher
+Felix hat entschieden (10.10.): Im Essen-Tab sollen sich die Werte nicht
+ändern, das Kalorienziel bleibt fest, das Defizit steht dort nicht als Text
+darunter - „zu busy". Die Tageskarte zeigt wieder genau, was sie vor
+`f0aadb5` zeigte: „Verzehrt … kcal" und „von … kcal" neben dem großen Tacho,
+die Makros mit „von … g". Die Ziele kamen schon immer fest aus `day.targets`
+des Kalorienzählers; was sich über den Tag bewegte, waren die Zeilen
+„Verbrauch ≈ … · Uhr … · −8 %" und „Defizit ≈ … kcal" darunter (heute eine
+Prognose). **Verbrauch und Defizit des Tages stehen nur noch in der
+Energie-Karte des Dashboards**; der Essen-Verlauf behält „Verbrauch ⌀" und
+„Defizit ⌀" samt Fläche. **Verworfen:** die Zeilen kleiner oder eingeklappt
+behalten - auch dann stünden unter dem festen Ziel Zahlen, die sich ändern,
+und das Defizit als Text, und beides will Felix dort nicht.
+- **Ziehen im Essen-Tab lädt wieder nur Tag und Verlauf**, ohne Health-Abgleich
+  (`HealthSync.syncEnergy` ist weg) - er war nur für die Zeilen da (09.10.,
+  „Ziehen im Essen-Tab holt nur die Energie aus Health"). **Verworfen:** ihn
+  behalten - er schickt vor allem den Verbrauch von heute, und den zeigt der
+  Tab nicht mehr; die Kurven mitteln nur abgeschlossene Tage.
+- **Ohne Kalorienzähler steht der Verbrauch des Tages nirgends mehr.** Die
+  Energie-Karte fehlt dann (09.10., „Balken + Woche"); ihr Grund dort, „der
+  Verbrauch steht im Essen-Tab", gilt seit heute nicht mehr.
+
 ## 2026-10-09 — Healthy: Vorführmodus auch für Essen- und Gewicht-Tab
 `COCKPIT_DASHBOARD_DEMO=1` ersetzte bisher nur Dashboard, Recovery, Logbook
 und die Energie. Essen- und Gewicht-Tab luden weiter die echten Tage, Verläufe
