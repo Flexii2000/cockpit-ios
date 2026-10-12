@@ -17,6 +17,13 @@
 # Integrationen > App Store Connect API. Ohne Issuer ID laeuft nur --export-only
 # ueber das in Xcode angemeldete Konto.
 #
+# Der Schluessel braucht die Rolle **Admin**. Der Export signiert mit einem
+# Verteilungszertifikat aus der Cloud (lokal liegt keins), und das duerfen nur
+# Admin-Schluessel - App Manager oder Developer enden in "Cloud signing
+# permission error" (12.10.: so scheiterte der erste Upload). Die Rolle laesst
+# sich nachtraeglich nicht aendern: neuen Schluessel anlegen, ASC_KEY_ID tauschen,
+# den alten widerrufen. --export-only signiert genauso und prueft das ohne Upload.
+#
 # Voraussetzungen, die das Skript NICHT erledigen kann:
 #   * der App-Eintrag in App Store Connect (Meine Apps > +, mit der Bundle-ID) -
 #     die offizielle API kennt keinen Aufruf dafuer
@@ -83,9 +90,20 @@ cat > "$PLIST" <<PLIST
 PLIST
 
 echo "== $APP exportieren ($DESTINATION) =="
-xcodebuild -exportArchive -archivePath "$ARCHIVE" \
+if ! xcodebuild -exportArchive -archivePath "$ARCHIVE" \
     -exportOptionsPlist "$PLIST" -exportPath "$EXPORT" \
-    -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} -quiet
+    -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} -quiet; then
+    # Den Grund schreibt Xcode in eigene Logs; die Ausgabe nennt oft nur die
+    # Folge ("No profiles for ... were found").
+    TEMP="${TMPDIR:-/tmp}"
+    LOGS="$(ls -dt "${TEMP%/}/$APP"_*.xcdistributionlogs 2>/dev/null | head -1 || true)"
+    if [ -n "$LOGS" ] && grep -qs "Cloud signing permission error" "$LOGS"/*.log; then
+        echo "Apple verweigert das Signieren mit dem Cloud-Zertifikat: ein API-Schluessel" >&2
+        echo "braucht dafuer die Rolle Admin (siehe Kopf dieses Skripts)." >&2
+    fi
+    [ -n "$LOGS" ] && echo "Logs von Xcode: $LOGS" >&2
+    exit 1
+fi
 
 if [ "$DESTINATION" = "export" ]; then
     ls -la "$EXPORT"/*.ipa
