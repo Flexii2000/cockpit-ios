@@ -195,7 +195,7 @@ struct FoodTab: View {
 
             if let day = store.summary(for: date) {
                 Section {
-                    gauges(day)
+                    gauges(day, provisional: store.isProvisional(date))
                         // Die ganze Zeile nimmt die Karten-Geste an, nicht nur die Bogen.
                         .contentShape(Rectangle())
                         .simultaneousGesture(cardDrag)
@@ -351,7 +351,8 @@ struct FoodTab: View {
 
     // MARK: - Tachos
 
-    private func gauges(_ day: DaySummary) -> some View {
+    /// - Parameter provisional: Eintraege warten noch und zaehlen schon mit.
+    private func gauges(_ day: DaySummary, provisional: Bool) -> some View {
         VStack(spacing: 16) {
             // Makros oben, kcal darunter: die drei kleinen zeigen das schon
             // Verzehrte, der grosse das, was vom Tagesziel noch uebrig ist.
@@ -389,7 +390,8 @@ struct FoodTab: View {
                 .frame(width: 120, height: 120)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Verzehrt").font(.caption).foregroundStyle(.secondary)
+                    Text(provisional ? "Verzehrt · vorläufig" : "Verzehrt").font(.caption).foregroundStyle(.secondary)
+                        .accessibilityIdentifier(provisional ? "foodProvisional" : "foodConsumed")
                     Text("\(day.consumed.kcal.whole) kcal").font(.title3.weight(.semibold))
                     Text("von \(day.targets.kcal.whole) kcal")
                         .font(.caption).foregroundStyle(.secondary)
@@ -418,6 +420,12 @@ struct FoodTab: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
+                    if store.isWaiting(entry) {
+                        Image(systemName: "clock.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .accessibilityLabel("wartet auf Netz")
+                    }
                     Text("\(entry.total.kcal.whole) kcal")
                         .font(.callout.monospacedDigit())
                         .foregroundStyle(.secondary)

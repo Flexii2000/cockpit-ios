@@ -149,8 +149,10 @@ struct DashboardTab: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("weightCard")
                 }
-                if let food = store.food {
-                    Button { router.showFoodToday() } label: { FoodHalfCard(day: food, steps: store.steps) }
+                if let food = store.foodShown {
+                    Button { router.showFoodToday() } label: {
+                        FoodHalfCard(day: food, steps: store.steps, provisional: store.isFoodProvisional)
+                    }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("foodCard")
                 }

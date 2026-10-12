@@ -23,6 +23,9 @@ struct WeightTab: View {
 
                     if let summary = store.summary {
                         tiles(summary)
+                        ForEach(store.pendingWeights, id: \.date) { pending in
+                            PendingWeightRow(change: pending)
+                        }
                         chart
                         StepsCard(steps: store.stepsToday, goal: store.stepsGoal)
                     } else if store.isLoading {
@@ -78,6 +81,7 @@ struct WeightTab: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Messwert eintragen")
                 }
             }
             .refreshable {
@@ -191,5 +195,26 @@ struct WeightTab: View {
                 }
             }
         }
+    }
+}
+
+/// „82,4 kg am 12.10. – wartet“: von Hand eingetragen, noch nicht beim Dienst.
+/// Die Kacheln darueber rechnen erst mit, wenn er geantwortet hat.
+private struct PendingWeightRow: View {
+    let change: WeightChange
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "clock.fill")
+                .foregroundStyle(.orange)
+            Text("\(GermanNumber.string(change.weightKg, decimals: 1)) kg am "
+                 + String(format: "%02d.%02d.", change.date.day, change.date.month) + " – wartet")
+                .font(.subheadline)
+            Spacer()
+        }
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("pendingWeight")
     }
 }

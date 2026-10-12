@@ -125,6 +125,94 @@ final class HealthyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Verhalten E"].exists, "archivierte stehen unten")
     }
 
+    // MARK: - Essen ohne Netz (Runde 4)
+
+    private static let offlineDish = "Offline-Gericht"
+
+    /// Nur mit angehaltenem Kalorienzaehler (COCKPIT_OFFLINE_TEST=food-offline) und
+    /// einem Tag im Offline-Stand (vorher einmal online geladen): der Eintrag steht
+    /// sofort da, mit Uhr, die Summen sind „vorläufig“ - auch nach einem Neustart.
+    func testOfflineFoodShowsAtOnceProvisionally() throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["COCKPIT_OFFLINE_TEST"] != "food-offline",
+                      "nur mit angehaltenem Kalorienzaehler")
+        var app = launch(tab: "food")
+        let add = app.buttons["Hinzufügen"].firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 25), "kein Offline-Stand des Tages")
+        add.tap()
+        let toggle = app.switches["Gericht neu anlegen"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        let name = app.textFields["Name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText(Self.offlineDish)
+        // Die Zahlenfelder stehen rechtsbuendig in ihrer Zeile - dort antippen, nicht in der Mitte.
+        // Alle vier Werte je 100 g - ohne sie nimmt der Kalorienzaehler kein Gericht.
+        for (label, value) in [("kcal / 100 g", "200"), ("Eiweiß / 100 g", "10"), ("Kohlenhydrate / 100 g", "20"),
+                               ("Fett / 100 g", "5"), ("Gramm", "150")] {
+            let field = app.textFields[label]
+            XCTAssertTrue(field.waitForExistence(timeout: 5), label)
+            field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+            field.typeText(value)
+        }
+        app.buttons["Eintragen"].tap()
+
+        // Sofort - nicht erst nach dem Zeitlimit einer Anfrage.
+        XCTAssertTrue(app.staticTexts[Self.offlineDish].waitForExistence(timeout: 3), "stand nicht sofort da")
+        XCTAssertTrue(app.staticTexts["foodProvisional"].waitForExistence(timeout: 5), "Summen nicht vorläufig")
+        XCTAssertTrue(app.images["wartet auf Netz"].waitForExistence(timeout: 20), "keine Uhr am Eintrag")
+        shoot(app, "essen-offline")
+
+        // Ein Gewicht von Hand: steht sofort als „… – wartet“ unter den Kacheln.
+        app.tabBars.buttons["Gewicht"].tap()
+        let plus = app.buttons["Messwert eintragen"]
+        XCTAssertTrue(plus.waitForExistence(timeout: 15))
+        plus.tap()
+        let kg = app.textFields["kg"]
+        XCTAssertTrue(kg.waitForExistence(timeout: 5))
+        kg.tap()
+        kg.typeText("82,4")
+        app.buttons["Sichern"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["pendingWeight"].waitForExistence(timeout: 5),
+                      "kein wartendes Gewicht")
+        shoot(app, "gewicht-offline")
+
+        app.terminate()
+        app = launch(tab: "food")
+        XCTAssertTrue(app.staticTexts[Self.offlineDish].waitForExistence(timeout: 25), "nach dem Neustart weg")
+        XCTAssertTrue(app.staticTexts["foodProvisional"].exists)
+        shoot(app, "essen-offline-neustart")
+    }
+
+    /// Danach mit laufendem Kalorienzaehler (COCKPIT_OFFLINE_TEST=food-online): der
+    /// Eintrag geht raus, die Uhr und „vorläufig“ verschwinden - dann raeumt der
+    /// Test ihn wieder weg.
+    func testWaitingFoodArrivesWhenTheServiceIsBack() throws {
+        try XCTSkipIf(ProcessInfo.processInfo.environment["COCKPIT_OFFLINE_TEST"] != "food-online",
+                      "nur nach dem Offline-Test, Dienst wieder an")
+        let app = launch(tab: "food")
+        let row = app.staticTexts[Self.offlineDish]
+        XCTAssertTrue(row.waitForExistence(timeout: 25), "der offline eingetragene Eintrag fehlt")
+        XCTAssertTrue(app.staticTexts["foodConsumed"].waitForExistence(timeout: 30), "„vorläufig“ blieb")
+        XCTAssertFalse(app.images["wartet auf Netz"].exists, "die Uhr blieb")
+        shoot(app, "essen-wieder-online")
+        // Das Gewicht ist auch raus, sofern ein Weight Tracker laeuft.
+        if ProcessInfo.processInfo.environment["COCKPIT_URL_WEIGHT"]?.isEmpty == false {
+            app.tabBars.buttons["Gewicht"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["pendingWeight"].waitForNonExistence(timeout: 30),
+                          "das Gewicht wartet noch")
+            shoot(app, "gewicht-wieder-online")
+            app.tabBars.buttons["Essen"].tap()
+        }
+        let entry = app.descendants(matching: .any).matching(identifier: "foodEntry")
+            .containing(.staticText, identifier: Self.offlineDish).firstMatch
+        entry.swipeLeft()
+        let delete = app.buttons["Löschen"].firstMatch
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
+        XCTAssertTrue(row.waitForNonExistence(timeout: 10))
+    }
+
     /// Unter dem Verlauf: die Schalter brechen um, „Verbrauch ⌀" ist dabei
     /// und vorgewaehlt - unterhalb des ersten Bildschirms, den
     /// `run-simulator.sh` allein zeigt.

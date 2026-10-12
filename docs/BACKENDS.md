@@ -415,7 +415,7 @@ geprüft in `HealthEnergyTests`).
 | POST | `/api/food/dishes` | Body `DishRequest` → `Dish` |
 | PUT | `/api/food/dishes/{id}` | Body `DishRequest` → `Dish` |
 | DELETE | `/api/food/dishes/{id}` | 204 |
-| POST | `/api/food/entries` | Body `NewEntryRequest` → `DaySummary` |
+| POST | `/api/food/entries` | Body `NewEntryRequest` → `DaySummary`; seit 12.10. mit `id` (kleingeschriebene UUID der App): dieselbe noch einmal legt nichts an, sondern liefert den Tag des vorhandenen Eintrags - die App schickt jeden Eintrag so über die Warteschlange (`FoodChange`) |
 | DELETE | `/api/food/entries/{id}` | `DaySummary` |
 | PUT | `/api/food/entries/{id}` | `{grams, meal?, date?}` — Menge, Mahlzeit, Tag berichtigen; das Gericht bleibt. Antwort: der Tag, auf dem der Eintrag danach liegt — bei einem Tagwechsel also **nicht** der angezeigte |
 | GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest` |

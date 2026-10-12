@@ -219,11 +219,13 @@ struct FoodHalfCard: View {
 
     let day: DaySummary
     let steps: Int?
+    /// Eintraege warten noch und zaehlen schon mit.
+    var provisional = false
 
     var body: some View {
         let over = day.remaining.kcal < 0
         VStack(alignment: .leading, spacing: 4) {
-            Text(over ? "kcal drüber" : "kcal übrig")
+            Text((over ? "kcal drüber" : "kcal übrig") + (provisional ? " · vorläufig" : ""))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Text(GermanNumber.string(abs(day.remaining.kcal)))

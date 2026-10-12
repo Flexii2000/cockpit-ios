@@ -12,8 +12,15 @@ final class WeightStore {
     private let api = WeightAPI()
     private let foodApi = FoodAPI()
     private let energyApi = EnergyAPI()
+    private var queue: PendingChanges { PendingChanges.shared }
 
     private(set) var summary: WeightSummary?
+
+    /// Gewichte von Hand, die noch auf den Dienst warten - je Tag das neueste
+    /// („82,4 kg am 12.10. – wartet“). Die Kacheln rechnet weiter der Dienst.
+    var pendingWeights: [WeightChange] {
+        queue.changes(for: .weight).compactMap(\.weightEntry).sorted { $0.date > $1.date }
+    }
     private(set) var points: [WeightPoint] = []
     /// Zeitraeume (Baender) und einzelne Tage (Linien) im Diagramm.
     private(set) var highlights: [Highlight] = []
@@ -236,21 +243,30 @@ final class WeightStore {
         await loadKcal()
     }
 
+    /// Traegt ein Gewicht ein - ueber die Warteschlange: mit Netz gleich beim
+    /// Dienst, ohne steht es als „wartet“ unter den Kacheln, bis es raus ist.
     func add(date: CalendarDate, weightKg: Double) async -> Bool {
         guard !isDemo else { return true }
-        do {
-            summary = try await api.add(date: date, weightKg: weightKg, queueWhenOffline: true)
-            points = Self.trim(try await api.points(range), to: range)
-            clearError()
-            return true
-        } catch APIError.queued {
-            // Liegt im Postausgang - das Blatt darf zugehen. Die Kacheln
-            // zeigen den alten Stand weiter; die Leiste sagt, dass etwas wartet.
-            clearError()
-            return true
-        } catch {
-            report(error)
-            return false
+        queue.enqueue(.weight(.add(date: date, weightKg: weightKg)), label: "Gewicht")
+        clearError()
+        return true
+    }
+
+    /// Kam ein Gewicht an, antwortet der Dienst mit der neuen Zusammenfassung -
+    /// die Kacheln stimmen dann wieder; die Kurve kommt neu. (Auf derselben Spur
+    /// laufen die Logbook-Werte; deren Antwort ist keine Zusammenfassung.)
+    init() {
+        queue.observe(.weight) { [weak self] event in
+            guard let self, case .delivered(let data, _) = event,
+                  let fresh = try? APIClient.decoder().decode(WeightSummary.self, from: data) else { return }
+            self.summary = fresh
+            Task { await self.reloadPoints() }
+        }
+    }
+
+    private func reloadPoints() async {
+        if let fresh = try? await api.points(range) {
+            points = Self.trim(fresh, to: range)
         }
     }
 

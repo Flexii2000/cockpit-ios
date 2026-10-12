@@ -63,10 +63,20 @@ struct AddEntrySheet: View {
         return store.dishes.filter { $0.name.localizedCaseInsensitiveContains(search) }
     }
 
+    /// Wie der Kalorienzaehler prueft (`FoodEntryRules`) - ohne Netz kaeme seine
+    /// Ablehnung sonst erst beim Senden.
     private var canSave: Bool {
-        guard let grams, grams > 0, !isSaving else { return false }
-        return creatingNew ? !newName.trimmingCharacters(in: .whitespaces).isEmpty
-                           : selected != nil
+        guard FoodEntryRules.grams(grams), !isSaving else { return false }
+        return creatingNew ? FoodEntryRules.dish(newDish) : selected != nil
+    }
+
+    private var newDish: DishRequest {
+        DishRequest(name: newName.trimmingCharacters(in: .whitespaces),
+                    kcal: Self.number(newKcal),
+                    proteinG: Self.number(newProtein),
+                    carbsG: Self.number(newCarbs),
+                    fatG: Self.number(newFat),
+                    portionG: Self.number(newPortion))
     }
 
     var body: some View {
@@ -199,13 +209,7 @@ struct AddEntrySheet: View {
         defer { isSaving = false }
         let ok: Bool
         if creatingNew {
-            let request = DishRequest(name: newName.trimmingCharacters(in: .whitespaces),
-                                      kcal: Self.number(newKcal),
-                                      proteinG: Self.number(newProtein),
-                                      carbsG: Self.number(newCarbs),
-                                      fatG: Self.number(newFat),
-                                      portionG: Self.number(newPortion))
-            ok = await store.addEntry(dishId: nil, dish: request, grams: grams, meal: chosenMeal)
+            ok = await store.addEntry(dishId: nil, dish: newDish, grams: grams, meal: chosenMeal)
         } else {
             ok = await store.addEntry(dishId: selected?.id, dish: nil, grams: grams, meal: chosenMeal)
         }

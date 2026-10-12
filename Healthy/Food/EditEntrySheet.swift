@@ -59,14 +59,14 @@ struct EditEntrySheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Sichern") { Task { await save() } }
-                        .disabled((grams ?? 0) <= 0 || isSaving)
+                        .disabled(!FoodEntryRules.grams(grams) || isSaving)
                 }
             }
         }
     }
 
     private func save() async {
-        guard let grams, grams > 0 else { return }
+        guard let grams, FoodEntryRules.grams(grams) else { return }
         isSaving = true
         defer { isSaving = false }
         let day = CalendarDate(date: date)

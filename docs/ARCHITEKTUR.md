@@ -438,13 +438,17 @@ Dienst, von wann sie ist. Die Tabs zeigen das als Leiste: „Offline – Stand v
 02.09., 21:14". Bei 403 oder 500 gibt es keinen Rückgriff: der Dienst hat
 geantwortet.
 
-**Sofort sichtbar: To-Do, Einkaufsliste, Logbook** (`PendingChanges`). Anlegen
+**Sofort sichtbar: To-Do, Einkaufsliste, Logbook, Essen, Gewicht** (`PendingChanges`). Anlegen
 (auch Unteraufgaben und die Zutaten eines Gerichts), Abhaken, Ändern, Löschen,
 „Abgehakte entfernen" gehen nicht mehr direkt an den Dienst, sondern als
 **typisierte Änderung** in die Warteschlange (`TodoChange`, `ShoppingChange`;
 seit Runde 3 auch jeder Logbook-Wert als `LogbookChange` auf der Spur des
 Weight Trackers - je Tag und Verhaltensweise gilt der neueste, die Antwort ist
-kein Brett und landet nicht im Offline-Stand).
+kein Brett und landet nicht im Offline-Stand; seit Runde 4 Essenseinträge als
+`FoodChange` (Kennung der App, Summen vorläufig über `FoodOverlay`, die Kachel
+bekommt die wartenden Einträge über die geteilte Keychain-Gruppe,
+`PendingFoodMirror`) und das Gewicht von Hand als `WeightChange`, je Tag das
+neueste).
 Angezeigt wird der letzte Stand des Dienstes und darüber, was wartet
 (`TodoOverlay`, `ShoppingOverlay` — reine Funktionen, getestet). Gesendet wird
 sofort, mit 15 s Zeitlimit; ohne Netz bleibt die Änderung stehen und eine
@@ -485,8 +489,8 @@ kleine Uhr am Haken sagt es.
   Vor einem Abruf wartet der Store bis zu 3 s, bis seine Spur nicht sendet.
 
 **Der alte Postausgang** (`Outbox`, rohe `URLRequest`s mit
-`queueWhenOffline: true`) bleibt für Healthy (Essen, Gewicht) und die
-Waldsitzungen; ganze Logbook-Tage einer älteren Fassung, die dort noch warten,
+`queueWhenOffline: true`) bleibt nur noch für die Waldsitzungen; was eine ältere
+Fassung von Healthy dort hinterlassen hat (Essen, Gewicht, ganze Logbook-Tage),
 schickt er weiter. Nachgesendet wird der Reihe nach, sobald
 irgendeine Anfrage wieder durchkommt oder die App in den Vordergrund kehrt;
 wird der Ausgang leer, laden die Tabs neu. Bis dahin: alter Stand und „2

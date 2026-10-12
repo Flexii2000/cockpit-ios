@@ -2,6 +2,16 @@ import Foundation
 import UIKit
 import WidgetKit
 
+/// Haelt den Essen-Tab: den gezeigten Tag und seine Nachbarn, die Gerichte, den
+/// Verlauf.
+///
+/// Eintragen, Berichtigen und Loeschen sind sofort zu sehen (seit Runde 4 vom
+/// 12.10.): sie gehen in die Warteschlange (`PendingChanges`, Fall `.food`), und
+/// der Tag zeigt den Stand des Dienstes und darueber, was wartet
+/// (`FoodOverlay`). Seine Summen sind dann **vorlaeufig**. Ohne Netz bleibt das
+/// so, bis es wieder da ist; lehnt der Dienst ab, verschwindet der Eintrag
+/// wieder, und eine Meldung sagt warum. Der Verlauf zaehlt nur, was der Dienst
+/// kennt.
 @MainActor
 @Observable
 final class FoodStore {
@@ -9,6 +19,10 @@ final class FoodStore {
     private let api = FoodAPI()
     private let weightApi = WeightAPI()
     private let energyApi = EnergyAPI()
+    private var queue: PendingChanges { PendingChanges.shared }
+    /// Je Tag die Nummer der Anfrage, aus der sein Stand stammt - ein Abruf, der vor
+    /// einem Eintrag losging und nach dessen Antwort ankommt, ersetzt ihn nicht.
+    @ObservationIgnored private var daySequence: [CalendarDate: Int] = [:]
 
     private(set) var date: CalendarDate = FoodStore.initialDate
     /// Der gezeigte Tag. Jede Fassung landet auch im Tagesspeicher.
@@ -87,8 +101,30 @@ final class FoodStore {
         [date.adding(days: -1), date, date.adding(days: 1)]
     }
 
+    init() {
+        queue.observe(.food) { [weak self] event in self?.handle(event) }
+    }
+
+    /// Was fuer den Kalorienzaehler wartet.
+    var pendingFood: [FoodChange] { queue.changes(for: .food).compactMap(\.food) }
+
+    /// Eintraege aller geholten Tage - fuer einen, der beim Berichtigen den Tag wechselt.
+    private var knownEntries: [FoodEntry] { summaries.values.flatMap(\.entries) }
+
+    /// Der Tag, wie er zu sehen ist: der Stand des Dienstes und darueber, was wartet.
     func summary(for date: CalendarDate) -> DaySummary? {
-        summaries[date]
+        summaries[date].map { FoodOverlay.apply(pendingFood, to: $0, known: knownEntries) }
+    }
+
+    /// Ob wartende Eintraege die Summen dieses Tages veraendern - „vorläufig“.
+    func isProvisional(_ date: CalendarDate) -> Bool {
+        guard let day = summaries[date] else { return false }
+        return FoodOverlay.isProvisional(pendingFood, day: day, known: knownEntries)
+    }
+
+    /// Die Uhr am Eintrag: er wartet auf Netz.
+    func isWaiting(_ entry: FoodEntry) -> Bool {
+        queue.showsWaiting(entry.id, on: .food)
     }
 
     /// „Verbrauch ⌀" im Fenster des Verlaufs.
@@ -114,7 +150,7 @@ final class FoodStore {
     /// Zuordnung" taucht nur auf, solange es Eintraege aus der Zeit vor der
     /// Aufteilung gibt, und verschwindet danach von selbst.
     var mealSections: [MealSection] {
-        guard let day else { return [] }
+        guard let day = summary(for: date) else { return [] }
         return Self.mealSections(of: day)
     }
 
@@ -140,11 +176,14 @@ final class FoodStore {
             return
         }
         #endif
+        // Ein Abruf neben einem laufenden Eintragen holte womoeglich einen Tag ohne ihn.
+        await queue.waitUntilIdle(.food, timeout: .seconds(3))
+        let sequence = queue.nextSequence()
         do {
             async let day = api.day(date)
             async let dishes = api.dishes()
             async let features = api.features()
-            self.day = try await day
+            apply(try await day, sequence: sequence)
             self.dishes = try await dishes.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
             self.quickCaptureAvailable = try await features.quickCapture
             clearError()
@@ -153,6 +192,18 @@ final class FoodStore {
         }
         await loadHistory()
         await prefetchNeighbours()
+    }
+
+    /// Uebernimmt einen Tag des Dienstes - ausser, es liegt schon ein neuerer vor.
+    private func apply(_ fresh: DaySummary, sequence: Int) {
+        guard sequence >= (daySequence[fresh.date] ?? 0) else { return }
+        daySequence[fresh.date] = sequence
+        if fresh.date == date {
+            day = fresh
+        } else {
+            summaries[fresh.date] = fresh
+        }
+        FoodWidgetBridge.today(server: fresh, known: knownEntries)
     }
 
     /// Holt gestern und morgen vorab, falls sie noch fehlen. Still: scheitert
@@ -166,13 +217,14 @@ final class FoodStore {
             return
         }
         #endif
+        let sequence = queue.nextSequence()
         await withTaskGroup(of: DaySummary?.self) { group in
             for day in missing {
                 group.addTask { [api] in try? await api.day(day) }
             }
             for await summary in group {
                 if let summary, summaries[summary.date] == nil {
-                    summaries[summary.date] = summary
+                    apply(summary, sequence: sequence)
                 }
             }
         }
@@ -270,10 +322,10 @@ final class FoodStore {
             return
         }
         #endif
+        let sequence = queue.nextSequence()
         do {
-            let fresh = try await api.day(date)
-            // Nur uebernehmen, wenn inzwischen nicht weitergeblaettert wurde.
-            if self.date == date { day = fresh } else { summaries[date] = fresh }
+            // Wurde inzwischen weitergeblaettert, landet der Tag nur im Speicher.
+            apply(try await api.day(date), sequence: sequence)
             clearError()
         } catch {
             report(error)
@@ -285,70 +337,69 @@ final class FoodStore {
         await show(date.adding(days: days))
     }
 
+    /// Traegt ein - sofort zu sehen, mit einer Kennung der App, und ohne Netz spaeter
+    /// geschickt. Name und Werte je 100 g zeigen sich aus dem Gericht, bis der
+    /// Dienst antwortet.
     func addEntry(dishId: String?, dish: DishRequest?, grams: Double, meal: Meal?) async -> Bool {
         guard !isDemo else { return true }
-        do {
-            day = try await api.addEntry(NewEntryRequest(date: date, dishId: dishId,
-                                                         dish: dish, grams: grams, meal: meal))
-            // Ein neu angelegtes Gericht gehoert sofort in die Merkliste.
-            if dish != nil { dishes = try await api.dishes()
-                .sorted { $0.name.localizedCompare($1.name) == .orderedAscending } }
-            clearError()
-            await loadHistory()
-            // Anstoss, keine Datenuebergabe: die Kachel holt sich selbst, was
-            // sie braucht. Ein Reload aus der laufenden App zaehlt nicht gegen
-            // das Aktualisierungsbudget von WidgetKit - das deckt den
-            // haeufigsten Fall zum Nulltarif ab.
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
-            return true
-        } catch APIError.queued {
-            // Liegt im Postausgang. Der Tag zeigt weiter den alten Stand -
-            // nachrechnen tut hier nichts, dafuer ist der Dienst da.
-            clearError()
-            return true
-        } catch {
-            report(error)
-            return false
+        let saved = dishId.flatMap { id in dishes.first { $0.id == id } }
+        let name = saved?.name ?? dish?.name ?? "Eintrag"
+        let per100g = saved?.per100g ?? dish.map {
+            Nutrients(kcal: $0.kcal ?? 0, proteinG: $0.proteinG ?? 0, carbsG: $0.carbsG ?? 0, fatG: $0.fatG ?? 0)
         }
+        queue.enqueue(.food(.add(id: UUID().uuidString.lowercased(), date: date, meal: meal, grams: grams,
+                                 dishId: dishId, dish: dish, name: name, per100g: per100g, at: Date())),
+                      label: name)
+        changedLocally()
+        return true
     }
 
     /// Berichtigt einen Eintrag. Wandert er auf einen anderen Tag, bleibt die
     /// Ansicht auf dem aktuellen - sonst spraenge sie dem Eintrag hinterher.
     func updateEntry(_ entry: FoodEntry, grams: Double, meal: Meal?, date: CalendarDate?) async -> Bool {
         guard !isDemo else { return true }
-        do {
-            let updatedDay = try await api.updateEntry(id: entry.id, grams: grams, meal: meal, date: date)
-            summaries[updatedDay.date] = updatedDay
-            if updatedDay.date == self.date {
-                day = updatedDay
-            } else {
-                day = try await api.day(self.date)
-            }
-            clearError()
-            await loadHistory()
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
-            return true
-        } catch APIError.queued {
-            clearError()
-            return true
-        } catch {
-            report(error)
-            return false
-        }
+        queue.enqueue(.food(.update(id: entry.id, grams: grams, meal: meal, date: date)), label: entry.name)
+        changedLocally()
+        return true
     }
 
     func deleteEntry(_ entry: FoodEntry) async {
         guard !isDemo else { return }
-        do {
-            day = try await api.deleteEntry(id: entry.id)
-            clearError()
-            await loadHistory()
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
-        } catch APIError.queued {
-            clearError()
-        } catch {
-            report(error)
+        queue.enqueue(.food(.delete(id: entry.id)), label: entry.name)
+        changedLocally()
+    }
+
+    /// Nach einer Aenderung, die erst einmal nur hier steht: die Kachel rechnet mit.
+    private func changedLocally() {
+        clearError()
+        if let today = summaries[.today()] { FoodWidgetBridge.today(server: today, known: knownEntries) }
+    }
+
+    private func handle(_ event: PendingEvent) {
+        switch event {
+        case .delivered(let data, let sequence):
+            // Der Dienst antwortet mit dem Tag, auf dem der Eintrag danach liegt.
+            if let fresh = try? APIClient.decoder().decode(DaySummary.self, from: data) {
+                apply(fresh, sequence: sequence)
+            }
+        case .rejected:
+            Task { await show(date) }
+        case .drained:
+            Task { await afterSending() }
         }
+    }
+
+    /// Alles ist beim Dienst: ein neu angelegtes Gericht gehoert in die Merkliste,
+    /// und Verlauf und Kachel zaehlen jetzt mit.
+    private func afterSending() async {
+        if let fresh = try? await api.dishes() {
+            dishes = fresh.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+        }
+        await loadHistory()
+        // Anstoss, keine Datenuebergabe: die Kachel holt sich selbst, was sie
+        // braucht. Ein Reload aus der laufenden App zaehlt nicht gegen das
+        // Aktualisierungsbudget von WidgetKit.
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
     }
 
     func createDish(_ request: DishRequest) async -> Bool {

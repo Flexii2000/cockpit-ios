@@ -35,14 +35,16 @@ struct WeightEntrySheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Sichern") { Task { await save() } }
-                        .disabled(weight == nil || isSaving)
+                        // Wie der Weight Tracker: nur ein Gewicht ueber 0 - ohne Netz
+                        // kaeme seine Ablehnung sonst erst beim Senden.
+                        .disabled((weight ?? 0) <= 0 || isSaving)
                 }
             }
         }
     }
 
     private func save() async {
-        guard let weight else { return }
+        guard let weight, weight > 0 else { return }
         isSaving = true
         defer { isSaving = false }
         let calendar = Calendar(identifier: .gregorian)
