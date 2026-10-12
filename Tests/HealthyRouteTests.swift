@@ -62,8 +62,10 @@ final class HealthyRouteTests: XCTestCase {
         XCTAssertEqual(router.dashboardPath, [.recovery])
 
         router.show(.food)
+        let logbookRequests = router.logbookRequests
         router.follow(.logbook)
         XCTAssertEqual(router.selection, .dashboard)
-        XCTAssertEqual(router.dashboardPath, [.logbook], "frisch oben, nicht auf die Recovery gestapelt")
+        XCTAssertEqual(router.dashboardPath, [], "das Logbook steht im Dashboard selbst, nicht unter der Recovery")
+        XCTAssertEqual(router.logbookRequests, logbookRequests + 1, "das Dashboard scrollt dorthin")
     }
 }

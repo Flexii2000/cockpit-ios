@@ -316,10 +316,11 @@ extension DashboardDemo {
         Behavior(id: "b-demo-e", name: "Verhalten E", unit: nil, createdAt: nil, archived: true),
     ]
 
-    /// Die Nachtragsfrist mit ein paar Luecken - gestern ist offen, damit die
-    /// Karte „gestern offen" zeigt.
+    /// Die Nachtragsfrist mit ein paar Luecken. Gestern ist halb beantwortet -
+    /// so zeigt das Logbook gefuellte und offene Zeilen und den Punkt an
+    /// „Gestern“ -, heute steht schon eine Zahl.
     static func logbookOverview(today: CalendarDate = .today()) -> LogbookOverview {
-        let days = (2...14).filter { $0 != 6 && $0 != 9 }.map { offset in
+        var days = (2...14).filter { $0 != 6 && $0 != 9 }.map { offset in
             LogbookDay(date: today.adding(days: -offset), savedAt: nil, values: [
                 "b-demo-a": noise(offset, 11) > 0 ? 1 : 0,
                 "b-demo-b": noise(offset, 12) > 0.4 ? 1 : 0,
@@ -327,8 +328,10 @@ extension DashboardDemo {
                 "b-demo-d": offset % 3 == 0 ? 1 : 0,
             ])
         }
+        days.append(LogbookDay(date: today.adding(days: -1), savedAt: nil, values: ["b-demo-a": 1, "b-demo-c": 3]))
+        days.append(LogbookDay(date: today, savedAt: nil, values: ["b-demo-c": 1]))
         return LogbookOverview(behaviors: behaviors, backfillDays: 14, backfillFrom: today.adding(days: -14),
-                               today: today, days: days)
+                               today: today, days: days.sorted { $0.date < $1.date })
     }
 
     /// Effekte wie aus dem Dienst, sortiert wie dort: signifikant zuerst, dann

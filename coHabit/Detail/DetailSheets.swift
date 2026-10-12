@@ -381,12 +381,14 @@ struct CohabitSettingsSheet: View {
                         choiceRow("Chat", value: binding.chat)
                     }
                     .disabled(false)
-                    if detail.ref.type == .abstinence || detail.config.health != nil {
+                    // Ein Tageslimit hat keine Unterbrechungen zum Teilen - es zaehlt.
+                    let breaks = detail.ref.type == .abstinence && !detail.config.isLimit
+                    if breaks || detail.config.health != nil {
                         FormCard {
-                            if detail.ref.type == .abstinence {
+                            if breaks {
                                 ToggleRow(title: "Unterbrechungen teilen", isOn: binding.shareBreaks)
                             }
-                            if detail.ref.type == .abstinence && detail.config.health != nil { FormDivider() }
+                            if breaks && detail.config.health != nil { FormDivider() }
                             if detail.config.health != nil {
                                 ToggleRow(title: "Health-Werte teilen", isOn: binding.healthConsent)
                                     // kcal aus Healthy: nur mit Healthy-Zugang.

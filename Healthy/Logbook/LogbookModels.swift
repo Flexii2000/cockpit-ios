@@ -13,13 +13,13 @@ struct Behavior: Codable, Identifiable, Equatable, Sendable {
     let archived: Bool
 }
 
-/// Ein gespeicherter Tag. Beim Speichern bekommt jede aktive Verhaltensweise
-/// einen Wert - was nicht angetippt war, steht als 0 da. Ein nie gespeicherter
-/// Tag fehlt ganz: „nicht ausgefuellt" ist etwas anderes als „nein".
+/// Ein Tag mit Antworten. Seit 12.10. zaehlt jede fuer sich: eine
+/// Verhaltensweise ohne Wert ist an diesem Tag offen - „nicht beantwortet" ist
+/// etwas anderes als „nein". Ein Tag ganz ohne Antwort fehlt.
 struct LogbookDay: Codable, Equatable, Sendable {
     let date: CalendarDate
     let savedAt: Date?
-    /// Verhaltensweise → 0 (nein), 1 (ja) bzw. die Menge.
+    /// Verhaltensweise → 0 (nein), 1 (ja) bzw. die Menge; fehlend = offen.
     let values: [String: Double]
 }
 
@@ -37,6 +37,20 @@ struct LogbookOverview: Decodable, Equatable, Sendable {
 
     func day(_ date: CalendarDate) -> LogbookDay? {
         days.first { $0.date == date }
+    }
+
+    /// Mit einem Tag, wie ihn der Dienst nach dem Schreiben eines Werts schickt -
+    /// ohne Werte faellt er weg, wie beim Dienst.
+    func replacing(_ day: LogbookDay) -> LogbookOverview {
+        var days = self.days.filter { $0.date != day.date }
+        if !day.values.isEmpty { days.append(day) }
+        return LogbookOverview(behaviors: behaviors, backfillDays: backfillDays, backfillFrom: backfillFrom,
+                               today: today, days: days.sorted { $0.date < $1.date })
+    }
+
+    func with(behaviors: [Behavior]) -> LogbookOverview {
+        LogbookOverview(behaviors: behaviors, backfillDays: backfillDays, backfillFrom: backfillFrom,
+                        today: today, days: days)
     }
 }
 
@@ -149,37 +163,18 @@ struct BehaviorUpdateRequest: Encodable, Sendable {
     let archived: Bool?
 }
 
-/// Was die App an `PUT /api/logbook/days/{date}` schickt. Nicht Genanntes
-/// wird beim Dienst 0 - die App nennt nur, was angetippt ist.
-struct LogbookDayRequest: Encodable, Sendable {
-    let values: [String: Double]
-}
+/// Der Zeitraum der Effekte, gemerkt - wer 365 Tage sehen will, will das beim
+/// naechsten Mal auch.
+enum LogbookPeriod {
 
-/// Tage, deren Speichern im Postausgang wartet - samt den Werten, die
-/// rausgehen. So zeigt die Seite sie mit Uhr statt leer, und die Erinnerung
-/// haelt den Tag fuer gespeichert (Felix: ein wartender Tag ist ausgefuellt).
-/// Wird geleert, sobald der Postausgang leer ist: dann ist der Tag beim Dienst
-/// - oder er wurde abgelehnt, und die Leiste sagt warum.
-enum LogbookMemory {
+    static let key = "logbook.period"
 
-    static let key = "logbook.queuedDays"
-
-    static func load(from defaults: UserDefaults = .standard) -> [CalendarDate: [String: Double]] {
-        let stored = defaults.dictionary(forKey: key) as? [String: [String: Double]] ?? [:]
-        var result: [CalendarDate: [String: Double]] = [:]
-        for (iso, values) in stored {
-            if let date = CalendarDate(iso: iso) { result[date] = values }
-        }
-        return result
+    static func load(from defaults: UserDefaults = .standard) -> Int {
+        let stored = defaults.integer(forKey: key)
+        return LogbookAPI.periods.contains(stored) ? stored : LogbookAPI.defaultPeriod
     }
 
-    static func remember(_ date: CalendarDate, values: [String: Double], in defaults: UserDefaults = .standard) {
-        var stored = defaults.dictionary(forKey: key) as? [String: [String: Double]] ?? [:]
-        stored[date.iso] = values
-        defaults.set(stored, forKey: key)
-    }
-
-    static func clear(in defaults: UserDefaults = .standard) {
-        defaults.removeObject(forKey: key)
+    static func save(_ days: Int, in defaults: UserDefaults = .standard) {
+        defaults.set(days, forKey: key)
     }
 }

@@ -62,7 +62,22 @@ struct CohabitConfig: Codable, Hashable, Sendable {
 
     struct Abstinence: Codable, Hashable, Sendable {
         var groupMode: Bool
+        /// Tageslimit aus dem Logbook (Vertrag §2.5a). Verhalten, Name und Einheit
+        /// traegt der Dienst ein; beim Bearbeiten zaehlt nur `perDay`. Fehlt es im
+        /// Rumpf, laesst der Dienst es stehen.
+        var limit: Limit? = nil
+
+        struct Limit: Codable, Hashable, Sendable {
+            var source: String?
+            var behaviorId: String
+            var perDay: Int
+            var behaviorName: String?
+            var unitLabel: String?
+        }
     }
+
+    /// Ob dieses Co-Habit aus dem Logbook zaehlt.
+    var isLimit: Bool { abstinence?.limit != nil }
 
     struct Goal: Codable, Hashable, Sendable {
         var target: Double

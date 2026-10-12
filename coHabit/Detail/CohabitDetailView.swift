@@ -191,8 +191,9 @@ struct CohabitDetailView: View {
                 Button("Einladen", systemImage: "person.badge.plus") { sheet = .invite }
             }
             Button("Benachrichtigungen", systemImage: "bell") { sheet = .notifications }
+            // Beim Tageslimit korrigiert man frühere Tage unter „Letzte Tage“.
             if let from = detail.backfillFrom, !detail.summary.archived, detail.config.auto == nil,
-               from < CheckInTarget(detail: detail, meId: meId).today {
+               !detail.config.isLimit, from < CheckInTarget(detail: detail, meId: meId).today {
                 // Auch wenn heute schon erledigt ist und der Knopf deshalb aus ist.
                 Button(detail.ref.type == .abstinence ? "Unterbrechung nachtragen …" : "Nachtragen …",
                        systemImage: "calendar.badge.plus") {
@@ -251,7 +252,21 @@ struct CohabitDetailView: View {
     /// umrandet, weil eine Unterbrechung nichts ist, das man gern antippt.
     @ViewBuilder
     private func bottomAction(_ detail: CohabitDetail) -> some View {
-        if !detail.summary.archived, detail.config.auto == nil {
+        if let limit = detail.summary.limit {
+            // Tageslimit: gezaehlt, nicht abgehakt - ohne Logbook gar nichts.
+            if limit.count != nil, !detail.summary.archived {
+                LimitStepper(cohabitId: detail.id, date: limit.date, server: limit.count, perDay: limit.perDay,
+                             enabled: limit.canCount)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
+                    .background(
+                        LinearGradient(colors: [Ink.background.opacity(0), Ink.background], startPoint: .top,
+                                       endPoint: .center)
+                            .ignoresSafeArea()
+                    )
+            }
+        } else if !detail.summary.archived, detail.config.auto == nil {
             let target = CheckInTarget(detail: detail, meId: meId)
             let checkIns = CheckInController.shared
             let pending = CohabitSync.shared.pendingCheckins.contains(detail.id)

@@ -17,7 +17,8 @@ enum TabSelection: Hashable {
     #endif
 
     /// Womit die App aufmacht. Im Debug-Build ueber `COCKPIT_TAB` vorgebbar;
-    /// `recovery` und `logbook` oeffnen das Dashboard samt dieser Seite.
+    /// `recovery` oeffnet das Dashboard samt dieser Seite, `logbook` und
+    /// `effects` das Dashboard an dieser Stelle.
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
@@ -35,21 +36,33 @@ enum TabSelection: Hashable {
 }
 
 /// Die Seiten im Dashboard. Keine Tabs: iOS zeigt hoechstens fuenf, und die
-/// Leiste ist mit Dashboard, Essen, Gewicht, Evaluation und Einkauf voll.
+/// Leiste ist mit Dashboard, Essen, Gewicht, Evaluation und Einkauf voll. Das
+/// Logbook ist seit 12.10. keine Seite mehr, es steht im Dashboard selbst.
 enum DashboardPage: Hashable {
-    case recovery, logbook
+    case recovery
 
     /// Womit der Stapel im Dashboard aufmacht - im Debug-Build ueber
     /// `COCKPIT_TAB` vorgebbar, damit sich jede Seite aufnehmen laesst.
     static var initialPath: [DashboardPage] {
         #if DEBUG
-        switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
-        case "recovery": return [.recovery]
-        case "logbook":  return [.logbook]
-        default:         return []
-        }
+        return ProcessInfo.processInfo.environment["COCKPIT_TAB"] == "recovery" ? [.recovery] : []
         #else
         return []
+        #endif
+    }
+}
+
+/// Stellen im Dashboard, zu denen gescrollt wird - der Tipp auf die Erinnerung
+/// fuehrt zum Logbook.
+enum DashboardAnchor: String, Hashable {
+    case logbook, effects
+
+    /// Im Debug-Build ueber `COCKPIT_TAB=logbook|effects` - fuer Bilder.
+    static var initial: DashboardAnchor? {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["COCKPIT_TAB"].flatMap(DashboardAnchor.init(rawValue:))
+        #else
+        return nil
         #endif
     }
 }
@@ -60,14 +73,14 @@ enum DashboardPage: Hashable {
 final class Router {
     static let shared = Router()
     var selection: TabSelection = .initial
-    /// Der Stapel im Dashboard (Recovery- und Logbook-Seite).
+    /// Der Stapel im Dashboard (die Recovery-Seite).
     var dashboardPath: [DashboardPage] = DashboardPage.initialPath
     /// Zaehlt die Bitten, im Essen-Tab heute zu zeigen. Ein Zaehler und kein
     /// Datum: der Tab soll auch dann springen, wenn schon heute gefragt war
     /// und inzwischen weitergeblaettert wurde.
     private(set) var foodTodayRequests = 0
-    /// Zaehlt die Tipps auf die Erinnerung des Logbooks: eine offene Seite
-    /// springt dann auf gestern (`LogbookStore.followToday`).
+    /// Zaehlt die Tipps auf die Erinnerung des Logbooks: das Dashboard scrollt
+    /// dann zum Logbook und zeigt gestern (`LogbookStore.followToday`).
     private(set) var logbookRequests = 0
 
     private init() {}
@@ -91,7 +104,8 @@ final class Router {
         case .foodToday:  showFoodToday()
         case .evaluation: show(.evaluation)
         case .logbook:
-            open(.logbook)
+            selection = .dashboard
+            dashboardPath = []
             logbookRequests += 1
         }
     }

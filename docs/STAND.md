@@ -1,5 +1,23 @@
 # Stand
 
+> **Healthy: Logbook im Dashboard, coHabit: Tageslimit aus dem Logbook (12.10.,
+> Runde 3 der Änderungsrunde vom 12.10.):** Branch `logbook-limit` (auf
+> `offline-sofort`), nicht gemergt, nicht gepusht. Braucht den Weight Tracker mit
+> `PUT /api/logbook/days/{date}/values/{id}` und habits ab `da0dd31`; ausgerollt
+> wird mit `~/Server-Projects/deploy-logbook-limit.sh` (Dienste, dann das
+> Limit-Habit, dann Healthy und coHabit). Healthy: `LogbookSection`,
+> `LogbookEffectsSection`, `LogbookDays`, `LogbookStore` neu, `LogbookView` und
+> die Logbook-Karte weg, Werte über `Shared/LogbookChanges.swift`. coHabit:
+> `LimitCounter`, `limitCount` im Postausgang, Karte/Zeile/Detail/Bearbeiten/
+> klassische Liste. Geprüft: `tools/verify.sh` (alle fünf; Healthy-Wirt
+> grün mit `LogbookDaysTests`, `LogbookWriteQueueTests`; coHabit 180 Tests mit
+> `LimitTests`), UI-Tests `testLogbookAnswersSaveOnTap` (Vorführdaten) und
+> `testCountADailyLimitFromTheLogbook` (gegen lokale Dienste mit echtem Logbook),
+> Bilder hell und dunkel. Auf dem Gerät prüfen: Logbook-Tipps samt Haptik, der
+> Zähler, die 9-Uhr-Erinnerung landet beim Logbook; „+" in coHabit steht danach
+> im Logbook und umgekehrt; die fünfte Tasse setzt die Serie auf 0, Korrigieren
+> unter „Letzte Tage" holt sie zurück.
+>
 > **Ohne Netz: To-Do und Einkaufsliste sofort sichtbar (12.10., Runde 2 der
 > Änderungsrunde vom 12.10.):** Branch `offline-sofort` (auf `orange-steps`) in
 > cockpit-ios, todo, shopping; nicht gemergt, nicht gepusht. Ausgerollt wird mit

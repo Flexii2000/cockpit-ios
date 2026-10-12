@@ -250,11 +250,36 @@ struct CohabitSettingsForm: View {
 
     // MARK: - Abstinenz
 
+    @ViewBuilder
     private var abstinenceCard: some View {
-        FormCard {
-            ToggleRow(title: "Gruppenmodus", isOn: Binding(
-                get: { config.abstinence?.groupMode ?? false },
-                set: { config.abstinence = .init(groupMode: $0) }))
+        if let limit = config.abstinence?.limit {
+            // Tageslimit (Vertrag §2.5a): nur die Zahl ist aenderbar, das Verhalten
+            // gehoert zum Logbook.
+            FormCard {
+                FormRow(title: "Verhalten") { RowValue(text: limit.behaviorName ?? "–") }
+                FormDivider()
+                HStack {
+                    Text("Höchstens pro Tag")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Ink.ink)
+                    Spacer()
+                    Text("\(limit.perDay)" + (limit.unitLabel.map { " " + $0 } ?? ""))
+                        .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Ink.ink)
+                    Stepper("Höchstens pro Tag", value: Binding(
+                        get: { config.abstinence?.limit?.perDay ?? 0 },
+                        set: { config.abstinence?.limit?.perDay = $0 }), in: 0...1000)
+                        .labelsHidden()
+                        .accessibilityIdentifier("limitPerDay")
+                }
+                .frame(minHeight: 56)
+            }
+        } else {
+            FormCard {
+                ToggleRow(title: "Gruppenmodus", isOn: Binding(
+                    get: { config.abstinence?.groupMode ?? false },
+                    set: { config.abstinence = .init(groupMode: $0) }))
+            }
         }
     }
 
@@ -447,68 +472,79 @@ struct CohabitSettingsForm: View {
 
     private var settingsCard: some View {
         FormCard {
-            if config.auto == nil {
-                ToggleRow(title: "Beweisfoto-Pflicht", isOn: $config.photoRequired, identifier: "photoRequired")
-                FormDivider()
+            // Ein Tageslimit hat keine Eintraege, und Zeitzone, Frist und Einladen
+            // legt der Dienst fest (Berliner Tage, 14 Tage, allein) - es bleibt die Erinnerung.
+            if config.isLimit {
+                reminderRow
+            } else {
+                generalSettings
             }
-            if config.type == .streak && config.auto == nil {
-                ToggleRow(title: "Mit Wert erfassen", isOn: Binding(
-                    get: { config.tracking.isValue },
-                    set: { config.tracking = $0 ? .init(mode: "VALUE", unit: config.tracking.unit ?? "COUNT") : .check }))
-                if config.tracking.isValue {
-                    unitChips.padding(.bottom, 12)
-                }
-                FormDivider()
-            }
-            // Laufpunkte traegt man von Hand ein (der Dienst lehnt Health ab).
-            if config.type != .abstinence && config.auto == nil && config.challenge?.isRunPoints != true {
-                HStack {
-                    Text("Health")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(Ink.ink)
-                    Spacer()
-                    Picker("Health", selection: Binding(
-                        get: { config.health?.metric ?? "" },
-                        set: { applyHealth($0) })) {
-                        Text("Keine").tag("")
-                        ForEach(Self.metrics, id: \.0) { metric, title in
-                            Text(title).tag(metric)
-                        }
-                    }
-                    .tint(Ink.muted)
-                }
-                .frame(minHeight: 56)
-                FormDivider()
-            }
-            Button { showsZones = true } label: {
-                FormRow(title: "Zeitzone") { RowValue(text: config.timezone) }
-            }
-            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var generalSettings: some View {
+        if config.auto == nil {
+            ToggleRow(title: "Beweisfoto-Pflicht", isOn: $config.photoRequired, identifier: "photoRequired")
             FormDivider()
+        }
+        if config.type == .streak && config.auto == nil {
+            ToggleRow(title: "Mit Wert erfassen", isOn: Binding(
+                get: { config.tracking.isValue },
+                set: { config.tracking = $0 ? .init(mode: "VALUE", unit: config.tracking.unit ?? "COUNT") : .check }))
+            if config.tracking.isValue {
+                unitChips.padding(.bottom, 12)
+            }
+            FormDivider()
+        }
+        // Laufpunkte traegt man von Hand ein (der Dienst lehnt Health ab).
+        if config.type != .abstinence && config.auto == nil && config.challenge?.isRunPoints != true {
             HStack {
-                Text("Nachtragsfrist")
+                Text("Health")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Ink.ink)
                 Spacer()
-                Picker("Nachtragsfrist", selection: $config.backfillHours) {
-                    ForEach(CohabitConfig.backfillChoices, id: \.self) { hours in
-                        Text(Self.backfillTitle(hours)).tag(hours)
+                Picker("Health", selection: Binding(
+                    get: { config.health?.metric ?? "" },
+                    set: { applyHealth($0) })) {
+                    Text("Keine").tag("")
+                    ForEach(Self.metrics, id: \.0) { metric, title in
+                        Text(title).tag(metric)
                     }
                 }
                 .tint(Ink.muted)
             }
             .frame(minHeight: 56)
             FormDivider()
-            reminderRow
-            if config.type == .streak && config.auto == nil {
-                FormDivider()
-                ToggleRow(title: "Gruppen-Streak", isOn: Binding(
-                    get: { config.streak?.groupStreak ?? false },
-                    set: { config.streak?.groupStreak = $0 }))
-            }
-            FormDivider()
-            ToggleRow(title: "Mitglieder dürfen einladen", isOn: $config.membersCanInvite)
         }
+        Button { showsZones = true } label: {
+            FormRow(title: "Zeitzone") { RowValue(text: config.timezone) }
+        }
+        .buttonStyle(.plain)
+        FormDivider()
+        HStack {
+            Text("Nachtragsfrist")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(Ink.ink)
+            Spacer()
+            Picker("Nachtragsfrist", selection: $config.backfillHours) {
+                ForEach(CohabitConfig.backfillChoices, id: \.self) { hours in
+                    Text(Self.backfillTitle(hours)).tag(hours)
+                }
+            }
+            .tint(Ink.muted)
+        }
+        .frame(minHeight: 56)
+        FormDivider()
+        reminderRow
+        if config.type == .streak && config.auto == nil {
+            FormDivider()
+            ToggleRow(title: "Gruppen-Streak", isOn: Binding(
+                get: { config.streak?.groupStreak ?? false },
+                set: { config.streak?.groupStreak = $0 }))
+        }
+        FormDivider()
+        ToggleRow(title: "Mitglieder dürfen einladen", isOn: $config.membersCanInvite)
     }
 
     private var reminderRow: some View {

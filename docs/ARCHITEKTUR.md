@@ -52,11 +52,12 @@ Dreiteilig, und in M2 genauso wie in M1:
 ```
 Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
-  Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, Logbook;
-                    Vorführdaten - auch für Essen- und Gewicht-Tab
+  Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, darunter
+                    das Logbook; Vorführdaten - auch für Essen- und Gewicht-Tab
   Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
   Energy/           Energiebilanz beim Weight Tracker und ihre Formate
-  Logbook/          Logbook-Seite (Tag, Verhalten, Effekte), Erinnerung 09:00, beim Weight Tracker
+  Logbook/          Logbook und Effekte im Dashboard (LogbookSection, LogbookDays), Verhalten-Blatt,
+                    Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync)
@@ -340,7 +341,7 @@ zuletzt war.
 Seit die App im Dashboard aufmacht, muss jeder Weg sagen, wohin er will:
 Mitteilung **ohne** Art oder mit `quick-capture` → Essen (die APNs-Meldung des
 Kalorienzählers hat keine Art), `evaluation` → Evaluation, `logbook` →
-Dashboard und dort das Logbook; Link
+Dashboard, gescrollt zum Logbook auf gestern (`Router.logbookRequests`); Link
 `healthy://food` (Kalorien-Kachel) → Essen mit heute. Das URL-Schema steht in
 einer eigenen `Healthy/Info.plist` (wie bei Fokus und coHabit erzeugt aus
 `project.yml`, die übrigen Schlüssel kommen weiter aus den
@@ -352,10 +353,12 @@ Essen-Tab mit `show(.today())` antwortet.
 rechnet nichts: Recovery, Energie-Summary, Gewichts-Summary und der Tag beim
 Kalorienzähler kommen parallel aus ihren Endpunkten (`DashboardStore`); jede
 Karte fällt für sich aus, ein 404 heißt „gibt es beim Dienst noch nicht" und
-lässt sie weg, nur fehlender Zugang wird zum Banner. Recovery- und
-Logbook-Seite liegen als Seiten im `NavigationStack` des Dashboards
-(`Router.dashboardPath`), nicht als Tab: iOS zeigt höchstens fünf, und die
-Leiste ist mit Dashboard, Essen, Gewicht, Evaluation und Einkauf voll. Eine
+lässt sie weg, nur fehlender Zugang wird zum Banner. Die Recovery-Seite liegt
+im `NavigationStack` des Dashboards (`Router.dashboardPath`), nicht als Tab:
+iOS zeigt höchstens fünf, und die Leiste ist mit Dashboard, Essen, Gewicht,
+Evaluation und Einkauf voll. Das Logbook steht seit 12.10.2026 im Dashboard
+selbst, unter den Halbkarten, mit eigenem Store (`LogbookStore`); Sprungziele
+im Scrollbereich sind `DashboardAnchor.logbook` und `.effects`. Eine
 Offline-Leiste für beide Dienste (`OfflineBanner(backends:)`), sonst zählte sie
 die wartenden Änderungen doppelt. Nicht zu verwechseln mit `/api/dashboard`
 des Weight Trackers - das ist die Auswahl der Kacheln im Gewicht-Tab.
@@ -398,15 +401,19 @@ gerechnet wird ausnahmsweise in der App (`EvaluationChartData`). Die Erinnerung
 um 21:30 sind lokale Mitteilungen je Tag (`EvaluationReminder`).
 
 **Healthy: das Logbook liegt beim Dienst, die Erinnerung auf dem iPhone.**
-Verhaltensweisen und Tage stehen im Weight Tracker (je Person, die Effekte
-gegen die Recovery rechnet er dort). Die Erinnerung um 09:00 „Logbook" /
-„gestern offen" ist wie die der Evaluation eine lokale Mitteilung je Tag
-(`LogbookReminder`), aber nur 14 Tage voraus - iOS hält höchstens 64 je App
-bereit, die Evaluation belegt 30. Neu verteilt beim Speichern und bei jedem
-Wechsel in den Vordergrund, mit dem Stand des Dienstes (ohne Netz aus dem
-Cache); im Vorführmodus nie. Ein Tag, dessen Speichern im Postausgang wartet,
-zählt als gespeichert: `LogbookMemory` merkt ihn sich samt Werten, bis der
-Postausgang leer ist.
+Verhaltensweisen und Werte stehen im Weight Tracker (je Person, die Effekte
+gegen die Recovery rechnet er dort). Seit 12.10.2026 **speichert jeder Tipp**
+einen Wert (`PUT /api/logbook/days/{date}/values/{id}`), über die
+Warteschlange (`LogbookChange`): sofort zu sehen, ohne Netz mit Uhr. Eine
+Zeile zeigt, was am Zähler getippt ist, sonst was wartet, sonst den Stand des
+Dienstes (`LogbookDays.value`); fehlt alles, ist sie **offen** - nicht „nein".
+Die Antwort des Dienstes (der ganze Tag) ersetzt diesen Tag im Stand. Die
+Erinnerung um 09:00 „Logbook" / „gestern offen" ist wie die der Evaluation
+eine lokale Mitteilung je Tag (`LogbookReminder`), aber nur 14 Tage voraus -
+iOS hält höchstens 64 je App bereit, die Evaluation belegt 30. Sie kommt,
+solange am Vortag etwas offen ist (ein wartender Wert gilt als beantwortet);
+neu verteilt nach jeder Antwort und bei jedem Wechsel in den Vordergrund; im
+Vorführmodus nie.
 
 **Das Passwort der Noten liegt hinter Face ID.** Als einziges Geheimnis der
 App: die übrigen sind Geräte-Token, die das Widget bei gesperrtem Bildschirm
@@ -431,10 +438,13 @@ Dienst, von wann sie ist. Die Tabs zeigen das als Leiste: „Offline – Stand v
 02.09., 21:14". Bei 403 oder 500 gibt es keinen Rückgriff: der Dienst hat
 geantwortet.
 
-**Sofort sichtbar: To-Do und Einkaufsliste** (`PendingChanges`). Anlegen
+**Sofort sichtbar: To-Do, Einkaufsliste, Logbook** (`PendingChanges`). Anlegen
 (auch Unteraufgaben und die Zutaten eines Gerichts), Abhaken, Ändern, Löschen,
 „Abgehakte entfernen" gehen nicht mehr direkt an den Dienst, sondern als
-**typisierte Änderung** in die Warteschlange (`TodoChange`, `ShoppingChange`).
+**typisierte Änderung** in die Warteschlange (`TodoChange`, `ShoppingChange`;
+seit Runde 3 auch jeder Logbook-Wert als `LogbookChange` auf der Spur des
+Weight Trackers - je Tag und Verhaltensweise gilt der neueste, die Antwort ist
+kein Brett und landet nicht im Offline-Stand).
 Angezeigt wird der letzte Stand des Dienstes und darüber, was wartet
 (`TodoOverlay`, `ShoppingOverlay` — reine Funktionen, getestet). Gesendet wird
 sofort, mit 15 s Zeitlimit; ohne Netz bleibt die Änderung stehen und eine
@@ -475,8 +485,9 @@ kleine Uhr am Haken sagt es.
   Vor einem Abruf wartet der Store bis zu 3 s, bis seine Spur nicht sendet.
 
 **Der alte Postausgang** (`Outbox`, rohe `URLRequest`s mit
-`queueWhenOffline: true`) bleibt für Haken in Healthy (Essen, Gewicht,
-Logbook-Tag) und die Waldsitzungen. Nachgesendet wird der Reihe nach, sobald
+`queueWhenOffline: true`) bleibt für Healthy (Essen, Gewicht) und die
+Waldsitzungen; ganze Logbook-Tage einer älteren Fassung, die dort noch warten,
+schickt er weiter. Nachgesendet wird der Reihe nach, sobald
 irgendeine Anfrage wieder durchkommt oder die App in den Vordergrund kehrt;
 wird der Ausgang leer, laden die Tabs neu. Bis dahin: alter Stand und „2
 Änderungen warten auf Netz" in der Leiste — gezählt je Dienst des Tabs

@@ -312,7 +312,9 @@ struct ClassicHabitRow: View {
                 .accessibilityIdentifier("toggle-\(habit.id)")
             }
         case .quit:
-            if habit.doneToday {
+            if let limit = habit.summary?.limit {
+                limitTrailing(limit)
+            } else if habit.doneToday {
                 Button("Rückfall", action: toggle)
                     .font(.caption)
                     .buttonStyle(.bordered)
@@ -355,6 +357,37 @@ struct ClassicHabitRow: View {
             summaryTrailing
         case .unknown:
             EmptyView()
+        }
+    }
+
+    /// Tageslimit (Vertrag §5.2c): „2/4“ und ein „+“ statt des Rueckfall-Knopfs -
+    /// gezaehlt wird wie in der neuen Liste, die Zahl steht im Logbook.
+    @ViewBuilder
+    private func limitTrailing(_ limit: LimitView) -> some View {
+        let counter = LimitCounter.shared
+        let key = LimitKey(cohabitId: habit.id, date: limit.date)
+        let count = counter.count(key, server: limit.count)
+        HStack(spacing: 10) {
+            if counter.isWaiting(key) {
+                Image(systemName: "clock")
+                    .foregroundStyle(.orange)
+                    .accessibilityLabel("wartet auf Netz")
+            }
+            Text("\(LimitFormat.count(count))/\(limit.perDay)")
+                .font(.title3.weight(.semibold).monospacedDigit())
+                .foregroundStyle((count ?? 0) > Double(limit.perDay) ? Color.red : Color.primary)
+                .accessibilityIdentifier("limit-\(habit.id)")
+            if limit.canCount {
+                Button { counter.step(key, server: limit.count, by: 1) } label: {
+                    Image(systemName: "plus.circle")
+                        .font(.title)
+                        .foregroundStyle(Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .sensoryFeedback(.increase, trigger: count)
+                .accessibilityLabel("Eins mehr")
+                .accessibilityIdentifier("toggle-\(habit.id)")
+            }
         }
     }
 

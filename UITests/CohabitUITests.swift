@@ -69,6 +69,67 @@ final class CohabitUITests: XCTestCase {
         shoot(app, "anlegen-fertig")
     }
 
+    // MARK: - Tageslimit
+
+    /// Ein Tageslimit aus dem Logbook (Vertrag §5.2c): „+“ auf der Karte zaehlt,
+    /// die Zahl steht sofort da und kommt beim Dienst (und damit im Logbook) an;
+    /// unten auf der Detailseite zaehlt „− n +“ weiter. Braucht ein Verhalten mit
+    /// Menge im Logbook der Person: `COCKPIT_LIMIT_BEHAVIOR` (Kennung).
+    @MainActor
+    func testCountADailyLimitFromTheLogbook() throws {
+        let behavior = environment["COCKPIT_LIMIT_BEHAVIOR"] ?? ""
+        try XCTSkipIf(behavior.isEmpty, "COCKPIT_LIMIT_BEHAVIOR fehlt - Verhalten mit Menge im Logbook")
+        let name = unique("Limit UI")
+        let detail = try request("POST", "/cohabits", body: [
+            "type": "ABSTINENCE", "name": name, "color": "mint",
+            "abstinence": ["groupMode": false, "limit": ["behaviorId": behavior, "perDay": 4]],
+        ], token: token)
+        let id = try XCTUnwrap(((detail["summary"] as? [String: Any])?["ref"] as? [String: Any])?["id"] as? String)
+        cleanUp("DELETE", "/cohabits/\(id)", confirm: true, token: token)
+        let before = try limitCount(id)
+
+        let app = launch()
+        let plus = app.buttons["plus-\(id)"]
+        XCTAssertTrue(plus.waitForExistence(timeout: 20), "kein „+“ auf der Karte")
+        reveal(plus, in: app)
+        shoot(app, "limit-heute")
+        plus.tap()
+        plus.tap()
+        let text = "heute \(Int(before) + 2) von 4"
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", text)).firstMatch
+            .waitForExistence(timeout: 5), "die Zahl steht sofort da")
+        XCTAssertTrue(waitUntil(timeout: 10) { (try? self.limitCount(id)) == before + 2 }, "beim Dienst angekommen")
+        shoot(app, "limit-gezaehlt")
+
+        app.buttons["card-\(id)"].tap()
+        let more = app.buttons["limitPlus"]
+        XCTAssertTrue(more.waitForExistence(timeout: 10), "kein Zaehler unten auf der Detailseite")
+        more.tap()
+        XCTAssertTrue(waitFor(app.staticTexts["limitCount"], toReadAgain: "\(Int(before) + 3)"))
+        XCTAssertTrue(waitUntil(timeout: 10) { (try? self.limitCount(id)) == before + 3 })
+        shoot(app, "limit-detail")
+        app.buttons["limitMinus"].tap()
+        XCTAssertTrue(waitUntil(timeout: 10) { (try? self.limitCount(id)) == before + 2 }, "− zaehlt zurueck")
+    }
+
+    /// Die Zahl von heute, wie der Dienst sie aus dem Logbook liest.
+    private func limitCount(_ id: String) throws -> Double {
+        let detail = try request("GET", "/cohabits/\(id)", body: nil, token: token)
+        let limit = try XCTUnwrap((detail["summary"] as? [String: Any])?["limit"] as? [String: Any])
+        return (limit["count"] as? Double) ?? Double((limit["count"] as? Int) ?? 0)
+    }
+
+    /// Fragt wiederholt, bis die Bedingung gilt - der Zaehler schickt nach einer Pause.
+    @MainActor
+    private func waitUntil(timeout: TimeInterval, _ condition: @escaping () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.3))
+        }
+        return condition()
+    }
+
     // MARK: - Abhaken mit Foto aus der Galerie
 
     @MainActor

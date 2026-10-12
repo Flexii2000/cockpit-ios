@@ -26,6 +26,9 @@ actor CohabitOutbox {
             /// Den eigenen Eintrag eines Tages zuruecknehmen - ein zweites Mal
             /// aendert nichts, deshalb braucht es keine Kennung.
             case classicUnmark(habitId: String, date: CalendarDate)
+            /// Die Zahl eines Tages beim Tageslimit (Vertrag §2.5a) - absolut, ein
+            /// Nachsenden zaehlt nichts doppelt.
+            case limitCount(cohabitId: String, date: CalendarDate, count: Double)
         }
 
         let id: UUID
@@ -46,6 +49,8 @@ actor CohabitOutbox {
 
     private let directory: URL
     private var isReplaying = false
+    /// Der Auftrag, der gerade beim Dienst ist - ihn ersetzt keine neuere Zahl.
+    private var inFlight: UUID?
 
     init(directory: URL = CohabitGroup.container.appending(path: "Outbox")) {
         self.directory = directory
@@ -81,6 +86,18 @@ actor CohabitOutbox {
 
     func enqueueClassicUnmark(habitId: String, date: CalendarDate) async {
         await append(.classicUnmark(habitId: habitId, date: date), photos: [])
+    }
+
+    /// Die Zahl eines Tages beim Tageslimit. Je Co-Habit und Tag gilt die neueste:
+    /// eine wartende fuer denselben Tag faellt weg - ausser sie ist gerade
+    /// unterwegs, dann kommt die neue dahinter.
+    func enqueueLimitCount(cohabitId: String, date: CalendarDate, count: Double) async {
+        var entries = load()
+        entries.removeAll { entry in
+            entry.id != inFlight && entry.operation.limitKey == LimitKey(cohabitId: cohabitId, date: date)
+        }
+        save(entries)
+        await append(.limitCount(cohabitId: cohabitId, date: date, count: count), photos: [])
     }
 
     /// Eine Reaktion (Vertrag §2.7a: je Person eine je Ziel). Zaehlt nur die
@@ -159,6 +176,8 @@ actor CohabitOutbox {
                     replaceFirst(with: entry)
                     try? FileManager.default.removeItem(at: photos.appending(path: photoFile))
                 }
+                inFlight = entry.id
+                defer { inFlight = nil }
                 try await send(entry.operation, api: api)
                 removeFirst()
             } catch let error as CohabitError {
@@ -206,6 +225,9 @@ actor CohabitOutbox {
             try await api.sendIgnoringResponse("POST", ClassicMarkRequest.path(habitId: habitId), body: request)
         case .classicUnmark(let habitId, let date):
             try await api.sendIgnoringResponse("DELETE", ClassicMarkRequest.path(habitId: habitId, date: date))
+        case .limitCount(let cohabitId, let date, let count):
+            try await api.sendIgnoringResponse("PUT", LimitCountRequest.path(cohabitId: cohabitId, date: date),
+                                               body: LimitCountRequest(count: count))
         }
     }
 
@@ -284,7 +306,7 @@ extension CohabitOutbox.Entry.Operation {
         case .message(let cohabitId, var request):
             request.photoId = photoId
             return .message(cohabitId: cohabitId, request: request)
-        case .reaction, .classicMark, .classicUnmark:
+        case .reaction, .classicMark, .classicUnmark, .limitCount:
             return self
         }
     }
@@ -299,6 +321,12 @@ extension CohabitOutbox.Entry.Operation {
         return "Nicht angenommen: \(message)"
     }
 
+    /// Co-Habit und Tag einer wartenden Zahl beim Tageslimit.
+    var limitKey: LimitKey? {
+        if case .limitCount(let cohabitId, let date, _) = self { return LimitKey(cohabitId: cohabitId, date: date) }
+        return nil
+    }
+
     /// Das Ziel einer wartenden Reaktion.
     var reactionTarget: String? {
         if case .reaction(let request, _) = self { return request.target }
@@ -310,7 +338,22 @@ extension CohabitOutbox.Entry.Operation {
     var isEntry: Bool {
         switch self {
         case .checkin, .classicMark: true
-        case .message, .reaction, .classicUnmark: false
+        case .message, .reaction, .classicUnmark, .limitCount: false
         }
+    }
+}
+
+/// Ein Tag eines Co-Habits mit Tageslimit - je Schluessel zaehlt die neueste Zahl.
+struct LimitKey: Hashable, Sendable {
+    let cohabitId: String
+    let date: CalendarDate
+}
+
+/// `PUT /cohabits/{id}/count/{date}` (Vertrag §3.4).
+struct LimitCountRequest: Codable, Hashable, Sendable {
+    let count: Double
+
+    static func path(cohabitId: String, date: CalendarDate) -> String {
+        "/cohabits/\(cohabitId)/count/\(date.iso)"
     }
 }

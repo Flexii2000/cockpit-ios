@@ -73,81 +73,20 @@ enum LogbookFormat {
 
     // MARK: - Mengen
 
+    /// Mehr nimmt der Dienst nicht.
+    static let maxAmount: Double = 10_000
+
     /// „2", „1,5", „0,25" - so viele Stellen wie noetig, deutsch.
     static func amount(_ value: Double) -> String {
         value.formatted(.number.locale(Locale(identifier: "de_DE")).precision(.fractionLength(0...2)))
     }
 
-    /// Was in einem Mengenfeld steht, als Zahl - mit Komma wie auf der
-    /// deutschen Tastatur, ein Punkt geht auch. `nil`, wenn es keine Menge
-    /// ist, die der Dienst annimmt (mehr als 0, hoechstens 10.000).
+    /// Was in der Eingabe einer Menge steht, als Zahl - mit Komma wie auf der
+    /// deutschen Tastatur, ein Punkt geht auch. 0 ist eine Antwort („heute
+    /// keine“), offen ist etwas anderes. `nil`, wenn der Dienst es nicht nimmt.
     static func parseAmount(_ text: String) -> Double? {
         let cleaned = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
-        guard let value = Double(cleaned), value.isFinite, value > 0, value <= 10_000 else { return nil }
+        guard let value = Double(cleaned), value.isFinite, value >= 0, value <= maxAmount else { return nil }
         return value
-    }
-}
-
-/// Was auf der Logbook-Seite fuer einen Tag angetippt ist.
-struct LogbookEntry: Equatable, Sendable {
-    var isOn: Bool
-    /// Nur mit Einheit - der Text im Mengenfeld.
-    var amount: String
-}
-
-/// Vom gespeicherten Tag zur Eingabe und zurueck - neben der Seite, damit es
-/// sich pruefen laesst.
-enum LogbookDraft {
-
-    /// Die Eingabe fuer einen Tag: gespeichert (oder wartend) wie es war, sonst
-    /// alles aus.
-    static func entries(for behaviors: [Behavior], values: [String: Double]?) -> [String: LogbookEntry] {
-        var result: [String: LogbookEntry] = [:]
-        for behavior in behaviors {
-            let value = values?[behavior.id] ?? 0
-            result[behavior.id] = LogbookEntry(
-                isOn: value > 0,
-                amount: behavior.unit != nil && value > 0 ? LogbookFormat.amount(value) : "")
-        }
-        return result
-    }
-
-    /// Welcher Tag gezeigt wird, wenn die Seite wieder in den Blick kommt.
-    ///
-    /// Nach Mitternacht (oder beim Tipp auf die Erinnerung) zurueck auf
-    /// gestern - sonst rutscht der gewaehlte Tag mit jedem Tag weiter nach
-    /// hinten und faellt irgendwann aus der Frist, und der Dienst lehnt das
-    /// Speichern ab. Ausnahme: ein angefangener, nicht gespeicherter Tag bleibt,
-    /// solange er noch in der Frist liegt - sonst waere die Eingabe weg.
-    ///
-    /// - Parameters:
-    ///   - chosenOn: der Tag, an dem `selected` gewaehlt wurde
-    ///   - edited: ob seit dem Zeigen etwas angetippt wurde
-    ///   - reminder: die Seite kommt von der Erinnerung „gestern offen"
-    static func day(showing selected: CalendarDate, chosenOn: CalendarDate, today: CalendarDate,
-                    edited: Bool, backfillDays: Int, reminder: Bool) -> CalendarDate {
-        let yesterday = today.adding(days: -1)
-        let inWindow = selected >= today.adding(days: -backfillDays) && selected <= yesterday
-        if edited, inWindow { return selected }
-        if reminder || chosenOn != today || !inWindow { return yesterday }
-        return selected
-    }
-
-    /// Was zum Dienst geht: nur, was angetippt ist - der Rest wird dort 0.
-    /// Ohne Einheit 1, mit Einheit die Menge. `nil`, solange eine angetippte
-    /// Verhaltensweise mit Einheit keine gueltige Menge hat: dann soll nicht
-    /// gespeichert werden, statt eine erfundene Menge zu schicken.
-    static func values(_ entries: [String: LogbookEntry], behaviors: [Behavior]) -> [String: Double]? {
-        var values: [String: Double] = [:]
-        for behavior in behaviors {
-            guard let entry = entries[behavior.id], entry.isOn else { continue }
-            if behavior.unit == nil {
-                values[behavior.id] = 1
-            } else {
-                guard let amount = LogbookFormat.parseAmount(entry.amount) else { return nil }
-                values[behavior.id] = amount
-            }
-        }
-        return values
     }
 }
