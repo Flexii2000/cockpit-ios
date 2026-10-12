@@ -331,6 +331,12 @@ targets:
         # und niemand sieht sie. Ein Wechsel machte aus einer App zwei.
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.einkauf
         INFOPLIST_KEY_CFBundleDisplayName: Einkaufsliste
+        # Geht als einzige App ueber TestFlight (Joana). Verschluesselt wird nur
+        # per HTTPS und Schluesselbund des Systems - ohne den Schluessel fragt
+        # App Store Connect das bei jedem Build ab, und bis zur Antwort kann
+        # niemand ihn installieren. Die Gruende fuer UserDefaults und das
+        # Datum des Offline-Stands stehen in Einkaufsliste/PrivacyInfo.xcprivacy.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
 
   # ---------------------------------------------------------------- coHabit
   # Habits gemeinsam mit Freunden (Vertrag: ../habits/docs/COHABIT-CONTRACT.md,
