@@ -196,7 +196,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
 | `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Recovery-Seite, Logbook mit Platzhaltern („Verhalten A"), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
-| `COCKPIT_SERIES=deficit` | schaltet im Gewicht-Tab Reihen zusätzlich ein (Komma-Liste der `WeightSeries`, etwa `deficit,expenditure`) - „Defizit ⌀" ist dort nur angeboten |
+| `COCKPIT_SERIES=kcal` | schaltet im Gewicht-Tab Reihen zusätzlich ein (Komma-Liste der `WeightSeries`, etwa `kcal,expenditure`) - vorgewählt sind dort nur Gewicht ⌀, Zielkurve und „Defizit ⌀" |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
 | `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
 | `COCKPIT_SCAN=4000417025005` | liefert im Essen-Tab sofort diesen Produktcode, als wäre er gescannt worden: das Scanner-Blatt geht auf, gibt ihn ohne Kamera ab, danach öffnet sich das Eintrag-Blatt mit dem Produkt aus Open Food Facts — im Simulator gibt es keine Kamera |

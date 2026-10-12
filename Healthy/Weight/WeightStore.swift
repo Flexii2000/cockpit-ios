@@ -76,9 +76,9 @@ final class WeightStore {
     private var windowVisible: Set<WeightSeries> = WeightStore.initialVisible(WeightSeries.defaultVisible)
     private var allTimeVisible: Set<WeightSeries> = WeightStore.initialVisible(WeightRange.allTime.defaultVisible)
 
-    /// Im Debug-Build zuschaltbar (`COCKPIT_SERIES=deficit,expenditure`):
-    /// „Defizit ⌀" und „Verbrauch ⌀" sind hier nur angeboten, und tippen kann
-    /// der Simulator nicht.
+    /// Im Debug-Build zuschaltbar (`COCKPIT_SERIES=kcal,expenditure`): was hier
+    /// nur angeboten ist, etwa „Verbrauch ⌀", laesst sich so ins Bild holen -
+    /// tippen kann der Simulator nicht.
     private static func initialVisible(_ defaults: Set<WeightSeries>) -> Set<WeightSeries> {
         #if DEBUG
         if let raw = ProcessInfo.processInfo.environment["COCKPIT_SERIES"] {

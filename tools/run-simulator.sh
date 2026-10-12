@@ -82,9 +82,9 @@
 #
 #   COCKPIT_DASHBOARD_DEMO=1 COCKPIT_NO_HEALTH=1 tools/run-simulator.sh Healthy dashboard bild.png
 #
-# COCKPIT_SERIES=deficit schaltet im Gewicht-Tab Reihen zusaetzlich ein
-# (Komma-Liste: deficit, expenditure, kcalDay, measured, avg14, ...) - „Defizit
-# ⌀" ist dort nur angeboten, und tippen kann simctl nicht.
+# COCKPIT_SERIES=kcal schaltet im Gewicht-Tab Reihen zusaetzlich ein
+# (Komma-Liste: kcal, expenditure, kcalDay, measured, avg14, ...) - vorgewaehlt
+# sind dort nur Gewicht ⌀, Zielkurve und „Defizit ⌀", und tippen kann simctl nicht.
 #
 # Gegen einen lokal gestarteten Weight Tracker oder Kalorienzaehler
 # (COCKPIT_URL_WEIGHT=http://127.0.0.1:48180, COCKPIT_URL_FOOD=…) samt dessen

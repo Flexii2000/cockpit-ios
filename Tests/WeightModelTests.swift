@@ -326,16 +326,20 @@ final class WeightWidgetTests: XCTestCase {
         XCTAssertEqual(WeightSeries.expenditure.title, "Verbrauch ⌀")
     }
 
-    /// „Defizit ⌀" steht direkt hinter „Verbrauch ⌀" und wird im
-    /// Gewicht-Diagramm nur angeboten (Vertrag §5).
-    func testDeficitFollowsTheExpenditureAndIsNotPreselected() {
+    /// „Defizit ⌀" steht direkt hinter „Verbrauch ⌀" und ist im
+    /// Gewicht-Diagramm vorgewaehlt, die kcal nicht mehr (Felix, 12.10.;
+    /// Vertrag §5).
+    func testDeficitFollowsTheExpenditureAndIsPreselected() {
         for range in WeightRange.allCases {
             let offered = range.offeredSeries
             let index = offered.firstIndex(of: .expenditure)
             XCTAssertEqual(offered.firstIndex(of: .deficit), index.map { $0 + 1 }, range.title)
             XCTAssertTrue(range.availableSeries.contains(.deficit), range.title)
-            XCTAssertFalse(range.defaultVisible.contains(.deficit), range.title)
+            XCTAssertTrue(range.defaultVisible.contains(.deficit), range.title)
+            XCTAssertFalse(range.defaultVisible.contains(.kcal), range.title)
         }
+        XCTAssertEqual(WeightSeries.defaultVisible, [.avg7, .target, .deficit])
+        XCTAssertEqual(WeightRange.allTime.defaultVisible, [.avg30, .target, .deficit])
         XCTAssertEqual(WeightSeries.deficit.title, "Defizit ⌀")
     }
 }

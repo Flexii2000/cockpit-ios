@@ -3,6 +3,23 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-12 — Healthy: Defizit in Orange, im Gewicht-Diagramm vorgewählt
+Felix hat entschieden (12.10.): Das Gewicht-Diagramm öffnet mit **Gewicht ⌀
+(7 Tage, bei „Alles" 30), Zielkurve und „Defizit ⌀"**; „kcal ⌀" ist dort nur
+noch angeboten. Das Petrol des Defizits lag ihm zu nah an der Farbe des
+Gewichts (Grün des Mittels, Blau des Messwerts) - es ist jetzt **Orange**
+`#E8590C` / `#FF922B`, auf allen Oberflächen (Vertrag §5), auch in der
+Energie-Karte und im Essen-Verlauf. **Verworfen:** Violett (nah am Indigo des
+Verbrauchs, im Essen-Verlauf vorgewählt, und am Lila des 30-Tage-Mittels bei
+„Alles"), Magenta (nah am Rot von Zielkurve und Überschuss). Was Orange
+kostet: im Bilanzbalken folgt es direkt auf das kcal-Gelb, in der Woche steht
+es neben dem Rot des Überschusses - Felix prüft das auf dem Gerät.
+- **Die Auswahl der Reihen ist nirgends gespeichert** (App `@State`, Web im
+  Speicher, Android im ViewModel): die neue Vorgabe gilt ab dem nächsten Start,
+  ohne Umzug.
+- **`COCKPIT_SERIES`** schaltet seitdem eher `kcal` oder `expenditure` zu; das
+  Defizit braucht den Schalter nicht mehr.
+
 ## 2026-10-10 — Healthy: Essen-Tab ohne Energiezeilen, Ziele fest wie vorher
 Felix hat entschieden (10.10.): Im Essen-Tab sollen sich die Werte nicht
 ändern, das Kalorienziel bleibt fest, das Defizit steht dort nicht als Text

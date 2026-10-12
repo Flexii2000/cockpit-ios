@@ -207,12 +207,11 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Womit der Zeitraum aufmacht. Seit die kcal als 7-Tage-Mittel kommen,
-    /// auch in „Alles": acht Jahre Tageswerte waeren Rauschen, das Mittel ist
-    /// eine Kurve.
+    /// Womit der Zeitraum aufmacht: Gewicht, Zielkurve und Defizit (Felix,
+    /// 12.10.). In „Alles" steht das 30-Tage-Mittel fuer das Gewicht.
     var defaultVisible: Set<WeightSeries> {
         switch self {
-        case .allTime: [.avg30, .target, .kcal]
+        case .allTime: [.avg30, .target, .deficit]
         default:       WeightSeries.defaultVisible
         }
     }
@@ -229,9 +228,9 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
 
 enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     case measured, avg7, avg14, avg30, target
-    /// Das 7-Tage-Mittel der kcal aus dem Kalorienzaehler - die Vorgabe. Liegt
-    /// auf einer eigenen Skala und wird in den Gewichtsbereich hineingerechnet,
-    /// dieselbe Zusammenschau wie in der Weboberflaeche.
+    /// Das 7-Tage-Mittel der kcal aus dem Kalorienzaehler. Liegt auf einer
+    /// eigenen Skala und wird in den Gewichtsbereich hineingerechnet, dieselbe
+    /// Zusammenschau wie in der Weboberflaeche.
     case kcal
     /// Die kcal-Tageswerte selbst: blasser, standardmaessig aus. Sie springen
     /// von Mahlzeit zu Mahlzeit; das Mittel sagt, ob eine Woche gepasst hat.
@@ -241,8 +240,8 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// vorgewaehlt - im Essen-Verlauf ist es umgekehrt (Vertrag §5).
     case expenditure
     /// „Defizit ⌀": das 7-Tage-Mittel des Defizits ueber die getrackten Tage,
-    /// auf eigener Skala mit Nulllinie. Wie der Verbrauch hier nur angeboten;
-    /// mit ihm und „kcal ⌀" faerbt es die Flaeche zwischen den beiden.
+    /// auf eigener Skala mit Nulllinie. Vorgewaehlt (Felix, 12.10.); mit
+    /// „Verbrauch ⌀" und „kcal ⌀" faerbt es die Flaeche zwischen den beiden.
     case deficit
 
     var id: String { rawValue }
@@ -267,7 +266,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// benutzt. „Alles" hat sein eigenes Angebot, siehe `WeightRange`.
     static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure, .deficit]
 
-    static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .kcal]
+    static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .deficit]
 }
 
 /// Was die App an /api/steps schickt.

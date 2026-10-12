@@ -8,7 +8,7 @@ struct WeightChartView: View {
     let highlights: [Highlight]
     let corridor: (lower: Double, upper: Double)?
     let kcalByDay: [DayValue]
-    /// Das 7-Tage-Mittel der kcal - die Kurve, die standardmaessig zu sehen ist.
+    /// Das 7-Tage-Mittel der kcal.
     let kcalAverage: [DayAverage]
     let kcalTarget: Double?
     /// „Verbrauch ⌀" vom Weight Tracker - auf der kcal-Skala wie die kcal.

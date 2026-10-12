@@ -1,5 +1,16 @@
 # Stand
 
+> **Healthy: Defizit in Orange, Gewicht-Diagramm öffnet mit Defizit (12.10.,
+> Runde 1 der Änderungsrunde vom 12.10.):** Branch `orange-steps`, nicht
+> gemergt, nicht gepusht; ausgerollt wird mit
+> `~/Server-Projects/deploy-defizit-schritte-liegestuetze.sh` (Weight Tracker,
+> Kalorienzähler, habits, iPhone, Android 1.3). Geprüft: `tools/verify.sh Healthy`
+> (242 XCTests, 31 Swift-Tests), Bilder mit `COCKPIT_DASHBOARD_DEMO=1` hell und
+> dunkel (Gewicht-Tab mit 7-Tage-Mittel, Zielkurve und orangem Defizit samt
+> Skala außen; Energie-Karte). Auf dem Gerät prüfen: Orange im Bilanzbalken
+> direkt neben dem kcal-Gelb und in der Woche neben dem Rot des Überschusses -
+> wird es zu knapp, nur den Ton nachschärfen.
+>
 > **Healthy: Essen-Tab ohne Energiezeilen (10.10., Runde 3):** ausgerollt am
 > 10.10. (`deploy-healthy-essen-recovery.sh`: Weight Tracker, Kalorienzähler,
 > iPhone, Android). Auf dem Gerät prüfen: neben dem großen Tacho stehen nur

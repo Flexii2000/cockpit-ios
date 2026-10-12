@@ -25,13 +25,15 @@ enum Palette {
     /// die Luecke zwischen ihm und „kcal ⌀" ist das Defizit.
     static let expenditure = Color.adaptive(light: 0x4338CA, dark: 0x6E7BFF)
     /// Defizit: die Kurve „Defizit ⌀", die Zahl und die Balken der
-    /// Energie-Karte.
-    static let deficit = Color.adaptive(light: 0x0D9488, dark: 0x2DD4BF)
+    /// Energie-Karte. Orange - weit weg vom Gruen und Blau des Gewichts, neben
+    /// dem die Kurve jetzt vorgewaehlt steht (das fruehere Petrol lag zu nah
+    /// daran), und vom Indigo des Verbrauchs.
+    static let deficit = Color.adaptive(light: 0xE8590C, dark: 0xFF922B)
     /// Ueberschuss - wo mehr gegessen als verbraucht wurde.
     static let surplus = Color.adaptive(light: 0xD33131, dark: 0xEF5350)
     /// Die Flaeche zwischen „Verbrauch ⌀" und „kcal ⌀": hell 16 %, dunkel
     /// 20 % - auf dunklem Grund traegt dieselbe Deckkraft weniger.
-    static let deficitFill = Color.adaptive(light: 0x0D9488, dark: 0x2DD4BF,
+    static let deficitFill = Color.adaptive(light: 0xE8590C, dark: 0xFF922B,
                                             lightOpacity: 0.16, darkOpacity: 0.2)
     static let surplusFill = Color.adaptive(light: 0xD33131, dark: 0xEF5350,
                                             lightOpacity: 0.16, darkOpacity: 0.2)
