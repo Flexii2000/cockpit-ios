@@ -77,8 +77,8 @@ tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkaufsliste`, `coHabit`). Tabs: Healthy `dashboard|food|weight|evaluation|shopping|widget|recovery|logbook`
-(`recovery` und `logbook` sind das Dashboard samt dieser Seite), Vault
+`Fokus`, `Einkaufsliste`, `coHabit`). Tabs: Healthy `dashboard|food|weight|evaluation|shopping|widget|recovery|logbook|effects`
+(`recovery` ist das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle), Vault
 `grades|finance`, Fokus `todo|forest|widget`, Einkaufsliste hat nur die eine Seite,
 coHabit `today|timeline|stats|profile|new|widget`;
 `setup` öffnet das Zugang-Blatt (nicht in coHabit — dort ist der Zugang ein
@@ -191,10 +191,10 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `evaluation`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `recovery` und `logbook` öffnen in Healthy das Dashboard samt dieser Seite; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `evaluation`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
 | `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Healthy) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
 | `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
-| `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Recovery-Seite, Logbook mit Platzhaltern („Verhalten A"), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
+| `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Recovery-Seite, Logbook mit Platzhaltern („Verhalten A", gestern halb beantwortet), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_SERIES=kcal` | schaltet im Gewicht-Tab Reihen zusätzlich ein (Komma-Liste der `WeightSeries`, etwa `kcal,expenditure`) - vorgewählt sind dort nur Gewicht ⌀, Zielkurve und „Defizit ⌀" |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
@@ -285,13 +285,14 @@ sag das dann auch so.
 
 - **Kein zweiter Datenstand mit eigenen Regeln.** Ohne Netz zeigt die App
   den **letzten Stand** jeder Abfrage (`OfflineCache`, mit Datum in der Leiste).
-  To-Do und Einkaufsliste zeigen Änderungen **sofort**: sie warten typisiert in
-  `PendingChanges` und liegen als Overlay über dem Stand des Dienstes; lehnt
-  er ab, verschwinden sie wieder, mit Meldung (seit 12.10.2026, siehe
-  `docs/ARCHITEKTUR.md` „Ohne Netz"). Die Overlays bilden nur die Liste nach
-  (einfügen, abhaken, zusammenfassen, sortieren) — **nicht** nachrechnen:
-  Sträh­nen, Tagessummen, Kacheln bleiben Sache der Dienste. Healthy (Essen,
-  Gewicht, Logbook-Tag) und der Wald nutzen noch den alten **Postausgang**
+  To-Do, Einkaufsliste und das Logbook in Healthy zeigen Änderungen **sofort**:
+  sie warten typisiert in `PendingChanges` und liegen als Overlay über dem Stand
+  des Dienstes; lehnt er ab, verschwinden sie wieder, mit Meldung (seit
+  12.10.2026, siehe `docs/ARCHITEKTUR.md` „Ohne Netz"). Die Overlays bilden nur
+  die Liste nach (einfügen, abhaken, zusammenfassen, sortieren) bzw. setzen
+  einen Wert ein — **nicht** nachrechnen: Sträh­nen, Tagessummen, Kacheln,
+  Effekte bleiben Sache der Dienste. Healthy (Essen, Gewicht) und der Wald
+  nutzen noch den alten **Postausgang**
   (`Outbox`); dorthin dürfen nur Änderungen, die später genauso gelten (mit
   Datum im Rumpf oder Pfad), mit `queueWhenOffline: true`.
 - **Kein Multi-User, keine Registrierung** — außer in coHabit. Healthy,

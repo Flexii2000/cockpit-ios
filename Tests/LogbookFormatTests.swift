@@ -1,8 +1,8 @@
 import XCTest
 @testable import Healthy
 
-/// Die Effekte als Text (Vertrag §4.1, §5) und was die Logbook-Seite zum
-/// Dienst schickt. Nur Platzhalter-Namen - das Repo ist oeffentlich.
+/// Die Effekte und Mengen als Text (Vertrag §4.1, §5). Nur Platzhalter-Namen -
+/// das Repo ist oeffentlich.
 final class LogbookFormatTests: XCTestCase {
 
     private func predictor(kind: PredictorKind = .binary, variant: PredictorVariant = .main,
@@ -78,85 +78,9 @@ final class LogbookFormatTests: XCTestCase {
         XCTAssertEqual(LogbookFormat.parseAmount(" 2 "), 2)
         XCTAssertEqual(LogbookFormat.parseAmount("0.5"), 0.5)
         XCTAssertNil(LogbookFormat.parseAmount(""))
-        XCTAssertNil(LogbookFormat.parseAmount("0"), "eine Menge ist mehr als nichts")
+        XCTAssertEqual(LogbookFormat.parseAmount("0"), 0, "0 ist eine Antwort, offen ist etwas anderes")
+        XCTAssertNil(LogbookFormat.parseAmount("-1"))
         XCTAssertNil(LogbookFormat.parseAmount("10001"), "mehr nimmt der Dienst nicht")
         XCTAssertNil(LogbookFormat.parseAmount("zwei"))
-    }
-
-    // MARK: - Entwurf
-
-    private let behaviors = [
-        Behavior(id: "b-1", name: "Verhalten A", unit: nil, createdAt: nil, archived: false),
-        Behavior(id: "b-2", name: "Verhalten B", unit: "Stück", createdAt: nil, archived: false),
-        Behavior(id: "b-3", name: "Verhalten C", unit: nil, createdAt: nil, archived: false),
-    ]
-
-    /// Ein gespeicherter Tag zeigt sich wie gespeichert; ein offener alles aus.
-    func testEntriesFollowTheSavedDay() {
-        let saved = LogbookDraft.entries(for: behaviors, values: ["b-1": 1, "b-2": 1.5, "b-3": 0])
-        XCTAssertEqual(saved["b-1"], LogbookEntry(isOn: true, amount: ""))
-        XCTAssertEqual(saved["b-2"], LogbookEntry(isOn: true, amount: "1,5"))
-        XCTAssertEqual(saved["b-3"], LogbookEntry(isOn: false, amount: ""))
-        XCTAssertEqual(LogbookDraft.entries(for: behaviors, values: nil)["b-2"],
-                       LogbookEntry(isOn: false, amount: ""))
-    }
-
-    /// Geschickt wird nur, was an ist - der Rest wird beim Dienst „nein".
-    func testValuesSendOnlyWhatIsOn() {
-        let entries = ["b-1": LogbookEntry(isOn: true, amount: ""),
-                       "b-2": LogbookEntry(isOn: true, amount: "2,5"),
-                       "b-3": LogbookEntry(isOn: false, amount: "")]
-        XCTAssertEqual(LogbookDraft.values(entries, behaviors: behaviors), ["b-1": 1, "b-2": 2.5])
-        XCTAssertEqual(LogbookDraft.values([:], behaviors: behaviors), [:], "lauter nein ist auch ein Tag")
-    }
-
-    // MARK: - Ueber Mitternacht
-
-    private let friday = CalendarDate(year: 2026, month: 10, day: 9)
-
-    private func day(_ selected: CalendarDate, chosenOn: CalendarDate, today: CalendarDate,
-                     edited: Bool = false, reminder: Bool = false) -> CalendarDate {
-        LogbookDraft.day(showing: selected, chosenOn: chosenOn, today: today, edited: edited,
-                         backfillDays: 14, reminder: reminder)
-    }
-
-    /// Am selben Tag bleibt, was gewaehlt ist - auch ein Tag weiter hinten.
-    func testSameDayKeepsTheChoice() {
-        XCTAssertEqual(day(friday.adding(days: -5), chosenOn: friday, today: friday), friday.adding(days: -5))
-    }
-
-    /// Ueber Mitternacht offen: zurueck auf gestern - sonst rutschte der Tag
-    /// mit jedem Morgen weiter nach hinten.
-    func testAfterMidnightItIsYesterdayAgain() {
-        let saturday = friday.adding(days: 1)
-        XCTAssertEqual(day(friday.adding(days: -1), chosenOn: friday, today: saturday), friday)
-        XCTAssertEqual(day(friday.adding(days: -9), chosenOn: friday, today: saturday), friday)
-    }
-
-    /// Ein angefangener, nicht gespeicherter Tag bleibt, solange er in der
-    /// Frist liegt - faellt er heraus, nimmt der Dienst ihn nicht mehr.
-    func testEditedDayStaysWhileInsideTheWindow() {
-        let saturday = friday.adding(days: 1)
-        XCTAssertEqual(day(friday.adding(days: -1), chosenOn: friday, today: saturday, edited: true),
-                       friday.adding(days: -1))
-        XCTAssertEqual(day(friday.adding(days: -14), chosenOn: friday, today: saturday, edited: true),
-                       friday, "vor 15 Tagen liegt ausserhalb der Frist")
-    }
-
-    /// Die Erinnerung „gestern offen" fuehrt auf gestern, auch am selben Tag -
-    /// ausser etwas ist angefangen.
-    func testReminderGoesToYesterday() {
-        XCTAssertEqual(day(friday.adding(days: -4), chosenOn: friday, today: friday, reminder: true),
-                       friday.adding(days: -1))
-        XCTAssertEqual(day(friday.adding(days: -4), chosenOn: friday, today: friday, edited: true, reminder: true),
-                       friday.adding(days: -4))
-    }
-
-    /// Eine angetippte Menge ohne Zahl: nicht speichern, statt eine zu erfinden.
-    func testMissingAmountBlocksSaving() {
-        let entries = ["b-2": LogbookEntry(isOn: true, amount: "")]
-        XCTAssertNil(LogbookDraft.values(entries, behaviors: behaviors))
-        let off = ["b-2": LogbookEntry(isOn: false, amount: "")]
-        XCTAssertEqual(LogbookDraft.values(off, behaviors: behaviors), [:])
     }
 }

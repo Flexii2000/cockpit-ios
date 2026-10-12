@@ -172,7 +172,7 @@ final class HealthyContractTests: XCTestCase {
 
     // MARK: - Logbook
 
-    /// `LogbookView` mit `Behavior` und `LogbookDay` - Platzhalter statt Namen.
+    /// `LogbookView` (Dienst) mit `Behavior` und `LogbookDay` - Platzhalter statt Namen.
     func testDecodesLogbookOverview() throws {
         let overview = try decode(LogbookOverview.self, """
         {"behaviors":[{"id":"b-1a2b3c4d","name":"Verhalten A","unit":null,"createdAt":"2026-10-01T08:00:00.123456Z","archived":false},
@@ -219,8 +219,8 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(insights.unavailableSources, ["coHabit"])
     }
 
-    /// Was die App schickt: beim Aendern fehlt, was gleich bleibt; ein Tag
-    /// nennt nur, was angetippt ist.
+    /// Was die App schickt: beim Aendern fehlt, was gleich bleibt; ein Wert je
+    /// Tipp, und zum Leeren ausdruecklich `null` (Vertrag §4).
     func testLogbookRequests() throws {
         func object(_ value: some Encodable) throws -> [String: Any] {
             try XCTUnwrap(JSONSerialization.jsonObject(with: APIClient.encoder().encode(value)) as? [String: Any])
@@ -228,8 +228,15 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(Set(try object(BehaviorUpdateRequest(name: nil, archived: true)).keys), ["archived"])
         XCTAssertEqual(Set(try object(BehaviorUpdateRequest(name: "Verhalten Z", archived: nil)).keys), ["name"])
         XCTAssertEqual(Set(try object(NewBehaviorRequest(name: "Verhalten Z", unit: nil)).keys), ["name"])
-        let day = try object(LogbookDayRequest(values: ["b-1": 1, "b-2": 2.5]))
-        XCTAssertEqual(day["values"] as? [String: Double], ["b-1": 1, "b-2": 2.5])
+        let set = LogbookChange.setValue(date: CalendarDate(year: 2026, month: 10, day: 11), behaviorId: "b-2",
+                                         value: 2.5).request
+        XCTAssertEqual(set.method, "PUT")
+        XCTAssertEqual(set.path, "/api/logbook/days/2026-10-11/values/b-2")
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(set.body)) as? [String: Any])
+        XCTAssertEqual(body["value"] as? Double, 2.5)
+        let clear = LogbookChange.setValue(date: CalendarDate(year: 2026, month: 10, day: 11), behaviorId: "b-2",
+                                           value: nil).request
+        XCTAssertEqual(String(decoding: try XCTUnwrap(clear.body), as: UTF8.self), #"{"value":null}"#)
     }
 
     // MARK: - Naechte

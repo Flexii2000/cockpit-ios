@@ -85,6 +85,10 @@ export TEST_RUNNER_COCKPIT_COHABIT_OTHER_TOKEN="${COCKPIT_COHABIT_OTHER_TOKEN:-}
 # Freiwillig: in welchem Co-Habit testCheckInWithSeveralPhotos eintraegt (ohne:
 # ein eigenes, frisch angelegtes).
 export TEST_RUNNER_COCKPIT_PHOTO_COHABIT="${COCKPIT_PHOTO_COHABIT:-}"
+# Freiwillig: ein Verhalten mit Menge im Logbook der Person (Kennung) - ohne
+# ueberspringt sich testCountADailyLimitFromTheLogbook. Der lokale habits-Dienst
+# muss dafuer einen Weight Tracker kennen (WEIGHT_URL, WEIGHT_APP_TOKEN).
+export TEST_RUNNER_COCKPIT_LIMIT_BEHAVIOR="${COCKPIT_LIMIT_BEHAVIOR:-}"
 # Der Rundgang fuer die Bildschirmfotos laeuft nur auf ausdruecklichen Wunsch.
 export TEST_RUNNER_COCKPIT_TOUR="${COCKPIT_TOUR:-}"
 export TEST_RUNNER_COCKPIT_OFFLINE_TEST="${COCKPIT_OFFLINE_TEST:-}"

@@ -137,9 +137,16 @@ struct AbstinenceOverview: View {
     let detail: CohabitDetail
 
     @Environment(\.meId) private var meId
+    /// Der Tag, dessen Zahl gerade korrigiert wird (Tageslimit).
+    @State private var correcting: AbstinenceBlock.LimitDay?
 
     var body: some View {
         VStack(spacing: 14) {
+            if let block = detail.abstinence, let days = block.limitDays, let limit = detail.summary.limit {
+                LimitDaysCard(days: days, perDay: limit.perDay, cohabitId: detail.id, today: limit.date) {
+                    correcting = $0
+                }
+            }
             if let block = detail.abstinence {
                 VStack(spacing: 0) {
                     ForEach(Array(block.members.enumerated()), id: \.element.id) { index, member in
@@ -176,6 +183,101 @@ struct AbstinenceOverview: View {
             }
             RulesCard(rules: detail.rules)
         }
+        .sheet(item: $correcting) { day in
+            LimitDaySheet(cohabitId: detail.id, day: day, perDay: detail.summary.limit?.perDay ?? 0,
+                          canCount: detail.summary.limit?.canCount ?? false)
+                .presentationDetents([.height(300)])
+        }
+    }
+}
+
+/// „Letzte Tage“ beim Tageslimit: je Tag die Zahl aus dem Logbook, ueber dem
+/// Limit markiert. Ein Tipp oeffnet den Zaehler fuer diesen Tag.
+struct LimitDaysCard: View {
+    let days: [AbstinenceBlock.LimitDay]
+    let perDay: Int
+    let cohabitId: String
+    let today: CalendarDate
+    let correct: (AbstinenceBlock.LimitDay) -> Void
+
+    var body: some View {
+        let counter = LimitCounter.shared
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Letzte Tage")
+                .font(.system(size: 17, weight: .heavy))
+                .foregroundStyle(Ink.ink)
+                .padding(.bottom, 6)
+            ForEach(days) { day in
+                let key = LimitKey(cohabitId: cohabitId, date: day.date)
+                let count = counter.count(key, server: day.count)
+                let over = (count ?? 0) > Double(perDay)
+                Button { correct(day) } label: {
+                    HStack {
+                        Text(day.date == today ? "Heute" : Self.title(day.date))
+                            .font(.system(size: 16, weight: day.date == today ? .heavy : .medium))
+                            .foregroundStyle(Ink.ink)
+                        Spacer()
+                        if counter.isWaiting(key) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Ink.muted)
+                        }
+                        Text(LimitFormat.count(count))
+                            .font(.system(size: 17, weight: .heavy).monospacedDigit())
+                            .foregroundStyle(over ? Ink.danger : (count == nil ? Ink.muted : Ink.ink))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Ink.muted)
+                    }
+                    .frame(minHeight: 40)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("limitDay-\(day.date.iso)")
+            }
+        }
+        .card(padding: 16)
+    }
+
+    /// „Sa., 10.10.“
+    static func title(_ date: CalendarDate) -> String {
+        format.string(from: date.startOfDay())
+    }
+
+    private static let format: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateFormat = "EE, dd.MM."
+        return formatter
+    }()
+}
+
+/// Ein frueherer Tag beim Tageslimit: derselbe Zaehler wie unten auf der Seite.
+struct LimitDaySheet: View {
+    let cohabitId: String
+    let day: AbstinenceBlock.LimitDay
+    let perDay: Int
+    let canCount: Bool
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 22) {
+            HStack {
+                Text(LimitDaysCard.title(day.date))
+                    .font(.heading(20))
+                    .foregroundStyle(Ink.ink)
+                Spacer()
+                Button("Fertig") { dismiss() }
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Ink.accent)
+            }
+            LimitStepper(cohabitId: cohabitId, date: day.date, server: day.count, perDay: perDay, enabled: canCount)
+            Spacer(minLength: 0)
+        }
+        .padding(Metrics.gutter)
+        .padding(.top, 8)
+        .screenBackground()
     }
 }
 

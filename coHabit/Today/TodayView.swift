@@ -185,7 +185,9 @@ struct DashboardCard: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             NavigationLink(value: Route.cohabit(summary.id, .overview)) {
-                if summary.ref.type == .abstinence {
+                // Ein Tageslimit wie ein Streak: grosse Zahl und rechts oben das „+“ -
+                // neben der seitlichen Zahl der Abstinenz waere dafuer kein Platz.
+                if summary.ref.type == .abstinence && summary.limit == nil {
                     abstinenceLayout
                 } else {
                     streakLayout
@@ -193,7 +195,12 @@ struct DashboardCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("card-\(summary.id)")
-            if summary.showsCheckButton {
+            if let limit = summary.limit {
+                if limit.canCount {
+                    LimitPlusButton(cohabitId: summary.id, limit: limit)
+                        .padding(16)
+                }
+            } else if summary.showsCheckButton {
                 SummaryCheckButton(summary: summary)
                     .padding(16)
             } else if summary.status == .done {
@@ -204,7 +211,8 @@ struct DashboardCard: View {
         }
     }
 
-    private var typeLine: String { "\(summary.ref.name) · \(summary.ref.type.title)" }
+    /// „Gewohnheit A · Streak“ - beim Tageslimit „· Limit“ wie im Typtext des Dienstes.
+    private var typeLine: String { "\(summary.ref.name) · \(summary.limit != nil ? "Limit" : summary.ref.type.title)" }
 
     private var streakLayout: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -223,7 +231,7 @@ struct DashboardCard: View {
             HStack(alignment: .center) {
                 AvatarStack(people: summary.members, total: summary.memberCount, size: 34)
                 Spacer(minLength: 8)
-                Text(summary.status == .unavailable ? (summary.unavailableText ?? "") : (summary.subline ?? ""))
+                Text(summary.status == .unavailable ? (summary.unavailableText ?? "") : (liveLimitText ?? summary.subline ?? ""))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Ink.ink)
                     .multilineTextAlignment(.trailing)
@@ -231,6 +239,14 @@ struct DashboardCard: View {
             }
         }
         .card(colors.surface, circle: colors.accent.opacity(0.55), circleSize: 150, padding: 18)
+    }
+
+    /// „heute 3 von 4 Tassen“ mit der Zahl, die gerade zu sehen ist - auch eine
+    /// getippte oder wartende.
+    private var liveLimitText: String? {
+        guard let limit = summary.limit, limit.count != nil else { return nil }
+        return limit.liveText(LimitCounter.shared.count(LimitKey(cohabitId: summary.id, date: limit.date),
+                                                        server: limit.count))
     }
 
     private var abstinenceLayout: some View {
@@ -346,7 +362,10 @@ struct TodayRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("row-\(summary.id)")
-            if summary.showsCheckButton {
+            if let limit = summary.limit, limit.canCount {
+                LimitPlusButton(cohabitId: summary.id, limit: limit, size: 48, style: .outlined)
+                    .padding(.trailing, 12)
+            } else if summary.showsCheckButton {
                 SummaryCheckButton(summary: summary, size: 48,
                                    style: summary.photoRequired ? .filled : .outlined)
                     .padding(.trailing, 12)
@@ -368,7 +387,15 @@ struct TodayRow: View {
     }
 
     private var lineText: String {
-        summary.status == .unavailable ? (summary.unavailableText ?? "") : (summary.listLine ?? "")
+        if summary.status == .unavailable { return summary.unavailableText ?? "" }
+        if let limit = summary.limit, limit.count != nil {
+            // Die Zahl live, der Rekord wie vom Dienst: „heute 3 von 4 · Rekord 12 Tage“.
+            let count = LimitCounter.shared.count(LimitKey(cohabitId: summary.id, date: limit.date), server: limit.count)
+            let record = summary.listLine?.components(separatedBy: " · ").dropFirst().joined(separator: " · ")
+            return [limit.liveText(count, withUnit: false), record].compactMap { $0?.isEmpty == false ? $0 : nil }
+                .joined(separator: " · ")
+        }
+        return summary.listLine ?? ""
     }
 
     @ViewBuilder

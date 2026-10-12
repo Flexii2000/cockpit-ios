@@ -3,41 +3,61 @@ import SwiftUI
 /// Das Dashboard - ganz links, und dort macht die App auf (Felix, 09.10.).
 ///
 /// Ein Blick auf den Tag: Recovery, Energie, Gewicht, was vom kcal-Ziel
-/// uebrig ist, Schritte, Logbook. Jede Karte fuehrt dorthin, wo das Einzelne
-/// steht: Recovery und Logbook auf ihre Seite, Energie und kcal in den
-/// Essen-Tab mit heute, Gewicht in seinen Tab.
+/// uebrig ist, Schritte - und darunter das Logbook samt Effekten, direkt zum
+/// Eintragen (seit 12.10.). Die Karten oben fuehren dorthin, wo das Einzelne
+/// steht: Recovery auf ihre Seite, Energie und kcal in den Essen-Tab mit heute,
+/// Gewicht in seinen Tab.
 ///
 /// Nicht zu verwechseln mit `/api/dashboard` des Weight Trackers - das ist die
 /// Auswahl der Kacheln im Gewicht-Tab.
 struct DashboardTab: View {
 
     @State private var store = DashboardStore()
+    @State private var logbook = LogbookStore()
+    @Environment(\.scenePhase) private var scenePhase
 
     private var router: Router { Router.shared }
 
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.dashboardPath) {
-            ScrollView {
-                VStack(spacing: 12) {
-                    if let message = store.accessMessage {
-                        ErrorBanner(message: message, isAccessProblem: true)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 12) {
+                        if let message = store.accessMessage {
+                            ErrorBanner(message: message, isAccessProblem: true)
+                        }
+                        if !store.hasLoaded {
+                            LoadingPlaceholder()
+                        }
+                        cards
+                        LogbookSection(store: logbook)
+                            .id(DashboardAnchor.logbook)
+                        LogbookEffectsSection(store: logbook)
+                            .id(DashboardAnchor.effects)
                     }
-                    if !store.hasLoaded {
-                        LoadingPlaceholder()
-                    }
-                    cards
+                    .padding(16)
+                    // Platz fuer die schwebende Tab-Leiste, wie im Gewicht-Tab.
+                    .padding(.bottom, 60)
                 }
-                .padding(16)
-                // Platz fuer die schwebende Tab-Leiste, wie im Gewicht-Tab.
-                .padding(.bottom, 60)
+                // Der Tipp auf „gestern offen“: hierher, auf gestern.
+                .onChange(of: router.logbookRequests) {
+                    logbook.followToday(reminder: true)
+                    withAnimation { proxy.scrollTo(DashboardAnchor.logbook, anchor: .top) }
+                }
+                .task {
+                    guard let anchor = DashboardAnchor.initial else { return }
+                    await logbook.load()
+                    // Erst wenn die Karten stehen, gibt es die Stelle.
+                    try? await Task.sleep(for: .milliseconds(400))
+                    proxy.scrollTo(anchor, anchor: .top)
+                }
             }
             .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backends: [.food, .weight]) }
             .navigationTitle("Dashboard")
             .navigationDestination(for: DashboardPage.self) { page in
                 switch page {
                 case .recovery: RecoveryView()
-                case .logbook:  LogbookView()
                 }
             }
             .toolbar {
@@ -51,10 +71,14 @@ struct DashboardTab: View {
             }
             .refreshable {
                 await HealthSync.shared.syncAll(force: true)
-                await store.load()
+                async let cards: Void = store.load()
+                async let entries: Void = logbook.load(forceInsights: true)
+                _ = await (cards, entries)
             }
             .task {
-                await store.load()
+                async let cards: Void = store.load()
+                async let entries: Void = logbook.load()
+                _ = await (cards, entries)
                 #if DEBUG
                 // Erfundene Werte - die echten aus Health gehoeren nicht dazu.
                 if DashboardDemo.isOn { return }
@@ -63,6 +87,19 @@ struct DashboardTab: View {
                 // sie gebraucht wird. Fehlt keine, wird abgeglichen, wenn es
                 // faellig ist.
                 await HealthSync.shared.connect()
+            }
+            // Welcher Tag im Logbook: neu, wenn das Dashboard erscheint, die App
+            // zurueckkommt und um Mitternacht.
+            .onAppear { logbook.followToday() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { logbook.followToday() }
+            }
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(Self.secondsUntilTomorrow()))
+                    if Task.isCancelled { return }
+                    logbook.followToday()
+                }
             }
             // Hat der Abgleich etwas hochgeladen, steht beim Dienst ein neuer
             // Stand - die Nacht von heute frueh etwa.
@@ -73,6 +110,14 @@ struct DashboardTab: View {
                 if before > 0, after == 0 { Task { await store.load() } }
             }
         }
+    }
+
+    /// Bis kurz nach Mitternacht - ueber den Kalender, wegen der Zeitumstellung.
+    private static func secondsUntilTomorrow(now: Date = Date()) -> Double {
+        let calendar = Calendar.current
+        let tomorrow = calendar.startOfDay(for: now).addingTimeInterval(36 * 3600)
+        let midnight = calendar.startOfDay(for: tomorrow)
+        return max(midnight.timeIntervalSince(now) + 1, 1)
     }
 
     @ViewBuilder
@@ -112,13 +157,6 @@ struct DashboardTab: View {
             }
             // Beide Haelften gleich hoch, auch wenn eine eine Zeile mehr hat.
             .fixedSize(horizontal: false, vertical: true)
-        }
-        if let logbook = store.logbook {
-            NavigationLink(value: DashboardPage.logbook) {
-                LogbookCard(overview: logbook, insights: store.insights, queued: store.queuedLogbookDays)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("logbookCard")
         }
     }
 }

@@ -77,35 +77,48 @@ final class HealthyUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Gewicht"].isSelected)
     }
 
-    /// Das Logbook aus der Karte im Dashboard: gestern ist offen, ein
-    /// Schalter, „Speichern", und der Haken steht da. Mit erfundenen Werten -
-    /// nichts davon erreicht den Dienst.
-    func testLogbookDayIsSavedFromTheDashboard() {
-        let app = launch(tab: "dashboard", extra: demo)
-        let card = app.buttons["logbookCard"]
-        XCTAssertTrue(card.waitForExistence(timeout: 20))
-        card.tap()
-        XCTAssertTrue(app.navigationBars["Logbook"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Gestern"].waitForExistence(timeout: 10))
+    /// Das Logbook im Dashboard (seit 12.10.): gestern ist halb beantwortet und
+    /// hat den Punkt, jeder Tipp speichert, ein zweiter Tipp auf die gewaehlte
+    /// Antwort macht die Zeile wieder offen, der Zaehler zaehlt weiter. Sind alle
+    /// Zeilen beantwortet, ist der Punkt weg. Mit erfundenen Werten - nichts davon
+    /// erreicht den Dienst.
+    func testLogbookAnswersSaveOnTap() {
+        let app = launch(tab: "logbook", extra: demo)
+        let yes = app.buttons["logbook-yes-b-demo-b"]
+        XCTAssertTrue(yes.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["Gestern, offen"].exists, "gestern ist noch offen")
         shoot(app, "logbook-gestern")
 
-        // Den Schalter selbst treffen, nicht die Mitte der Zeile.
-        let toggle = app.switches["Verhalten A"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
-        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
-        let save = app.buttons["logbookSave"]
-        save.tap()
-        let saved = app.images["logbookSaved"]
-        _ = saved.waitForExistence(timeout: 5)
-        shoot(app, "logbook-gespeichert")
-        XCTAssertTrue(saved.exists, "nach dem Speichern steht der Haken")
+        yes.tap()
+        XCTAssertTrue(yes.isSelected)
+        yes.tap()
+        XCTAssertFalse(yes.isSelected, "ein zweiter Tipp macht die Zeile wieder offen")
 
-        // Einen Tag zurueck: ein gespeicherter Tag zeigt seine Schalter.
+        let plus = app.buttons["logbook-plus-b-demo-c"]
+        plus.tap()
+        plus.tap()
+        XCTAssertTrue(waitFor(app.buttons["logbook-amount-b-demo-c"], toReadAgain: "Verhalten C: 5"))
+
+        yes.tap()
+        app.buttons["logbook-no-b-demo-d"].tap()
+        XCTAssertTrue(app.buttons["Gestern"].waitForExistence(timeout: 5), "alles beantwortet - kein Punkt mehr")
+        shoot(app, "logbook-beantwortet")
+
+        app.buttons["Heute"].tap()
+        XCTAssertTrue(waitFor(app.buttons["logbook-amount-b-demo-c"], toReadAgain: "Verhalten C: 1"))
         app.buttons["Tag davor"].tap()
-        XCTAssertTrue(app.staticTexts["Vorgestern"].waitForExistence(timeout: 5))
-        scrollDown(app, times: 2)
-        shoot(app, "logbook-effekte")
+        app.buttons["Tag davor"].tap()
+        XCTAssertTrue(app.buttons["Tag danach"].waitForExistence(timeout: 5), "vor gestern: mit Datum und ›")
+        shoot(app, "logbook-vorgestern")
 
+        scrollDown(app, times: 2)
+        let all = app.buttons["logbookAllEffects"]
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        shoot(app, "logbook-effekte")
+        all.tap()
+        shoot(app, "logbook-alle-effekte")
+
+        scrollUp(app, times: 2)
         app.buttons["Verhalten"].tap()
         XCTAssertTrue(app.navigationBars["Verhalten"].waitForExistence(timeout: 5))
         shoot(app, "logbook-verhalten")

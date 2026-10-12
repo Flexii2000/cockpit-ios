@@ -3,6 +3,68 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-12 — Healthy: Logbook direkt im Dashboard, jeder Tipp speichert
+Felix (Änderungsrunde 12.10., Wunsch 2.2): „nicht als Untermenü, sondern direkt
+im Dashboard, bedienbarer, im Zweifel wie Whoop“; in der Fragerunde gewählt:
+**jeder Tipp speichert**. Löst den Eintrag vom 09.10. („Seite im Dashboard,
+Speichern von Hand“) ab. Vertrag `HEALTHY-CONTRACT.md` §4.2.
+- **Im Dashboard unter den Halbkarten Gewicht | kcal**, darunter die Effekte als
+  eigene Karte. Die Recovery bleibt eine Seite; der Tipp auf die Erinnerung
+  scrollt zum Logbook (`DashboardAnchor`). **Verworfen:** Logbook ganz oben -
+  die Zahlen des Tages sind der erste Blick, das Eintragen der zweite.
+- **Offen ist nicht „nein“.** Ein Tag kann halb beantwortet sein; offen ist
+  eine Zeile nur umrandet. Ja und Nein in derselben Farbe - keine Antwort ist
+  hier gut oder schlecht. Ein zweiter Tipp auf die gewählte Antwort macht die
+  Zeile wieder offen, gedrückt halten → „Zurücksetzen“.
+- **Mengen mit − Zahl +** statt Tastatur; aus „offen“ gibt + eine 1 und − eine
+  0; ein Tipp auf die Zahl öffnet die Eingabe für große und Kommawerte.
+  Geschickt wird nach 0,5 s Ruhe - fünfmal + ist ein Aufruf.
+- **Gestern, solange gestern offen ist, sonst heute** - neu bestimmt, wenn das
+  Dashboard erscheint, die App zurückkommt und um Mitternacht. Ein Punkt an
+  „Gestern“, solange dort etwas offen ist. Heute ist jetzt eintragbar (der
+  Wert zählt erst, wenn der Tag vorbei ist - aber wer abends einträgt, soll
+  nicht bis morgen warten). Weiter zurück mit ‹, keine scrollende Leiste.
+- **Ein Wert je Aufruf, über die Warteschlange** (`LogbookChange`, Fall
+  `.logbook` auf der Spur des Weight Trackers): sofort zu sehen, ohne Netz mit
+  Uhr, später gesendet; je Tag und Verhaltensweise gilt der neueste. Lehnt der
+  Dienst ab, springt die Zeile zurück, die Meldung nennt Verhalten und Tag.
+  Leeren schickt `{"value": null}` statt DELETE - ein wartendes DELETE liefe
+  sonst nach einem neueren Wert hinterher. `LogbookMemory`, `LogbookDraft`
+  und die Logbook-Karte sind weg.
+- **Die Erinnerung zählt Antworten**, nicht gespeicherte Tage: „gestern offen“
+  kommt, solange am Vortag eine aktive Verhaltensweise keinen Wert hat; ein
+  wartender Wert gilt als beantwortet.
+- **Effekte: Zeitraum gemerkt** (30 · 90 · 180 · 365), die drei stärksten,
+  „Alle Effekte (n)“ klappt an Ort und Stelle auf. Neu geholt höchstens alle
+  15 Minuten - nach einem Tipp ändern sie sich nicht merklich.
+- **Verworfen:** ein Knopf „Tag abschließen“ - genau der Schritt, der Felix an
+  der alten Seite gestört hat; und Ja/Nein als Schalter (ein Schalter kennt
+  kein „offen“).
+
+## 2026-10-12 — coHabit: Tageslimit aus dem Logbook statt eigener Einträge
+Felix (Wunsch 2.1): ein Habit „höchstens 4 am Tag“, das in coHabit **und** im
+Logbook eingetragen werden kann und dieselbe Zahl zeigt. Umgesetzt als
+**Abstinenz mit Tageslimit** (Vertrag `COHABIT-CONTRACT.md` §2.5a, §5.2c):
+- **Die Zahl liegt nur im Logbook.** coHabit liest sie über den Dienst und
+  schreibt beim Zählen dorthin (`PUT /cohabits/{id}/count/{date}`, absolut).
+  **Verworfen:** coHabit speichert die Zahl und das Logbook spiegelt sie -
+  zwei Ablagen, die auseinanderlaufen, und ein Umzug der bisherigen Werte.
+- **Abstinenz, nicht automatischer Streak:** heute zählt mit, ein Tag über dem
+  Limit bricht die Serie sofort, kein „gefährdet“ um 20 Uhr. Ein automatischer
+  Streak wäre ab 00:00 „erledigt“ und das Überschreiten erst morgen zu sehen.
+- **Karte wie ein Streak** (große Zahl, „+“ rechts oben, darunter „heute 2 von
+  4 …“) - neben der seitlichen Zahl der Abstinenz-Karte wäre für das „+“ kein
+  Platz (so auch Web und Android). Detail: unten „− 3 +“ für heute, „Letzte
+  Tage“ zum Korrigieren. Klassische Liste: „2/4“ und „+“.
+- **Zählen:** absolut nach 0,5 s Ruhe, je Tag ein Aufruf zur Zeit
+  (`LimitCounter`). Ohne Netz oder wenn das Logbook nicht antwortet (503)
+  wartet die Zahl im Postausgang (`limitCount`, je Tag die neueste); was dort
+  schon wartet, überholt kein direkter Aufruf. Eine Ablehnung dreht zurück.
+- **Ohne Logbook keine Zahl:** Kennzahl „–“, kein „+“, kein Zähler - nie eine
+  erfundene 0.
+- **Anlegen** vorerst nur per Skript (`habits/deploy/create-limit-habit.sh`);
+  Bearbeiten zeigt nur „Höchstens pro Tag“ und das Verhalten.
+
 ## 2026-10-12 — Ohne Netz: To-Do und Einkaufsliste sofort sichtbar, später synchron
 Felix (12.10.): „Wenn man im Offline-Modus ein Todo anlegt oder abhakt, sieht man
 gar nicht, ob das geklappt hat" — in der Einkaufsliste besonders ärgerlich, im

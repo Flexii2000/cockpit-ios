@@ -34,12 +34,8 @@ struct LogbookAPI: Sendable {
 
     // MARK: - Tage
 
-    /// Speichert einen Tag. Darf ohne Netz warten: der Tag steht im Pfad, und
-    /// das Speichern ist beim Dienst idempotent - spaeter gilt es genauso.
-    func saveDay(_ date: CalendarDate, values: [String: Double]) async throws -> LogbookDay {
-        try await client.send("PUT", "/api/logbook/days/\(date.iso)",
-                              body: LogbookDayRequest(values: values), queueWhenOffline: true)
-    }
+    // Werte schreibt die Warteschlange (`LogbookChange`), je Tipp einer - sofort
+    // zu sehen, ohne Netz spaeter.
 
     func days(from: CalendarDate, to: CalendarDate) async throws -> [LogbookDay] {
         try await client.get("/api/logbook/days", query: [

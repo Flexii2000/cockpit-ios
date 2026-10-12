@@ -299,7 +299,8 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | POST | `/api/logbook/behaviors` | `{name, unit?}` → 201 `Behavior` (Name 1–40, Einheit ≤ 16, höchstens 30 aktive) |
 | PUT | `/api/logbook/behaviors/{id}` | `{name?, archived?}` → `Behavior` — die Einheit bleibt |
 | DELETE | `/api/logbook/behaviors/{id}` | 204 — nimmt die Werte an allen Tagen mit |
-| PUT | `/api/logbook/days/{date}` | `{values: {id: Zahl}}` → `LogbookDay`; nur heute−14 … heute, sonst 400 „Außerhalb der Nachtragsfrist." |
+| PUT | `/api/logbook/days/{date}/values/{id}` | `{value: Zahl \| null}` → `LogbookDay` (der ganze Tag) — **ein Wert je Tipp** (seit 12.10., die App); `null` macht die Zeile offen, ein Tag ohne Werte fällt weg; heute−14 … heute+1, sonst 400; unbekannt 404, archiviert 400 |
+| PUT | `/api/logbook/days/{date}` | `{values: {id: Zahl}}` → `LogbookDay`; der ganze Tag, Fehlendes = 0 — nur noch für ältere Apps (Android 1.2) und Tage im alten Postausgang |
 | DELETE | `/api/logbook/days/{date}` | 204 — zurück auf „nie ausgefüllt" (die App benutzt es nicht) |
 | GET | `/api/logbook/days?from=&to=` | `[LogbookDay]` |
 | GET | `/api/logbook/insights?days=30\|90\|180\|365` | `InsightsView` (Vorgabe 90, anderes → 400) |
@@ -327,7 +328,7 @@ RecoveryComponent key (HRV | SLEEPING_HEART_RATE | SLEEP | RESPIRATORY_RATE), va
 HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | WITHIN | ABOVE | UNKNOWN)
 LogbookView     behaviors: [Behavior], backfillDays (14), backfillFrom, today, days: [LogbookDay]
 Behavior        id ("b-…"), name, unit?, createdAt, archived
-LogbookDay      date, savedAt, values: {behaviorId: 0 | 1 | Menge}
+LogbookDay      date, savedAt, values: {behaviorId: 0 | 1 | Menge} - fehlt eine, ist sie an dem Tag offen
 InsightsView    days, from, to, nightsWithScore, outcomeStatus (OK | TOO_FEW_NIGHTS),
                 sources {cohabit, food: OK | UNAVAILABLE}, predictors: [PredictorView]
 PredictorView   key, source (LOGBOOK | COHABIT | HEALTHY), id, name, kind (BINARY | AMOUNT),
@@ -335,13 +336,12 @@ PredictorView   key, source (LOGBOOK | COHABIT | HEALTHY), id, name, kind (BINAR
                 nYes?, nNo?, n, meanYes?, meanNo?, status (OK | TOO_FEW | NOT_SEPARABLE)
 ```
 
-⚠️ **Ein Logbook-Tag gilt erst als ausgefüllt, wenn er gespeichert ist.**
-Dann bekommt jede aktive Verhaltensweise einen Wert; was nicht genannt ist,
-wird 0 („nein"). Ein nie gespeicherter Tag fehlt - „vergessen" ist etwas
-anderes als „nein". Ohne Einheit nur 0 oder 1, mit Einheit 0 oder eine Menge
-(≤ 10.000). Das Speichern ist idempotent und darf in den Postausgang
-(`queueWhenOffline`); unbekannte Ids übergeht der Dienst, Werte archivierter
-bleiben stehen. Anlegen, Ändern und Löschen von Verhaltensweisen nur online.
+⚠️ **Jede Antwort zählt für sich (seit 12.10.).** Die App schickt je Tipp einen
+Wert über die Warteschlange (`LogbookChange`); eine Verhaltensweise ohne Wert
+ist an dem Tag **offen** - nicht „nein". Ohne Einheit nur 0 oder 1, mit
+Einheit 0 oder eine Menge (≤ 10.000). Zum Leeren `{"value": null}` an dieselbe
+Adresse, kein DELETE: ein wartendes DELETE liefe nach einem neueren Wert
+hinterher. Anlegen, Ändern und Löschen von Verhaltensweisen nur online.
 
 ⚠️ **`id` ist bei `PredictorView` nicht eindeutig:** eine Verhaltensweise mit
 Einheit hat zwei Zeilen (`MAIN` ja/nein und `DOSE` je Einheit) mit derselben
@@ -621,6 +621,8 @@ mit dem Status.
 | POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
 | POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen; bis zu vier Fotos (`photoIds`), bei Laufpunkten mit `durationMinutes`/`distanceKm` (siehe unten) |
 | PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) |
+| PUT | `/cohabits/{id}/count/{date}` | `{"count"}` → `CohabitDetail` — nur beim Tageslimit (seit 12.10., Vertrag §2.5a): die Zahl des Tages, absolut; der Dienst schreibt sie ins Logbook. 400 Frist/Zahl/Grund des Logbooks, 409 archiviert, 503 Logbook nicht erreichbar (die App wartet dann im Postausgang, `limitCount`) |
+| GET | `/logbook/behaviors` | die eigenen Verhaltensweisen mit Menge - zur Wahl für ein Tageslimit (die App fragt es noch nicht ab) |
 | GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat; Nachricht mit `gif` (KLIPY) oder eigenem GIF (`photoAnimated`), siehe unten |
 | POST · DELETE | `/reactions` · `/reactions?target=…&reaction=…` | `{"target":"event:…\|message:…","reaction":"🔥"}` setzt die **eigene** (eine je Person), DELETE nimmt sie zurück → `{"reactions":[ReactionView]}` (seit 2026-10-05, siehe unten) |
 | GET | `/gifs/config` | → `{"enabled":true,"apiKey","customerId","locale","contentFilter"}` bzw. `{"enabled":false}` - Zugang zur GIF-Suche bei KLIPY (seit 2026-10-05) |
@@ -642,6 +644,16 @@ vergibt der **Dienst** die Kennung (Antwort von `POST /photos`), wiederholbar
 macht das Hochladen der `Idempotency-Key` - er gilt je Person. Darauf baut der
 Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht nach einem
 Neustart mitten im Nachsenden.
+
+⚠️ **Tageslimit aus dem Logbook (seit 2026-10-12, `../habits` Commit `da0dd31`):**
+eine Abstinenz mit `config.abstinence.limit` (`behaviorId`, `perDay`, `behaviorName`,
+`unitLabel`) zählt die Menge eines Logbook-Verhaltens; ein Tag mit mehr als
+`perDay` bricht die Serie, heute sofort. `summary.limit` trägt heute
+(`date`, `count` - `null` ohne Logbook -, `perDay`, `unit`, `text`, `over`,
+`canCount`), `abstinence.limitDays` die Tage der Frist zum Korrigieren.
+Check-ins → 403, Einladen → 400. Die App zählt mit `PUT …/count/{date}`
+(`LimitCounter`: absolut, 0,5 s Ruhe, je Tag ein Aufruf zur Zeit), ohne Netz
+oder bei 503 über den Postausgang (`limitCount`, je Tag die neueste Zahl).
 
 ⚠️ **kcal aus Healthy (seit 2026-10-01, `../habits` Commit `a5288a5`):** die
 Health-Metrik `KCAL` (Einheit `KCAL`, Text „kcal“) holt der **Dienst** selbst

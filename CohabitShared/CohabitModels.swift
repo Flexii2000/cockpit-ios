@@ -277,9 +277,26 @@ struct CohabitSummary: Codable, Hashable, Sendable, Identifiable {
     let progress: SummaryProgress?
     let rank: SummaryRank?
     let unreadMessages: Int
+    /// Abstinenz mit Tageslimit aus dem Logbook (Vertrag §2.5a, seit 12.10.):
+    /// gezaehlt statt abgehakt. Fehlt bei allen anderen und bei einem aelteren Dienst.
+    var limit: LimitView? = nil
 
     var id: String { ref.id }
     var isRunEntry: Bool { runEntry == true }
+}
+
+/// Heute beim Tageslimit: die Zahl aus dem Logbook gegen das Limit (Vertrag §3.4).
+struct LimitView: Codable, Hashable, Sendable {
+    /// Der Tag, auf den „+“ zaehlt - heute in Berlin, vom Dienst.
+    let date: CalendarDate
+    /// `nil`, wenn das Logbook nicht antwortet - dann nie eine erfundene 0.
+    let count: Double?
+    let perDay: Int
+    let unit: String?
+    /// „heute 2 von 4 Tassen“.
+    let text: String?
+    let over: Bool
+    let canCount: Bool
 }
 
 enum MemberRole: String, LenientEnum {
@@ -361,12 +378,24 @@ struct AbstinenceBlock: Codable, Hashable, Sendable {
         let days: Int
     }
 
+    /// Ein Tag der Nachtragsfrist beim Tageslimit - zum Korrigieren.
+    struct LimitDay: Codable, Hashable, Sendable, Identifiable {
+        let date: CalendarDate
+        /// `nil`: nichts eingetragen (zaehlt als 0).
+        let count: Double?
+        let countText: String
+        let over: Bool
+        var id: CalendarDate { date }
+    }
+
     let currentDays: Int
     let record: Int
     let toRecordText: String?
     let members: [MemberDays]
     let series: [Series]
     let group: Group?
+    /// Nur beim Tageslimit: die Tage der Nachtragsfrist, neueste zuerst.
+    var limitDays: [LimitDay]? = nil
 }
 
 struct GoalBlock: Codable, Hashable, Sendable {

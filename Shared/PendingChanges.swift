@@ -401,11 +401,14 @@ enum PendingRole: Sendable, Equatable {
 enum PendingChange: Codable, Equatable, Sendable {
     case todo(TodoChange)
     case shopping(ShoppingChange)
+    /// Ein Wert im Logbook (Weight Tracker, seit 12.10.).
+    case logbook(LogbookChange)
 
     var backend: Backend {
         switch self {
         case .todo: .todo
         case .shopping: .shopping
+        case .logbook: .weight
         }
     }
 
@@ -413,6 +416,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         switch self {
         case .todo(let change): change.request
         case .shopping(let change): change.request
+        case .logbook(let change): change.request
         }
     }
 
@@ -421,6 +425,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         switch self {
         case .todo(let change): change.target
         case .shopping(let change): change.target
+        case .logbook(let change): change.target
         }
     }
 
@@ -428,6 +433,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         switch self {
         case .todo(let change): change.role
         case .shopping(let change): change.role
+        case .logbook(let change): change.role
         }
     }
 
@@ -435,12 +441,19 @@ enum PendingChange: Codable, Equatable, Sendable {
     var dependsOn: String? {
         switch self {
         case .todo(let change): change.dependsOn
-        case .shopping: nil
+        case .shopping, .logbook: nil
         }
     }
 
-    /// Wohin die Antwort als Offline-Stand gehoert: beide Dienste antworten mit dem Brett.
-    var boardPath: String? { "/api/board" }
+    /// Wohin die Antwort als Offline-Stand gehoert: To-Do und Einkauf antworten mit
+    /// dem ganzen Brett. Das Logbook nur mit dem Tag - der ist kein Stand von
+    /// `/api/logbook` und darf ihn nicht ersetzen.
+    var boardPath: String? {
+        switch self {
+        case .todo, .shopping: "/api/board"
+        case .logbook: nil
+        }
+    }
 
     var todo: TodoChange? {
         if case .todo(let change) = self { return change }
@@ -449,6 +462,11 @@ enum PendingChange: Codable, Equatable, Sendable {
 
     var shopping: ShoppingChange? {
         if case .shopping(let change) = self { return change }
+        return nil
+    }
+
+    var logbook: LogbookChange? {
+        if case .logbook(let change) = self { return change }
         return nil
     }
 
@@ -465,6 +483,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         switch self {
         case .todo(let change): change.notice(label: label, status: status, message: message)
         case .shopping(let change): change.notice(label: label, status: status, message: message)
+        case .logbook(let change): change.notice(label: label, status: status, message: message)
         }
     }
 }
