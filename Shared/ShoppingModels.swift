@@ -40,8 +40,8 @@ struct ShoppingCategory: Decodable, Identifiable, Equatable, Sendable {
     }
 }
 
-/// Ein Eintrag auf der Liste. `var`, nicht `let`: ohne Netz aendert die App
-/// ihren Stand selbst, bis der Dienst wieder antwortet.
+/// Ein Eintrag auf der Liste. `var`, nicht `let`: was wartet, legt die App
+/// ueber den Stand des Dienstes (`ShoppingOverlay`).
 struct ShoppingItem: Decodable, Identifiable, Equatable, Sendable {
     var id: String
     var name: String
@@ -59,12 +59,6 @@ struct ShoppingItem: Decodable, Identifiable, Equatable, Sendable {
     var category: String?
 
     var isChecked: Bool { checkedAt != nil }
-
-    /// Ohne Netz angelegt und noch nicht beim Dienst: die Kennung ist
-    /// erfunden, und Haken oder Loeschen darauf gingen ins Leere.
-    var isLocal: Bool { id.hasPrefix(ShoppingItem.localPrefix) }
-
-    static let localPrefix = "local-"
 }
 
 struct ShoppingIngredient: Codable, Equatable, Hashable, Sendable {
@@ -96,12 +90,14 @@ struct ShoppingRule: Decodable, Identifiable, Equatable, Sendable {
 // MARK: - Was die App schickt
 
 /// `category` nur, wenn jemand sie von Hand gewaehlt hat - sonst ordnet
-/// der Dienst zu und lernt nichts Falsches.
+/// der Dienst zu und lernt nichts Falsches. `id` nur beim Anlegen: die
+/// Kennung, die die App dem neuen Eintrag gibt (kleingeschriebene UUID).
 struct ShoppingItemDraft: Encodable, Sendable {
     let name: String
     let quantity: String?
     let note: String?
     let category: String?
+    var id: String? = nil
 }
 
 struct ShoppingDishDraft: Encodable, Sendable {

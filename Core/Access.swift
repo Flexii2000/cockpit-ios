@@ -212,8 +212,9 @@ final class Access {
         Keychain.delete(Self.privateTokenKey)
         privateToken = nil
         // Was ohne Zugang nicht mehr zu holen waere, soll auch nicht liegen
-        // bleiben.
+        // bleiben - und was ohne ihn nicht mehr ankaeme, auch nicht warten.
         OfflineCache.clear()
+        PendingChanges.shared.clear([.todo])
     }
 
     func resetWeightToken() {
@@ -226,6 +227,7 @@ final class Access {
         Keychain.delete(Self.shoppingTokenKey)
         shoppingToken = nil
         OfflineCache.clear()
+        PendingChanges.shared.clear([.shopping])
     }
 
     func resetGrades() {

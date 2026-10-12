@@ -53,7 +53,14 @@ struct TodoTab: View {
                     let name = newAreaName
                     newAreaName = ""
                     Task {
-                        if await store.addArea(name: name) { page = store.areas.last?.id }
+                        if await store.addArea(name: name) {
+                            page = store.areas.last?.id
+                        } else {
+                            // Nicht angelegt (kein Netz, Name doppelt): der Name steht
+                            // wieder da, die Meldung oben sagt warum.
+                            newAreaName = name
+                            newArea = true
+                        }
                     }
                 }
                 Button("Abbrechen", role: .cancel) { newAreaName = "" }
@@ -83,9 +90,6 @@ struct TodoTab: View {
             }
             .refreshable { await store.load() }
             .task { await store.load() }
-            .onChange(of: OfflineStatus.shared.pending) { before, after in
-                if before > 0, after == 0 { Task { await store.load() } }
-            }
             .onChange(of: renameTarget?.id) { _, _ in renameName = renameTarget?.name ?? "" }
         }
     }
@@ -211,19 +215,19 @@ private struct AreaPage: View {
     private func submitSub(under parent: TodoItem) {
         let title = (subDrafts[parent.id] ?? "").trimmingCharacters(in: .whitespaces)
         guard !title.isEmpty else { return }
+        // Steht sofort da - auch ohne Netz; geschickt wird spaeter.
+        guard store.add(title: title, to: area, under: parent) else { return }
         subDrafts[parent.id] = nil
         subFocus = nil
-        Task { await store.add(title: title, to: area, under: parent) }
     }
 
     private func submit() {
         let title = newTitle.trimmingCharacters(in: .whitespaces)
-        guard !title.isEmpty else { return }
+        guard !title.isEmpty, store.add(title: title, to: area) else { return }
         newTitle = ""
         // Die Tastatur geht mit dem Eintrag zu - sonst steht sie vor der
         // Liste, und die neue Aufgabe ist nicht zu sehen.
         typing = false
-        Task { await store.add(title: title, to: area) }
     }
 
     /// Der Pfeil neben dem Titel oeffnet den Link in Safari. Ein eigener Knopf
@@ -247,15 +251,21 @@ private struct AreaPage: View {
     private func row(_ todo: TodoItem, indent: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Button {
-                Task { await store.toggle(todo) }
+                store.toggle(todo)
             } label: {
-                Image(systemName: store.pendingIDs.contains(todo.id) ? "clock.arrow.circlepath"
-                      : todo.isDone ? "checkmark.circle.fill" : "circle")
+                // Der echte Stand, sofort - und eine kleine Uhr daran, solange er
+                // auf Netz wartet. Frueher ersetzte die Uhr den Haken, und man sah
+                // nicht, ob die Aufgabe jetzt erledigt war.
+                Image(systemName: todo.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(todo.isDone ? Color.orange : Color.secondary)
+                    .overlay(alignment: .bottomTrailing) {
+                        if store.isWaiting(todo) { WaitingBadge() }
+                    }
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("toggle-\(todo.id)")
+            .accessibilityValue(store.isWaiting(todo) ? "wartet auf Netz" : "")
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
@@ -304,14 +314,14 @@ private struct AreaPage: View {
                 Label("Fälligkeit und Erinnerungen …", systemImage: "calendar.badge.clock")
             }
             Button(role: .destructive) {
-                Task { await store.delete(todo) }
+                store.delete(todo)
             } label: {
                 Label("Löschen", systemImage: "trash")
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
-                Task { await store.delete(todo) }
+                store.delete(todo)
             } label: {
                 Label("Löschen", systemImage: "trash")
             }
@@ -352,9 +362,8 @@ struct TodoDetailSheet: View {
 
     private func addSub() {
         let text = newSub.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty, store.add(title: text, to: area, under: live) else { return }
         newSub = ""
-        Task { await store.add(title: text, to: area, under: live) }
     }
 
     var body: some View {
@@ -385,6 +394,9 @@ struct TodoDetailSheet: View {
                         }
                     }
                 }
+                // Erinnerungen schickt der Dienst - fuer eine Aufgabe, die er noch nicht
+                // kennt (ohne Netz angelegt), gibt es hier nichts zu stellen.
+                if store.isKnownToService(live) {
                 Section {
                     ForEach(live.reminders) { reminder in
                         HStack {
@@ -410,6 +422,7 @@ struct TodoDetailSheet: View {
                     Text("Beliebig viele. Der Dienst schickt sie als Benachrichtigung - "
                          + "auch wenn die App zu ist, und nur solange die Aufgabe offen ist.")
                 }
+                }
             }
             .navigationTitle("Aufgabe")
             .navigationBarTitleDisplayMode(.inline)
@@ -419,12 +432,10 @@ struct TodoDetailSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Sichern") {
-                        Task {
-                            let day = hasDue ? CalendarDate(date: due) : nil
-                            if await store.update(live, title: title.trimmingCharacters(in: .whitespaces),
-                                                  dueAt: day) {
-                                dismiss()
-                            }
+                        let day = hasDue ? CalendarDate(date: due) : nil
+                        // Gilt sofort, auch ohne Netz - das Blatt kann zu.
+                        if store.update(live, title: title.trimmingCharacters(in: .whitespaces), dueAt: day) {
+                            dismiss()
                         }
                     }
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)

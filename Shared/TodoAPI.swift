@@ -27,27 +27,9 @@ struct TodoAPI: Sendable {
         try await client.delete("/api/areas/\(id)")
     }
 
-    func create(_ draft: TodoDraft) async throws -> TodoBoard {
-        try await client.send("POST", "/api/todos", body: draft)
-    }
-
-    /// Abhaken darf ohne Netz warten: der Dienst merkt sich den ersten
-    /// Zeitpunkt, ein Nachsenden ist idempotent.
-    func done(id: String) async throws -> TodoBoard {
-        try await client.send("POST", "/api/todos/\(id)/done", body: Empty(), queueWhenOffline: true)
-    }
-
-    func reopen(id: String) async throws -> TodoBoard {
-        try await client.delete("/api/todos/\(id)/done", queueWhenOffline: true)
-    }
-
-    func delete(id: String) async throws -> TodoBoard {
-        try await client.delete("/api/todos/\(id)")
-    }
-
-    func update(id: String, title: String, dueAt: CalendarDate?) async throws -> TodoBoard {
-        try await client.send("PUT", "/api/todos/\(id)", body: TodoUpdate(title: title, dueAt: dueAt?.iso))
-    }
+    // Anlegen, Abhaken, Aendern und Loeschen von Aufgaben gehen nicht hier
+    // entlang, sondern durch die Warteschlange (`TodoChange`, `PendingChanges`):
+    // sofort zu sehen, spaeter geschickt. Hier bleibt, was eine Antwort braucht.
 
     func addReminder(id: String, at: Date) async throws -> TodoBoard {
         try await client.send("POST", "/api/todos/\(id)/reminders", body: ReminderDraft(at: at))
@@ -65,6 +47,4 @@ struct TodoAPI: Sendable {
     private struct DeviceRegistration: Encodable {
         let token: String
     }
-
-    private struct Empty: Encodable {}
 }

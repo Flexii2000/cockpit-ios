@@ -77,7 +77,8 @@ struct RootView: View {
             if url.host() == "forest" { router.show(.forest) }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await Outbox.shared.replay() } }
+            // Zurueck im Vordergrund heisst oft: zurueck im Netz.
+            PendingSync.foreground(phase == .active)
             openPendingLink()
         }
         .onChange(of: router.pendingLink, initial: true) { _, _ in openPendingLink() }

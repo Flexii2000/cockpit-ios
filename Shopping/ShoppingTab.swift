@@ -38,11 +38,6 @@ struct ShoppingTab: View {
             }
             .refreshable { await store.load() }
             .task { await store.load() }
-            .onChange(of: OfflineStatus.shared.pending) { before, after in
-                // Der Postausgang ist leer - was dort lag, ist beim Dienst.
-                // Jetzt dessen Stand holen, mit echten Kennungen.
-                if before > 0, after == 0 { Task { await store.load() } }
-            }
         }
     }
 
@@ -68,7 +63,7 @@ struct ShoppingTab: View {
                     HStack {
                         Text("Im Wagen")
                         Spacer()
-                        Button("Entfernen") { Task { await store.clearChecked() } }
+                        Button("Entfernen") { store.clearChecked() }
                             .font(.caption)
                             .textCase(nil)
                     }
@@ -107,16 +102,20 @@ struct ShoppingTab: View {
     private func row(_ item: ShoppingItem) -> some View {
         HStack(alignment: .center, spacing: 10) {
             Button {
-                Task { await store.toggle(item) }
+                store.toggle(item)
             } label: {
-                Image(systemName: store.pendingIDs.contains(item.id) ? "clock.arrow.circlepath"
-                      : item.isChecked ? "checkmark.circle.fill" : "circle")
+                // Der Haken steht sofort - die kleine Uhr sagt nur, dass der Dienst
+                // ihn noch nicht hat (kein Netz im Laden).
+                Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
                     .foregroundStyle(item.isChecked ? Color.green : Color.secondary)
+                    .overlay(alignment: .bottomTrailing) {
+                        if store.isWaiting(item) { WaitingBadge() }
+                    }
             }
             .buttonStyle(.plain)
-            .disabled(item.isLocal)
             .accessibilityIdentifier("toggle-\(item.id)")
+            .accessibilityValue(store.isWaiting(item) ? "wartet auf Netz" : "")
 
             // Das Symbol der Kategorie auf ihrer Farbe: die Liste ist danach
             // sortiert, und Farbe plus Symbol sagen auf einen Blick, wo im
@@ -139,16 +138,14 @@ struct ShoppingTab: View {
                 }
             }
             .contentShape(Rectangle())
-            .onTapGesture { if !item.isLocal { editing = item } }
+            .onTapGesture { editing = item }
             Spacer(minLength: 0)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            if !item.isLocal {
-                Button(role: .destructive) {
-                    Task { await store.delete(item) }
-                } label: {
-                    Label("Löschen", systemImage: "trash")
-                }
+            Button(role: .destructive) {
+                store.delete(item)
+            } label: {
+                Label("Löschen", systemImage: "trash")
             }
         }
     }
@@ -189,7 +186,7 @@ struct ShoppingTab: View {
         newUnit = .piece
         // Die Tastatur geht mit dem Eintrag zu - wie beim To-Do.
         typing = false
-        Task { await store.add(name: name, quantity: quantity) }
+        store.add(name: name, quantity: quantity)
     }
 }
 
@@ -313,12 +310,9 @@ struct ShoppingItemEditSheet: View {
                         // sonst lernte der Dienst seine eigene Vermutung
                         // als Wahrheit.
                         let chosen = category == (item.category ?? "other") ? nil : category
-                        Task {
-                            if await store.update(item, name: n, quantity: q,
-                                                  note: t.isEmpty ? nil : t, category: chosen) {
-                                dismiss()
-                            }
-                        }
+                        // Gilt sofort, auch ohne Netz - das Blatt kann zu.
+                        store.update(item, name: n, quantity: q, note: t.isEmpty ? nil : t, category: chosen)
+                        dismiss()
                     }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }

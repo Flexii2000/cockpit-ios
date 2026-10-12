@@ -20,8 +20,8 @@ struct RootView: View {
             }
             .onChange(of: scenePhase) { _, phase in
                 // Zurueck im Vordergrund heisst oft: zurueck im Netz - also
-                // raus aus dem Laden. Was im Postausgang wartet, darf jetzt los.
-                if phase == .active { Task { await Outbox.shared.replay() } }
+                // raus aus dem Laden. Was wartet, darf jetzt los.
+                PendingSync.foreground(phase == .active)
             }
     }
 }

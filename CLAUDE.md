@@ -283,15 +283,17 @@ sag das dann auch so.
 
 ## Was hier bewusst fehlt
 
-- **Kein zweiter Datenstand.** Ohne Netz zeigt die App den **letzten
-  Stand** jeder Abfrage (`OfflineCache`, mit Datum in der Leiste) und legt
-  Haken, Messwerte und Essenseinträge in einen **Postausgang** (`Outbox`), der
-  beim nächsten Netz rausgeht. Was sie dabei **nicht** tut: nachrechnen.
-  Sträh­nen, Tagessummen, Kacheln bleiben Sache der Dienste — bis der Ausgang
-  leer ist, steht der alte Stand da und die Leiste sagt, dass etwas wartet.
-  Wer offline eine lokale Sträh­nen-Logik einbaut, baut die Regel ein zweites
-  Mal. Nur Änderungen, die später genauso gelten (mit Datum im Rumpf oder
-  Pfad), dürfen `queueWhenOffline: true` bekommen.
+- **Kein zweiter Datenstand mit eigenen Regeln.** Ohne Netz zeigt die App
+  den **letzten Stand** jeder Abfrage (`OfflineCache`, mit Datum in der Leiste).
+  To-Do und Einkaufsliste zeigen Änderungen **sofort**: sie warten typisiert in
+  `PendingChanges` und liegen als Overlay über dem Stand des Dienstes; lehnt
+  er ab, verschwinden sie wieder, mit Meldung (seit 12.10.2026, siehe
+  `docs/ARCHITEKTUR.md` „Ohne Netz"). Die Overlays bilden nur die Liste nach
+  (einfügen, abhaken, zusammenfassen, sortieren) — **nicht** nachrechnen:
+  Sträh­nen, Tagessummen, Kacheln bleiben Sache der Dienste. Healthy (Essen,
+  Gewicht, Logbook-Tag) und der Wald nutzen noch den alten **Postausgang**
+  (`Outbox`); dorthin dürfen nur Änderungen, die später genauso gelten (mit
+  Datum im Rumpf oder Pfad), mit `queueWhenOffline: true`.
 - **Kein Multi-User, keine Registrierung** — außer in coHabit. Healthy,
   Vault, Fokus und Einkaufsliste bleiben bei einer Person, einem Gerät, einem
   geteilten Geheimnis. coHabit hat Personen mit eigenem Token (App-Link,

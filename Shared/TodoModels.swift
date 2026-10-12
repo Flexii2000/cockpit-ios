@@ -113,12 +113,15 @@ struct TodoReminder: Decodable, Identifiable, Sendable, Equatable {
 }
 
 /// Was die App beim Anlegen schickt. `dueAt` als ISO-Datum, wie der Dienst
-/// es liest.
+/// es liest. `id` vergibt die App, wenn sie die Aufgabe schon zeigt, bevor der
+/// Dienst sie kennt (ohne Netz angelegt) - kleingeschrieben, wie der Dienst sie
+/// erwartet; dieselbe Kennung zweimal legt dort nichts doppelt an.
 struct TodoDraft: Encodable, Sendable {
     let areaId: String
     let parentId: String?
     let title: String
     let dueAt: String?
+    var id: String? = nil
 }
 
 /// Text und Faelligkeit aendern - ohne `dueAt` gibt es keine mehr.

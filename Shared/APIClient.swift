@@ -68,6 +68,42 @@ struct APIClient: Sendable {
         try await perform(request(method: "DELETE", path: path), queueWhenOffline: queueWhenOffline)
     }
 
+    /// Schickt eine Aenderung aus der Warteschlange (`PendingChanges`) und ordnet die
+    /// Antwort ein. Wirft nie - was mit der Aenderung geschieht, entscheidet die
+    /// Warteschlange danach.
+    func deliver(_ pending: PendingRequest, session: URLSession = .shared) async -> DeliveryOutcome {
+        var req = request(method: pending.method, path: pending.path)
+        if let body = pending.body {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = body
+        }
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: req)
+        } catch {
+            return .offline
+        }
+        guard let http = response as? HTTPURLResponse else { return .offline }
+        await OfflineStatus.shared.online(backend)
+        switch http.statusCode {
+        case 200..<300:
+            // Ohne Privat-Cookie leitet nginx auf die Anmeldeseite um, und URLSession
+            // folgt: eine HTML-Seite mit 200 ist kein angenommenes Abhaken.
+            let type = http.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            if !data.isEmpty && !type.contains("json") { return .accessDenied }
+            return .delivered(data)
+        case 302, 401, 403:
+            return .accessDenied
+        case 408, 425, 429:
+            return .serverDown
+        case 400..<500:
+            return .rejected(status: http.statusCode, message: Self.shortMessage(from: data))
+        default:
+            return .serverDown
+        }
+    }
+
     // MARK: - Innereien
 
     private func request(method: String, path: String,
@@ -123,6 +159,12 @@ struct APIClient: Sendable {
         }
         if await Outbox.shared.count > 0 {
             Task { await Outbox.shared.replay() }
+        }
+        // Dasselbe fuer die Warteschlange der sofort gezeigten Aenderungen - nur fuer
+        // diesen Dienst, die anderen haben ihre eigene Spur.
+        let backend = backend
+        if await PendingChanges.shared.count(for: backend) > 0 {
+            Task { await PendingChanges.shared.replay(backend) }
         }
 
         // Fehlender Zugang sieht bei diesen Diensten nicht aus wie 401: der

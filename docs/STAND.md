@@ -1,5 +1,19 @@
 # Stand
 
+> **Ohne Netz: To-Do und Einkaufsliste sofort sichtbar (12.10., Runde 2 der
+> Änderungsrunde vom 12.10.):** Branch `offline-sofort` (auf `orange-steps`) in
+> cockpit-ios, todo, shopping; nicht gemergt, nicht gepusht. Ausgerollt wird mit
+> `~/Server-Projects/deploy-offline-fokus-einkauf.sh` (erst die Dienste - die
+> Apps schicken Kennungen, die ein alter Dienst nicht kennt -, dann Fokus,
+> Einkaufsliste, Healthy). Neu: `Shared/PendingChanges.swift`,
+> `TodoChanges.swift`, `ShoppingChanges.swift`, `Core/PendingSync.swift`,
+> `Core/NoticeCenter.swift`. Auf dem Gerät prüfen (Flugmodus): Aufgabe mit
+> Unteraufgabe anlegen, zweimal abhaken, umbenennen, löschen; App neu starten -
+> alles noch da; Netz an - die Uhren verschwinden. Einkauf ebenso, dazu ein
+> Gericht auf die Liste und „Entfernen". Eine Ablehnung: Eintrag im Browser
+> löschen, auf dem Handy offline abhaken, Netz an - grauer Hinweis „… stand nicht
+> mehr auf der Liste.", die Zeile verschwindet.
+>
 > **Healthy: Defizit in Orange, Gewicht-Diagramm öffnet mit Defizit (12.10.,
 > Runde 1 der Änderungsrunde vom 12.10.):** Branch `orange-steps`, nicht
 > gemergt, nicht gepusht; ausgerollt wird mit

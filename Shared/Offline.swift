@@ -88,8 +88,10 @@ final class OfflineStatus {
     /// Je Dienst: wann die gezeigten Daten geholt wurden, falls sie aus dem
     /// Cache kommen. Leer heisst: online.
     private(set) var staleSince: [Backend: Date] = [:]
-    /// Aenderungen im Postausgang.
+    /// Aenderungen im (alten) Postausgang, alle Dienste zusammen.
     private(set) var pending = 0
+    /// Dieselben je Dienst - die Leiste eines Tabs zaehlt nur die eigenen.
+    private(set) var pendingByBackend: [Backend: Int] = [:]
     /// Die letzte Aenderung, die der Dienst beim Nachsenden abgelehnt hat.
     private(set) var lastOutboxError: String?
 
@@ -103,8 +105,10 @@ final class OfflineStatus {
         staleSince[backend] = nil
     }
 
-    func outbox(pending: Int, lastError: String?) {
+    func outbox(pending: Int, lastError: String?, byBackend: [Backend: Int]? = nil) {
         self.pending = pending
+        if let byBackend { pendingByBackend = byBackend }
+        if pending == 0 { pendingByBackend = [:] }
         if let lastError { lastOutboxError = lastError }
         if pending == 0, lastError == nil { lastOutboxError = nil }
     }
@@ -164,7 +168,16 @@ actor Outbox {
         items.append(Item(id: UUID(), backend: backend.rawValue, url: url,
                           method: method, body: request.httpBody, createdAt: Date()))
         persist()
-        await OfflineStatus.shared.outbox(pending: items.count, lastError: nil)
+        await OfflineStatus.shared.outbox(pending: items.count, lastError: nil, byBackend: countsByBackend())
+    }
+
+    /// Je Dienst, was wartet - fuer die Leiste des jeweiligen Tabs.
+    private func countsByBackend() -> [Backend: Int] {
+        var counts: [Backend: Int] = [:]
+        for item in items {
+            if let backend = Backend(rawValue: item.backend) { counts[backend, default: 0] += 1 }
+        }
+        return counts
     }
 
     /// Ein PUT an diese Adresse ist gerade beim Dienst angekommen: was fuer
@@ -177,7 +190,7 @@ actor Outbox {
         items.removeAll { $0.method == "PUT" && $0.url == url.absoluteString }
         guard items.count < before else { return }
         persist()
-        await OfflineStatus.shared.outbox(pending: items.count, lastError: nil)
+        await OfflineStatus.shared.outbox(pending: items.count, lastError: nil, byBackend: countsByBackend())
     }
 
     /// Schickt der Reihe nach raus, was wartet.
@@ -186,6 +199,11 @@ actor Outbox {
     /// dann bleibt der Rest liegen. Lehnt der Dienst eine Aenderung ab (4xx),
     /// fliegt sie raus und der Grund steht in der Leiste: nochmal versuchen
     /// hiesse, dieselbe Ablehnung bei jedem Start zu kassieren.
+    ///
+    /// Ausser bei fehlendem Zugang (401, 403 oder eine Anmeldeseite mit 200 nach
+    /// der Weiterleitung von nginx): das ist keine Ablehnung der Aenderung, und
+    /// mit dem richtigen Token geht sie spaeter durch. Frueher flog sie raus - und
+    /// die Anmeldeseite zaehlte gar als Erfolg.
     func replay() async {
         // Auch hier lesen: im Vordergrund ist das iPhone entsperrt, und was
         // beim Wecken im Hintergrund nicht lesbar war, kommt jetzt dazu.
@@ -204,8 +222,13 @@ actor Outbox {
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             }
             guard let (data, response) = try? await URLSession.shared.data(for: request),
-                  let status = (response as? HTTPURLResponse)?.statusCode
+                  let http = response as? HTTPURLResponse
             else { break }
+            let status = http.statusCode
+            let type = http.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            if status == 401 || status == 403 || ((200..<300).contains(status) && !data.isEmpty && !type.contains("json")) {
+                break
+            }
             // Nach der Kennung, nicht „den ersten": waehrend der Anfrage kann
             // ein neuer PUT einen wartenden ersetzt haben.
             if (200..<300).contains(status) {
@@ -219,7 +242,7 @@ actor Outbox {
             }
             persist()
         }
-        await OfflineStatus.shared.outbox(pending: items.count, lastError: lastError)
+        await OfflineStatus.shared.outbox(pending: items.count, lastError: lastError, byBackend: countsByBackend())
     }
 
     /// Liest die Datei, solange das noch nicht gelungen ist.
@@ -248,7 +271,8 @@ actor Outbox {
         if pending > 0 {
             // Die Leiste soll wissen, dass etwas wartet - auch wenn es schon
             // vor diesem Start in der Datei lag.
-            Task { await OfflineStatus.shared.outbox(pending: pending, lastError: nil) }
+            let counts = countsByBackend()
+            Task { await OfflineStatus.shared.outbox(pending: pending, lastError: nil, byBackend: counts) }
         }
     }
 

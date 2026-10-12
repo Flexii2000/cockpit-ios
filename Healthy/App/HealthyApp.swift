@@ -16,6 +16,8 @@ struct HealthyApp: App {
                 // nginx den Kalorienzaehler auf die Startseite um.
                 .task {
                     await access.applyCookies()
+                    // Erst mit Cookies: sonst kaeme jedes Nachsenden als „kein Zugang“ zurueck.
+                    PendingSync.start()
                     // Die Kennung kann sich geaendert haben - deshalb bei
                     // jedem Start neu melden, aber ohne Nachfrage.
                     await Notifications.registerForPushIfAllowed()

@@ -13,8 +13,11 @@ struct EinkaufslisteApp: App {
             RootView()
                 .environment(access)
                 // Muss laufen, bevor die erste Anfrage rausgeht - der Dienst
-                // kennt die App nur an ihrem Cookie.
-                .task { await access.applyCookies() }
+                // kennt die App nur an ihrem Cookie. Danach erst nachsenden.
+                .task {
+                    await access.applyCookies()
+                    PendingSync.start()
+                }
         }
     }
 }

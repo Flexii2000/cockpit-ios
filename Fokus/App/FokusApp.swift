@@ -14,6 +14,8 @@ struct FokusApp: App {
                 .environment(access)
                 .task {
                     await access.applyCookies()
+                    // Erst mit Cookies: sonst kaeme jedes Nachsenden als „kein Zugang“ zurueck.
+                    PendingSync.start()
                     await Notifications.registerForPushIfAllowed()
                     #if DEBUG
                     if ProcessInfo.processInfo.environment["COCKPIT_ASK_PUSH"] == "1" {

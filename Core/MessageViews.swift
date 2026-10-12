@@ -23,6 +23,21 @@ struct ErrorBanner: View {
     }
 }
 
+/// Die kleine Uhr an einem Haken (To-Do, Einkaufsliste), solange die Aenderung
+/// auf Netz wartet. Der Haken selbst zeigt schon den neuen Stand - die Uhr sagt
+/// nur, dass der Dienst ihn noch nicht hat.
+struct WaitingBadge: View {
+    var body: some View {
+        Image(systemName: "clock.fill")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(2)
+            .background(Color.orange, in: Circle())
+            .offset(x: 4, y: 4)
+            .accessibilityHidden(true)
+    }
+}
+
 /// Platzhalter, solange noch nichts geladen ist.
 struct LoadingPlaceholder: View {
     var body: some View {
@@ -41,6 +56,11 @@ struct LoadingPlaceholder: View {
 ///
 /// Das Datum ist der Punkt: ein alter Stand, der wie ein aktueller aussieht,
 /// ist schlimmer als gar keiner.
+///
+/// Gezaehlt wird nur, was zu den Diensten des Tabs gehoert - im alten
+/// Postausgang und in der Warteschlange der sofort gezeigten Aenderungen
+/// (`PendingChanges`). Frueher sagte der Einkaufs-Tab „2 Aenderungen warten",
+/// weil im Essen-Tab zwei Eintraege auf Netz warteten.
 struct OfflineBanner: View {
 
     /// Die Dienste, deren Stand der Tab zeigt. Mehrere, wo ein Tab mehrere
@@ -57,20 +77,42 @@ struct OfflineBanner: View {
     }
 
     private var status: OfflineStatus { OfflineStatus.shared }
+    private var queue: PendingChanges { PendingChanges.shared }
 
     var body: some View {
         // Der aelteste Stand zaehlt: so alt ist das Bild mindestens.
         let stale = backends.compactMap { status.staleSince[$0] }.min()
-        let pending = status.pending
-        if stale != nil || pending > 0 || status.lastOutboxError != nil {
+        let pending = backends.reduce(0) { $0 + (status.pendingByBackend[$1] ?? 0) + queue.count(for: $1) }
+        // Waehrend gesendet wird, keine Zahl: online ist das eine Frage von
+        // Millisekunden, und die Leiste blitzte bei jedem Haken auf.
+        let sending = backends.contains { queue.laneState[$0] == .sending }
+        let shownPending = sending && stale == nil ? 0 : pending
+        let rejection = backends.lazy.compactMap { queue.lastRejection[$0] }.first
+        if stale != nil || shownPending > 0 || status.lastOutboxError != nil || rejection != nil {
             VStack(alignment: .leading, spacing: 2) {
-                Label(headline(stale: stale, pending: pending),
-                      systemImage: stale != nil ? "wifi.slash" : "clock.arrow.circlepath")
-                    .font(.footnote.weight(.medium))
-                if let error = status.lastOutboxError {
-                    Text(error)
-                        .font(.caption2)
-                        .foregroundStyle(.red)
+                if stale != nil || shownPending > 0 {
+                    Label(headline(stale: stale, pending: shownPending),
+                          systemImage: stale != nil ? "wifi.slash" : "clock.arrow.circlepath")
+                        .font(.footnote.weight(.medium))
+                }
+                if let error = rejection ?? status.lastOutboxError {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(error)
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                        Spacer(minLength: 4)
+                        if rejection != nil {
+                            Button {
+                                for backend in backends { queue.dismissRejection(backend) }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Meldung schließen")
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,8 +129,15 @@ struct OfflineBanner: View {
             parts.append("Offline – Stand von " + Self.stamp.string(from: stale))
         }
         if pending > 0 {
-            parts.append(pending == 1 ? "1 Änderung wartet auf Netz"
-                                      : "\(pending) Änderungen warten auf Netz")
+            let count = pending == 1 ? "1 Änderung wartet" : "\(pending) Änderungen warten"
+            let states = backends.compactMap { queue.laneState[$0] }
+            if states.contains(.accessDenied) {
+                parts.append(count + " – kein Zugang, Token prüfen")
+            } else if states.contains(.serverDown) {
+                parts.append(count + " – Dienst antwortet nicht")
+            } else {
+                parts.append(count + " auf Netz")
+            }
         }
         return parts.joined(separator: " · ")
     }

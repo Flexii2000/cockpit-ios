@@ -3,6 +3,44 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-12 — Ohne Netz: To-Do und Einkaufsliste sofort sichtbar, später synchron
+Felix (12.10.): „Wenn man im Offline-Modus ein Todo anlegt oder abhakt, sieht man
+gar nicht, ob das geklappt hat" — in der Einkaufsliste besonders ärgerlich, im
+Supermarkt fehlt oft das Netz. Bis dahin wartete jede Änderung auf den Dienst
+(bis zu 30 s Zeitlimit), Anlegen in Fokus ging ohne Netz gar nicht, und ein
+abgelehnter Haken verschwand nur still beim nächsten Laden. Jetzt: **typisierte
+Änderungen in einer Warteschlange** (`PendingChanges`), angezeigt als Overlay über
+dem letzten Stand des Dienstes, sofort gesendet, ohne Netz gespeichert (auch über
+einen Neustart) und später nachgesendet. **Lehnt der Dienst ab, fliegt die
+Änderung raus — die Anzeige springt zurück — und eine Meldung nennt Eintrag und
+Grund.** Die App vergibt die Kennungen neuer Einträge; todo und shopping nehmen sie
+an und legen bei derselben nichts doppelt an. Löst den Eintrag vom 03.09. („letzter
+Stand plus Postausgang, aber kein Nachrechnen") für To-Do und Einkauf ab; Healthy
+und der Wald bleiben vorerst beim alten Postausgang (Runde 4 der Änderungen vom
+12.10. zieht Essen und Gewicht nach).
+**Verworfen:**
+- *Beim alten Postausgang bleiben und nur die Uhr verbessern* — er kennt nur rohe
+  Anfragen: nichts anzeigen, nichts zusammenfassen, keine Meldung mit Namen, und
+  Anlegen braucht eine Kennung, die erst der Dienst vergab.
+- *Ein `Idempotency-Key` mit gespeicherten Antworten beim Dienst* — gibt späteren
+  Änderungen (Haken auf einem offline angelegten Eintrag) keine feste Kennung und
+  wäre selbst ein zweiter Speicher.
+- *Eine lokale Datenhaltung mit Abgleich* — ein zweiter Datenstand mit eigener
+  Konfliktlogik; die Overlays bilden nur die Liste nach und gelten bis zur Antwort.
+- *Bereiche, Erinnerungen, Gerichte und Regeln ebenfalls offline* — Schreibtisch-
+  arbeit, die eine Antwort braucht (Name doppelt, Aufgabe beim Dienst unbekannt);
+  dort bleiben Eingabe und Fehlermeldung, wie beim Wald-Kategorien-Entscheid
+  vom 01.10.
+- *Die Uhr statt des Hakens* (bisher) — man sah nicht, ob die Aufgabe jetzt
+  erledigt war. Jetzt: der Haken zeigt den neuen Stand, eine kleine Uhr daran,
+  solange der Dienst ihn nicht hat; während gesendet wird, keine Uhr (sonst
+  blitzt sie bei jedem Haken).
+- *Den Haken einer gleichnamig zusammengefassten Einkaufszeile als eigene Zeile
+  zeigen* — der Dienst führt sie zusammen, die App zeigt es genauso.
+- **Joana:** Bis ihre Einkaufsliste die neue Fassung hat, gilt bei ihr das alte
+  Verhalten (und ihr „Abgehakte entfernen" aus dem Postausgang löscht beim
+  Nachsenden alles Abgehakte).
+
 ## 2026-10-12 — Healthy: Defizit in Orange, im Gewicht-Diagramm vorgewählt
 Felix hat entschieden (12.10.): Das Gewicht-Diagramm öffnet mit **Gewicht ⌀
 (7 Tage, bei „Alles" 30), Zielkurve und „Defizit ⌀"**; „kcal ⌀" ist dort nur

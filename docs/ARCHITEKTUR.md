@@ -419,7 +419,9 @@ Benachrichtigung ist ein Zustellweg, keine Voraussetzung.
 
 ## Ohne Netz
 
-Zwei Dinge, beide in `Shared/Offline.swift`:
+Drei Dinge: der Zwischenspeicher fürs Lesen und der alte Postausgang in
+`Shared/Offline.swift`, dazu die Warteschlange der sofort gezeigten Änderungen
+in `Shared/PendingChanges.swift` (seit 12.10.2026).
 
 **Lesen.** `APIClient` legt jede erfolgreiche GET-Antwort als Datei ab
 (`OfflineCache`, eine je Adresse samt Abfrageparametern, verschlüsselt bei
@@ -429,14 +431,61 @@ Dienst, von wann sie ist. Die Tabs zeigen das als Leiste: „Offline – Stand v
 02.09., 21:14". Bei 403 oder 500 gibt es keinen Rückgriff: der Dienst hat
 geantwortet.
 
-**Schreiben.** Änderungen, die später genauso gelten — Haken (mit Datum im
-Rumpf), Messwerte, Essenseinträge und deren Löschung, ein Logbook-Tag (Datum
-im Pfad) — gehen mit
-`queueWhenOffline: true` in den `Outbox`; der Aufrufer bekommt
-`APIError.queued` und behandelt das als Erfolg. Nachgesendet wird der Reihe
-nach, sobald irgendeine Anfrage wieder durchkommt oder die App in den
-Vordergrund kehrt; wird der Ausgang leer, laden die Tabs neu. Bis dahin: alter
-Stand, Uhr statt Haken, „2 Änderungen warten auf Netz" in der Leiste.
+**Sofort sichtbar: To-Do und Einkaufsliste** (`PendingChanges`). Anlegen
+(auch Unteraufgaben und die Zutaten eines Gerichts), Abhaken, Ändern, Löschen,
+„Abgehakte entfernen" gehen nicht mehr direkt an den Dienst, sondern als
+**typisierte Änderung** in die Warteschlange (`TodoChange`, `ShoppingChange`).
+Angezeigt wird der letzte Stand des Dienstes und darüber, was wartet
+(`TodoOverlay`, `ShoppingOverlay` — reine Funktionen, getestet). Gesendet wird
+sofort, mit 15 s Zeitlimit; ohne Netz bleibt die Änderung stehen und eine
+kleine Uhr am Haken sagt es.
+
+- **Kennungen vergibt die App** (kleingeschriebene UUID): Haken und Ändern
+  brauchen ein Ziel, bevor der Dienst geantwortet hat. todo und shopping
+  übernehmen sie; dieselbe Kennung zweimal legt nichts an (Nachsenden nach
+  verlorener Antwort), bei der Einkaufsliste trifft eine in einem gleichnamigen
+  Eintrag aufgegangene Kennung diesen (`clientIds` beim Dienst).
+- **Je Dienst eine Spur**, darin der Reihe nach: erst das Anlegen, dann der Haken
+  darauf. Ein Dienst, der nicht antwortet, hält die anderen nicht auf.
+- **Einordnung der Antwort** (`APIClient.deliver`): 2xx mit JSON → angekommen,
+  die Antwort (das ganze Brett) ersetzt den Stand und auch den Offline-Stand;
+  404 beim Löschen → erledigt; 401/403 oder eine Anmeldeseite mit 200 →
+  behalten, Spur steht („kein Zugang"); Netzfehler, 5xx, 408/425/429 →
+  behalten, neuer Versuch nach 5, 15, 30, 60 s, dann alle 2 Min., solange die
+  App vorn ist; sonstige 4xx → **abgelehnt**.
+- **Abgelehnt heißt zurückgedreht:** die Änderung fliegt raus, und mit ihr, was
+  darauf aufbaut (Unteraufgaben einer nicht angelegten Aufgabe, Haken darauf) —
+  die Anzeige springt zurück. Eine Meldung oben über allem (`NoticeCenter`,
+  eigenes Fenster wie `ToastWindow` in coHabit) nennt den Eintrag und den Grund
+  des Dienstes; ist der Eintrag schlicht weg (404), ein grauer Hinweis statt
+  eines Fehlers. Die Ablehnung steht außerdem in der Leiste, bis man sie
+  wegtippt.
+- **Zusammenfassen:** zweimal Abhaken → der letzte Stand gilt; Ändern wird in ein
+  wartendes Anlegen gefaltet; Löschen von etwas nur Lokalem schickt gar nichts.
+  Was gerade unterwegs ist, bleibt unberührt.
+- **Auslöser** (`Core/PendingSync.swift`): Start der App (nach den Cookies),
+  Vordergrund, Netz wieder da (`NWPathMonitor`), direkt nach dem Eintragen, nach
+  jeder Antwort eines Dienstes. Kein Senden im Hintergrund.
+- **Ablage** `Application Support/Pending/changes.json` mit
+  `.completeFileProtectionUntilFirstUserAuthentication`; nicht lesbar → später
+  erneut, kaputt → daneben gelegt und gemeldet, nie still geleert. Ein
+  gelöschter Token nimmt die wartenden Änderungen seines Dienstes mit.
+- **Stand gegen Stand:** jede Anfrage bekommt eine Nummer; ein Abruf, der vor
+  einer Antwort losging und nach ihr ankommt, ersetzt den neueren Stand nicht.
+  Vor einem Abruf wartet der Store bis zu 3 s, bis seine Spur nicht sendet.
+
+**Der alte Postausgang** (`Outbox`, rohe `URLRequest`s mit
+`queueWhenOffline: true`) bleibt für Haken in Healthy (Essen, Gewicht,
+Logbook-Tag) und die Waldsitzungen. Nachgesendet wird der Reihe nach, sobald
+irgendeine Anfrage wieder durchkommt oder die App in den Vordergrund kehrt;
+wird der Ausgang leer, laden die Tabs neu. Bis dahin: alter Stand und „2
+Änderungen warten auf Netz" in der Leiste — gezählt je Dienst des Tabs
+(`OfflineStatus.pendingByBackend`).
+
+⚠️ **Fehlender Zugang ist keine Ablehnung.** 401/403 und eine Anmeldeseite mit
+200 (nginx leitet ohne Privat-Cookie um, `URLSession` folgt) lassen die
+Änderung liegen. Bis 12.10.2026 flog sie als „abgelehnt" raus, und die
+Anmeldeseite galt sogar als Erfolg.
 
 ⚠️ **Der Postausgang liest seine Datei, bis es gelingt.** Sie liegt wie der
 Cache mit `.completeFileProtection` und ist bei gesperrtem iPhone nicht
@@ -447,27 +496,19 @@ was inzwischen im Speicher dazukam, hängt hinter den gelesenen Einträgen
 (bis 09.10.2026 überschrieb der nächste Eintrag die wartenden).
 
 ⚠️ **Ein neuerer PUT überholt einen wartenden an dieselbe Adresse.** Ein PUT
-ersetzt beim Dienst den ganzen Stand (Logbook-Tag, Essenseintrag,
-Einkaufs-Eintrag). Kommt ein zweiter in den Postausgang, fliegt der ältere
-raus; kommt einer mit Netz an, fallen die wartenden an dieselbe Adresse weg -
-und zwar bevor `APIClient` das Nachsenden anstößt, sonst schickte das den
-alten Rumpf hinterher. POST und DELETE bleiben alle stehen; das Nachsenden
-nimmt Erledigtes nach der Kennung heraus, nicht als „den ersten". Offen bleibt
-ein schmales Fenster: startet ein Nachsenden, während der neue PUT noch
-unterwegs ist, ist die Reihenfolge beim Dienst nicht sicher.
+ersetzt beim Dienst den ganzen Stand (Logbook-Tag, Essenseintrag). Kommt ein
+zweiter in den Postausgang, fliegt der ältere raus; kommt einer mit Netz an,
+fallen die wartenden an dieselbe Adresse weg - und zwar bevor `APIClient` das
+Nachsenden anstößt, sonst schickte das den alten Rumpf hinterher. POST und
+DELETE bleiben alle stehen; das Nachsenden nimmt Erledigtes nach der Kennung
+heraus, nicht als „den ersten". Offen bleibt ein schmales Fenster: startet ein
+Nachsenden, während der neue PUT noch unterwegs ist, ist die Reihenfolge beim
+Dienst nicht sicher.
 
-⚠️ **Die App rechnet offline nichts nach.** Keine lokale Sträh­ne, keine
-Tagessumme, keine Kachel. Das ist Absicht: die Regeln stehen in den Diensten,
-und ein zweiter Rechner im Client wäre ein zweiter Datenstand.
-
-**Die Einkaufsliste geht einen Schritt weiter.** Im Supermarkt fehlt das
-Netz am häufigsten, und ein Haken, der erst beim nächsten Empfang zu sehen
-ist, ist dort nichts wert. `ShoppingStore` ändert deshalb seinen Stand selbst,
-sobald ein Aufruf im Postausgang liegt: Haken sofort gesetzt, neuer Eintrag
-sofort in der Liste (mit erfundener Kennung `local-…`, bis der Dienst die
-echte schickt), Gericht sofort als Zutaten da. Auf einem solchen Eintrag sind
-Haken und Löschen gesperrt — die Kennung kennt der Dienst noch nicht. Der
-nächste Empfang holt das Brett und ersetzt alles.
+⚠️ **Gerechnet wird nur die Liste selbst.** Die Overlays fügen ein, haken ab,
+benennen um, entfernen, fassen gleiche Namen zusammen und sortieren wie der
+Dienst — keine Sträh­ne, keine Tagessumme, keine Kachel. Die Regeln dahinter
+bleiben in den Diensten; nach dem Senden gilt deren Brett.
 
 ## Was die App bewusst nicht tut
 

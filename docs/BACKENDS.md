@@ -1107,8 +1107,16 @@ To-Do-Tab.
 ⚠️ **Erledigtes verschwindet nach drei Tagen, wird aber nicht gelöscht.**
 `visibleUntil` sagt, wann; danach fehlt die Aufgabe im Brett, bis `all=true`
 oder ein Zurücknehmen des Hakens sie holt. Eine Unteraufgabe hängt am
-Schicksal ihrer Aufgabe. Abhaken und Zurücknehmen dürfen offline warten
-(`queueWhenOffline`); Anlegen nicht — dafür braucht man die Antwort.
+Schicksal ihrer Aufgabe.
+
+⚠️ **Ohne Netz** (seit 12.10.2026): Anlegen, Abhaken, Zurücknehmen, Ändern und
+Löschen von Aufgaben gehen durch die Warteschlange (`PendingChanges`,
+`TodoChange`) und sind sofort zu sehen. Beim Anlegen schickt die App ihre
+Kennung mit (`id`, kleingeschriebene UUID): der Dienst übernimmt sie, und
+dieselbe Kennung zweimal legt nichts an. `DELETE` auf eine schon gelöschte
+Aufgabe ist ein 404 — für die App erledigt. Bereiche und Erinnerungen bleiben
+auf Antwort angewiesen; Erinnerungen gibt es erst, wenn der Dienst die Aufgabe
+kennt.
 
 ## Einkaufsliste — `/shopping-list/api`
 
@@ -1153,8 +1161,17 @@ bleiben bis zum Tageswechsel (Europe/Berlin) sichtbar und liegen danach noch
 90 Tage in der Datei. Abhaken eines Regel-Eintrags setzt `nextAt` der Regel
 auf heute + `everyDays`; der Regel-Lauf (stündlich, beim Start, nach dem
 Anlegen) fügt nichts doppelt hinzu, solange ein offener Eintrag der Regel da
-ist. Haken, Einträge, Gerichte-auf-die-Liste dürfen offline warten
-(`queueWhenOffline`); Gerichte und Regeln pflegen nicht.
+ist.
+
+⚠️ **Ohne Netz** (seit 12.10.2026): Hinzufügen, Abhaken, Ändern, Löschen,
+„Abgehakte entfernen" und ein Gericht auf die Liste gehen durch die
+Warteschlange (`PendingChanges`, `ShoppingChange`) und sind sofort zu sehen.
+Neue Einträge (und jede Zutat bei `POST /api/dishes/{id}/add`, Rumpf
+`{items:[{name,id}]}`) tragen die Kennung der App; dieselbe zweimal legt nichts
+an, und geht der Eintrag in einem gleichnamigen offenen auf, trifft die Kennung
+der App diesen (`clientIds`). `clear-checked` schickt die Kennungen, die die App
+abgehakt sah (`{ids}`) — ein Haken der anderen Person, der inzwischen dazukam,
+bleibt. Gerichte und Regeln pflegen wartet auf die Antwort.
 
 ## Finance Cockpit — kein API
 

@@ -25,9 +25,9 @@ struct ShoppingDishesView: View {
                     .onTapGesture { editing = .existing(dish) }
                     Spacer(minLength: 0)
                     Button {
-                        Task {
-                            if await store.addDish(dish) { flash(dish.id) }
-                        }
+                        // Steht sofort auf der Liste, auch ohne Netz.
+                        store.addDish(dish)
+                        flash(dish.id)
                     } label: {
                         Image(systemName: justAdded == dish.id ? "checkmark.circle.fill" : "cart.badge.plus")
                             .font(.title3)

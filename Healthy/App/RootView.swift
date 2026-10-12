@@ -157,10 +157,10 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             // Zurueck im Vordergrund heisst oft: zurueck im Netz. Was im
-            // Postausgang wartet, darf jetzt raus.
+            // Postausgang und in der Warteschlange wartet, darf jetzt raus.
+            PendingSync.foreground(phase == .active)
             if phase == .active {
                 Task {
-                    await Outbox.shared.replay()
                     await EvaluationReminder.refresh()
                     await LogbookReminder.refresh()
                     // Die Nacht von heute frueh, die Energie bis jetzt -

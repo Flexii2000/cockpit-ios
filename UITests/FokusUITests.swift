@@ -36,6 +36,25 @@ final class FokusUITests: XCTestCase {
         XCTAssertTrue(summary.label.contains("Baum") || summary.label.contains("Bäume"), summary.label)
     }
 
+    /// Gegen einen lokalen To-Do-Dienst (COCKPIT_URL_TODO=http://127.0.0.1:…): eine neue
+    /// Aufgabe steht sofort da und laesst sich gleich abhaken - die Kennung vergibt
+    /// die App. Was beim Dienst ankam, prueft der Aufrufer danach per curl.
+    func testANewTaskShowsAtOnceAndCanBeCheckedRightAway() throws {
+        let url = ProcessInfo.processInfo.environment["COCKPIT_URL_TODO"] ?? ""
+        try XCTSkipIf(!url.hasPrefix("http://127.0.0.1"), "nur gegen einen lokalen To-Do-Dienst")
+        let app = start(tab: "todo", extra: ["COCKPIT_URL_TODO": url])
+        let field = app.textFields["newTodo"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 20), "kein Brett")
+        field.tap()
+        field.typeText("Aufgabe aus dem UI-Test\n")
+        let row = app.staticTexts["Aufgabe aus dem UI-Test"]
+        XCTAssertTrue(row.waitForExistence(timeout: 3), "die Aufgabe stand nicht sofort da")
+        let cell = app.cells.containing(.staticText, identifier: "Aufgabe aus dem UI-Test").firstMatch
+        cell.buttons.firstMatch.tap()
+        sleep(2)
+        shoot(app, "todo-sofort")
+    }
+
     // MARK: - Kategorien
 
     private var environment: [String: String] { ProcessInfo.processInfo.environment }
