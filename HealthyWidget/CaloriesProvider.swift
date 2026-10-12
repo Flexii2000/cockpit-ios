@@ -45,7 +45,11 @@ struct CaloriesProvider: TimelineProvider {
         let api = FoodAPI(cookie: "\(Keychain.privateTokenKey)=\(token)", timeout: timeout)
         do {
             let day = try await api.day(.today())
-            let value = RemainingCalories(day: day)
+            // Was in der App noch wartet, zaehlt vorlaeufig mit - ueber den frisch
+            // geholten Tag gelegt, damit schon Angekommenes nicht doppelt zaehlt.
+            let pending = PendingFoodMirror.loadChanges()
+            let shown = FoodOverlay.apply(pending, to: day)
+            let value = RemainingCalories(day: shown, provisional: shown.entries != day.entries)
             WidgetCache.save(value)
             return .value(value)
         } catch APIError.notAuthorised {
@@ -53,7 +57,13 @@ struct CaloriesProvider: TimelineProvider {
             // Zugang, und ein alter Stand waere hier irrefuehrend.
             return .noAccess
         } catch {
-            return .unreachable(WidgetCache.load())
+            // Ohne Netz: was die App zuletzt fuer heute zeigte, wenn es neuer ist.
+            let cached = WidgetCache.load()
+            if let app = PendingFoodMirror.loadToday(), !app.isStale(),
+               app.fetchedAt > (cached?.fetchedAt ?? .distantPast) {
+                return .unreachable(app)
+            }
+            return .unreachable(cached)
         }
     }
 }

@@ -40,6 +40,9 @@ final class PendingChanges {
     /// Wohin Meldungen gehen - die Apps haengen ihr Meldungsfenster an
     /// (`PendingSync`). Text und ob es nur ein Hinweis ist (grau statt rot).
     @ObservationIgnored var onNotice: ((String, Bool) -> Void)?
+    /// Nach jeder Aenderung an dem, was wartet - Healthy reicht die wartenden
+    /// Eintraege so an die Kalorien-Kachel weiter (`PendingFoodMirror`).
+    @ObservationIgnored var onChange: (() -> Void)?
 
     @ObservationIgnored private let file: URL?
     @ObservationIgnored private let transport: Transport
@@ -329,6 +332,7 @@ final class PendingChanges {
         guard isLoaded, let file else { return }
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(),
                                                  withIntermediateDirectories: true)
+        defer { onChange?() }
         guard let data = try? JSONEncoder().encode(Stored(entries: entries)) else { return }
         // Erst nach dem ersten Entsperren lesbar, danach auch gesperrt: weckt
         // HealthKit Healthy im Hintergrund, soll das Nachsenden nicht an der Datei
@@ -403,12 +407,17 @@ enum PendingChange: Codable, Equatable, Sendable {
     case shopping(ShoppingChange)
     /// Ein Wert im Logbook (Weight Tracker, seit 12.10.).
     case logbook(LogbookChange)
+    /// Ein Eintrag im Kalorienzaehler (Runde 4).
+    case food(FoodChange)
+    /// Ein Gewicht von Hand (Weight Tracker, Runde 4).
+    case weight(WeightChange)
 
     var backend: Backend {
         switch self {
         case .todo: .todo
         case .shopping: .shopping
-        case .logbook: .weight
+        case .logbook, .weight: .weight
+        case .food: .food
         }
     }
 
@@ -417,6 +426,8 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .todo(let change): change.request
         case .shopping(let change): change.request
         case .logbook(let change): change.request
+        case .food(let change): change.request
+        case .weight(let change): change.request
         }
     }
 
@@ -426,6 +437,8 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .todo(let change): change.target
         case .shopping(let change): change.target
         case .logbook(let change): change.target
+        case .food(let change): change.target
+        case .weight(let change): change.target
         }
     }
 
@@ -434,6 +447,8 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .todo(let change): change.role
         case .shopping(let change): change.role
         case .logbook(let change): change.role
+        case .food(let change): change.role
+        case .weight(let change): change.role
         }
     }
 
@@ -441,17 +456,18 @@ enum PendingChange: Codable, Equatable, Sendable {
     var dependsOn: String? {
         switch self {
         case .todo(let change): change.dependsOn
-        case .shopping, .logbook: nil
+        case .shopping, .logbook, .food, .weight: nil
         }
     }
 
     /// Wohin die Antwort als Offline-Stand gehoert: To-Do und Einkauf antworten mit
-    /// dem ganzen Brett. Das Logbook nur mit dem Tag - der ist kein Stand von
-    /// `/api/logbook` und darf ihn nicht ersetzen.
+    /// dem ganzen Brett. Logbook, Essen und Gewicht nur mit einem Tag bzw. der
+    /// Zusammenfassung - das ist kein Stand einer festen Adresse und darf keinen
+    /// ersetzen.
     var boardPath: String? {
         switch self {
         case .todo, .shopping: "/api/board"
-        case .logbook: nil
+        case .logbook, .food, .weight: nil
         }
     }
 
@@ -470,11 +486,22 @@ enum PendingChange: Codable, Equatable, Sendable {
         return nil
     }
 
+    var food: FoodChange? {
+        if case .food(let change) = self { return change }
+        return nil
+    }
+
+    var weightEntry: WeightChange? {
+        if case .weight(let change) = self { return change }
+        return nil
+    }
+
     /// Ein wartendes Anlegen mit einer spaeteren Aenderung daran zusammengefasst.
     func folded(with edit: PendingChange) -> PendingChange? {
         switch (self, edit) {
         case (.todo(let create), .todo(let change)): create.folded(with: change).map(PendingChange.todo)
         case (.shopping(let create), .shopping(let change)): create.folded(with: change).map(PendingChange.shopping)
+        case (.food(let create), .food(let change)): create.folded(with: change).map(PendingChange.food)
         default: nil
         }
     }
@@ -484,6 +511,8 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .todo(let change): change.notice(label: label, status: status, message: message)
         case .shopping(let change): change.notice(label: label, status: status, message: message)
         case .logbook(let change): change.notice(label: label, status: status, message: message)
+        case .food(let change): change.notice(label: label, status: status, message: message)
+        case .weight(let change): change.notice(label: label, status: status, message: message)
         }
     }
 }

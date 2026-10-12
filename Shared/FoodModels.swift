@@ -10,6 +10,16 @@ struct Nutrients: Codable, Equatable, Sendable {
 
     static let zero = Nutrients(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0)
 
+    static func + (a: Nutrients, b: Nutrients) -> Nutrients {
+        Nutrients(kcal: a.kcal + b.kcal, proteinG: a.proteinG + b.proteinG,
+                  carbsG: a.carbsG + b.carbsG, fatG: a.fatG + b.fatG)
+    }
+
+    static func - (a: Nutrients, b: Nutrients) -> Nutrients {
+        Nutrients(kcal: a.kcal - b.kcal, proteinG: a.proteinG - b.proteinG,
+                  carbsG: a.carbsG - b.carbsG, fatG: a.fatG - b.fatG)
+    }
+
     /// Was eine Menge davon beitraegt - die Werte gelten je 100 g.
     func scaled(gramsOf grams: Double) -> Nutrients {
         let factor = grams / 100
@@ -79,6 +89,13 @@ struct DaySummary: Decodable, Sendable {
             Meal(rawValue: key).map { ($0, value) }
         })
     }
+
+    /// Derselbe Tag mit anderen Eintraegen und Summen - fuer das, was noch wartet
+    /// (`FoodOverlay`). Der Rest folgt wie beim Dienst: Ziel minus Verzehrtes.
+    func replacing(entries: [FoodEntry], consumed: Nutrients) -> DaySummary {
+        DaySummary(date: date, targets: targets, consumed: consumed, remaining: targets - consumed,
+                   entries: entries, mealTargets: mealTargets)
+    }
 }
 
 struct DayTotal: Decodable, Identifiable, Sendable {
@@ -105,7 +122,8 @@ struct Features: Decodable, Sendable {
     let quickCapture: Bool
 }
 
-struct DishRequest: Encodable, Sendable {
+/// Liegt auch in der Warteschlange (`FoodChange.add`) - deshalb in beide Richtungen.
+struct DishRequest: Codable, Equatable, Sendable {
     let name: String
     let kcal: Double?
     let proteinG: Double?
@@ -120,6 +138,9 @@ struct NewEntryRequest: Encodable, Sendable {
     let dish: DishRequest?
     let grams: Double
     let meal: Meal?
+    /// Die Kennung der App (seit 12.10.): so steht der Eintrag sofort da und laesst
+    /// sich schon berichtigen; dieselbe zweimal legt beim Dienst nichts doppelt an.
+    var id: String? = nil
 }
 
 struct TargetsRequest: Encodable, Sendable {

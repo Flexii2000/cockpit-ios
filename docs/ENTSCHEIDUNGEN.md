@@ -3,6 +3,37 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-12 — Healthy: Essen und Gewicht ohne Netz sofort sichtbar, Summen vorläufig
+Runde 4 der Änderungen vom 12.10. (Felix: „alle Apps“; in der Fragerunde gewählt:
+offline eingetragenes Essen **zählt vorläufig** in den Tagessummen). Wie To-Do und
+Einkaufsliste (Eintrag „Ohne Netz“ unten) über die Warteschlange:
+- **Essen** (`FoodChange`): Eintragen (gemerktes oder neues Gericht, Bestätigen der
+  Schnellerfassung), Berichtigen, Löschen stehen sofort da, mit Uhr am Eintrag. Die
+  Kennung vergibt die App (`id` in `POST /api/food/entries`, Kalorienzähler seit
+  `d1359a7`), so lässt sich ein wartender Eintrag schon berichtigen.
+- **Vorläufige Summen** (`FoodOverlay`): Zahl des Dienstes plus die Differenz der
+  wartenden Einträge (je 100 g × Menge), für Tachos, „kcal übrig“, Halbkarte im
+  Dashboard und Kalorien-Kachel, jeweils mit „vorläufig“. Lockert die Regel „die App
+  rechnet nichts nach“ **nur für diese Summe** - die Kurve „kcal Tag“, Verlauf und
+  Mittel zählen weiter nur, was der Dienst kennt.
+- **Kachel über die geteilte Keychain-Gruppe** (`PendingFoodMirror`) statt einer neuen
+  App-Gruppe: Healthy und die Kachel haben die Gruppe `com.fherrmann.shared` schon;
+  eine App-Gruppe bräuchte neue Provisionierung, und scheiterte die, ginge das
+  Installieren schief. Die Kachel legt die wartenden Einträge selbst über den Tag, den
+  sie holt (schon Angekommenes zählt so nicht doppelt); ohne Netz zeigt sie, was die
+  App zuletzt für heute zeigte.
+- **Gewicht von Hand** (`WeightChange`): je Tag das neueste, sofort als „82,4 kg am
+  12.10. – wartet“ unter den Kacheln; die Kacheln rechnet weiter der Dienst. Der
+  Abgleich mit Apple Health bleibt, wie er ist (er merkt sich selbst, was ankam).
+- **Prüfen wie der Dienst, bevor etwas wartet** (`FoodEntryRules`, Gewicht > 0): ohne
+  Netz käme eine Ablehnung erst beim Senden, vielleicht Stunden später, und der
+  Eintrag verschwände wieder. Befund aus dem Test: ein neues Gericht ohne Eiweiß nahm
+  das Formular an, der Kalorienzähler nicht („proteinG is required“) - jetzt bleibt
+  „Eintragen“ aus, bis alle vier Werte je 100 g da sind.
+- **Verworfen:** die Kacheln aus dem wartenden Gewicht nachrechnen (Mittel, Residuum
+  - das wäre ein zweiter Rechenweg); wartendes Essen auch in den Verlauf (eine Kurve,
+  die nach dem Senden springt, sähe nach Fehler aus).
+
 ## 2026-10-12 — Healthy: Logbook direkt im Dashboard, jeder Tipp speichert
 Felix (Änderungsrunde 12.10., Wunsch 2.2): „nicht als Untermenü, sondern direkt
 im Dashboard, bedienbarer, im Zweifel wie Whoop“; in der Fragerunde gewählt:

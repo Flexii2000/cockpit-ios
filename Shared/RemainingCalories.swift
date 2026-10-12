@@ -14,14 +14,21 @@ struct RemainingCalories: Codable, Equatable, Sendable {
     /// sonst gaebe es zwei Rechenwege fuer dieselbe Zahl.
     let remaining: Nutrients
     let fetchedAt: Date
+    /// Eintraege warten noch auf den Dienst und zaehlen schon mit (Felix, 12.10.) -
+    /// dann steht „vorläufig“ dabei. Optional, damit ein gemerkter Stand aus einer
+    /// aelteren Fassung weiter lesbar ist.
+    var provisional: Bool? = nil
 
-    init(day: DaySummary, fetchedAt: Date = Date()) {
+    init(day: DaySummary, fetchedAt: Date = Date(), provisional: Bool = false) {
         self.date = day.date
         self.consumed = day.consumed
         self.targets = day.targets
         self.remaining = day.remaining
         self.fetchedAt = fetchedAt
+        self.provisional = provisional ? true : nil
     }
+
+    var isProvisional: Bool { provisional == true }
 
     var isOver: Bool { remaining.kcal < 0 }
 

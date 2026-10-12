@@ -18,6 +18,7 @@ final class DashboardStore {
     private let energyApi = EnergyAPI()
     private let weightApi = WeightAPI()
     private let foodApi = FoodAPI()
+    private var queue: PendingChanges { PendingChanges.shared }
 
     private(set) var recovery: RecoveryDay?
     private(set) var energy: EnergySummary?
@@ -26,6 +27,7 @@ final class DashboardStore {
     /// Summary.
     private(set) var energyWeek: [EnergyDay]?
     private(set) var weight: WeightSummary?
+    /// Heute beim Kalorienzaehler - ohne das, was noch wartet.
     private(set) var food: DaySummary?
     private(set) var steps: Int?
 
@@ -43,6 +45,51 @@ final class DashboardStore {
         case (true, false): "Kein Zugang zum Weight Tracker."
         case (false, true): "Kein Zugang zum Kalorienzähler."
         case (false, false): nil
+        }
+    }
+
+    /// Die Nummer der Anfrage, aus der `food` stammt: ein Abruf, der vor dem Senden
+    /// eines Eintrags losging und danach ankommt, ersetzt den neueren Tag nicht -
+    /// sonst verschwaende der Eintrag bis zum naechsten Laden (Befund aus Android).
+    @ObservationIgnored private var foodSequence = 0
+
+    init() {
+        queue.observe(.food) { [weak self] event in
+            guard let self else { return }
+            switch event {
+            case .delivered(let data, let sequence):
+                // Der Kalorienzaehler antwortet mit dem Tag des Eintrags.
+                if let fresh = try? APIClient.decoder().decode(DaySummary.self, from: data), fresh.date == .today() {
+                    self.takeFood(fresh, sequence: sequence)
+                }
+            case .rejected, .drained:
+                Task { await self.loadFood() }
+            }
+        }
+    }
+
+    private func takeFood(_ fresh: DaySummary, sequence: Int) {
+        guard sequence >= foodSequence else { return }
+        foodSequence = sequence
+        food = fresh
+        FoodWidgetBridge.today(server: fresh)
+    }
+
+    /// Heute, wie es zu sehen ist: der Stand des Dienstes und darueber, was wartet -
+    /// dann mit vorlaeufigen Summen (Runde 4 vom 12.10.).
+    var foodShown: DaySummary? {
+        food.map { FoodOverlay.apply(queue.changes(for: .food).compactMap(\.food), to: $0) }
+    }
+
+    var isFoodProvisional: Bool {
+        guard let food else { return false }
+        return FoodOverlay.isProvisional(queue.changes(for: .food).compactMap(\.food), day: food)
+    }
+
+    private func loadFood() async {
+        let sequence = queue.nextSequence()
+        if let fresh = try? await foodApi.day(.today()) {
+            takeFood(fresh, sequence: sequence)
         }
     }
 
@@ -71,6 +118,7 @@ final class DashboardStore {
         async let energy = Self.attempt { try await energyApi.summary() }
         async let energyWeek = Self.attempt { try await energyApi.days(from: today.adding(days: -7), to: today) }
         async let weight = Self.attempt { try await weightApi.summary() }
+        let foodRequest = queue.nextSequence()
         async let food = Self.attempt { try await foodApi.day(.today()) }
 
         var problems: [Backend] = []
@@ -79,7 +127,12 @@ final class DashboardStore {
         self.energyWeek = Self.take(await energyWeek, previous: self.energyWeek, backend: .weight,
                                     problems: &problems)
         self.weight = Self.take(await weight, previous: self.weight, backend: .weight, problems: &problems)
-        self.food = Self.take(await food, previous: self.food, backend: .food, problems: &problems)
+        // Ein Tag, der inzwischen mit einem Eintrag zurueckkam, ist neuer als diese Abfrage.
+        if let fresh = Self.take(await food, previous: self.food, backend: .food, problems: &problems) {
+            takeFood(fresh, sequence: foodRequest)
+        } else {
+            self.food = nil
+        }
         accessProblems = problems
         await loadSteps()
     }

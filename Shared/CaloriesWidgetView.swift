@@ -76,6 +76,8 @@ struct CaloriesWidgetView: View {
                             .font(.headline.monospacedDigit())
                         if value.isStale() {
                             Text(value.date.short).font(.caption2).foregroundStyle(.secondary)
+                        } else if value.isProvisional {
+                            Text("vorläufig").font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                     Gauge(value: min(value.consumed.kcal, value.targets.kcal),
@@ -150,6 +152,10 @@ struct CaloriesWidgetView: View {
                 // von gestern ist keine alte Wahrheit, sondern eine falsche
                 // Aussage ueber heute.
                 Text("Stand: \(value.date.short)")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            } else if value.isProvisional {
+                Text("vorläufig")
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
             }

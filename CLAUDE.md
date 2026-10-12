@@ -285,14 +285,15 @@ sag das dann auch so.
 
 - **Kein zweiter Datenstand mit eigenen Regeln.** Ohne Netz zeigt die App
   den **letzten Stand** jeder Abfrage (`OfflineCache`, mit Datum in der Leiste).
-  To-Do, Einkaufsliste und das Logbook in Healthy zeigen Änderungen **sofort**:
+  To-Do, Einkaufsliste und in Healthy Logbook, Essen und Gewicht zeigen Änderungen **sofort**:
   sie warten typisiert in `PendingChanges` und liegen als Overlay über dem Stand
   des Dienstes; lehnt er ab, verschwinden sie wieder, mit Meldung (seit
   12.10.2026, siehe `docs/ARCHITEKTUR.md` „Ohne Netz"). Die Overlays bilden nur
   die Liste nach (einfügen, abhaken, zusammenfassen, sortieren) bzw. setzen
-  einen Wert ein — **nicht** nachrechnen: Sträh­nen, Tagessummen, Kacheln,
-  Effekte bleiben Sache der Dienste. Healthy (Essen, Gewicht) und der Wald
-  nutzen noch den alten **Postausgang**
+  einen Wert ein — **nicht** nachrechnen: Sträh­nen, Kacheln, Effekte bleiben Sache
+  der Dienste. Einzige Ausnahme (Felix, 12.10.): die Tagessumme beim Essen zählt
+  wartende Einträge **vorläufig** mit (`FoodOverlay`, mit „vorläufig“ beschriftet).
+  Der Wald nutzt noch den alten **Postausgang**
   (`Outbox`); dorthin dürfen nur Änderungen, die später genauso gelten (mit
   Datum im Rumpf oder Pfad), mit `queueWhenOffline: true`.
 - **Kein Multi-User, keine Registrierung** — außer in coHabit. Healthy,

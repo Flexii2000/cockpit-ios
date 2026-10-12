@@ -1,5 +1,17 @@
 # Stand
 
+> **Healthy: Essen und Gewicht ohne Netz (12.10., Runde 4 der Änderungsrunde vom
+> 12.10.):** Branch `offline-healthy` (auf `logbook-limit`) in cockpit-ios, food,
+> healthy-android; nicht gemergt, nicht gepusht. Braucht den Kalorienzähler ab
+> `d1359a7` (Kennung beim Eintrag); ausgerollt wird mit
+> `~/Server-Projects/deploy-offline-healthy.sh` (erst der Dienst, dann Healthy aufs
+> iPhone, dann Android 1.5). Neu: `Shared/FoodChanges.swift` (`FoodChange`,
+> `FoodOverlay`, `PendingFoodMirror`), `Shared/WeightChanges.swift`,
+> `Healthy/Food/FoodWidgetBridge.swift`. Auf dem Gerät prüfen (Flugmodus): Essen
+> eintragen - steht sofort mit Uhr da, „Verzehrt · vorläufig“, Halbkarte und Kachel
+> ziehen mit; berichtigen und löschen offline; App neu starten - noch da; Netz an -
+> Uhr und „vorläufig“ weg. Gewicht eintragen - „… kg am … – wartet“ unter den Kacheln.
+>
 > **Healthy: Logbook im Dashboard, coHabit: Tageslimit aus dem Logbook (12.10.,
 > Runde 3 der Änderungsrunde vom 12.10.):** Branch `logbook-limit` (auf
 > `offline-sofort`), nicht gemergt, nicht gepusht. Braucht den Weight Tracker mit
