@@ -1,5 +1,36 @@
 # Stand
 
+> **Healthy: Gym-Tab, Uhr-App, Sperrbildschirm-Schritte, „Heute“-Knopf; Evaluation und
+> Einkauf nach Fokus (14.10.):** Branch `gym-watch` in cockpit-ios, weight-app,
+> healthy-android (1.6); nicht gemergt, nicht gepusht. Ausgerollt wird **alles auf einmal**
+> mit `~/Server-Projects/deploy-healthy-gym.sh` (Weight Tracker → Healthy samt Uhr →
+> Fokus → Android). Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §6.
+> - **Geprüft:** `tools/verify.sh` (alle fünf + `HealthyWatch`; Healthy 273 XCTests + 31
+>   Swift-Tests, Fokus 41 mit `EvaluationHandoffTests`, coHabit 180), weight-app 221 Tests,
+>   healthy-android 604 Tests (`GymTest`, `GymViewModelTest`); UI-Tests
+>   `testGymPlanTickAndTraining` gegen einen lokalen Weight Tracker (Tag, Gerät, Haken,
+>   Training, „Satz erledigt“, Beenden - beim Dienst nachgesehen) und
+>   `testTodayButtonJumpsBackFromWeeksAgo`; Bilder hell/dunkel vom Gym-Tab und der
+>   Trainingsansicht (`COCKPIT_GYM_DEMO=1`, `COCKPIT_GYM_WORKOUT=1`), der Kachel-Vorschau,
+>   der Uhr-App im Uhren-Simulator (`COCKPIT_WATCH_DEMO`), Android im Emulator gegen den
+>   lokalen Dienst (dabei gefunden und behoben: zweiter Besuch bei „Training starten“
+>   direkt nach einem Haken).
+> - **Nicht geprüft:** der signierte Gerätebau - Xcode meldet „No Accounts“, ohne
+>   angemeldetes Konto bekommen die neuen Uhr-IDs (`com.fherrmann.cockpit.watchkitapp`,
+>   `….widget`) kein Profil. **Felix: Xcode → Settings → Accounts anmelden**, dann läuft
+>   `install-device.sh Healthy` durch. Auf der Uhr den Entwicklermodus einschalten.
+> - **Auf dem Gerät prüfen:** (1) Fokus → Evaluation zeigt alle alten Antworten, Face ID
+>   fragt, die 21:30-Erinnerung kommt nur noch aus Fokus; Healthy hat keinen
+>   Evaluation-Tab mehr. (2) Fokus → Einkauf. (3) Sperrbildschirm: „Schritte“ (Ring) und
+>   „Heute“ (zwei Ringe) hinzufügen - zählen die Schritte bei gesperrtem iPhone weiter
+>   (Schrittzähler) und passen sie nach dem Entsperren zu Health? (4) Uhr: Komplikation
+>   „Kalorien“ aufs Zifferblatt - 0 links, gegessen in der Mitte, Ziel rechts; ändert sie
+>   sich nach einem Eintrag am iPhone? (5) Gym: Tag anlegen, Geräte, „Training starten“ -
+>   startet die Uhr-App, kommt der Puls live aufs iPhone, auch bei gesperrtem iPhone?
+>   „Satz erledigt“ auf der Uhr hakt am iPhone ab; „Beenden“ legt ein Krafttraining in
+>   Health an. (6) Im Gym ohne Netz abhaken - Uhr-Symbol, später weg. (7) Essen-Tab weit
+>   zurückblättern - „Heute“ neben dem Pfeil.
+>
 > **Healthy: Essen und Gewicht ohne Netz (12.10., Runde 4 der Änderungsrunde vom
 > 12.10.):** Branch `offline-healthy` (auf `logbook-limit`) in cockpit-ios, food,
 > healthy-android; nicht gemergt, nicht gepusht. Braucht den Kalorienzähler ab

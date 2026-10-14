@@ -2,10 +2,12 @@
 
 Fünf iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
-`weight.fherrmann.com`, Einkaufsliste `fherrmann.com/shopping-list`),
+`weight.fherrmann.com` samt Gym; dazu eine Uhr-App mit kcal-Komplikation und
+Krafttraining),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
 `finanzen.fherrmann.com`), **Fokus** (To-Do `fherrmann.com/todo`, Wald —
-Fokus-Sessions beim Habits-Dienst), **Einkaufsliste** (nur die Einkaufsliste — für das Handy
+Fokus-Sessions beim Habits-Dienst, Einkaufsliste `fherrmann.com/shopping-list`,
+Evaluation nur auf dem iPhone — beide seit 14.10. aus Healthy), **Einkaufsliste** (nur die Einkaufsliste — für das Handy
 von Joana, deren Token nur diesen einen Dienst öffnet) und **coHabit**
 (Habits gemeinsam mit Freunden, `fherrmann.com/cohabit` — der frühere
 Habits-Dienst; eigener Token je Person, eigene Kacheln).
@@ -22,16 +24,18 @@ Tagessummen); die Apps zeigen.
 |---|---|---|
 | `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
 | `Core/` | alle fünf Apps (coHabit nimmt daraus nur `Notifications` und `FlowLayout`; Netz, Fehler- und Offline-Leisten hat es eigene) | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
-| `Shopping/` | Healthy **und** Einkaufsliste | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy schon ein `DishEditSheet` hat |
+| `Shopping/` | Fokus **und** Einkaufsliste (bis 14.10. Healthy statt Fokus) | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
+| `HealthyWatch/`, `HealthyWatchWidget/` | die Uhr-App von Healthy und ihre Komplikation (watchOS) | dazu `Shared/` **ohne** die iPhone-Kacheln (`_watch_excludes` in project.yml: `CaloriesWidgetView`, `Color+Hex`, `Macro`, `GaugeView`, `Focus*`) — was dort neu dazukommt, muss auf watchOS bauen |
+| `HealthyWatchShared/` | Healthy, HealthyWatch **und** HealthyWatchWidget | Botschaften zwischen iPhone und Uhr, Komplikations-Stand und -Ansicht — nur Foundation/SwiftUI |
 | `coHabit/` | nur coHabit | alles |
 | `CohabitShared/` | coHabit **und** `coHabitWidget` | API-Client mit Bearer, Modelle, Postausgang, App-Gruppe `group.com.fherrmann.cohabit`, App-Intents und die Kachel-Ansichten — nichts, das es in einer Erweiterung nicht gibt |
 | `coHabitNotifications/` | nur die Notification Service Extension von coHabit | eine Datei; dazu einzeln (project.yml) `CohabitShared/NotificationImage.swift`, `ImageFormat.swift`, `CohabitToken.swift` und `Shared/Keychain.swift`, `Backend.swift` - **diese drei aus `CohabitShared/` duerfen nichts aus dem Rest von `CohabitShared/` benutzen**, sonst baut die Erweiterung nicht |
 | `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei plus `FocusShared/`, kein `Shared/`: legt beim Intervallstart den Schild (neu), nimmt ihn am Ende weg und ersetzt die Ende-Meldung durch „Apps wieder frei", sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
-`tools/verify.sh` immer alle fünf. `TabSelection` und `Router` gibt es je App;
+`tools/verify.sh` immer alle fünf - und die Uhr. `TabSelection` und `Router` gibt es je App;
 sie werden nicht geteilt.
 
 ## Vor dem ersten Handgriff
@@ -68,7 +72,7 @@ Routen wirklich aufmachen.
 
 ```bash
 tools/bootstrap.sh                 # einmalig + nach Änderungen an project.yml
-tools/verify.sh                    # baut alle fuenf fuer den Simulator, Unit-Tests in Healthy und coHabit
+tools/verify.sh                    # baut alle fuenf + die Uhr fuer den Simulator, Unit-Tests in Healthy, Fokus, coHabit
 tools/verify.sh Vault              # nur eine
 tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
 tools/install-device.sh all --launch             # alle fuenf aufs iPhone (oder eine)
@@ -77,9 +81,9 @@ tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen (signiert wie 
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkaufsliste`, `coHabit`). Tabs: Healthy `dashboard|food|weight|evaluation|shopping|widget|recovery|logbook|effects`
+`Fokus`, `Einkaufsliste`, `coHabit`; `verify.sh` kennt dazu `HealthyWatch`). Tabs: Healthy `dashboard|food|weight|gym|widget|recovery|logbook|effects`
 (`recovery` ist das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle), Vault
-`grades|finance`, Fokus `todo|forest|widget`, Einkaufsliste hat nur die eine Seite,
+`grades|finance`, Fokus `todo|forest|shopping|evaluation|widget`, Einkaufsliste hat nur die eine Seite,
 coHabit `today|timeline|stats|profile|new|widget`;
 `setup` öffnet das Zugang-Blatt (nicht in coHabit — dort ist der Zugang ein
 eingefügter Link).
@@ -191,9 +195,11 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `evaluation`, `finance`, `grades`, `todo`, `forest`; coHabit `timeline`, `stats`, `profile`, `new`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
-| `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Healthy) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
-| `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `gym`, `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_GYM_DEMO=1` | füllt den Gym-Tab (Healthy) mit zwei erfundenen Tagen („Tag A", „Gerät A") und acht Wochen Verlauf - nur im Speicher, nie gesendet; `COCKPIT_GYM_WORKOUT=1` startet dazu gleich das Training samt erfundener Uhr-Werte |
+| `COCKPIT_WATCH_DEMO=kcal\|workout` | in der Uhr-App (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 bzw. ein laufendes Training - der Uhren-Simulator spiegelt kein Training und legt keine Komplikation aufs Zifferblatt |
+| `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Fokus) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
+| `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation (Fokus) mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
 | `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Recovery-Seite, Logbook mit Platzhaltern („Verhalten A", gestern halb beantwortet), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_SERIES=kcal` | schaltet im Gewicht-Tab Reihen zusätzlich ein (Komma-Liste der `WeightSeries`, etwa `kcal,expenditure`) - vorgewählt sind dort nur Gewicht ⌀, Zielkurve und „Defizit ⌀" |
@@ -268,6 +274,9 @@ sag das dann auch so.
   des Evaluation-Tabs legt Felix in der App fest, Antworten bleiben auf dem
   iPhone. Auch in Tests, Doku, Screenshots und Commit-Nachrichten nur
   Platzhalter („Frage A").
+- **Keine Gerätenamen aus dem Gym im Repo.** Felix' Trainingstage und Geräte liegen
+  beim Weight Tracker; in Code, Tests, Demo-Daten, Doku, Screenshots und
+  Commit-Nachrichten nur Platzhalter („Tag A", „Gerät A").
 - **Keine Logbook-Verhalten im Repo.** Dasselbe für das Logbook in Healthy:
   die Verhaltensweisen legt Felix in der App an, sie liegen beim Weight
   Tracker. Auch coHabit-Habits erscheinen dort mit Namen. In Code, Tests,

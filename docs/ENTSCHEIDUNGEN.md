@@ -3,6 +3,57 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-14 — Healthy: Gym-Tab, Uhr-App, Sperrbildschirm-Schritte; Evaluation und Einkauf nach Fokus
+Felix' Wünsche vom 14.10. (Plan `~/.claude/plans/hier-ein-paar-dinge-vast-wand.md`), in
+der Fragerunde gewählt:
+- **Gym-Daten beim Weight Tracker** (je Person `gym.json`, Vertrag
+  `weight-app/docs/HEALTHY-CONTRACT.md` §6), jeder Schreibweg ein PUT mit der Kennung der
+  App, damit Haken offline in der Warteschlange warten (`GymChange`, `GymOverlay`). Verworfen:
+  nur auf dem iPhone wie die Evaluation - einfacher und immer offline, aber beim Löschen der
+  App wäre der Verlauf weg, und Android könnte nie mitmachen.
+- **Live-Werte von der Apple Watch:** „Training starten“ weckt die Uhr-App
+  (`startWatchApp`), die die `HKWorkoutSession` führt und aufs iPhone spiegelt
+  (`WorkoutMirror`); das Training landet über die Uhr in Health. Verworfen: nur iPhone (das
+  iPhone hat keinen Pulssensor; aus Health käme der Puls mit Minuten Verzögerung, kein
+  Training in Health). `HKLiveWorkoutBuilder` gibt es auf iOS erst ab 26 - das iPhone nutzt
+  nur die Botschaften der Uhr.
+- **Uhr zeigt Werte + aktuelles Gerät**, ein Satz lässt sich dort abhaken. Abgehakt wird
+  trotzdem nur auf dem iPhone (es schreibt allein zum Dienst): „Satz erledigt“ trägt eine
+  Kennung, die Uhr wiederholt, bis das iPhone quittiert, dann über `transferUserInfo`.
+  Verworfen: nur Werte auf der Uhr.
+- **Verlauf: „letztes Mal …“ + Diagramm auf Tipp**; **nächster Tag in der Reihe vorgewählt**
+  (rechnet der Dienst, `nextDayId`); **im Training geändertes Gewicht wird der neue Plan**.
+  Verworfen: nur „letztes Mal“; immer den Tag wählen; Gewicht nur für dieses Training.
+- **Ob ein Training läuft, merkt sich die App** (`ActiveWorkout`), nicht der Dienst: ein
+  Besuch, der nur durch Abhaken entstand, ist kein Training.
+- **Uhr-App ohne App-Gruppe:** Uhr-App und Komplikation teilen den Schlüsselbund der Uhr
+  (derselbe Gruppenname wie auf dem iPhone, `Keychain.swift` bleibt unverändert). Den Token
+  schickt das iPhone per WatchConnectivity - **der Haupt-Token `fh_private` liegt damit auch
+  auf der Uhr**, damit die Komplikation selbst beim Kalorienzähler fragen kann (wie die
+  iPhone-Kachel, 02.09.). Verworfen: Komplikation nur aus dem Stand, den das iPhone schickt
+  (ohne laufendes iPhone stünde sie still, etwa nach einer Schnellerfassung im Browser).
+- **kcal-Komplikation im Stil der Temperatur:** links 0 (grün), Mitte gegessen, rechts das
+  Tagesziel (orange), Bogen mit Verlauf. Felix erst „Rest in der Mitte“, dann korrigiert.
+- **Schritte auf dem Sperrbildschirm: das Größere aus Health-Stand und Schrittzähler**
+  (`StepsMirror`, `StepsNow`). Gesperrt kommt eine Kachel nicht an Health heran; die App legt
+  jeden Health-Stand im Schlüsselbund ab, und **seit heute weckt Health die App stündlich für
+  Schritte** - nur fürs Ablegen, ohne Upload. Das nimmt „keine Hintergrundzustellung für
+  Schritte“ (`syncSteps`) teilweise zurück. Verworfen: nur Health (oft eine Stunde alt); nur
+  Schrittzähler (ohne Uhr-Schritte).
+- **Große Sperrbildschirm-Kachel: zwei Ringe nebeneinander** (kcal gegessen, Schritte).
+  Verworfen: zwei Zeilen mit Balken.
+- **Evaluation und Einkauf ziehen nach Fokus**, Healthy hat Dashboard · Essen · Gewicht · Gym.
+  Die Antworten liegen nur in Healthys Container; **übergeben durch den geteilten
+  Schlüsselbund** (`EvaluationHandoff`, `EvaluationImport`): Healthy bietet die Bytes an,
+  bis Fokus mit dem SHA-256 quittiert, und **behält seine Datei als Sicherung**; Fokus
+  überschreibt keine Antworten, die es schon hat (dann liegt die aus Healthy daneben als
+  `evaluation-healthy.json`). Verworfen: eine App-Gruppe für Healthy (neue Provisionierung,
+  Risiko beim Installieren, wie 12.10.); Export/Import von Hand über Dateien.
+- **Fokus bekommt `NSFaceIDUsageDescription`** - Healthy hatte den Satz für die Evaluation
+  nie (iOS fiel dort still auf den Code zurück).
+- **Alles auf einmal ausrollen** (`~/Server-Projects/deploy-healthy-gym.sh`), Felix' Wahl
+  statt vier Runden.
+
 ## 2026-10-12 — Healthy: Essen und Gewicht ohne Netz sofort sichtbar, Summen vorläufig
 Runde 4 der Änderungen vom 12.10. (Felix: „alle Apps“; in der Fragerunde gewählt:
 offline eingetragenes Essen **zählt vorläufig** in den Tagessummen). Wie To-Do und

@@ -5,9 +5,9 @@ bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker), Evaluation, Einkaufsliste | `com.fherrmann.cockpit` | Evaluation, Face ID |
+| **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker), Gym; Uhr-App mit kcal-Komplikation und Krafttraining | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
-| **Fokus** | To-Do, Wald | `com.fherrmann.fokus` | – |
+| **Fokus** | To-Do, Wald, Einkaufsliste, Evaluation | `com.fherrmann.fokus` | Evaluation, Face ID |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
 | **coHabit** | Habits gemeinsam mit Freunden: Heute, Timeline, Statistik, Profil | `com.fherrmann.cohabit` | – |
 
@@ -77,8 +77,8 @@ gehen; **Regelmäßig** setzt Dinge von selbst wieder darauf („Klopapier alle
 14 Tage", ab dem Abhaken neu gerechnet). Abgehaktes steht durchgestrichen
 unten, mit dem Namen dessen, der es in den Wagen gelegt hat, und verschwindet
 am nächsten Tag. Dieselbe Liste im Browser unter `fherrmann.com/shopping-list`
-(Zugang über `…/setup?token=…`). In Healthy erscheint der Tab, sobald ein
-Einkaufs-Token da ist; **Einkaufsliste** ist dieselbe Liste als eigene App.
+(Zugang über `…/setup?token=…`). In Fokus (bis 14.10. in Healthy) erscheint der
+Tab, sobald ein Einkaufs-Token da ist; **Einkaufsliste** ist dieselbe Liste als eigene App.
 
 **Zugang** — ein Blatt hinter dem Zahnrad (oben links bei Noten, Habits und
 Einkaufsliste, im „…"-Menü bei Essen und Gewicht). Jede App zeigt nur die
@@ -176,8 +176,10 @@ und TOTP-Code an; das Session-Cookie hält sieben Tage und verlängert sich bei
 Nutzung.
 
 **Health** fragt beim ersten Öffnen des Dashboards nach Erlaubnis für
-Gewicht, Schritte, Energie, Schlaf und Herzwerte. **Benachrichtigungen** fragt
-die erste Schnellerfassung ab (oder die ersten Fragen der Evaluation bzw. die
+Gewicht, Schritte, Energie, Schlaf und Herzwerte (seit 14.10. auch: Trainings
+speichern, für das Krafttraining der Uhr). **Bewegung & Fitness** fragt Healthy
+einmal beim Start - für die Schritte auf dem Sperrbildschirm. **Benachrichtigungen** fragt
+die erste Schnellerfassung ab (oder die ersten Fragen der Evaluation in Fokus bzw. die
 erste Verhaltensweise im Logbook). Beides lässt sich später in den iOS-Einstellungen ändern. Meldungen über
 neue Noten gibt es erst, **nachdem der Noten-Tab einmal offen war** — die
 Kennung des Geräts meldet die App dort erst an, wenn eine Sitzung steht.

@@ -32,6 +32,12 @@ Funktion.
 | **Vault** | `com.fherrmann.vault` | Noten, Finanzen | — | keine | **ganze App**, Face ID | grades (neue Note) |
 | **Fokus** | `com.fherrmann.fokus` | Habits | + To-Do, Roadmap | Habits (Home) | keine | später To-Do |
 
+> **Abweichung (14.10.2026):** Healthy hat inzwischen Dashboard · Essen · Gewicht ·
+> **Gym** und eine Uhr-App (kcal-Komplikation, Krafttraining). Für den Gym-Tab sind
+> **Einkauf und Evaluation nach Fokus** gezogen (To-Do · Wald · Einkauf · Evaluation);
+> die Evaluation-Antworten gingen über den geteilten Schlüsselbund mit
+> (`docs/ENTSCHEIDUNGEN.md`, 14.10.). Die Tabelle oben ist der Plan von damals.
+
 Healthy behält die Bundle-ID: damit bleiben Health-Berechtigung, Hintergrund-
 zustellung, Push-Anmeldung beim Kalorienzähler und die vorhandenen
 Kalorien-Kacheln (`com.fherrmann.cockpit.widget`) unangetastet. Vault und

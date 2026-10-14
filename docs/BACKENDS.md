@@ -273,7 +273,7 @@ unvollständige Schnitte gestrichelt. Das Ziel ist eine **Sättigungskurve**
 (0,75 % Körpergewicht pro Woche), kein Datumsziel; der Korridor (±1,5 kg) wird
 erst ab dem Tag gezeichnet, an dem seine Oberkante erstmals unterschritten war.
 
-### Energie, Nächte, Recovery, Logbook — für Healthy (seit 2026-10-09, Branch `recovery`)
+### Energie, Nächte, Recovery, Logbook, Gym — für Healthy (seit 2026-10-09, Gym seit 2026-10-14)
 
 Der Vertrag dazu ist `../weight-app/docs/HEALTHY-CONTRACT.md`: JSON-Formen, die
 Regeln, nach denen iOS **und** Android Tage und Nächte aus Health bilden, und
@@ -304,6 +304,14 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | DELETE | `/api/logbook/days/{date}` | 204 — zurück auf „nie ausgefüllt" (die App benutzt es nicht) |
 | GET | `/api/logbook/days?from=&to=` | `[LogbookDay]` |
 | GET | `/api/logbook/insights?days=30\|90\|180\|365` | `InsightsView` (Vorgabe 90, anderes → 400) |
+| GET | `/api/gym` | `GymState` — Geräte, Tage, `nextDayId`, Besuche gestern–morgen, `last` je Gerät (seit 14.10., Vertrag §6) |
+| GET | `/api/gym/history?machineId=&from=` | `[HistoryPoint]` — je Besuch der schwerste Satz, älteste zuerst |
+| PUT | `/api/gym/machines/{id}` | `{name?, archived?}` → `Machine`; Kennung der App (`m-…`), neu braucht `name` |
+| PUT | `/api/gym/days/{id}` | `{name?, position?, exercises?}` → `TrainingDay`; `exercises` ersetzt die ganze Liste — die App schickt immer den ganzen Tag |
+| PUT | `/api/gym/days/{dayId}/exercises/{id}` | `{machineId?, sets?, reps?, weightKg?, position?}` → `TrainingDay` — Gewicht im Training = neuer Plan |
+| DELETE | `/api/gym/days/{id}` · `…/exercises/{id}` | 204, auch wenn nichts (mehr) da ist — braucht Netz, nicht in die Warteschlange |
+| PUT | `/api/gym/sessions/{id}` | `{dayId, date, startedAt, endedAt?}` → `Session`; der neueste Stand gilt ganz, die Sätze bleiben |
+| PUT | `/api/gym/sessions/{id}/sets/{exerciseId}/{index}` | `{weightKg, reps, doneAt?}` → `Session`; `{}` nimmt den Haken zurück, ohne Rumpf 400 |
 
 ```
 EnergyDayInput  date, activeKcal?, basalKcal?   (je Tag mindestens eins; aktiv 0–10.000, Ruhe 0–5.000)
@@ -328,6 +336,13 @@ RecoveryComponent key (HRV | SLEEPING_HEART_RATE | SLEEP | RESPIRATORY_RATE), va
 HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | WITHIN | ABOVE | UNKNOWN)
 LogbookView     behaviors: [Behavior], backfillDays (14), backfillFrom, today, days: [LogbookDay]
 Behavior        id ("b-…"), name, unit?, createdAt, archived
+GymState        today, machines: [Machine], days: [TrainingDay], nextDayId?, sessions: [Session],
+                last: {machineId: {date, weightKg, sets, reps}}
+Machine         id ("m-…"), name, archived, createdAt
+TrainingDay     id ("d-…"), name, position, updatedAt, exercises: [{id ("e-…"), machineId, sets (1–10),
+                reps (1–100), weightKg (0–500, 0 = ohne Gewicht)}]
+Session         id ("s-…"), dayId, date, startedAt, endedAt?, sets: [{exerciseId, machineId, index (0–19),
+                weightKg, reps, doneAt}]
 LogbookDay      date, savedAt, values: {behaviorId: 0 | 1 | Menge} - fehlt eine, ist sie an dem Tag offen
 InsightsView    days, from, to, nightsWithScore, outcomeStatus (OK | TOO_FEW_NIGHTS),
                 sources {cohabit, food: OK | UNAVAILABLE}, predictors: [PredictorView]

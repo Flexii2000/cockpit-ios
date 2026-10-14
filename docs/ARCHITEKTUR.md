@@ -50,7 +50,7 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich, Diagramm-Bausteine
+Healthy/            App: Dashboard, Essen, Gewicht, Gym, Health-Abgleich, Diagramm-Bausteine
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
   Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, darunter
                     das Logbook; Vorführdaten - auch für Essen- und Gewicht-Tab
@@ -59,13 +59,18 @@ Healthy/            App: Dashboard, Essen, Gewicht, Evaluation, Health-Abgleich,
   Logbook/          Logbook und Effekte im Dashboard (LogbookSection, LogbookDays), Verhalten-Blatt,
                     Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
-  Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist
-  Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync)
+  Gym/              Trainingstage, Haken, Trainingsansicht (seit 14.10.), beim Weight Tracker;
+                    WorkoutMirror: das gespiegelte Training der Uhr
+  Watch/            WatchLink: Token und kcal-Stand an die Uhr (WatchConnectivity)
+  Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync),
+                    Schritte für die Sperrbildschirm-Kacheln (StepsWidgetBridge)
   Food/ Weight/
 Vault/              App: Noten, Finanzen - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
-Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre)
+Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre), Einkauf, Evaluation
   App/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit, Tagesziel aus coHabit)
+  Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist -
+                    seit 14.10. hier statt in Healthy (EvaluationImport übernimmt die Datei)
 coHabit/            App: Habits mit Freunden - Heute, Timeline, Statistik, Profil, Detail + Chat,
                     Anlegen, Einladen, Abhaken mit Beweisfoto, Health, Push, Kachel-Vorschau
   App/ Design/ Today/ Detail/ Chat/ CheckIn/ Timeline/ Stats/ Profile/ Create/ Invite/ Onboarding/ Health/
@@ -77,19 +82,26 @@ CohabitShared/      was coHabit UND coHabitWidget teilen: API mit Bearer, Modell
                     App-Gruppe group.com.fherrmann.cohabit, App-Intents, Kachel-Ansichten, Farben
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/
-Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Healthy UND Einkaufsliste
+Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Fokus UND Einkaufsliste
+                    (bis 14.10. Healthy statt Fokus)
 Core/               was alle fünf Apps brauchen, aber keine Erweiterung (coHabit nur Notifications):
                     Zugang (Cookies, Keychain-Wanderung), Sperre samt Sperrbildschirm,
                     Benachrichtigungen, Zugang-Blatt, Fehler-/Offline-Leisten
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
-HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert)
+HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert), seit 14.10.
+                    dazu Schritte (Ring) und „Heute" (kcal + Schritte) auf dem Sperrbildschirm
+HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Training, Tagesstand
+HealthyWatchWidget/ kcal-Komplikation der Uhr (Stil der Temperatur-Komplikation)
+HealthyWatchShared/ was iPhone und Uhr teilen: Botschaften (WatchMessages), Komplikations-Stand
+                    und -Ansicht - Healthy, HealthyWatch und HealthyWatchWidget übersetzen es
 FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session
 FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
                     Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
 FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallstart
                     den Schild (neu), nimmt ihn am Ende weg - eine Datei plus FocusShared/
 Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
+FokusTests/         Unit-Tests der Evaluation samt Übernahme aus Healthy (Wirt: Fokus)
 CohabitTests/       Unit-Tests von coHabit (Wirt: coHabit - CohabitShared liegt nur dort)
 UITests/            Harness.swift (gemeinsam) + je App eine Datei, fünf Bundles
 project.yml         Quelle des Xcode-Projekts - fünf App-Targets, YAML-Anker für Gemeinsames
@@ -102,7 +114,7 @@ Postausgang, Sperre, Tools und Harness würden sonst vierfach gepflegt. Was
 in `Core/` liegt, muss in allen vier Apps übersetzen — wer dort etwas
 einbaut, das nur eine App kennt (Diagramm-Typen, Tab-Namen), bricht die
 anderen. `Shopping/` ist der eine Ordner, den genau zwei Apps teilen: der
-Einkaufs-Tab in Healthy und die ganze App Einkaufsliste sind derselbe Code. `TabSelection` und `Router` sind deshalb **je App** klein
+Einkaufs-Tab in Fokus (bis 14.10. in Healthy) und die ganze App Einkaufsliste sind derselbe Code. `TabSelection` und `Router` sind deshalb **je App** klein
 neu geschrieben statt geteilt.
 
 ⚠️ **Was in `Shared/` liegt, darf nichts benutzen, das es in einer
@@ -249,8 +261,11 @@ Zwei Dinge passieren, ohne dass jemand die App offen hat — und beide brauchen
 deshalb einen `AppDelegate` statt einer `.task` an einer View: wird die App im
 Hintergrund geweckt, gibt es gar keine Oberfläche.
 
-**HealthKit.** Zwei `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
-App, wenn ein neuer Gewichtswert oder Schlaf geschrieben wird. Beim Gewicht
+**HealthKit.** Drei `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
+App, wenn ein neuer Gewichtswert oder Schlaf geschrieben wird - und seit 14.10.
+höchstens stündlich für Schritte, nur damit die Sperrbildschirm-Kacheln einen
+frischen Health-Stand haben (`StepsMirror`; ohne Upload, gesperrt scheitert das
+Lesen ohnehin). Beim Gewicht
 merkt sich ein Anker, was schon geholt wurde, und wird erst **nach**
 erfolgreichem Senden gespeichert — sonst gingen Werte verloren, wenn der
 Server gerade nicht erreichbar war. Beim Schlaf bildet der Weckruf die letzten
@@ -273,7 +288,9 @@ darauf neu.
 
 **Die Kacheln.** Healthy hat die Kalorien (Homebildschirm klein/mittel,
 Sperrbildschirm als Ring und Rechteck; ein Tipp öffnet `healthy://food`, also
-Essen mit heute), Fokus den Countdown der Session (ohne
+Essen mit heute), seit 14.10. die Schritte als Ring und „Heute" (zwei Ringe,
+kcal gegessen und Schritte) auf dem Sperrbildschirm (`healthy://dashboard`) und
+die kcal-Komplikation auf der Uhr; Fokus den Countdown der Session (ohne
 Session den Stand von heute aus der App-Gruppe); die Habits-Kachel ist mit den
 Habits nach coHabit umgezogen (siehe oben). Eigener Prozess, eigener
 Container.
@@ -281,7 +298,12 @@ Sie holt sich `/api/food/day` **selbst** und liest das Token aus der geteilten
 Keychain-Gruppe — die Vorgabegruppe der App, in der es ohnehin schon liegt.
 Cookies der App sieht sie nicht, sie hängt ihren eigenen an die Anfrage. Die
 App stößt nach jeder Änderung nur ein Neuzeichnen an; Daten reicht sie keine
-weiter.
+weiter. Ausnahmen, weil die Kachel sie nicht selbst holen kann: wartende
+Einträge (`PendingFoodMirror`) und die Schritte (`StepsMirror` - Health ist
+gesperrt nicht lesbar; die Kachel nimmt das Größere aus diesem Stand und dem
+Schrittzähler des iPhones, `StepsNow`). Die Uhr hat ihren eigenen Schlüsselbund:
+Token und kcal-Stand schickt `WatchLink` per WatchConnectivity, die Komplikation
+fragt danach selbst beim Kalorienzähler (`HealthyWatchWidget/KcalComplication`).
 
 **Die Fokus-Sperre.** Während einer Fokus-Session (Wald-Tab in Fokus) liegt
 ein Schild auf allen App-Kategorien außer den erlaubten Apps —
@@ -340,9 +362,10 @@ zuletzt war.
 **Healthy: eine Weiche für alles, was von außen kommt** (`HealthyRoute`).
 Seit die App im Dashboard aufmacht, muss jeder Weg sagen, wohin er will:
 Mitteilung **ohne** Art oder mit `quick-capture` → Essen (die APNs-Meldung des
-Kalorienzählers hat keine Art), `evaluation` → Evaluation, `logbook` →
-Dashboard, gescrollt zum Logbook auf gestern (`Router.logbookRequests`); Link
-`healthy://food` (Kalorien-Kachel) → Essen mit heute. Das URL-Schema steht in
+Kalorienzählers hat keine Art), `logbook` → Dashboard, gescrollt zum Logbook auf
+gestern (`Router.logbookRequests`); Link `healthy://food` (Kalorien-Kachel) → Essen
+mit heute, `healthy://dashboard` (Schritte-Kacheln) → Dashboard. `evaluation` führt
+seit 14.10. nirgends mehr hin - die Erinnerung kommt aus Fokus. Das URL-Schema steht in
 einer eigenen `Healthy/Info.plist` (wie bei Fokus und coHabit erzeugt aus
 `project.yml`, die übrigen Schlüssel kommen weiter aus den
 `INFOPLIST_KEY_`-Settings). `Router.follow(_:)` setzt den Tab, `Router.open`
@@ -355,8 +378,8 @@ Kalorienzähler kommen parallel aus ihren Endpunkten (`DashboardStore`); jede
 Karte fällt für sich aus, ein 404 heißt „gibt es beim Dienst noch nicht" und
 lässt sie weg, nur fehlender Zugang wird zum Banner. Die Recovery-Seite liegt
 im `NavigationStack` des Dashboards (`Router.dashboardPath`), nicht als Tab:
-iOS zeigt höchstens fünf, und die Leiste ist mit Dashboard, Essen, Gewicht,
-Evaluation und Einkauf voll. Das Logbook steht seit 12.10.2026 im Dashboard
+was zum Dashboard gehört, bleibt dort. Die Leiste: Dashboard, Essen, Gewicht, Gym
+(Evaluation und Einkauf seit 14.10. in Fokus). Das Logbook steht seit 12.10.2026 im Dashboard
 selbst, unter den Halbkarten, mit eigenem Store (`LogbookStore`); Sprungziele
 im Scrollbereich sind `DashboardAnchor.logbook` und `.effects`. Eine
 Offline-Leiste für beide Dienste (`OfflineBanner(backends:)`), sonst zählte sie
@@ -390,7 +413,7 @@ Sperren vor zwei Tabs; in Vault liegt hinter jedem Tab etwas, das nicht
 offen herumstehen soll - also `BiometricLock` um alles, Sichtschutz im
 App-Umschalter immer, und beim Zurückkommen fragt sie gleich wieder.
 
-**Healthy: eine Sperre vor der Evaluation, mit Frist.** Derselbe
+**Fokus (bis 14.10. Healthy): eine Sperre vor der Evaluation, mit Frist.** Derselbe
 `BiometricLock`, aber in `EvaluationLock` gewickelt: er geht erst zu, wenn der
 Tab oder die App fünf Minuten verlassen war (`ContinuousClock`, läuft im
 Ruhezustand weiter). Die Frist lebt in `RootView`, weil nur die Wurzel jeden
@@ -399,6 +422,28 @@ Tabwechsel sieht. Sichtschutz im App-Umschalter, solange der Tab offen ist.
 (`Application Support/Evaluation/evaluation.json`, Datenschutz „vollständig"),
 gerechnet wird ausnahmsweise in der App (`EvaluationChartData`). Die Erinnerung
 um 21:30 sind lokale Mitteilungen je Tag (`EvaluationReminder`).
+**Umzug von Healthy nach Fokus (14.10.):** die Datei liegt im Container der App,
+an den keine andere herankommt. Healthy legt die Bytes in den geteilten
+Schlüsselbund (`Core/EvaluationHandoff`, nur entsperrt lesbar), liest zurück und
+bietet sie bei jedem Start erneut an, bis Fokus mit dem SHA-256 quittiert; seine
+eigene Datei behält Healthy als Sicherung und nimmt seine 21:30-Erinnerungen
+zurück. Fokus (`Fokus/Evaluation/EvaluationImport`) prüft, schreibt, liest zurück,
+quittiert und räumt den Eintrag weg - Antworten, die es schon hat, überschreibt es
+nie (die aus Healthy liegen dann daneben als `evaluation-healthy.json`).
+
+**Healthy: Gym und Uhr (14.10.).** Trainingstage, Geräte, Besuche und Haken liegen
+beim Weight Tracker (Vertrag §6); jeder Schreibweg ist ein PUT mit der Kennung der
+App und geht durch die Warteschlange (`GymChange`), angezeigt wird der Stand des
+Dienstes mit `GymOverlay` darüber. Welcher Tag dran ist und „letztes Mal" rechnet
+der Dienst. Ob ein Training läuft, merkt sich die App (`ActiveWorkout`). „Training
+starten" weckt die Uhr-App mit einem Krafttraining (`HKHealthStore.startWatchApp`);
+die Uhr führt `HKWorkoutSession` + `HKLiveWorkoutBuilder`, spiegelt die Session
+aufs iPhone (`startMirroringToCompanionDevice`) und speichert am Ende in Health.
+Über die gespiegelte Session gehen `WorkoutMessage`s: Puls und kcal von der Uhr,
+das aktuelle Gerät zur Uhr, „Satz erledigt" mit Kennung und Quittung zurück (nur
+das iPhone schreibt zum Dienst). Der Handler für die Spiegelung steht im
+`AppDelegate`, weil iOS die App dafür im Hintergrund weckt; die HealthKit-Delegaten
+sind `nonisolated` und reichen nur Werte weiter.
 
 **Healthy: das Logbook liegt beim Dienst, die Erinnerung auf dem iPhone.**
 Verhaltensweisen und Werte stehen im Weight Tracker (je Person, die Effekte
@@ -410,7 +455,7 @@ Dienstes (`LogbookDays.value`); fehlt alles, ist sie **offen** - nicht „nein".
 Die Antwort des Dienstes (der ganze Tag) ersetzt diesen Tag im Stand. Die
 Erinnerung um 09:00 „Logbook" / „gestern offen" ist wie die der Evaluation
 eine lokale Mitteilung je Tag (`LogbookReminder`), aber nur 14 Tage voraus -
-iOS hält höchstens 64 je App bereit, die Evaluation belegt 30. Sie kommt,
+iOS hält höchstens 64 je App bereit (bis 14.10. belegte die Evaluation hier 30). Sie kommt,
 solange am Vortag etwas offen ist (ein wartender Wert gilt als beantwortet);
 neu verteilt nach jeder Antwort und bei jedem Wechsel in den Vordergrund; im
 Vorführmodus nie.
