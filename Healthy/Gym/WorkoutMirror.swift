@@ -20,6 +20,8 @@ final class WorkoutMirror {
     /// Ein „Satz erledigt“ von der Uhr - der Gym-Tab hakt dann den naechsten
     /// offenen Satz dieses Geraets ab.
     @ObservationIgnored var onSetDone: ((String) -> Void)?
+    /// Auf der Uhr beendet - dann endet das Training auch hier.
+    @ObservationIgnored var onEnd: (() -> Void)?
 
     @ObservationIgnored private var session: HKWorkoutSession?
     @ObservationIgnored private var lastSent: WorkoutCurrent??
@@ -78,6 +80,7 @@ final class WorkoutMirror {
         metrics = nil
         lastSent = nil
         onSetDone = nil
+        onEnd = nil
     }
 
     /// Das aktuelle Geraet an die Uhr - nur, wenn es sich geaendert hat.
@@ -113,6 +116,10 @@ final class WorkoutMirror {
             sendMessage(.ack(id: id))
         case .end:
             ended()
+            let end = onEnd
+            onSetDone = nil
+            onEnd = nil
+            end?()
         case .current, .ack:
             break
         }

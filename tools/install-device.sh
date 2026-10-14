@@ -110,6 +110,41 @@ elif [ "$APP" != "Vault" ] && [ "$APP" != "Einkaufsliste" ]; then
     echo "WARNUNG: keine PlugIns im Bundle - das Widget ist nicht eingebettet." >&2
 fi
 
+# Healthy bringt seit 14.10. die Uhr-App mit (kcal-Komplikation, Krafttraining).
+# Auf das automatische Nachinstallieren durch das iPhone ist bei Entwickler-
+# Builds kein Verlass - deshalb direkt auf die gekoppelte Uhr. Scheitert das,
+# nur eine Warnung: das iPhone ist dann trotzdem fertig. Die Uhr braucht den
+# Entwicklermodus (Einstellungen > Datenschutz & Sicherheit) und muss im
+# Profil des Teams stehen.
+if [ "$APP" = "Healthy" ]; then
+    WATCH_APP="build/device/Build/Products/Debug-iphoneos/Healthy.app/Watch/HealthyWatch.app"
+    if [ ! -d "$WATCH_APP/PlugIns/HealthyWatchWidget.appex" ]; then
+        echo "WARNUNG: die Komplikation ist nicht in der Uhr-App eingebettet." >&2
+    fi
+    WATCH_ID=$(python3 - "$JSON" <<'PY'
+import json, sys
+for device in json.load(open(sys.argv[1])).get("result", {}).get("devices", []):
+    connection = device.get("connectionProperties", {})
+    if device.get("hardwareProperties", {}).get("platform") == "watchOS" \
+            and connection.get("pairingState") == "paired" \
+            and connection.get("transportType") != "sameMachine":
+        print(device["identifier"])
+        break
+PY
+)
+    if [ -n "$WATCH_ID" ] && [ -d "$WATCH_APP" ]; then
+        xcrun devicectl device info details --device "$WATCH_ID" > /dev/null 2>&1 || true
+        if xcrun devicectl device install app --device "$WATCH_ID" "$WATCH_APP"; then
+            echo "Uhr-App installiert."
+        else
+            echo "WARNUNG: Uhr-App nicht installiert - Entwicklermodus auf der Uhr an?" >&2
+            echo "Sonst einmal in Xcode das Schema HealthyWatch auf der Uhr starten." >&2
+        fi
+    else
+        echo "Keine gekoppelte Uhr gefunden - nur das iPhone." >&2
+    fi
+fi
+
 if $LAUNCH; then
     # Beim ersten Mal mit einem neuen Zertifikat verweigert iOS den Start, bis
     # das Entwicklerprofil am Geraet bestaetigt wurde:

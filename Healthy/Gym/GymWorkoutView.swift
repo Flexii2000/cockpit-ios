@@ -42,6 +42,7 @@ struct GymWorkoutView: View {
                 guard let exercise = day.exercises.first(where: { $0.id == exerciseId }) else { return }
                 store.tickNext(exercise, on: day)
             }
+            mirror.onEnd = { store.finish() }
         }
     }
 

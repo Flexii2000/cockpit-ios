@@ -75,6 +75,16 @@ _focus_group: &focus_group group.com.fherrmann.fokus
 _cohabit_keychain: &cohabit_keychain $(AppIdentifierPrefix)com.fherrmann.cohabit
 _cohabit_group: &cohabit_group group.com.fherrmann.cohabit
 
+# Was in Shared/ auf watchOS nicht baut (iPhone-Kacheln, ActivityKit, die
+# dynamische UIColor) - die Uhr-Ziele nehmen den Rest (14.10.).
+_watch_excludes: &watch_excludes
+  - CaloriesWidgetView.swift
+  - Color+Hex.swift
+  - Macro.swift
+  - GaugeView.swift
+  - FocusActivity.swift
+  - FocusWidgetView.swift
+
 _widget_info: &widget_info
   # Der Bezeichner muss UNTER NSExtension stehen. Auf oberster Ebene baut
   # und signiert alles, und die Installation bricht mit "Invalid placeholder
@@ -102,6 +112,10 @@ targets:
       # embed: true legt die .appex nach Healthy.app/PlugIns/. Ohne das baut
       # die Erweiterung zwar, aber iOS findet sie nie.
       - target: HealthyWidget
+        embed: true
+      # Die Uhr-App (14.10.): landet in Healthy.app/Watch/ und kommt mit Healthy
+      # auf die Uhr - kcal-Komplikation und das Krafttraining aus dem Gym-Tab.
+      - target: HealthyWatch
         embed: true
     info:
       # Eigene Info.plist nur wegen des URL-Schemas: healthy://food oeffnet den
@@ -174,6 +188,73 @@ targets:
         # Bleibt: so behalten die Kacheln, die schon auf dem Homebildschirm
         # liegen, ihre Erweiterung.
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.widget
+        INFOPLIST_KEY_CFBundleDisplayName: Healthy
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        SKIP_INSTALL: YES
+
+  # ----------------------------------------------------------- Healthy Uhr
+  # Die Uhr-App von Healthy (14.10.): kcal-Komplikation im Stil der Temperatur
+  # und das Krafttraining, das der Gym-Tab startet und gespiegelt bekommt.
+  # Einzel-Target-App ohne WatchKit-Erweiterung (watchOS 7+). Kein
+  # `<<: *app_settings`: das setzt iPhone-Schluessel und Geraetefamilie 1.
+  # Keine App-Gruppe (Entscheidung 12.10.): Uhr-App und Komplikation teilen den
+  # Schluesselbund der Uhr - derselbe Gruppenname wie auf dem iPhone, damit
+  # `Shared/Keychain.swift` unveraendert bleibt; die Uhr hat ihren eigenen.
+  HealthyWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "11.0"
+    sources:
+      - path: HealthyWatch
+      - path: HealthyWatchShared
+      - path: Shared
+        excludes: *watch_excludes
+    dependencies:
+      - target: HealthyWatchWidget
+        embed: true
+    info:
+      # WKApplication und WKBackgroundModes haben keinen INFOPLIST_KEY_-Schalter.
+      path: HealthyWatch/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Healthy
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.fherrmann.cockpit
+        # Das Training laeuft weiter, wenn das Handgelenk sinkt.
+        WKBackgroundModes: [workout-processing]
+    entitlements:
+      path: HealthyWatch/HealthyWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        keychain-access-groups:
+          - *shared_group
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.watchkitapp
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Puls und Kalorien deines Krafttrainings live auf dem iPhone stehen.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Damit dein Krafttraining aus dem Gym-Tab als Training in Health landet.
+
+  HealthyWatchWidget:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: "11.0"
+    sources:
+      - path: HealthyWatchWidget
+      - path: HealthyWatchShared
+      - path: Shared
+        excludes: *watch_excludes
+    entitlements:
+      path: HealthyWatchWidget/HealthyWatchWidget.entitlements
+      properties:
+        keychain-access-groups:
+          - *shared_group
+    info:
+      path: HealthyWatchWidget/Info.plist
+      properties: *widget_info
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.watchkitapp.widget
         INFOPLIST_KEY_CFBundleDisplayName: Healthy
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         SKIP_INSTALL: YES
@@ -586,6 +667,15 @@ schemes:
       # (UITests/Harness.swift).
       environmentVariables:
         COCKPIT_NO_HEALTH: "1"
+    run:
+      config: Debug
+  # Die Uhr allein - fuer verify.sh (Simulator ohne Uhr-Geraet) und um sie in
+  # Xcode direkt auf die Uhr zu spielen.
+  HealthyWatch:
+    build:
+      targets:
+        HealthyWatch: all
+        HealthyWatchWidget: all
     run:
       config: Debug
   Vault:

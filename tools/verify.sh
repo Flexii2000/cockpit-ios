@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Baut alle fuenf Apps fuer den Simulator und laesst die Unit-Tests laufen.
+# Baut alle fuenf Apps fuer den Simulator und laesst die Unit-Tests laufen -
+# dazu die Uhr-App von Healthy (HealthyWatch, seit 14.10.).
 # Das ist der einzige gueltige Beleg dafuer, dass etwas funktioniert -
 # "sieht richtig aus" zaehlt nicht (siehe CLAUDE.md).
 #
@@ -24,7 +25,7 @@ echo "Simulator: $SIM"
 DEST="platform=iOS Simulator,name=$SIM"
 pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-APPS="${1:-Healthy Vault Fokus Einkaufsliste coHabit}"
+APPS="${1:-Healthy HealthyWatch Vault Fokus Einkaufsliste coHabit}"
 for APP in $APPS; do
     echo "== $APP =="
     if [ "$APP" = "Healthy" ]; then
@@ -32,6 +33,12 @@ for APP in $APPS; do
         # Bewusst NUR die: UI-Tests dauern Minuten - dafuer gibt es uitest.sh.
         xcodebuild test -project Cockpit.xcodeproj -scheme Healthy \
             -only-testing:CockpitTests -destination "$DEST" | pretty
+    elif [ "$APP" = "HealthyWatch" ]; then
+        # Die Uhr fuer sich, gegen irgendeinen Uhren-Simulator - es braucht
+        # keinen gestarteten. Fehlt die watchOS-Plattform:
+        # xcodebuild -downloadPlatform watchOS
+        xcodebuild build -project Cockpit.xcodeproj -scheme HealthyWatch \
+            -destination 'generic/platform=watchOS Simulator' | pretty
     elif [ "$APP" = "Fokus" ]; then
         # Die Evaluation (seit 14.10. in Fokus) hat eigene Unit-Tests mit Fokus
         # als Wirt, samt der Uebernahme aus Healthy.

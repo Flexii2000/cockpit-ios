@@ -30,6 +30,8 @@ FokusMonitor/Info.plist
 coHabit/Info.plist
 coHabitWidget/Info.plist
 coHabitNotifications/Info.plist
+HealthyWatch/Info.plist
+HealthyWatchWidget/Info.plist
 
 # Arbeitsbaeume der Agenten - eingebettete Repos, nie mit einchecken.
 .claude/worktrees/

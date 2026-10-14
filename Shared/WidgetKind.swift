@@ -11,5 +11,7 @@ enum WidgetKind {
     /// Seit 14.10.: Schritte als Ring und die grosse Kachel mit kcal und Schritten.
     static let steps = "StepsToday"
     static let today = "TodayOverview"
+    /// Die kcal-Komplikation der Uhr (HealthyWatchWidget).
+    static let watchKcal = "WatchKcal"
     static let focus = "FocusCountdown"
 }
