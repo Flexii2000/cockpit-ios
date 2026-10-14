@@ -1,5 +1,5 @@
 import XCTest
-@testable import Healthy
+@testable import Fokus
 
 /// Die Sollwerte stammen aus scipy 1.x (`stats.pearsonr`, `stats.spearmanr`,
 /// `stats.t.sf`, `special.betainc`) - nachgerechnet, nicht geschaetzt.

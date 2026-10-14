@@ -67,6 +67,42 @@ enum Keychain {
         SecItemAdd(query as CFDictionary, nil)
     }
 
+    /// Rohe Bytes mit Rueckmeldung - fuer Eintraege, deren Verlust zaehlt (die
+    /// Uebergabe der Evaluation von Healthy an Fokus). `save` oben schluckt
+    /// Fehler, weil ein Token sich neu eingeben laesst; Antworten nicht.
+    ///
+    /// - Parameter accessible: die Schutzklasse; `WhenUnlocked…` fuer alles, was
+    ///   keine Erweiterung bei gesperrtem Geraet lesen muss.
+    /// - Returns: `errSecSuccess` oder der Fehler von `SecItemAdd`.
+    @discardableResult
+    static func saveData(_ data: Data, for key: String,
+                         accessible: CFString = kSecAttrAccessibleWhenUnlockedThisDeviceOnly) -> OSStatus {
+        delete(key)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecAttrAccessGroup as String: accessGroup,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: accessible,
+        ]
+        return SecItemAdd(query as CFDictionary, nil)
+    }
+
+    static func readData(_ key: String) -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecAttrAccessGroup as String: accessGroup,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { return nil }
+        return item as? Data
+    }
+
     static func read(_ key: String, group: String? = nil) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

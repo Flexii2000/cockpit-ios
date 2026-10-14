@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// To-Do und der Wald. Die Habits sind nach coHabit umgezogen.
+/// To-Do, der Wald, die Einkaufsliste und die Evaluation. Die Habits sind nach
+/// coHabit umgezogen, Einkauf und Evaluation kamen am 14.10. aus Healthy.
 @main
 struct FokusApp: App {
 

@@ -1,7 +1,7 @@
 import XCTest
 
-/// Dashboard, Essen, Gewicht, Evaluation - und der Tipp auf die Meldung der
-/// Schnellerfassung.
+/// Dashboard, Essen, Gewicht - und der Tipp auf die Meldung der
+/// Schnellerfassung. Die Evaluation wohnt seit 14.10. in Fokus (FokusUITests).
 final class HealthyUITests: XCTestCase {
 
     override func setUp() {
@@ -382,66 +382,10 @@ final class HealthyUITests: XCTestCase {
                       "Nach dem Wisch nach links muss „Morgen“ in der Leiste stehen")
     }
 
-    // MARK: - Evaluation
-
-    /// Ein Jahr erfundener Antworten (nur im Speicher): Antworten oben, darunter
-    /// Linien, je Frage eine Heatmap und die Zusammenhaenge - unterhalb des
-    /// ersten Bildschirms, den `run-simulator.sh` allein zeigt.
-    func testEvaluationShowsAnswersChartAndHeatmaps() {
-        let app = launch(tab: "evaluation", extra: ["COCKPIT_EVALUATION_DEMO": "1"])
-        XCTAssertTrue(app.staticTexts["Frage A"].firstMatch.waitForExistence(timeout: 15))
-        shoot(app, "evaluation-top")
-
-        let three = app.buttons.matching(identifier: "3").firstMatch
-        three.tap()
-        XCTAssertTrue(three.isSelected, "die getippte Zahl ist gesetzt")
-        three.tap()
-        XCTAssertFalse(three.isSelected, "noch einmal nimmt sie zurueck")
-
-        app.buttons["14 Tage"].tap()
-        scrollDown(app, times: 2)
-        shoot(app, "evaluation-fortnight")
-        scrollUp(app, times: 3)
-
-        app.buttons["1 Jahr"].tap()
-        scrollDown(app, times: 2)
-        shoot(app, "evaluation-year-heatmaps")
-        scrollDown(app, times: 3)
-        XCTAssertTrue(app.staticTexts["Zusammenhänge"].waitForExistence(timeout: 5))
-        shoot(app, "evaluation-correlations")
-        scrollDown(app, times: 4)
-        shoot(app, "evaluation-bottom")
-    }
-
-    /// Ohne Fragen: festlegen, eine beantworten - mit einer frischen Datei je
-    /// Lauf (`COCKPIT_EVALUATION_SCRATCH`), damit nichts liegen bleibt.
-    func testEvaluationQuestionsCanBeSetUp() {
-        let app = launch(tab: "evaluation", extra: ["COCKPIT_EVALUATION_SCRATCH": "1"])
-        let setUp = app.buttons["Fragen festlegen"]
-        XCTAssertTrue(setUp.waitForExistence(timeout: 15))
-        shoot(app, "evaluation-empty")
-        setUp.tap()
-
-        let field = app.textFields["Frage"].firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
-        field.typeText("Frage X")
-        let shortLabel = app.textFields["Kurzname"].firstMatch
-        shortLabel.tap()
-        shortLabel.typeText("Kurz X")
-        shoot(app, "evaluation-questions-sheet")
-        app.buttons["Fertig"].tap()
-
-        XCTAssertTrue(app.staticTexts["Frage X"].firstMatch.waitForExistence(timeout: 5))
-        let seven = app.buttons.matching(identifier: "7").firstMatch
-        seven.tap()
-        XCTAssertTrue(seven.isSelected)
-        shoot(app, "evaluation-answered")
-    }
-
     func testTabsAreReachable() {
         let app = launch(tab: "dashboard")
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 20))
-        for tab in ["Essen", "Gewicht", "Evaluation", "Dashboard"] {
+        for tab in ["Essen", "Gewicht", "Dashboard"] {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10), tab)
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, tab)

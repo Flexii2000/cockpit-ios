@@ -32,6 +32,11 @@ for APP in $APPS; do
         # Bewusst NUR die: UI-Tests dauern Minuten - dafuer gibt es uitest.sh.
         xcodebuild test -project Cockpit.xcodeproj -scheme Healthy \
             -only-testing:CockpitTests -destination "$DEST" | pretty
+    elif [ "$APP" = "Fokus" ]; then
+        # Die Evaluation (seit 14.10. in Fokus) hat eigene Unit-Tests mit Fokus
+        # als Wirt, samt der Uebernahme aus Healthy.
+        xcodebuild test -project Cockpit.xcodeproj -scheme Fokus \
+            -only-testing:FokusTests -destination "$DEST" | pretty
     elif [ "$APP" = "coHabit" ]; then
         # coHabit hat eigene Unit-Tests mit coHabit als Wirt: CohabitShared
         # und der App-Code liegen nur dort.

@@ -218,14 +218,7 @@ enum EvaluationStatistics {
         return adjusted
     }
 
-    static func stars(_ p: Double) -> String {
-        switch p {
-        case ..<0.001: "***"
-        case ..<0.01:  "**"
-        case ..<0.05:  "*"
-        default:       ""
-        }
-    }
+    static func stars(_ p: Double) -> String { Significance.stars(p) }
 
     // MARK: - Unvollstaendige Betafunktion
 

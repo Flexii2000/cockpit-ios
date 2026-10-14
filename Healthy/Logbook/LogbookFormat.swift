@@ -19,7 +19,7 @@ enum LogbookFormat {
 
     /// Nach dem Holm-korrigierten p: < 0,001 `***`, < 0,01 `**`, < 0,05 `*`.
     static func stars(_ pAdjusted: Double?) -> String {
-        pAdjusted.map(EvaluationStatistics.stars) ?? ""
+        pAdjusted.map(Significance.stars) ?? ""
     }
 
     /// Die Zeile mit Effekt und Sternen: „+8,1 %-Pkt **".

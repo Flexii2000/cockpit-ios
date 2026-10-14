@@ -11,7 +11,6 @@ enum HealthyRoute: Equatable, Sendable {
     case food
     /// Der Essen-Tab mit heute - die Kalorien-Kachel und die Energie-Karte.
     case foodToday
-    case evaluation
     /// Die Logbook-Seite im Dashboard - die Erinnerung um 09:00.
     case logbook
 
@@ -24,13 +23,13 @@ enum HealthyRoute: Equatable, Sendable {
     ///
     /// **Ohne Art ist es die Schnellerfassung:** der Kalorienzaehler schickt
     /// seine APNs-Meldung ohne `kind`. Unbekannte Arten fuehren nirgends hin -
-    /// die App bleibt, wo sie ist, statt zu raten.
+    /// die App bleibt, wo sie ist, statt zu raten. Dazu gehoert seit 14.10. die
+    /// Erinnerung der Evaluation (`evaluation`) - die wohnt jetzt in Fokus.
     static func notification(kind: String?) -> HealthyRoute? {
         guard let kind else { return .food }
         switch kind {
-        case quickCaptureKind:        return .food
-        case EvaluationReminder.kind: return .evaluation
-        case LogbookReminder.kind:    return .logbook
+        case quickCaptureKind:     return .food
+        case LogbookReminder.kind: return .logbook
         default:                      return nil
         }
     }

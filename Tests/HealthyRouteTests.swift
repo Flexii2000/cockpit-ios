@@ -13,9 +13,10 @@ final class HealthyRouteTests: XCTestCase {
         XCTAssertEqual(HealthyRoute.notification(kind: HealthyRoute.quickCaptureKind), .food)
     }
 
-    func testEvaluationReminderOpensItsTab() {
-        XCTAssertEqual(HealthyRoute.notification(kind: "evaluation"), .evaluation)
-        XCTAssertEqual(HealthyRoute.notification(kind: EvaluationReminder.kind), .evaluation)
+    /// Die Evaluation wohnt seit 14.10. in Fokus - eine alte Erinnerung, die
+    /// noch in Healthy angetippt wird, fuehrt nirgends hin.
+    func testEvaluationReminderNoLongerOpensAnything() {
+        XCTAssertNil(HealthyRoute.notification(kind: "evaluation"))
     }
 
     /// Die Erinnerung um 09:00 fuehrt ins Dashboard und dort aufs Logbook.
@@ -55,8 +56,6 @@ final class HealthyRouteTests: XCTestCase {
         router.follow(.foodToday)
         XCTAssertEqual(router.foodTodayRequests, requests + 2)
 
-        router.follow(.evaluation)
-        XCTAssertEqual(router.selection, .evaluation)
         router.open(.recovery)
         XCTAssertEqual(router.selection, .dashboard)
         XCTAssertEqual(router.dashboardPath, [.recovery])

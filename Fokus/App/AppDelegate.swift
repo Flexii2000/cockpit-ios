@@ -3,16 +3,18 @@ import UserNotifications
 
 /// Push-Kennung entgegennehmen (fuer Erinnerungen und Feature Requests des
 /// To-Do-Dienstes) und einen Tipp auf eine Meldung zum passenden Tab - oder
-/// zu ihrem Link - fuehren.
+/// zu ihrem Link - fuehren. Dazu die lokale Erinnerung der Evaluation.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private let notifications = NotificationDelegate(onOpen: { kind in
         // „todo": Erinnerung des To-Do-Dienstes. „forest": „Baum gepflanzt"
         // am Ende einer Fokus-Session - der Tipp fuehrt in den Wald, und die
         // App raeumt dort die Session auf (Baum melden, „Fokus aus").
+        // „evaluation": die Erinnerung um 21:30 - in ihren Tab, hinter Face ID.
         switch kind {
-        case "todo":   Task { @MainActor in Router.shared.show(.todo) }
-        case "forest": Task { @MainActor in Router.shared.show(.forest) }
+        case "todo":                  Task { @MainActor in Router.shared.show(.todo) }
+        case "forest":                Task { @MainActor in Router.shared.show(.forest) }
+        case EvaluationReminder.kind: Task { @MainActor in Router.shared.show(.evaluation) }
         default: break
         }
     }, onLink: { link in

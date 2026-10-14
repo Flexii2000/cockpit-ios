@@ -4,10 +4,10 @@
 #
 #   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> [tab] [screenshot.png]
 #
-# Tabs: Healthy dashboard|food|weight|evaluation|shopping|widget|recovery|logbook|effects
+# Tabs: Healthy dashboard|food|weight|gym|widget|recovery|logbook|effects
 # (recovery = Dashboard samt dieser Seite; logbook, effects = Dashboard an dieser
 # Stelle), Vault grades|finance,
-# Fokus todo|forest|widget, Einkaufsliste (hat nur die eine Seite),
+# Fokus todo|forest|shopping|evaluation|widget, Einkaufsliste (hat nur die eine Seite),
 # coHabit today|timeline|stats|profile|new|widget;
 # `setup` oeffnet in den ersten vier Apps das Zugang-Blatt.
 #

@@ -36,9 +36,10 @@ final class LogbookReminderTests: XCTestCase {
         XCTAssertTrue(days.contains(friday.adding(days: 1)))
     }
 
-    /// iOS haelt hoechstens 64 Mitteilungen je App; die Evaluation belegt 30.
-    func testLeavesRoomForTheEvaluation() {
-        XCTAssertLessThanOrEqual(LogbookReminder.horizonDays + EvaluationReminder.horizonDays, 64)
+    /// iOS haelt hoechstens 64 Mitteilungen je App. Die Evaluation (30) wohnt
+    /// seit 14.10. in Fokus; der Abstand bleibt, falls hier wieder etwas dazukommt.
+    func testLeavesRoomForOtherReminders() {
+        XCTAssertLessThanOrEqual(LogbookReminder.horizonDays + 30, 64)
     }
 
     func testIdentifierAndKind() {

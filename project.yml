@@ -2,9 +2,9 @@
 # NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
 #
 # Fuenf Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
-#   Healthy  - Essen, Gewicht, Einkaufsliste  com.fherrmann.cockpit (die alte ID, bleibt)
+#   Healthy  - Dashboard, Essen, Gewicht, Gym  com.fherrmann.cockpit (die alte ID, bleibt)
 #   Vault    - Noten, Finanzen           com.fherrmann.vault
-#   Fokus    - To-Do, Wald               com.fherrmann.fokus
+#   Fokus    - To-Do, Wald, Einkauf, Evaluation  com.fherrmann.fokus
 #   Einkaufsliste - nur die Liste       com.fherrmann.einkauf (fuer ein zweites Handy)
 #   coHabit  - Habits mit Freunden       com.fherrmann.cohabit (eigene Anmeldung je Person),
 #              dazu Kachel (.widget) und Bild in Benachrichtigungen (.notifications)
@@ -15,7 +15,8 @@
 #   Shared/    was Apps UND Erweiterungen uebersetzen - darf nichts benutzen,
 #              das es in einer App-Erweiterung nicht gibt (UIApplication.shared)
 #   Core/      was alle Apps brauchen, aber keine Erweiterung
-#   Shopping/  der Einkaufs-Tab - in Healthy UND in Einkaufsliste, sonst nirgends
+#   Shopping/  der Einkaufs-Tab - in Fokus UND in Einkaufsliste, sonst nirgends
+#              (bis 14.10. in Healthy statt Fokus)
 #   FocusShared/ was Fokus UND die Erweiterung FokusMonitor teilen (Session, Whitelist, Schild)
 #   CohabitShared/ was coHabit UND coHabitWidget teilen (API, Modelle, Postausgang, Kachel-Ansichten)
 #   <App>/     nur diese App
@@ -95,7 +96,6 @@ targets:
       - path: Healthy
       - path: Core
       - path: Shared
-      - path: Shopping
     dependencies:
       # embed: true legt die .appex nach Healthy.app/PlugIns/. Ohne das baut
       # die Erweiterung zwar, aber iOS findet sie nie.
@@ -198,6 +198,8 @@ targets:
       - path: Core
       - path: Shared
       - path: FocusShared
+      # Der Einkaufs-Tab - seit 14.10. hier statt in Healthy.
+      - path: Shopping
     dependencies:
       - target: FokusWidget
         embed: true
@@ -249,6 +251,10 @@ targets:
         <<: *app_settings
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.fokus
         INFOPLIST_KEY_CFBundleDisplayName: Fokus
+        # Die Evaluation liegt hinter Face ID (seit 14.10. hier). Ohne den Satz
+        # beendet iOS die App beim ersten Abfragen - oder faellt still auf den
+        # Code zurueck; in Healthy fehlte er die ganze Zeit.
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit deine Evaluation nicht offen daliegt.
 
   FokusWidget:
     type: app-extension
@@ -466,6 +472,15 @@ targets:
     dependencies:
       - target: Healthy
 
+  # Die Tests der Evaluation (seit 14.10. in Fokus) brauchen Fokus als Wirt.
+  FokusTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: FokusTests
+    dependencies:
+      - target: Fokus
+
   # Die Tests von coHabit brauchen coHabit als Wirt: CohabitShared und der
   # App-Code liegen nur dort, nicht in Healthy.
   CohabitTests:
@@ -577,6 +592,7 @@ schemes:
         FokusMonitor: all
     test:
       targets:
+        - FokusTests
         - FokusUITests
     run:
       config: Debug

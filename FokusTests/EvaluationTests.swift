@@ -1,5 +1,5 @@
 import XCTest
-@testable import Healthy
+@testable import Fokus
 
 /// Der Evaluation-Tab rechnet selbst (kein Dienst dahinter) - deshalb hier die
 /// Regeln: Antworten, Mittel, Raster, Erinnerung, Frist der Sperre, Datei.

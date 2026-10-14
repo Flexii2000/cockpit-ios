@@ -27,7 +27,7 @@ final class EvaluationStore {
 
     /// - Parameter asksForReminders: ob die ersten Fragen nach der Erlaubnis
     ///   fuer Mitteilungen fragen. Tests nicht: mit der Erlaubnis meldet sich
-    ///   Healthy auch fuer Push beim Kalorienzaehler an - aus dem Simulator.
+    ///   Fokus auch fuer Push beim To-Do-Dienst an - aus dem Simulator.
     init(file: URL = EvaluationStore.defaultFile, asksForReminders: Bool = true) {
         self.file = file
         self.asksForReminders = asksForReminders
@@ -163,19 +163,6 @@ enum EvaluationDemo {
             }
         }
         return data
-    }
-
-    /// Wiederholbarer Zufall, damit jede Aufnahme dieselben Werte zeigt.
-    struct SplitMix {
-        var state: UInt64
-        init(seed: UInt64) { state = seed }
-        mutating func next() -> UInt64 {
-            state &+= 0x9E3779B97F4A7C15
-            var z = state
-            z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
-            z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
-            return z ^ (z >> 31)
-        }
     }
 }
 #endif

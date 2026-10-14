@@ -17,7 +17,7 @@ enum DashboardDemo {
 
     /// Ein wiederholbarer Wert zwischen -1 und 1 je Tag und Zweck.
     static func noise(_ offset: Int, _ salt: UInt64) -> Double {
-        var generator = EvaluationDemo.SplitMix(seed: UInt64(bitPattern: Int64(offset)) &* 0x9E3779B97F4A7C15 ^ salt)
+        var generator = SplitMix(seed: UInt64(bitPattern: Int64(offset)) &* 0x9E3779B97F4A7C15 ^ salt)
         return Double(generator.next() % 2001) / 1000 - 1
     }
 

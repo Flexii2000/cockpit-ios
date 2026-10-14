@@ -2,9 +2,10 @@ import SwiftUI
 
 /// Evaluation - ein paar persoenliche Fragen je Tag, 1 bis 10, und ihr Verlauf.
 ///
-/// Nur in Healthy fuer iOS, nur auf diesem iPhone, hinter Face ID mit fuenf
-/// Minuten Frist (siehe `EvaluationLock`). Die Fragen legt man hier fest; im
-/// Repo stehen sie nicht.
+/// In Fokus (bis 14.10. in Healthy, umgezogen fuer den Gym-Tab - siehe
+/// `EvaluationImport`), nur auf diesem iPhone, hinter Face ID mit fuenf Minuten
+/// Frist (siehe `EvaluationLock`). Die Fragen legt man hier fest; im Repo
+/// stehen sie nicht.
 struct EvaluationTab: View {
 
     let lock: EvaluationLock
@@ -56,6 +57,10 @@ struct EvaluationTab: View {
                 store.unload()
                 showingQuestions = false
             }
+        }
+        // Kam die Datei aus Healthy, waehrend der Tab offen war: neu laden.
+        .onChange(of: EvaluationImportState.shared.generation) { _, _ in
+            if lock.isUnlocked { store.load() }
         }
     }
 
@@ -212,10 +217,18 @@ struct EvaluationTab: View {
 }
 
 /// Farben je Frage, in der Reihenfolge der Fragen - dieselben Toene wie in den
-/// anderen Diagrammen, damit nichts neu gelernt werden muss.
+/// Diagrammen von Healthy (`Palette`: 7-Tage-Mittel, Messwert, 30, 14, Ziel,
+/// kcal), damit nichts neu gelernt werden muss. Hier ausgeschrieben, seit die
+/// Evaluation in Fokus wohnt (14.10.) und `Palette` nur Healthy kennt.
 enum EvaluationPalette {
-    static let colors: [Color] = [Palette.avg7, Palette.measured, Palette.avg30,
-                                  Palette.avg14, Palette.target, Palette.kcal]
+    static let colors: [Color] = [
+        .adaptive(light: 0x388E3C, dark: 0x81C784),
+        .adaptive(light: 0x0288D1, dark: 0x4FC3F7),
+        .adaptive(light: 0x7B1FA2, dark: 0xBA68C8),
+        .adaptive(light: 0xF57C00, dark: 0xFFB74D),
+        .adaptive(light: 0xD32F2F, dark: 0xE57373),
+        .adaptive(light: 0xD49C00, dark: 0xFFD54F, darkOpacity: 0.85),
+    ]
 
     static func color(at index: Int) -> Color { colors[index % colors.count] }
 }

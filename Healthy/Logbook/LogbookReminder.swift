@@ -5,11 +5,11 @@ import UserNotifications
 /// Mitteilung vom iPhone, nur wenn am Vortag noch etwas offen ist (Felix,
 /// 09.10.; seit 12.10. zaehlt jede Antwort fuer sich, Vertrag §4).
 ///
-/// Wie bei der Evaluation nicht als taeglich wiederholte Mitteilung: von der
-/// laesst sich ein einzelner Tag nicht abbestellen. Stattdessen je Tag eine,
-/// neu verteilt nach jeder Antwort und bei jedem Wechsel in den Vordergrund.
-/// Nur 14 Tage voraus: iOS haelt hoechstens 64 Mitteilungen je App bereit,
-/// und die Evaluation belegt schon 30.
+/// Wie bei der Evaluation (Fokus) nicht als taeglich wiederholte Mitteilung:
+/// von der laesst sich ein einzelner Tag nicht abbestellen. Stattdessen je Tag
+/// eine, neu verteilt nach jeder Antwort und bei jedem Wechsel in den
+/// Vordergrund. Nur 14 Tage voraus: iOS haelt hoechstens 64 Mitteilungen je App
+/// bereit (bis 14.10. belegte die Evaluation hier 30).
 ///
 /// Der Text nennt keine Verhaltensweise - er steht auf dem Sperrbildschirm.
 enum LogbookReminder {

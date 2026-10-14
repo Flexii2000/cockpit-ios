@@ -1,7 +1,8 @@
 import XCTest
 
 /// Fokus nach dem Umzug der Habits nach coHabit: To-Do vorn, der Wald
-/// daneben, kein Habits-Tab mehr.
+/// daneben, kein Habits-Tab mehr. Seit 14.10. dazu Einkauf und Evaluation
+/// (aus Healthy).
 final class FokusUITests: XCTestCase {
 
     override func setUp() {
@@ -246,5 +247,72 @@ final class FokusUITests: XCTestCase {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             _ = try? await URLSession.shared.data(for: request)
         }
+    }
+
+    // MARK: - Evaluation
+
+    /// Ein Jahr erfundener Antworten (nur im Speicher): Antworten oben, darunter
+    /// Linien, je Frage eine Heatmap und die Zusammenhaenge - unterhalb des
+    /// ersten Bildschirms, den `run-simulator.sh` allein zeigt.
+    func testEvaluationShowsAnswersChartAndHeatmaps() {
+        let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_DEMO": "1"])
+        XCTAssertTrue(app.staticTexts["Frage A"].firstMatch.waitForExistence(timeout: 15))
+        shoot(app, "evaluation-top")
+
+        let three = app.buttons.matching(identifier: "3").firstMatch
+        three.tap()
+        XCTAssertTrue(three.isSelected, "die getippte Zahl ist gesetzt")
+        three.tap()
+        XCTAssertFalse(three.isSelected, "noch einmal nimmt sie zurueck")
+
+        app.buttons["14 Tage"].tap()
+        scrollDown(app, times: 2)
+        shoot(app, "evaluation-fortnight")
+        scrollUp(app, times: 3)
+
+        app.buttons["1 Jahr"].tap()
+        scrollDown(app, times: 2)
+        shoot(app, "evaluation-year-heatmaps")
+        scrollDown(app, times: 3)
+        XCTAssertTrue(app.staticTexts["Zusammenhänge"].waitForExistence(timeout: 5))
+        shoot(app, "evaluation-correlations")
+        scrollDown(app, times: 4)
+        shoot(app, "evaluation-bottom")
+    }
+
+    /// Ohne Fragen: festlegen, eine beantworten - mit einer frischen Datei je
+    /// Lauf (`COCKPIT_EVALUATION_SCRATCH`), damit nichts liegen bleibt.
+    func testEvaluationQuestionsCanBeSetUp() {
+        let app = start(tab: "evaluation", extra: ["COCKPIT_EVALUATION_SCRATCH": "1"])
+        let setUp = app.buttons["Fragen festlegen"]
+        XCTAssertTrue(setUp.waitForExistence(timeout: 15))
+        shoot(app, "evaluation-empty")
+        setUp.tap()
+
+        let field = app.textFields["Frage"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("Frage X")
+        let shortLabel = app.textFields["Kurzname"].firstMatch
+        shortLabel.tap()
+        shortLabel.typeText("Kurz X")
+        shoot(app, "evaluation-questions-sheet")
+        app.buttons["Fertig"].tap()
+
+        XCTAssertTrue(app.staticTexts["Frage X"].firstMatch.waitForExistence(timeout: 5))
+        let seven = app.buttons.matching(identifier: "7").firstMatch
+        seven.tap()
+        XCTAssertTrue(seven.isSelected)
+        shoot(app, "evaluation-answered")
+    }
+
+    /// Die Evaluation steht in der Leiste - Einkauf nur mit Einkaufs-Token, wie
+    /// vorher in Healthy.
+    func testEvaluationTabIsInTheBar() {
+        let app = start(tab: "", extra: ["COCKPIT_EVALUATION_SCRATCH": "1"])
+        let evaluation = app.tabBars.buttons["Evaluation"]
+        XCTAssertTrue(evaluation.waitForExistence(timeout: 20), "keine Evaluation in der Leiste")
+        evaluation.tap()
+        XCTAssertTrue(app.navigationBars["Evaluation"].waitForExistence(timeout: 10))
+        shoot(app, "fokus-evaluation")
     }
 }
