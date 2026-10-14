@@ -1,5 +1,18 @@
 # Stand
 
+> **Gym-Habit in coHabit (14.10. abends):** Health-Metrik „Gym aus Healthy“ (`GYM`) – eine Serie,
+> z. B. „Gym, 2× pro Woche“, die der Dienst abhakt, sobald im Gym-Tab von Healthy ein Training
+> beendet ist (fragt `GET /api/gym/days` beim Weight Tracker): beim Anlegen, alle 15 Minuten und
+> beim Öffnen der App. Von Hand abhaken geht weiter. In `/me/days` eine Ja/Nein-Reihe, also auch in
+> den Effekten (Recovery) in Healthy. Branch `gym-habit` in habits, weight-app, cockpit-ios,
+> cohabit-android; Rollout `~/Server-Projects/deploy-gym-habit.sh`.
+> - **Geprüft:** habits 243 Tests (`GymApiTest`), weight-app 226, cohabit-android 202,
+>   `tools/verify.sh` (coHabit 182 mit `GymHabitTests`); lokal Ende zu Ende: Weight Tracker +
+>   coHabit, Habit per API angelegt → Haken für das beendete Training von heute, `/me/days` BINARY.
+> - **Nicht angesehen:** das Anlegen-Formular mit „Gym aus Healthy“ in iOS, Android und Web.
+> - **Auf dem Gerät:** in coHabit „Gym“ anlegen (Serie, 2× pro Woche, Health „Gym aus Healthy“)
+>   → in Healthy ein Training beenden → coHabit öffnen → Haken da.
+
 > **Gym-Nachtrag (14.10. nachmittags):** Wochentage je Trainingstag (dienstags ist der
 > Dienstag-Tag vorgewählt, ohne Treffer der nächste in der Reihe), eine Geräteliste vom
 > Weight Tracker (rund 65 Maschinen und freie Übungen nach Muskelgruppe, mit Suche; eigene

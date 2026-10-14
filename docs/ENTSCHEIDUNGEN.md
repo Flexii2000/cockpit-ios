@@ -3,6 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-14 (abends) — Gym-Habit in coHabit
+Felix: „ein Gym-Habit, das ich 2× die Woche abhaken will, automatisch abgehakt, wenn man einen
+Gym-Tag beendet hat, und in der Recovery-Auswertung“. In der Fragerunde gewählt:
+- **Von Hand und automatisch.** Deshalb eine Health-Metrik `GYM` wie die kcal aus Healthy
+  (HEALTH-Einträge, die der Dienst schreibt; Haken von Hand bleiben möglich) und **keine**
+  automatische Quelle wie „Track food“ – die verbietet Haken von Hand. Verworfen: nur automatisch.
+- **Neue Option „Gym aus Healthy“ beim Anlegen** in allen drei Clients (nur bei einer Serie, Haken
+  ohne Wert). Verworfen: nur Felix' Habit einmal direkt anlegen.
+- **Beim Öffnen von coHabit** (und alle 15 Minuten): `GymSync.refresh` an `/today`, `/widget`,
+  `/cohabits`, Detail und klassischer Liste, höchstens einmal je Minute, 2 s Frist. Nicht an
+  `/me/days`: dort fragt gerade der Weight Tracker, und ein Training von heute zählt in den Effekten
+  erst gegen die Recovery von morgen. Verworfen: nur der 15-Minuten-Takt.
+- Ohne Rückfrage entschieden: **Wer ein Gym-Habit anlegt, hat damit zugestimmt** (bei den kcal
+  schaltet man die Einwilligung danach selbst ein); Beigetretene stimmen selbst zu. Es zählt nur ein
+  **beendetes** Training. Die Recovery bekommt das Habit über `/me/days` wie jedes Co-Habit, als
+  Ja/Nein-Reihe (ab dem Start, von Hand oder aus Healthy) – kein eigener Prädiktor im Weight
+  Tracker, sonst stünde Gym doppelt da.
+
 ## 2026-10-14 (Nachtrag) — Gym: Wochentage, Geräteliste, Gewicht als Zahl
 Felix nach dem ersten Ausprobieren, in der Fragerunde gewählt:
 - **Wochentage beim Bearbeiten wählen** (je Tag Mo–So, auch mehrere): „dienstags bekommt man

@@ -410,9 +410,9 @@ struct HealthCard: View {
     }
 }
 
-/// kcal aus Healthy (`source: HEALTHY`): die Werte holt der Dienst selbst aus
-/// dem Kalorienzaehler - statt der Apple-Health-Abfrage nur die Einwilligung
-/// als Schalter. Ohne Healthy-Zugang ist er gesperrt.
+/// kcal oder Gym aus Healthy (`source: HEALTHY`): die Werte holt der Dienst
+/// selbst aus Kalorienzaehler bzw. Weight Tracker - statt der Apple-Health-Abfrage
+/// nur die Einwilligung als Schalter. Ohne Healthy-Zugang ist er gesperrt.
 struct HealthyCard: View {
     let health: HealthInfo
     let setConsent: (Bool) async -> Void
@@ -425,7 +425,7 @@ struct HealthyCard: View {
     var body: some View {
         let access = HealthyAccess.isAvailable
         HStack(spacing: 14) {
-            Image(systemName: "fork.knife")
+            Image(systemName: health.metric == "GYM" ? "dumbbell" : "fork.knife")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Ink.ink)
                 .frame(width: 48, height: 48)

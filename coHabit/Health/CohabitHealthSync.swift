@@ -214,7 +214,7 @@ final class CohabitHealthSync {
             return await workouts(predicate: predicate).map { list in
                 (list.reduce(0) { $0 + $1.duration } / 60).rounded()
             }
-        case "KCAL":
+        case "KCAL", "GYM":
             // Kommt aus Healthy, der Dienst holt es selbst - hier nichts lesen.
             return nil
         default:

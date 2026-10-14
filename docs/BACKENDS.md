@@ -635,7 +635,7 @@ mit dem Status.
 | PUT | `/cohabits/{id}/settings/me` | Stumm, Check-ins/Chat (`null` = wie global), Unterbrechungen teilen, Health-Einwilligung |
 | POST/DELETE | `/cohabits/{id}/pauses[/{pauseId}]` | Pausen (Streak) |
 | POST/PUT/DELETE | `/cohabits/{id}/checkins[/{checkinId}]` | Abhaken, eigene Einträge bearbeiten/löschen; bis zu vier Fotos (`photoIds`), bei Laufpunkten mit `durationMinutes`/`distanceKm` (siehe unten) |
-| PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) |
+| PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) und `GYM` (400 „Die Trainings kommen aus Healthy.“) |
 | PUT | `/cohabits/{id}/count/{date}` | `{"count"}` → `CohabitDetail` — nur beim Tageslimit (seit 12.10., Vertrag §2.5a): die Zahl des Tages, absolut; der Dienst schreibt sie ins Logbook. 400 Frist/Zahl/Grund des Logbooks, 409 archiviert, 503 Logbook nicht erreichbar (die App wartet dann im Postausgang, `limitCount`) |
 | GET | `/logbook/behaviors` | die eigenen Verhaltensweisen mit Menge - zur Wahl für ein Tageslimit (die App fragt es noch nicht ab) |
 | GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat; Nachricht mit `gif` (KLIPY) oder eigenem GIF (`photoAnimated`), siehe unten |
@@ -681,6 +681,16 @@ Healthy-Zugang.“, `PUT …/health/{date}` bei KCAL → 400. Die App liest für
 `HEALTHY` nichts aus Apple Health, fragt nicht nach einer Erlaubnis
 (`CohabitHealthSync.readsFromDevice`) und zeigt statt „Verbinden“ den Schalter
 (`HealthyCard`, `PUT …/settings/me {healthConsent}`), gesperrt ohne `FOOD`.
+
+⚠️ **Gym aus Healthy (seit 2026-10-14):** Health-Metrik `GYM` („Gym aus
+Healthy“, `source: HEALTHY`) — der Dienst hakt Tage mit beendetem Training aus
+dem Gym-Tab ab (`GymSync`, fragt `GET /api/gym/days` beim Weight Tracker),
+beim Anlegen (die Anlegerin stimmt damit zu), nach der Zustimmung, alle 15
+Minuten und beim Öffnen (`/today`, `/widget`, `/cohabits`, Detail). **Nur
+Serie**, `tracking: CHECK`; von Hand abhaken geht weiter. Die App bietet `GYM`
+nur bei einer Serie an (`CohabitSettingsForm.metrics(for:)`), blendet dann
+„Mit Wert erfassen“ aus, liest nichts aus Apple Health und zeigt die
+`HealthyCard` mit Hantel statt Besteck.
 
 ⚠️ **Fokus-Habits nach Kategorie und Zeitraum (seit 2026-10-01, `../habits`
 Commit `10536d7`):** `config.auto` hat bei `FOCUS` drei Felder mehr:

@@ -488,7 +488,8 @@ struct CohabitSettingsForm: View {
             ToggleRow(title: "Beweisfoto-Pflicht", isOn: $config.photoRequired, identifier: "photoRequired")
             FormDivider()
         }
-        if config.type == .streak && config.auto == nil {
+        // Gym aus Healthy ist ein Haken ohne Wert - der Schalter haette nichts zu sagen.
+        if config.type == .streak && config.auto == nil && config.health?.metric != "GYM" {
             ToggleRow(title: "Mit Wert erfassen", isOn: Binding(
                 get: { config.tracking.isValue },
                 set: { config.tracking = $0 ? .init(mode: "VALUE", unit: config.tracking.unit ?? "COUNT") : .check }))
@@ -508,7 +509,7 @@ struct CohabitSettingsForm: View {
                     get: { config.health?.metric ?? "" },
                     set: { applyHealth($0) })) {
                     Text("Keine").tag("")
-                    ForEach(Self.metrics, id: \.0) { metric, title in
+                    ForEach(Self.metrics(for: config.type), id: \.0) { metric, title in
                         Text(title).tag(metric)
                     }
                 }
@@ -583,7 +584,12 @@ struct CohabitSettingsForm: View {
 
     static let metrics = [("STEPS", "Schritte"), ("RUNNING_DISTANCE", "Laufdistanz"),
                           ("WORKOUTS", "Trainings"), ("WORKOUT_MINUTES", "Trainingsminuten"),
-                          ("KCAL", "kcal aus Healthy")]
+                          ("KCAL", "kcal aus Healthy"), ("GYM", "Gym aus Healthy")]
+
+    /// Gym aus Healthy gibt es nur als Serie (der Dienst lehnt es sonst ab).
+    static func metrics(for type: CohabitType) -> [(String, String)] {
+        type == .streak ? metrics : metrics.filter { $0.0 != "GYM" }
+    }
 
     /// Eine Health-Metrik bringt ihre Einheit mit - ein Ziel „100.000
     /// Schritte" zaehlt Mengen, keine Eintraege.
@@ -593,6 +599,11 @@ struct CohabitSettingsForm: View {
             return
         }
         config.health = .init(metric: metric)
+        // Ein beendetes Training im Gym-Tab ist ein Haken, keine Menge.
+        if metric == "GYM" {
+            config.tracking = .check
+            return
+        }
         config.tracking = .init(mode: "VALUE", unit: Self.unit(forHealthMetric: metric))
         if config.type == .goal { config.goal?.counting = "AMOUNT" }
         if config.type == .challenge, config.challenge?.scoring == "MOST_ENTRIES" {
