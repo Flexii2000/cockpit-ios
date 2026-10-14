@@ -70,8 +70,9 @@ EOF
 
 if [ -z "${DEVICE_ID:-}" ]; then
     echo "Kein gekoppeltes iPhone gefunden." >&2
-    echo "Einmal per Kabel anschliessen und in Xcode unter Window > Devices" >&2
-    echo "\"Connect via network\" anhaken - danach geht es drahtlos." >&2
+    echo "Einmal per Kabel anschliessen und in DeviceHub (Xcode 27: die Geraete-App" >&2
+    echo "in Xcode.app/Contents/Applications) \"Connect via network\" anhaken -" >&2
+    echo "danach geht es drahtlos." >&2
     exit 1
 fi
 
@@ -133,11 +134,27 @@ for device in json.load(open(sys.argv[1])).get("result", {}).get("devices", []):
 PY
 )
     if [ -n "$WATCH_ID" ] && [ -d "$WATCH_APP" ]; then
-        xcrun devicectl device info details --device "$WATCH_ID" > /dev/null 2>&1 || true
-        if xcrun devicectl device install app --device "$WATCH_ID" "$WATCH_APP"; then
+        # Drei Versuche: beim Rollout am 14.10. blieb es bei der Warnung, und
+        # gleich danach ging die Installation auf Anhieb - eine Uhr mit
+        # gesenktem Arm laesst den Tunnel gern ruhen.
+        INSTALLED=false
+        for ATTEMPT in 1 2 3; do
+            xcrun devicectl device info details --device "$WATCH_ID" > /dev/null 2>&1 || true
+            if xcrun devicectl device install app --device "$WATCH_ID" "$WATCH_APP"; then
+                INSTALLED=true
+                break
+            fi
+            if [ "$ATTEMPT" -lt 3 ]; then
+                echo "Uhr antwortet nicht - Handgelenk heben, Uhr entsperrt lassen. Neuer Versuch in 10 s ..." >&2
+                sleep 10
+            fi
+        done
+        if $INSTALLED; then
             echo "Uhr-App installiert."
         else
             echo "WARNUNG: Uhr-App nicht installiert - Entwicklermodus auf der Uhr an?" >&2
+            echo "(Der Schalter erscheint erst, wenn DeviceHub die Uhr einmal geoeffnet hat -" >&2
+            echo "Xcode 27: Xcode.app/Contents/Applications/DeviceHub.app.)" >&2
             echo "Sonst einmal in Xcode das Schema HealthyWatch auf der Uhr starten." >&2
         fi
     else

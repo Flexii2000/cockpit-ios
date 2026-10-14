@@ -304,10 +304,10 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | DELETE | `/api/logbook/days/{date}` | 204 — zurück auf „nie ausgefüllt" (die App benutzt es nicht) |
 | GET | `/api/logbook/days?from=&to=` | `[LogbookDay]` |
 | GET | `/api/logbook/insights?days=30\|90\|180\|365` | `InsightsView` (Vorgabe 90, anderes → 400) |
-| GET | `/api/gym` | `GymState` — Geräte, Tage, `nextDayId`, Besuche gestern–morgen, `last` je Gerät (seit 14.10., Vertrag §6) |
+| GET | `/api/gym` | `GymState` — Geräte, Tage, `nextDayId`, Besuche gestern–morgen, `last` je Gerät, `catalog` (Geräteliste) (seit 14.10., Vertrag §6) |
 | GET | `/api/gym/history?machineId=&from=` | `[HistoryPoint]` — je Besuch der schwerste Satz, älteste zuerst |
 | PUT | `/api/gym/machines/{id}` | `{name?, archived?}` → `Machine`; Kennung der App (`m-…`), neu braucht `name` |
-| PUT | `/api/gym/days/{id}` | `{name?, position?, exercises?}` → `TrainingDay`; `exercises` ersetzt die ganze Liste — die App schickt immer den ganzen Tag |
+| PUT | `/api/gym/days/{id}` | `{name?, position?, weekdays?, exercises?}` → `TrainingDay`; `exercises` ersetzt die ganze Liste, `weekdays` (ISO 1–7) die Wochentage — die App schickt immer den ganzen Tag |
 | PUT | `/api/gym/days/{dayId}/exercises/{id}` | `{machineId?, sets?, reps?, weightKg?, position?}` → `TrainingDay` — Gewicht im Training = neuer Plan |
 | DELETE | `/api/gym/days/{id}` · `…/exercises/{id}` | 204, auch wenn nichts (mehr) da ist — braucht Netz, nicht in die Warteschlange |
 | PUT | `/api/gym/sessions/{id}` | `{dayId, date, startedAt, endedAt?}` → `Session`; der neueste Stand gilt ganz, die Sätze bleiben |
@@ -337,9 +337,9 @@ HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | 
 LogbookView     behaviors: [Behavior], backfillDays (14), backfillFrom, today, days: [LogbookDay]
 Behavior        id ("b-…"), name, unit?, createdAt, archived
 GymState        today, machines: [Machine], days: [TrainingDay], nextDayId?, sessions: [Session],
-                last: {machineId: {date, weightKg, sets, reps}}
+                last: {machineId: {date, weightKg, sets, reps}}, catalog: [{name, entries: [String]}]
 Machine         id ("m-…"), name, archived, createdAt
-TrainingDay     id ("d-…"), name, position, updatedAt, exercises: [{id ("e-…"), machineId, sets (1–10),
+TrainingDay     id ("d-…"), name, position, weekdays: [1–7] (ISO, fehlt in alten Ständen), updatedAt, exercises: [{id ("e-…"), machineId, sets (1–10),
                 reps (1–100), weightKg (0–500, 0 = ohne Gewicht)}]
 Session         id ("s-…"), dayId, date, startedAt, endedAt?, sets: [{exerciseId, machineId, index (0–19),
                 weightKg, reps, doneAt}]

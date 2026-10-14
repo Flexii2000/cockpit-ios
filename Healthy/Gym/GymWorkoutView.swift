@@ -98,6 +98,9 @@ struct GymWorkoutView: View {
             }
             GymSetCircles(store: store, day: day, exercise: exercise, size: 40)
             GymPlanControls(store: store, dayId: day.id, exercise: exercise)
+                // Ein anderes Geraet ist ein anderes Feld - sonst stuende im
+                // Gewicht kurz noch die Zahl des vorigen.
+                .id(exercise.id)
             if let last = store.state?.last[exercise.machineId] {
                 Button {
                     sheet = .history(machineId: exercise.machineId)

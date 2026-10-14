@@ -401,9 +401,11 @@ final class HealthyUITests: XCTestCase {
     // MARK: - Gym
 
     /// Gegen einen lokalen Weight Tracker (`COCKPIT_URL_WEIGHT=http://127.0.0.1:…`,
-    /// leerer Datenordner): Tag anlegen, Geraet dazu, Satz abhaken, Training
-    /// starten, „Satz erledigt“, beenden. Was beim Dienst ankam, prueft der Aufrufer
-    /// danach per curl (`/api/gym`).
+    /// leerer Datenordner): Tag A ohne, Tag B mit dem heutigen Wochentag anlegen,
+    /// an A ein eigenes Geraet mit getipptem Gewicht, an B eines aus der
+    /// Geraeteliste, Satz abhaken, Training starten (vorgewaehlt: B, weil heute
+    /// sein Wochentag ist), „Satz erledigt“, beenden. Was beim Dienst ankam,
+    /// prueft der Aufrufer danach per curl (`/api/gym`).
     func testGymPlanTickAndTraining() throws {
         let url = ProcessInfo.processInfo.environment["COCKPIT_URL_WEIGHT"] ?? ""
         try XCTSkipIf(!url.hasPrefix("http://127.0.0.1"), "nur gegen einen lokalen Weight Tracker")
@@ -413,20 +415,50 @@ final class HealthyUITests: XCTestCase {
         XCTAssertTrue(first.waitForExistence(timeout: 20), "leeres Gym ohne Knopf")
         shoot(app, "gym-leer")
         first.tap()
-        let name = app.textFields["gymName"]
-        XCTAssertTrue(name.waitForExistence(timeout: 5))
-        name.typeText("Tag A")
-        // Die Tastatur hat auch ein „Fertig“ - gemeint ist das in der Leiste.
-        app.navigationBars.buttons["Fertig"].tap()
+        addDay(app, "Tag A", weekday: nil)
+        app.buttons["gymMenu"].tap()
+        app.buttons["Trainingstag anlegen"].tap()
+        // ISO-Wochentag von heute (1 = Montag), wie in der App.
+        let weekday = (Calendar(identifier: .gregorian).component(.weekday, from: Date()) + 5) % 7 + 1
+        addDay(app, "Tag B", weekday: weekday)
 
-        let add = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymAddExercise-'")).firstMatch
-        XCTAssertTrue(add.waitForExistence(timeout: 10), "neuer Tag ohne „Gerät hinzufügen“")
-        add.tap()
-        let machine = app.textFields["gymNewMachine"]
-        XCTAssertTrue(machine.waitForExistence(timeout: 5))
-        machine.tap()
-        machine.typeText("Gerät A")
+        // Tag A: ein eigenes Geraet ueber die Suche.
+        let adds = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymAddExercise-'"))
+        XCTAssertTrue(adds.firstMatch.waitForExistence(timeout: 10), "neuer Tag ohne „Gerät hinzufügen“")
+        adds.element(boundBy: 0).tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5), "Geraeteauswahl ohne Suche")
+        shoot(app, "gym-geraeteliste")
+        search.tap()
+        search.typeText("Gerät A")
         app.buttons["gymAddNewMachine"].tap()
+
+        // Tag B: das erste aus der Geraeteliste des Dienstes (darueber steht „Gerät A“ als eigenes).
+        XCTAssertTrue(adds.firstMatch.waitForExistence(timeout: 10))
+        adds.firstMatch.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymOwn-'")).firstMatch
+            .waitForExistence(timeout: 5), "eigenes Geraet fehlt in der Auswahl")
+        let pick = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymPick-'")).firstMatch
+        XCTAssertTrue(pick.waitForExistence(timeout: 5), "keine Geraeteliste vom Dienst")
+        let picked = String(pick.identifier.dropFirst("gymPick-".count))
+        shoot(app, "gym-geraeteliste-tag-b")
+        pick.tap()
+        XCTAssertTrue(app.staticTexts[picked].waitForExistence(timeout: 10), "„\(picked)“ nicht am Tag")
+
+        // Gewicht tippen: am Geraet von Tag A.
+        let exercise = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymExercise-'")).firstMatch
+        XCTAssertTrue(exercise.waitForExistence(timeout: 10))
+        exercise.tap()
+        let weight = app.textFields["gymWeight"]
+        XCTAssertTrue(weight.waitForExistence(timeout: 5), "kein Gewichtsfeld")
+        weight.tap()
+        weight.typeText("37.5")
+        app.buttons["gymWeightDone"].tap()
+        shoot(app, "gym-gewicht")
+        XCTAssertEqual(weight.value as? String, "37,5", "deutsch mit Komma zurueck")
+        app.navigationBars.buttons["Fertig"].tap()
+        XCTAssertTrue(exercise.waitForExistence(timeout: 5))
+        XCTAssertTrue(exercise.label.contains("37,5 kg"), exercise.label)
 
         let set0 = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymSet-' AND identifier ENDSWITH '-0'")).firstMatch
         XCTAssertTrue(set0.waitForExistence(timeout: 10), "Geraet ohne Satz-Kreise")
@@ -434,15 +466,31 @@ final class HealthyUITests: XCTestCase {
         shoot(app, "gym-abgehakt")
         XCTAssertEqual(set0.value as? String, "erledigt")
 
+        // Heute ist der Wochentag von B - B ist vorgewaehlt, nicht A aus der Reihe.
+        XCTAssertTrue(app.buttons["gymDayMenu"].label.contains("Tag B"), app.buttons["gymDayMenu"].label)
         app.buttons["gymStart"].tap()
         let done = app.buttons["gymSetDone"]
         XCTAssertTrue(done.waitForExistence(timeout: 10), "keine Trainingsansicht")
+        XCTAssertTrue(app.navigationBars["Tag B"].exists, "Training mit dem falschen Tag")
         done.tap()
         shoot(app, "gym-training")
         scrollDown(app, times: 1)
         app.buttons["gymFinish"].tap()
         XCTAssertTrue(app.buttons["gymStart"].waitForExistence(timeout: 10), "nach „Beenden“ zurueck in der Uebersicht")
         shoot(app, "gym-beendet")
+    }
+
+    /// Im offenen Tag-Blatt: Name, wahlweise ein Wochentag, „Fertig“.
+    private func addDay(_ app: XCUIApplication, _ name: String, weekday: Int?) {
+        let field = app.textFields["gymName"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText(name)
+        if let weekday {
+            app.buttons["gymWeekday-\(weekday)"].tap()
+            shoot(app, "gym-tag")
+        }
+        app.buttons["gymDayDone"].tap()
+        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 10), name)
     }
 
     func testTabsAreReachable() {

@@ -244,7 +244,7 @@ Tastaturverhalten, Gesten im Diagramm, Kontextmenüs. Drei Nachbesserungen
 kamen genau daher (04.09.).
 
 `install-device.sh` sucht das iPhone selbst. Es muss einmal per Kabel mit
-Xcode gekoppelt worden sein (`Window > Devices`, „Connect via network"),
+Xcode gekoppelt worden sein (Xcode 27: App DeviceHub, „Connect via network"),
 danach reicht dasselbe WLAN. Ist es gesperrt oder nicht im Netz, bricht das
 Skript mit einer Erklärung ab statt mit einem Fehlercode.
 

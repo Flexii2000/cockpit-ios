@@ -3,6 +3,25 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-14 (Nachtrag) — Gym: Wochentage, Geräteliste, Gewicht als Zahl
+Felix nach dem ersten Ausprobieren, in der Fragerunde gewählt:
+- **Wochentage beim Bearbeiten wählen** (je Tag Mo–So, auch mehrere): „dienstags bekommt man
+  den Dienstag“. Ohne Treffer bleibt es beim nächsten Tag in der Reihe; haben mehrere Tage
+  den Wochentag, gewinnt der, der in der Reihe dran ist. **Gerechnet in der App**
+  (`GymState.suggestedDay`), nicht im Dienst: im Gym ohne Netz kann der Stand von gestern
+  sein, das Datum des Handys stimmt immer. Verworfen: Tage heißen Wochentage (kein freier
+  Name mehr); aus dem Verlauf lernen (nichts einzustellen, greift aber erst nach Wochen).
+- **Geräteliste: Maschinen und freie Übungen, deutsch, nach Muskelgruppe** (rund 65), mit
+  Suche; eigene Geräte gehen weiter. **Die Liste liefert der Weight Tracker** (`catalog` in
+  `GET /api/gym`): eine Liste für iOS und Android, ergänzen ohne neue App-Fassung - und keine
+  Gerätenamen in diesem öffentlichen Repo. Gewählt wird ein Name; gibt es ihn schon als
+  Gerät, nimmt die App das (der Verlauf bleibt beisammen). Verworfen: nur Maschinen; die
+  Geräte eines bestimmten Studios; englische Namen.
+- **Gewicht als Zahl** statt „− n +“ in 2,5-kg-Schritten (Sätze und Wiederholungen bleiben
+  „− n +“). Gespeichert wird beim Verlassen des Felds bzw. mit „Fertig“ über der Tastatur,
+  nicht je Ziffer.
+- **Android bekommt alles** (1.7).
+
 ## 2026-10-14 — Healthy: Gym-Tab, Uhr-App, Sperrbildschirm-Schritte; Evaluation und Einkauf nach Fokus
 Felix' Wünsche vom 14.10. (Plan `~/.claude/plans/hier-ein-paar-dinge-vast-wand.md`), in
 der Fragerunde gewählt:

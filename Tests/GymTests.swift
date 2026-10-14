@@ -96,6 +96,64 @@ final class GymTests: XCTestCase {
         let body = try json(.day(day))
         XCTAssertEqual((body["exercises"] as? [[String: Any]])?.first?["id"] as? String, "e-1")
         XCTAssertEqual(body["position"] as? Int, 0)
+        XCTAssertEqual(body["weekdays"] as? [Int], [], "immer mit - leer nimmt sie weg")
+    }
+
+    // MARK: - Wochentage
+
+    /// Mittwoch, 14.10.2026 - ISO 3.
+    private func days(_ weekdays: [[Int]], next: String?) -> GymState {
+        var state = state()
+        state.days = weekdays.enumerated().map { index, days in
+            GymDay(id: "d-\(index)", name: "Tag \(index)", position: index, exercises: [], weekdays: days)
+        }
+        state.nextDayId = next
+        return state
+    }
+
+    func testIsoWeekdayStartsOnMonday() {
+        XCTAssertEqual(CalendarDate(year: 2026, month: 10, day: 12).isoWeekday, 1)
+        XCTAssertEqual(today.isoWeekday, 3)
+        XCTAssertEqual(CalendarDate(year: 2026, month: 10, day: 18).isoWeekday, 7)
+    }
+
+    func testTheDayOfTodaysWeekdayBeatsTheRotation() {
+        // „Dienstags bekommt man den Dienstag“ - hier Mittwoch.
+        XCTAssertEqual(days([[1, 4], [3], []], next: "d-2").suggestedDay(on: today)?.id, "d-1")
+    }
+
+    func testWithoutTodaysWeekdayTheRotationDecides() {
+        XCTAssertEqual(days([[1], [5], []], next: "d-2").suggestedDay(on: today)?.id, "d-2")
+        XCTAssertEqual(days([[1], [5]], next: nil).suggestedDay(on: today)?.id, "d-0")
+    }
+
+    func testTwoDaysOnTodaysWeekdayPreferTheOneInTurn() {
+        XCTAssertEqual(days([[3], [3]], next: "d-1").suggestedDay(on: today)?.id, "d-1")
+        XCTAssertEqual(days([[3], [3], []], next: "d-2").suggestedDay(on: today)?.id, "d-0")
+    }
+
+    func testWeekdaysReadShort() {
+        XCTAssertEqual(GymFormat.weekdays([5, 2]), "Di · Fr")
+        XCTAssertEqual(GymFormat.weekdays([]), "")
+    }
+
+    // MARK: - Gewicht als Zahl
+
+    func testTypedWeightsParse() {
+        XCTAssertEqual(GymFormat.parseWeight("37,5"), 37.5)
+        XCTAssertEqual(GymFormat.parseWeight("37.5"), 37.5)
+        XCTAssertEqual(GymFormat.parseWeight(" 40 kg"), 40)
+        XCTAssertEqual(GymFormat.parseWeight("12,345"), 12.35, "auf 0,01 wie der Dienst")
+        XCTAssertEqual(GymFormat.parseWeight(""), 0, "leer ist ohne Gewicht")
+        XCTAssertNil(GymFormat.parseWeight("abc"))
+        XCTAssertNil(GymFormat.parseWeight("-5"))
+        XCTAssertNil(GymFormat.parseWeight("500,5"))
+    }
+
+    func testTheWeightFieldShowsAPlainNumber() {
+        XCTAssertEqual(GymFormat.weightField(37.5), "37,5")
+        XCTAssertEqual(GymFormat.weightField(40), "40")
+        XCTAssertEqual(GymFormat.weightField(0), "")
     }
 
     // MARK: - Anzeige
@@ -137,5 +195,23 @@ final class GymTests: XCTestCase {
         XCTAssertNil(state.nextDayId)
         XCTAssertEqual(state.last["m-1"]?.weightKg, 37.5)
         XCTAssertEqual(state.sessions.first?.sets.first?.index, 0)
+        // Der Stand von vor dem Nachtrag (14.10.): ohne Wochentage und Geraeteliste.
+        XCTAssertEqual(state.days.first?.weekdays, [])
+        XCTAssertEqual(state.catalog, [])
+    }
+
+    func testDecodesWeekdaysAndTheCatalog() throws {
+        let json = """
+        {"today":"2026-10-14","machines":[],"nextDayId":"d-1","sessions":[],"last":{},
+         "days":[{"id":"d-1","name":"Tag A","position":0,"weekdays":[2,5],"exercises":[]}],
+         "catalog":[{"name":"Gruppe A","entries":["Gerät G","Gerät H"]}]}
+        """
+        let state = try APIClient.decoder().decode(GymState.self, from: Data(json.utf8))
+        XCTAssertEqual(state.days.first?.weekdays, [2, 5])
+        XCTAssertEqual(state.catalog.first?.entries, ["Gerät G", "Gerät H"])
+
+        // Zwischenspeicher und Warteschlange: was die App selbst schreibt, liest sie wieder.
+        let again = try APIClient.decoder().decode(GymState.self, from: APIClient.encoder().encode(state))
+        XCTAssertEqual(again, state)
     }
 }

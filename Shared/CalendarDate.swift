@@ -61,6 +61,15 @@ struct CalendarDate: Hashable, Comparable, Codable, Sendable {
         return CalendarDate(date: shifted)
     }
 
+    /// Der Wochentag nach ISO: 1 = Montag … 7 = Sonntag - wie `java.time.DayOfWeek`
+    /// im Dienst. Gerechnet in UTC, damit der Tag nicht ueber die Zone kippt.
+    var isoWeekday: Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
+        let weekday = calendar.component(.weekday, from: startOfDay(in: calendar.timeZone))
+        return (weekday + 5) % 7 + 1
+    }
+
     static func < (lhs: CalendarDate, rhs: CalendarDate) -> Bool {
         (lhs.year, lhs.month, lhs.day) < (rhs.year, rhs.month, rhs.day)
     }

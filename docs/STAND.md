@@ -1,10 +1,24 @@
 # Stand
 
+> **Gym-Nachtrag (14.10. nachmittags):** Wochentage je Trainingstag (dienstags ist der
+> Dienstag-Tag vorgewählt, ohne Treffer der nächste in der Reihe), eine Geräteliste vom
+> Weight Tracker (rund 65 Maschinen und freie Übungen nach Muskelgruppe, mit Suche; eigene
+> Geräte gehen weiter), das Gewicht als Zahl statt „− n +“. Branch `gym-plus` in
+> cockpit-ios, weight-app, healthy-android (1.7); nicht gemergt, nicht gepusht. Ausgerollt
+> wird mit `~/Server-Projects/deploy-gym-plus.sh` (Weight Tracker → Healthy → Android).
+> `install-device.sh` versucht die Uhr jetzt dreimal (beim Rollout am Mittag fehlte die
+> Uhr-App danach - von Hand nachinstalliert).
+> - **Geprüft:** `tools/verify.sh`, Healthy 281 XCTests (neu: Wochentage, Gewicht
+>   eintippen, alter Stand ohne die neuen Felder), weight-app 225, healthy-android 616.
+>   UI-Test `testGymPlanTickAndTraining` gegen einen lokalen Weight Tracker.
+> - **Auf dem Gerät prüfen:** einem Tag Wochentage geben → an dem Tag oben vorgewählt;
+>   Gerät hinzufügen → Liste mit Suche, ein gesuchter Name, den es nicht gibt, lässt sich
+>   anlegen; Gewicht antippen → Zahlentastatur, „Fertig“ über der Tastatur speichert.
+>
 > **Healthy: Gym-Tab, Uhr-App, Sperrbildschirm-Schritte, „Heute“-Knopf; Evaluation und
-> Einkauf nach Fokus (14.10.):** Branch `gym-watch` in cockpit-ios, weight-app,
-> healthy-android (1.6); nicht gemergt, nicht gepusht. Ausgerollt wird **alles auf einmal**
-> mit `~/Server-Projects/deploy-healthy-gym.sh` (Weight Tracker → Healthy samt Uhr →
-> Fokus → Android). Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §6.
+> Einkauf nach Fokus (14.10.):** seit 14.10. mittags ausgerollt (`deploy-healthy-gym.sh`;
+> Uhr-App danach von Hand per `devicectl` nachinstalliert). Vertrag
+> `weight-app/docs/HEALTHY-CONTRACT.md` §6.
 > - **Geprüft:** `tools/verify.sh` (alle fünf + `HealthyWatch`; Healthy 273 XCTests + 31
 >   Swift-Tests, Fokus 41 mit `EvaluationHandoffTests`, coHabit 180), weight-app 221 Tests,
 >   healthy-android 604 Tests (`GymTest`, `GymViewModelTest`); UI-Tests
@@ -15,10 +29,10 @@
 >   der Uhr-App im Uhren-Simulator (`COCKPIT_WATCH_DEMO`), Android im Emulator gegen den
 >   lokalen Dienst (dabei gefunden und behoben: zweiter Besuch bei „Training starten“
 >   direkt nach einem Haken).
-> - **Nicht geprüft:** der signierte Gerätebau - Xcode meldet „No Accounts“, ohne
->   angemeldetes Konto bekommen die neuen Uhr-IDs (`com.fherrmann.cockpit.watchkitapp`,
->   `….widget`) kein Profil. **Felix: Xcode → Settings → Accounts anmelden**, dann läuft
->   `install-device.sh Healthy` durch. Auf der Uhr den Entwicklermodus einschalten.
+> - **Gerätebau:** signiert seit Felix' Xcode-Anmeldung. Die Uhr kam nur über einen Bau
+>   mit `-destination id=<Uhr>` + `-allowProvisioningDeviceRegistration` ins Profil; der
+>   Schalter „Entwicklermodus“ erschien auf der Uhr erst, nachdem DeviceHub (Xcode 27, ersetzt
+>   „Devices and Simulators“) sie geöffnet hatte.
 > - **Auf dem Gerät prüfen:** (1) Fokus → Evaluation zeigt alle alten Antworten, Face ID
 >   fragt, die 21:30-Erinnerung kommt nur noch aus Fokus; Healthy hat keinen
 >   Evaluation-Tab mehr. (2) Fokus → Einkauf. (3) Sperrbildschirm: „Schritte“ (Ring) und

@@ -165,7 +165,12 @@ struct GymDayCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(day.name).font(.headline)
-                if store.state?.nextDayId == day.id {
+                if !day.weekdays.isEmpty {
+                    Text(GymFormat.weekdays(day.weekdays))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                if store.nextDay?.id == day.id {
                     Image(systemName: "arrow.right.circle.fill")
                         .foregroundStyle(Color.accentColor)
                         .accessibilityLabel("ist dran")
@@ -173,7 +178,7 @@ struct GymDayCard: View {
                 Spacer()
                 Menu {
                     Button("Gerät hinzufügen", systemImage: "plus") { sheet = .addExercise(dayId: day.id) }
-                    Button("Umbenennen", systemImage: "pencil") { sheet = .renameDay(dayId: day.id) }
+                    Button("Bearbeiten", systemImage: "pencil") { sheet = .editDay(dayId: day.id) }
                     if day.exercises.count > 1 {
                         Button("Geräte ordnen", systemImage: "arrow.up.arrow.down") { reordering = true }
                     }

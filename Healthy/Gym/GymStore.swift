@@ -122,19 +122,22 @@ final class GymStore {
 
     // MARK: - Trainingstage
 
-    func addDay(name: String) {
+    func addDay(name: String, weekdays: [Int]) {
         let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty, let state else { return }
         let position = (state.days.map(\.position).max() ?? -1) + 1
-        send(.day(GymDay(id: GymID.make("d"), name: clean, position: position, exercises: [])), label: clean)
+        send(.day(GymDay(id: GymID.make("d"), name: clean, position: position, exercises: [],
+                         weekdays: weekdays.sorted())), label: clean)
     }
 
-    func rename(_ day: GymDay, to name: String) {
+    /// Name und Wochentage eines Tages.
+    func edit(_ day: GymDay, name: String, weekdays: [Int]) {
         let clean = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty, clean != day.name else { return }
         var changed = day
-        changed.name = clean
-        send(.day(changed), label: clean)
+        if !clean.isEmpty { changed.name = clean }
+        changed.weekdays = weekdays.sorted()
+        guard changed != day else { return }
+        send(.day(changed), label: changed.name)
     }
 
     /// Neue Reihenfolge der Tage - danach geht die Reihe A → B → C.
@@ -277,10 +280,10 @@ final class GymStore {
 
     // MARK: - Training
 
-    /// Der Tag, der dran ist (rechnet der Dienst) - sonst der erste.
+    /// Der Tag, der vorgewaehlt ist: der mit dem heutigen Wochentag, sonst der
+    /// in der Reihe (`GymState.suggestedDay`).
     var nextDay: GymDay? {
-        guard let state else { return nil }
-        return state.nextDayId.flatMap(state.day) ?? state.days.first
+        state?.suggestedDay(on: today)
     }
 
     var workoutDay: GymDay? {

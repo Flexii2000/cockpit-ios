@@ -40,7 +40,7 @@ enum GymChange: Codable, Equatable, Sendable {
         case .day(let day):
             PendingRequest(method: "PUT", path: "/api/gym/days/\(day.id)",
                            body: Self.encode(DayBody(name: day.name, position: day.position,
-                                                     exercises: day.exercises)))
+                                                     weekdays: day.weekdays, exercises: day.exercises)))
         case .exercise(let dayId, let exercise):
             PendingRequest(method: "PUT", path: "/api/gym/days/\(dayId)/exercises/\(exercise.id)",
                            body: Self.encode(ExerciseBody(machineId: exercise.machineId, sets: exercise.sets,
@@ -67,7 +67,7 @@ enum GymChange: Codable, Equatable, Sendable {
     // MARK: - Ruempfe
 
     private struct MachineBody: Encodable { let name: String; let archived: Bool }
-    private struct DayBody: Encodable { let name: String; let position: Int; let exercises: [GymExercise] }
+    private struct DayBody: Encodable { let name: String; let position: Int; let weekdays: [Int]; let exercises: [GymExercise] }
     private struct ExerciseBody: Encodable { let machineId: String; let sets: Int; let reps: Int; let weightKg: Double }
     private struct SessionBody: Encodable { let dayId: String; let date: CalendarDate; let startedAt: Date; let endedAt: Date? }
     private struct TickBody: Encodable { let weightKg: Double?; let reps: Int?; let doneAt: Date? }
