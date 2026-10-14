@@ -69,8 +69,8 @@ final class HealthSync {
 
     /// Wie weit jeder Abgleich zuruecklieset.
     ///
-    /// Nicht nur heute: fuer Schritte und Energie gibt es bewusst **keine**
-    /// Hintergrundzustellung (siehe `syncSteps`), ohne dieses Fenster fehlte
+    /// Nicht nur heute: Schritte und Energie gehen bewusst **nicht** aus der
+    /// Hintergrundzustellung zum Dienst (siehe `syncSteps`), ohne dieses Fenster fehlte
     /// also jeder Tag, an dem die App nicht offen war. Erst nach mehr als
     /// dreissig solchen Tagen entsteht eine echte Luecke.
     private static let stepWindowDays = 30
@@ -411,17 +411,22 @@ final class HealthSync {
         let start = day.startOfDay()
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
         let buckets = await stepBuckets(from: start, to: end)
-        return HealthSteps.dailyValues(buckets).first?.steps
+        let steps = HealthSteps.dailyValues(buckets).first?.steps
+        // Jeder Blick auf heute geht auch an die Sperrbildschirm-Kacheln: die
+        // kommen bei gesperrtem iPhone selbst nicht an Health heran.
+        if let steps, day == .today() { StepsWidgetBridge.mirror(steps: steps) }
+        return steps
     }
 
     /// Liest ein Fenster und schickt es gebuendelt zum Weight Tracker.
     ///
-    /// **Keine Hintergrundzustellung fuer Schritte**, obwohl das Entitlement
-    /// da ist: iOS deckelt die Frequenz fuer diesen Typ auf stuendlich, und
-    /// die App stuendlich zu wecken, um eine Zahl hochzuladen, die eine Stunde
-    /// spaeter wieder falsch ist, kostet Funk und Akku fuer nichts. Die
-    /// einzige Zahl, die dauerhaft zaehlt, ist die Tagesendsumme - und die
-    /// steht am naechsten Morgen fest. Dasselbe gilt fuer die Energie.
+    /// **Kein Upload aus der Hintergrundzustellung:** iOS deckelt die Frequenz
+    /// fuer Schritte auf stuendlich, und eine Zahl hochzuladen, die eine Stunde
+    /// spaeter wieder falsch ist, kostet Funk fuer nichts. Die einzige Zahl,
+    /// die dauerhaft zaehlt, ist die Tagesendsumme - und die steht am naechsten
+    /// Morgen fest. Dasselbe gilt fuer die Energie. Seit 14.10. weckt Health die
+    /// App trotzdem stuendlich fuer Schritte - aber nur fuer die Kacheln des
+    /// Sperrbildschirms (`stepsDelivered`), ohne Netz.
     ///
     /// - Returns: ob etwas hochging.
     @discardableResult
@@ -470,9 +475,20 @@ final class HealthSync {
         guard isAvailable, observers.isEmpty else { return }
         observe(bodyMass) { sync in await sync.syncNow() }
         observe(sleep) { sync in await sync.nightsDelivered() }
+        // Schritte fuer die Sperrbildschirm-Kacheln (14.10.) - hoechstens
+        // stuendlich, mehr erlaubt iOS fuer diesen Typ nicht.
+        observe(stepCount, frequency: .hourly) { sync in await sync.stepsDelivered() }
+    }
+
+    /// Health hat neue Schritte: den Stand von heute fuer die Kacheln ablegen.
+    /// Bei gesperrtem iPhone scheitert das Lesen - dann bleibt der alte Stand,
+    /// und der Schrittzaehler der Kachel ueberbrueckt.
+    private func stepsDelivered() async {
+        _ = await todaySteps()
     }
 
     private func observe(_ type: HKSampleType,
+                         frequency: HKUpdateFrequency = .immediate,
                          _ work: @escaping @Sendable @MainActor (HealthSync) async -> Void) {
         let query = HKObserverQuery(sampleType: type, predicate: nil) { [weak self] _, completion, _ in
             // Der Rueckruf kommt nicht auf dem Hauptthread, und HealthKits
@@ -488,7 +504,7 @@ final class HealthSync {
         }
         observers.append(query)
         store.execute(query)
-        store.enableBackgroundDelivery(for: type, frequency: .immediate) { _, _ in }
+        store.enableBackgroundDelivery(for: type, frequency: frequency) { _, _ in }
     }
 
     // MARK: - Gewicht

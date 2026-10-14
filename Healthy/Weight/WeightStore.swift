@@ -163,7 +163,10 @@ final class WeightStore {
     /// Wie die kcal: faellt das hier aus, fehlt die Karte - den Gewicht-Tab
     /// deshalb als kaputt zu melden waere falsch.
     private func loadSteps() async {
-        if let goal = try? await api.stepsGoal() { stepsGoal = goal.stepsPerDay }
+        if let goal = try? await api.stepsGoal() {
+            stepsGoal = goal.stepsPerDay
+            if !isDemo { StepsWidgetBridge.mirror(goal: goal.stepsPerDay) }
+        }
         // Erst Health: das ist die laufende Zahl. Der Bestand auf dem Server
         // ist hoechstens so aktuell wie der letzte Abgleich - er ist der
         // Rueckfall, nicht die Quelle.
@@ -179,6 +182,7 @@ final class WeightStore {
         guard !isDemo else { return true }
         do {
             stepsGoal = try await api.updateStepsGoal(stepsPerDay).stepsPerDay
+            StepsWidgetBridge.mirror(goal: stepsGoal)
             clearError()
             return true
         } catch {

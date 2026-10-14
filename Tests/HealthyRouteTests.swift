@@ -34,6 +34,7 @@ final class HealthyRouteTests: XCTestCase {
     func testWidgetLinkOpensFoodToday() throws {
         XCTAssertEqual(HealthyRoute.url(try XCTUnwrap(URL(string: "healthy://food"))), .foodToday)
         XCTAssertEqual(HealthyRoute.url(try XCTUnwrap(URL(string: "HEALTHY://Food"))), .foodToday)
+        XCTAssertEqual(HealthyRoute.url(try XCTUnwrap(URL(string: "healthy://dashboard"))), .dashboard)
         XCTAssertNil(HealthyRoute.url(try XCTUnwrap(URL(string: "healthy://weight"))))
         XCTAssertNil(HealthyRoute.url(try XCTUnwrap(URL(string: "https://food.fherrmann.com"))))
         XCTAssertNil(HealthyRoute.url(try XCTUnwrap(URL(string: "cohabit://food"))))

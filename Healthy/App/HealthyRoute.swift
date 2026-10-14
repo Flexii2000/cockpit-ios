@@ -11,6 +11,8 @@ enum HealthyRoute: Equatable, Sendable {
     case food
     /// Der Essen-Tab mit heute - die Kalorien-Kachel und die Energie-Karte.
     case foodToday
+    /// Das Dashboard oben - die Schritte-Kacheln des Sperrbildschirms (14.10.).
+    case dashboard
     /// Die Logbook-Seite im Dashboard - die Erinnerung um 09:00.
     case logbook
 
@@ -34,12 +36,14 @@ enum HealthyRoute: Equatable, Sendable {
         }
     }
 
-    /// `healthy://food` - die Kalorien-Kachel. Anderes Schema, anderer Weg: nichts.
+    /// `healthy://food` - die Kalorien-Kachel; `healthy://dashboard` - die
+    /// Schritte-Kacheln. Anderes Schema, anderer Weg: nichts.
     static func url(_ url: URL) -> HealthyRoute? {
         guard url.scheme?.lowercased() == urlScheme else { return nil }
         switch url.host()?.lowercased() {
-        case "food": return .foodToday
-        default:     return nil
+        case "food":      return .foodToday
+        case "dashboard": return .dashboard
+        default:          return nil
         }
     }
 }

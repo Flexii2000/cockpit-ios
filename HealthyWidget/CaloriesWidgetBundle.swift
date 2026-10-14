@@ -11,5 +11,7 @@ import WidgetKit
 struct HealthyWidgetBundle: WidgetBundle {
     var body: some Widget {
         CaloriesWidget()
+        StepsWidget()
+        TodayWidget()
     }
 }

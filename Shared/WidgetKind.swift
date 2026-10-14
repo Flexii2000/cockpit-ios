@@ -8,5 +8,8 @@ import Foundation
 /// Fehlermeldung: die Kachel aktualisiert einfach nie.
 enum WidgetKind {
     static let calories = "CaloriesRemaining"
+    /// Seit 14.10.: Schritte als Ring und die grosse Kachel mit kcal und Schritten.
+    static let steps = "StepsToday"
+    static let today = "TodayOverview"
     static let focus = "FocusCountdown"
 }

@@ -12,10 +12,6 @@ struct CaloriesEntry: TimelineEntry {
 /// Keychain-Gruppe, der Cookie haengt selbst an der Anfrage.
 struct CaloriesProvider: TimelineProvider {
 
-    /// Knapp, weil eine Erweiterung wenig Zeit bekommt - die zweihundert
-    /// Sekunden aus dem APIClient sind fuer die Schnellerfassung gedacht.
-    private let timeout: TimeInterval = 12
-
     func placeholder(in context: Context) -> CaloriesEntry {
         CaloriesEntry(date: Date(), state: .unreachable(nil))
     }
@@ -25,20 +21,30 @@ struct CaloriesProvider: TimelineProvider {
     // SWIFT_STRICT_CONCURRENCY=complete ab, sobald man einen Task oeffnet.
     func getSnapshot(in context: Context,
                      completion: @escaping @Sendable (CaloriesEntry) -> Void) {
-        Task { completion(CaloriesEntry(date: Date(), state: await state())) }
+        Task { completion(CaloriesEntry(date: Date(), state: await CaloriesSource.state())) }
     }
 
     func getTimeline(in context: Context,
                      completion: @escaping @Sendable (Timeline<CaloriesEntry>) -> Void) {
         Task {
             let now = Date()
-            let entry = CaloriesEntry(date: now, state: await state())
+            let entry = CaloriesEntry(date: now, state: await CaloriesSource.state())
             completion(Timeline(entries: [entry],
                                 policy: .after(RemainingCalories.nextRefresh(after: now))))
         }
     }
 
-    private func state() async -> WidgetState {
+}
+
+/// Der Tagesstand fuer jede Kachel mit kcal - die Kalorien-Kachel und seit
+/// 14.10. die grosse Sperrbildschirm-Kachel mit Schritten.
+enum CaloriesSource {
+
+    /// Knapp, weil eine Erweiterung wenig Zeit bekommt - die zweihundert
+    /// Sekunden aus dem APIClient sind fuer die Schnellerfassung gedacht.
+    private static let timeout: TimeInterval = 12
+
+    static func state() async -> WidgetState {
         guard let token = Keychain.read(Keychain.privateTokenKey), !token.isEmpty else {
             return .noAccess
         }

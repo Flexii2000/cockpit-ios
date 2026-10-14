@@ -141,6 +141,10 @@ targets:
         # Der Barcode-Scanner im Essen-Tab. Ohne den Satz beendet iOS die App
         # beim ersten Kamerazugriff.
         INFOPLIST_KEY_NSCameraUsageDescription: Zum Scannen der Barcodes auf Lebensmittelpackungen.
+        # Die Schritte-Kacheln des Sperrbildschirms (14.10.): gesperrt kommt
+        # eine Kachel nicht an Health heran, der Schrittzaehler des iPhones
+        # zaehlt dort weiter. Fragen kann nur die App.
+        INFOPLIST_KEY_NSMotionUsageDescription: Damit die Schritte auf dem Sperrbildschirm auch bei gesperrtem iPhone weiterzählen.
 
   HealthyWidget:
     type: app-extension
@@ -155,7 +159,11 @@ targets:
           - *shared_group
     info:
       path: HealthyWidget/Info.plist
-      properties: *widget_info
+      properties:
+        <<: *widget_info
+        # Der Schrittzaehler in den Schritte-Kacheln (StepsNow) - die Erlaubnis
+        # holt die App, der Satz gehoert trotzdem auch hierher.
+        NSMotionUsageDescription: Damit die Schritte auf dem Sperrbildschirm auch bei gesperrtem iPhone weiterzählen.
     settings:
       base:
         # Bleibt: so behalten die Kacheln, die schon auf dem Homebildschirm

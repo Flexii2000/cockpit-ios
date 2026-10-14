@@ -101,6 +101,9 @@ final class Router {
         switch route {
         case .food:       show(.food)
         case .foodToday:  showFoodToday()
+        case .dashboard:
+            selection = .dashboard
+            dashboardPath = []
         case .logbook:
             selection = .dashboard
             dashboardPath = []
@@ -159,6 +162,7 @@ struct RootView: View {
                 Task {
                     await handOverEvaluation()
                     await LogbookReminder.refresh()
+                    await StepsWidgetBridge.refresh()
                     // Die Nacht von heute frueh, die Energie bis jetzt -
                     // hoechstens alle zehn Minuten.
                     await HealthSync.shared.syncIfDue()
@@ -168,6 +172,10 @@ struct RootView: View {
         .task {
             await handOverEvaluation()
             await LogbookReminder.refresh()
+            // Die Schritte-Kacheln zaehlen gesperrt mit dem Schrittzaehler des
+            // iPhones - fragen kann nur die App, und nur im Vordergrund.
+            if HealthSync.shared.isAvailable { await StepsNow.requestPermission() }
+            await StepsWidgetBridge.refresh()
         }
     }
 

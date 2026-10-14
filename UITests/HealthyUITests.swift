@@ -382,6 +382,22 @@ final class HealthyUITests: XCTestCase {
                       "Nach dem Wisch nach links muss „Morgen“ in der Leiste stehen")
     }
 
+    /// Weit zurueckgeblaettert: „Heute“ steht sichtbar in der Leiste und
+    /// bringt mit einem Tipp zurueck (Felix, 14.10.). Mit Vorfuehrdaten, damit
+    /// das Bild keine echten Mahlzeiten zeigt.
+    func testTodayButtonJumpsBackFromWeeksAgo() {
+        let weeksAgo = CalendarDateForTests.daysAgo(35)
+        let app = launch(tab: "food", extra: demo.merging(["COCKPIT_DAY": weeksAgo]) { $1 })
+        let today = app.buttons["todayButton"]
+        XCTAssertTrue(today.waitForExistence(timeout: 20), "ohne „Heute“ in der Leiste")
+        shoot(app, "essen-vor-fuenf-wochen")
+        today.tap()
+        _ = app.navigationBars["Heute"].waitForExistence(timeout: 10)
+        shoot(app, "essen-heute")
+        XCTAssertTrue(app.navigationBars["Heute"].exists)
+        XCTAssertFalse(app.buttons["todayButton"].exists, "an heute verschwindet der Knopf")
+    }
+
     func testTabsAreReachable() {
         let app = launch(tab: "dashboard")
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 20))
@@ -391,5 +407,15 @@ final class HealthyUITests: XCTestCase {
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, tab)
         }
         shoot(app, "tabs")
+    }
+}
+
+/// Ein Tag als `yyyy-MM-dd` fuer `COCKPIT_DAY` - der Testlaeufer kennt
+/// `CalendarDate` nicht (es liegt in der App).
+private enum CalendarDateForTests {
+    static func daysAgo(_ days: Int) -> String {
+        let date = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 2026, parts.month ?? 1, parts.day ?? 1)
     }
 }

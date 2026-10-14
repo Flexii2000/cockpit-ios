@@ -215,11 +215,16 @@ struct FoodTab: View {
     private var title: String {
         // Beim Planen springt man zwischen benachbarten Tagen hin und her -
         // "Morgen" ist dabei schneller zu erfassen als ein Datum.
+        // Im laufenden Jahr ohne Jahreszahl: neben „Heute“ (14.10.) wurde
+        // „09.09.26“ sonst zu „09.09…“ gekuerzt.
         switch store.date.daysFromToday() {
         case 0:  "Heute"
         case 1:  "Morgen"
         case -1: "Gestern"
-        default: store.date.short
+        default:
+            store.date.year == CalendarDate.today().year
+                ? String(format: "%02d.%02d.", store.date.day, store.date.month)
+                : store.date.short
         }
     }
 
@@ -228,6 +233,14 @@ struct FoodTab: View {
         ToolbarItem(placement: .topBarLeading) {
             Button { step(-1) } label: {
                 Image(systemName: "chevron.left")
+            }
+        }
+        // Wer fuenf Wochen zurueckgeblaettert hat, soll nicht fuenf Wochen
+        // zurueckblaettern muessen (Felix, 14.10.) - nur da, wenn nicht heute.
+        if !store.isToday {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Heute") { show(.today()) }
+                    .accessibilityIdentifier("todayButton")
             }
         }
         ToolbarItem(placement: .topBarTrailing) {
@@ -248,9 +261,6 @@ struct FoodTab: View {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button("Tag wählen …") { showingDatePicker = true }
-                if !store.isToday {
-                    Button("Heute") { show(.today()) }
-                }
                 Divider()
                 NavigationLink("Gerichte verwalten") { DishListView(store: store) }
                 Button("Tagesziele …") { showingTargets = true }
