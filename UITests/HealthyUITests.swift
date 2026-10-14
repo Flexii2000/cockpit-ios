@@ -1,6 +1,6 @@
 import XCTest
 
-/// Dashboard, Essen, Gewicht - und der Tipp auf die Meldung der
+/// Dashboard, Essen, Gewicht, Gym - und der Tipp auf die Meldung der
 /// Schnellerfassung. Die Evaluation wohnt seit 14.10. in Fokus (FokusUITests).
 final class HealthyUITests: XCTestCase {
 
@@ -398,10 +398,57 @@ final class HealthyUITests: XCTestCase {
         XCTAssertFalse(app.buttons["todayButton"].exists, "an heute verschwindet der Knopf")
     }
 
+    // MARK: - Gym
+
+    /// Gegen einen lokalen Weight Tracker (`COCKPIT_URL_WEIGHT=http://127.0.0.1:…`,
+    /// leerer Datenordner): Tag anlegen, Geraet dazu, Satz abhaken, Training
+    /// starten, „Satz erledigt“, beenden. Was beim Dienst ankam, prueft der Aufrufer
+    /// danach per curl (`/api/gym`).
+    func testGymPlanTickAndTraining() throws {
+        let url = ProcessInfo.processInfo.environment["COCKPIT_URL_WEIGHT"] ?? ""
+        try XCTSkipIf(!url.hasPrefix("http://127.0.0.1"), "nur gegen einen lokalen Weight Tracker")
+        let app = launch(tab: "gym")
+
+        let first = app.buttons["gymAddFirstDay"]
+        XCTAssertTrue(first.waitForExistence(timeout: 20), "leeres Gym ohne Knopf")
+        shoot(app, "gym-leer")
+        first.tap()
+        let name = app.textFields["gymName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.typeText("Tag A")
+        // Die Tastatur hat auch ein „Fertig“ - gemeint ist das in der Leiste.
+        app.navigationBars.buttons["Fertig"].tap()
+
+        let add = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymAddExercise-'")).firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 10), "neuer Tag ohne „Gerät hinzufügen“")
+        add.tap()
+        let machine = app.textFields["gymNewMachine"]
+        XCTAssertTrue(machine.waitForExistence(timeout: 5))
+        machine.tap()
+        machine.typeText("Gerät A")
+        app.buttons["gymAddNewMachine"].tap()
+
+        let set0 = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'gymSet-' AND identifier ENDSWITH '-0'")).firstMatch
+        XCTAssertTrue(set0.waitForExistence(timeout: 10), "Geraet ohne Satz-Kreise")
+        set0.tap()
+        shoot(app, "gym-abgehakt")
+        XCTAssertEqual(set0.value as? String, "erledigt")
+
+        app.buttons["gymStart"].tap()
+        let done = app.buttons["gymSetDone"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "keine Trainingsansicht")
+        done.tap()
+        shoot(app, "gym-training")
+        scrollDown(app, times: 1)
+        app.buttons["gymFinish"].tap()
+        XCTAssertTrue(app.buttons["gymStart"].waitForExistence(timeout: 10), "nach „Beenden“ zurueck in der Uebersicht")
+        shoot(app, "gym-beendet")
+    }
+
     func testTabsAreReachable() {
         let app = launch(tab: "dashboard")
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 20))
-        for tab in ["Essen", "Gewicht", "Dashboard"] {
+        for tab in ["Essen", "Gewicht", "Gym", "Dashboard"] {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10), tab)
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, tab)

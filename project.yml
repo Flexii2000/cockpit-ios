@@ -96,6 +96,8 @@ targets:
       - path: Healthy
       - path: Core
       - path: Shared
+      # Die Botschaften zwischen iPhone und Uhr (Training, Komplikation).
+      - path: HealthyWatchShared
     dependencies:
       # embed: true legt die .appex nach Healthy.app/PlugIns/. Ohne das baut
       # die Erweiterung zwar, aber iOS findet sie nie.
@@ -138,6 +140,9 @@ targets:
         # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
         # App beim ersten HealthKit-Aufruf.
         INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Gewicht, Schritte, Energieverbrauch, Schlaf und Herzwerte aus Health in Healthy landen.
+        # Das Krafttraining (Gym, 14.10.): die Uhr zeichnet es auf und spiegelt es
+        # hierher. Ohne den Satz beendet sich die App beim Fragen nach der Erlaubnis.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Damit dein Krafttraining aus dem Gym-Tab als Training in Health landet.
         # Der Barcode-Scanner im Essen-Tab. Ohne den Satz beendet iOS die App
         # beim ersten Kamerazugriff.
         INFOPLIST_KEY_NSCameraUsageDescription: Zum Scannen der Barcodes auf Lebensmittelpackungen.

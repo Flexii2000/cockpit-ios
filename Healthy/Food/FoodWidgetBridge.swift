@@ -4,6 +4,9 @@ import WidgetKit
 /// nach jeder Aenderung an der Warteschlange, beim Start und wenn die App den Tag
 /// von heute neu kennt. Die Kachel legt die wartenden Eintraege selbst ueber den
 /// Tag, den sie holt - ohne Netz zeigt sie, was die App zuletzt fuer heute zeigte.
+///
+/// Seit 14.10. auch an die grosse Sperrbildschirm-Kachel (kcal + Schritte) und an
+/// die kcal-Komplikation der Uhr (`WatchLink`).
 @MainActor
 enum FoodWidgetBridge {
 
@@ -17,7 +20,13 @@ enum FoodWidgetBridge {
         let changes = PendingChanges.shared.changes(for: .food).compactMap(\.food)
         guard PendingFoodMirror.saveChanges(changes) else { return }
         if changes.isEmpty { PendingFoodMirror.saveToday(nil) }
+        reloadKcalWidgets()
+    }
+
+    /// Alle Kacheln mit kcal - ein Anstoss, sie holen sich den Tag selbst.
+    static func reloadKcalWidgets() {
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.today)
     }
 
     /// Der Tag von heute beim Dienst - und was die App daraus zeigt.
@@ -27,6 +36,9 @@ enum FoodWidgetBridge {
         let shown = FoodOverlay.apply(changes, to: server, known: known)
         let provisional = shown.entries != server.entries
         PendingFoodMirror.saveToday(provisional ? RemainingCalories(day: shown, provisional: true) : nil)
-        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
+        reloadKcalWidgets()
+        // Die Uhr zeigt, was die App zeigt - samt Wartendem.
+        WatchLink.shared.send(snapshot: ComplicationSnapshot(date: shown.date.iso, consumedKcal: shown.consumed.kcal,
+                                                             targetKcal: shown.targets.kcal, fetchedAt: Date()))
     }
 }

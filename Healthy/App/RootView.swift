@@ -4,7 +4,7 @@ import SwiftUI
 /// App auf: es fasst zusammen, was die anderen Tabs im Einzelnen zeigen.
 /// Evaluation und Einkauf sind am 14.10. nach Fokus gezogen - fuer den Gym-Tab.
 enum TabSelection: Hashable {
-    case dashboard, food, weight
+    case dashboard, food, weight, gym
     #if DEBUG
     /// Nur zum Ansehen der Kacheln - siehe WidgetPreviewTab.
     case widget
@@ -25,6 +25,7 @@ enum TabSelection: Hashable {
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "food":       return .food
         case "weight":     return .weight
+        case "gym":        return .gym
         case "widget":     return .widget
         default:           return .dashboard
         }
@@ -133,6 +134,9 @@ struct RootView: View {
             Tab(Backend.weight.title, systemImage: Backend.weight.systemImage, value: TabSelection.weight) {
                 WeightTab()
             }
+            Tab("Gym", systemImage: "dumbbell", value: TabSelection.gym) {
+                GymTab()
+            }
             #if DEBUG
             if TabSelection.showsWidgetPreview {
                 Tab("Kachel", systemImage: "square.grid.2x2", value: TabSelection.widget) {
@@ -163,6 +167,7 @@ struct RootView: View {
                     await handOverEvaluation()
                     await LogbookReminder.refresh()
                     await StepsWidgetBridge.refresh()
+                    WatchLink.shared.sendContext()
                     // Die Nacht von heute frueh, die Energie bis jetzt -
                     // hoechstens alle zehn Minuten.
                     await HealthSync.shared.syncIfDue()

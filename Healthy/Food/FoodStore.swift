@@ -399,7 +399,7 @@ final class FoodStore {
         // Anstoss, keine Datenuebergabe: die Kachel holt sich selbst, was sie
         // braucht. Ein Reload aus der laufenden App zaehlt nicht gegen das
         // Aktualisierungsbudget von WidgetKit.
-        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
+        FoodWidgetBridge.reloadKcalWidgets()
     }
 
     func createDish(_ request: DishRequest) async -> Bool {
@@ -452,7 +452,7 @@ final class FoodStore {
             day = try await api.day(date)
             await prefetchNeighbours()
             clearError()
-            WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.calories)
+            FoodWidgetBridge.reloadKcalWidgets()
             return true
         } catch {
             report(error)

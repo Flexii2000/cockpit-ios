@@ -411,12 +411,14 @@ enum PendingChange: Codable, Equatable, Sendable {
     case food(FoodChange)
     /// Ein Gewicht von Hand (Weight Tracker, Runde 4).
     case weight(WeightChange)
+    /// Gym: Plan, Besuch oder Haken (Weight Tracker, seit 14.10.).
+    case gym(GymChange)
 
     var backend: Backend {
         switch self {
         case .todo: .todo
         case .shopping: .shopping
-        case .logbook, .weight: .weight
+        case .logbook, .weight, .gym: .weight
         case .food: .food
         }
     }
@@ -428,6 +430,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .logbook(let change): change.request
         case .food(let change): change.request
         case .weight(let change): change.request
+        case .gym(let change): change.request
         }
     }
 
@@ -439,6 +442,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .logbook(let change): change.target
         case .food(let change): change.target
         case .weight(let change): change.target
+        case .gym(let change): change.target
         }
     }
 
@@ -449,6 +453,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .logbook(let change): change.role
         case .food(let change): change.role
         case .weight(let change): change.role
+        case .gym(let change): change.role
         }
     }
 
@@ -456,7 +461,7 @@ enum PendingChange: Codable, Equatable, Sendable {
     var dependsOn: String? {
         switch self {
         case .todo(let change): change.dependsOn
-        case .shopping, .logbook, .food, .weight: nil
+        case .shopping, .logbook, .food, .weight, .gym: nil
         }
     }
 
@@ -467,7 +472,7 @@ enum PendingChange: Codable, Equatable, Sendable {
     var boardPath: String? {
         switch self {
         case .todo, .shopping: "/api/board"
-        case .logbook, .food, .weight: nil
+        case .logbook, .food, .weight, .gym: nil
         }
     }
 
@@ -496,6 +501,11 @@ enum PendingChange: Codable, Equatable, Sendable {
         return nil
     }
 
+    var gym: GymChange? {
+        if case .gym(let change) = self { return change }
+        return nil
+    }
+
     /// Ein wartendes Anlegen mit einer spaeteren Aenderung daran zusammengefasst.
     func folded(with edit: PendingChange) -> PendingChange? {
         switch (self, edit) {
@@ -513,6 +523,7 @@ enum PendingChange: Codable, Equatable, Sendable {
         case .logbook(let change): change.notice(label: label, status: status, message: message)
         case .food(let change): change.notice(label: label, status: status, message: message)
         case .weight(let change): change.notice(label: label, status: status, message: message)
+        case .gym(let change): change.notice(label: label, status: status, message: message)
         }
     }
 }

@@ -69,6 +69,8 @@
 # COCKPIT_RANGE=allTime stellt den Gewicht-Tab auf einen Zeitraum
 # (month, last90, last180, year, threeYears, allTime).
 #
+# COCKPIT_GYM_DEMO=1 fuellt den Gym-Tab (Healthy) mit zwei erfundenen Tagen und
+# Verlauf, nur im Speicher; COCKPIT_GYM_WORKOUT=1 startet dazu gleich das Training.
 # COCKPIT_EVALUATION_DEMO=1 fuellt den Evaluation-Tab mit einem Jahr erfundener
 # Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie in der Datei.
 # Mit COCKPIT_NO_LOCK=1, sonst steht dort der Sperrbildschirm.
@@ -172,6 +174,8 @@ SIMCTL_CHILD_COCKPIT_RANGE="${COCKPIT_RANGE:-}" \
 SIMCTL_CHILD_COCKPIT_SERIES="${COCKPIT_SERIES:-}" \
 SIMCTL_CHILD_COCKPIT_EVALUATION_DEMO="${COCKPIT_EVALUATION_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_DASHBOARD_DEMO="${COCKPIT_DASHBOARD_DEMO:-}" \
+SIMCTL_CHILD_COCKPIT_GYM_DEMO="${COCKPIT_GYM_DEMO:-}" \
+SIMCTL_CHILD_COCKPIT_GYM_WORKOUT="${COCKPIT_GYM_WORKOUT:-}" \
 SIMCTL_CHILD_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}" \
 SIMCTL_CHILD_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \
