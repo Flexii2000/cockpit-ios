@@ -18,8 +18,9 @@ final class WorkoutMirror {
     private(set) var metrics: WorkoutMetrics?
 
     /// Ein „Satz erledigt“ von der Uhr - der Gym-Tab hakt dann den naechsten
-    /// offenen Satz dieses Geraets ab.
-    @ObservationIgnored var onSetDone: ((String) -> Void)?
+    /// offenen Satz dieses Geraets ab, mit Spanne mit den Wiederholungen von
+    /// der Krone (`nil`: wie geplant).
+    @ObservationIgnored var onSetDone: ((_ exerciseId: String, _ reps: Int?) -> Void)?
     /// Auf der Uhr beendet - dann endet das Training auch hier.
     @ObservationIgnored var onEnd: (() -> Void)?
 
@@ -108,10 +109,10 @@ final class WorkoutMirror {
         switch message {
         case .metrics(let fresh):
             metrics = fresh
-        case .setDone(let id, let exerciseId):
+        case .setDone(let id, let exerciseId, let reps):
             if !handled.contains(id) {
                 handled.insert(id)
-                onSetDone?(exerciseId)
+                onSetDone?(exerciseId, reps)
             }
             sendMessage(.ack(id: id))
         case .end:

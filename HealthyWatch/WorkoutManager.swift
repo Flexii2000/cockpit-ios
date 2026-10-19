@@ -75,11 +75,12 @@ final class WorkoutManager {
         }
     }
 
-    /// Ein Satz des aktuellen Geraets ist fertig.
-    func setDone() {
+    /// Ein Satz des aktuellen Geraets ist fertig - mit Spanne mit den
+    /// Wiederholungen von der Krone, sonst ohne (dann gilt am iPhone der Plan).
+    func setDone(reps: Int? = nil) {
         guard let current else { return }
         let id = UUID().uuidString
-        let message = WorkoutMessage.setDone(id: id, exerciseId: current.exerciseId)
+        let message = WorkoutMessage.setDone(id: id, exerciseId: current.exerciseId, reps: reps)
         unacked[id] = (message, 0)
         send(message)
         WKInterfaceDevice.current().play(.success)
@@ -176,7 +177,8 @@ final class WorkoutManager {
         startDate = Date().addingTimeInterval(-754)
         heartRate = 128
         activeKcal = 143
-        current = WorkoutCurrent(exerciseId: "e-demo-a", name: "Gerät A", set: 2, sets: 3, reps: 8, weightKg: 40)
+        current = WorkoutCurrent(exerciseId: "e-demo-a", name: "Gerät A", note: "Sitz 4", set: 2, sets: 3,
+                                 reps: 10, repsMin: 8, weightKg: 40)
     }
     #endif
 }

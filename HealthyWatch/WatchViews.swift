@@ -14,7 +14,7 @@ struct WatchHomeView: View {
         }
         .task {
             #if DEBUG
-            if ProcessInfo.processInfo.environment["COCKPIT_WATCH_DEMO"] == "workout" {
+            if ["workout", "machine"].contains(ProcessInfo.processInfo.environment["COCKPIT_WATCH_DEMO"]) {
                 WorkoutManager.shared.showDemo()
                 return
             }
@@ -39,17 +39,57 @@ struct WatchHomeView: View {
 
 /// Das laufende Training: oben die Werte, darunter das Geraet mit „Satz
 /// erledigt“, ganz unten „Beenden“ - als Seiten zum Drehen der Krone.
+///
+/// Hat die Uebung eine Spanne (Felix, 19.10.), dreht die Krone auf der Seite
+/// des Geraets die Wiederholungen statt der Seiten - weiter geht es dort mit
+/// Wischen.
 struct WatchWorkoutView: View {
+
+    private enum Page { case metrics, machine, finish }
 
     private var workout: WorkoutManager { WorkoutManager.shared }
 
+    @State private var page = WatchWorkoutView.firstPage
+    /// Was „Satz erledigt“ mitschickt, nur mit Spanne: vorbelegt mit der oberen
+    /// Grenze, bei jedem neuen Satz wieder. `Double`, weil die Krone so dreht.
+    @State private var reps = 0.0
+    @FocusState private var repsFocused: Bool
+
     var body: some View {
-        TabView {
-            metrics
-            machine
-            finish
+        TabView(selection: $page) {
+            metrics.tag(Page.metrics)
+            machine.tag(Page.machine)
+            finish.tag(Page.finish)
         }
         .tabViewStyle(.verticalPage)
+        .onChange(of: setKey, initial: true) {
+            reps = Double(workout.current?.reps ?? 0)
+            focusReps()
+        }
+        .onChange(of: page) { focusReps() }
+    }
+
+    /// Ein neuer Satz, ein anderes Geraet oder ein anderes Ziel.
+    private var setKey: String {
+        workout.current.map { "\($0.exerciseId)/\($0.set)/\($0.reps)" } ?? ""
+    }
+
+    private var range: ClosedRange<Int>? {
+        workout.current.flatMap { GymExercise.range(reps: $0.reps, repsMin: $0.repsMin) }
+    }
+
+    /// Die Krone gehoert den Wiederholungen, solange das Geraet zu sehen ist und
+    /// eine Spanne hat - sonst blaettert sie wie bisher.
+    private func focusReps() {
+        repsFocused = page == .machine && range != nil
+    }
+
+    private static var firstPage: Page {
+        #if DEBUG
+        // Fuer Aufnahmen: der Uhren-Simulator kann nicht blaettern.
+        if ProcessInfo.processInfo.environment["COCKPIT_WATCH_DEMO"] == "machine" { return .machine }
+        #endif
+        return .metrics
     }
 
     private var metrics: some View {
@@ -76,13 +116,45 @@ struct WatchWorkoutView: View {
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
+                if let note = current.note {
+                    Text(note)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
                 Text("Satz \(current.set) von \(current.sets)")
                     .font(.footnote.monospacedDigit())
                     .foregroundStyle(.secondary)
-                Text("\(current.reps) × " + GymFormat.weight(current.weightKg))
+                if let range {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(Int(reps.rounded()))")
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            // Dass die Krone hier dreht - einen Rahmen zeichnet watchOS dafuer nicht.
+                            .overlay {
+                                if repsFocused {
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .strokeBorder(Color.green, lineWidth: 1.5)
+                                }
+                            }
+                            .focusable()
+                            .focused($repsFocused)
+                            .digitalCrownRotation($reps, from: 1, through: 100, by: 1, sensitivity: .low,
+                                                  isContinuous: false, isHapticFeedbackEnabled: true)
+                            .accessibilityLabel("Wiederholungen")
+                        Text(GymFormat.range(range))
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                        Text("× " + GymFormat.weight(current.weightKg))
+                    }
                     .font(.title3.monospacedDigit().weight(.semibold))
+                } else {
+                    Text("\(current.reps) × " + GymFormat.weight(current.weightKg))
+                        .font(.title3.monospacedDigit().weight(.semibold))
+                }
                 Button {
-                    workout.setDone()
+                    workout.setDone(reps: range == nil ? nil : Int(reps.rounded()))
                 } label: {
                     Label("Satz erledigt", systemImage: "checkmark")
                 }

@@ -225,8 +225,8 @@ struct GymAddExerciseSheet: View {
     }
 }
 
-/// Ein Geraet an einem Tag aendern: Gewicht in 2,5-kg-Schritten, Saetze und
-/// Wiederholungen. Jeder Tipp speichert.
+/// Ein Geraet an einem Tag aendern: Name und Notiz des Geraets, Gewicht,
+/// Saetze, Wiederholungen und ihre Spanne. Jeder Tipp speichert.
 struct GymExerciseSheet: View {
 
     let store: GymStore
@@ -247,6 +247,11 @@ struct GymExerciseSheet: View {
                 Section {
                     TextField("Name", text: $name)
                         .onSubmit { store.rename(machineId: current.machineId, to: name) }
+                    // Uebernimmt selbst - beim Verlassen, mit „Fertig“ (das Blatt geht zu) und beim Wegwischen.
+                    GymNoteField(note: store.state?.machine(current.machineId)?.note) {
+                        store.setNote(machineId: current.machineId, to: $0)
+                    }
+                    .lineLimit(1...4)
                 }
                 Section {
                     GymPlanControls(store: store, dayId: day.id, exercise: current)
@@ -285,12 +290,17 @@ struct GymExerciseSheet: View {
 }
 
 /// Gewicht als Zahl, Saetze und Wiederholungen mit „− n +“ - im Blatt und in
-/// der Trainingsansicht dieselben Regeln.
+/// der Trainingsansicht dieselben Regeln. Alles davon ist der Plan, bis auf
+/// eins (Felix, 19.10.): im Training mit Spanne gelten die Wiederholungen nur
+/// fuer den naechsten Satz (`nextSetReps`). Die Spanne selbst („mindestens“)
+/// stellt nur das Blatt ein.
 struct GymPlanControls: View {
 
     let store: GymStore
     let dayId: String
     let exercise: GymExercise
+    /// Nur im Training: die Wiederholungen des naechsten Satzes.
+    var nextSetReps: Binding<Int>?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -302,20 +312,57 @@ struct GymPlanControls: View {
                            minus: { change { $0.sets = max(1, $0.sets - 1) } },
                            plus: { change { $0.sets = min(10, $0.sets + 1) } })
             }
-            row("Wiederholungen") {
-                GymStepper(value: "\(exercise.reps)", label: "Wiederholungen",
-                           minus: { change { $0.reps = max(1, $0.reps - 1) } },
-                           plus: { change { $0.reps = min(100, $0.reps + 1) } })
+            if let nextSetReps, let range = exercise.repsRange {
+                row("Wiederholungen", detail: GymFormat.range(range)) {
+                    GymStepper(value: "\(nextSetReps.wrappedValue)", label: "Wiederholungen",
+                               minus: { nextSetReps.wrappedValue = max(1, nextSetReps.wrappedValue - 1) },
+                               plus: { nextSetReps.wrappedValue = min(100, nextSetReps.wrappedValue + 1) })
+                }
+            } else {
+                row("Wiederholungen") {
+                    GymStepper(value: "\(exercise.reps)", label: "Wiederholungen",
+                               minus: { change { $0 = $0.withReps(max(1, $0.reps - 1)) } },
+                               plus: { change { $0 = $0.withReps(min(100, $0.reps + 1)) } })
+                }
+            }
+            if nextSetReps == nil {
+                row("mindestens") {
+                    GymStepper(value: "\(exercise.repsLower)", label: "mindestens",
+                               minus: { setLower(exercise.repsLower - 1) },
+                               plus: { setLower(exercise.repsLower + 1) })
+                }
             }
         }
     }
 
-    private func row<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+    private func row<Content: View>(_ title: String, detail: String? = nil,
+                                    @ViewBuilder _ content: () -> Content) -> some View {
         HStack {
-            Text(title).foregroundStyle(.secondary)
+            if let detail {
+                // Neben dem Titel; wo das nicht passt (iPhone mit 390 Punkt), darunter -
+                // sonst trennte es „Wiederholungen“.
+                ViewThatFits(in: .horizontal) {
+                    HStack { Text(title); Text(detail).font(.caption.monospacedDigit()) }
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(title)
+                        Text(detail).font(.caption.monospacedDigit())
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .layoutPriority(1)
+            } else {
+                Text(title).foregroundStyle(.secondary)
+            }
             Spacer()
             content()
         }
+    }
+
+    /// „mindestens“ geht von 1 bis zur oberen Grenze; dort ist es keine Spanne
+    /// mehr, und `repsMin` = `reps` nimmt sie beim Dienst weg.
+    private func setLower(_ value: Int) {
+        guard (1...exercise.reps).contains(value), value != exercise.repsLower else { return }
+        change { $0.repsMin = value }
     }
 
     private func change(_ edit: (inout GymExercise) -> Void) {
@@ -323,6 +370,49 @@ struct GymPlanControls: View {
         edit(&changed)
         guard changed != exercise else { return }
         store.update(changed, in: dayId)
+    }
+}
+
+/// Die Notiz am Geraet, etwa die Sitzeinstellung (Felix, 19.10.) - im Training
+/// unter dem Geraet und im Blatt. Wie beim Gewicht wird beim Verlassen des
+/// Felds uebernommen, nicht je Buchstabe; Zeilenumbrueche gehen.
+struct GymNoteField: View {
+
+    let note: String?
+    let save: (String) -> Void
+
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField("Notiz", text: $text, axis: .vertical)
+            .focused($focused)
+            .onSubmit(commit)
+            .accessibilityIdentifier("gymNote")
+            .onAppear { text = note ?? "" }
+            .onChange(of: note) { _, new in
+                if !focused { text = new ?? "" }
+            }
+            .onChange(of: focused) { _, isFocused in
+                if !isFocused { commit() }
+            }
+            // Blatt zu oder anderes Geraet, waehrend die Tastatur offen war.
+            .onDisappear(perform: commit)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    if focused {
+                        Spacer()
+                        Button("Fertig") { focused = false }
+                            .accessibilityIdentifier("gymNoteDone")
+                    }
+                }
+            }
+    }
+
+    private func commit() {
+        let clean = GymFormat.note(text)
+        text = clean
+        if clean != (note ?? "") { save(clean) }
     }
 }
 
@@ -432,8 +522,7 @@ struct GymHistoryView: View {
                             HStack {
                                 Text(point.date.short).monospacedDigit()
                                 Spacer()
-                                Text(GymFormat.scheme(sets: point.sets, reps: point.reps) + " · "
-                                     + GymFormat.weight(point.weightKg))
+                                Text(GymFormat.history(point))
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
                             }

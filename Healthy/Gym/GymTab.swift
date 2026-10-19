@@ -216,7 +216,8 @@ struct GymDayCard: View {
     }
 }
 
-/// Ein Geraet in der Liste: Name, „3×8 · 40 kg“, die Satz-Kreise.
+/// Ein Geraet in der Liste: Name, „3×8 · 40 kg“ (mit Spanne „2×8–10 · 40 kg“),
+/// die Satz-Kreise. Die Notiz steht nur im Training und im Blatt.
 struct GymExerciseRow: View {
 
     let store: GymStore
@@ -234,8 +235,8 @@ struct GymExerciseRow: View {
                         .font(.body.weight(.medium))
                         .foregroundStyle(.primary)
                     Spacer(minLength: 8)
-                    Text(GymFormat.scheme(sets: exercise.sets, reps: exercise.reps) + " · "
-                         + GymFormat.weight(exercise.weightKg))
+                    Text(GymFormat.scheme(sets: exercise.sets, reps: exercise.reps, repsMin: exercise.repsMin)
+                         + " · " + GymFormat.weight(exercise.weightKg))
                         .font(.subheadline.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -270,13 +271,16 @@ struct GymSetCircles: View {
     let day: GymDay
     let exercise: GymExercise
     let size: CGFloat
+    /// Im Training mit Spanne die Wiederholungen des naechsten Satzes - die
+    /// Kreise der Uebersicht haken mit dem Plan ab.
+    var reps: Int?
 
     var body: some View {
         HStack(spacing: size * 0.25) {
             ForEach(0..<exercise.sets, id: \.self) { index in
                 let done = store.isDone(exercise, index, on: day)
                 Button {
-                    store.toggle(exercise, index, on: day)
+                    store.toggle(exercise, index, on: day, reps: reps)
                 } label: {
                     ZStack {
                         Circle()

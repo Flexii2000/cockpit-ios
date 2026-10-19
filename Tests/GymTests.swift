@@ -198,6 +198,10 @@ final class GymTests: XCTestCase {
         // Der Stand von vor dem Nachtrag (14.10.): ohne Wochentage und Geraeteliste.
         XCTAssertEqual(state.days.first?.weekdays, [])
         XCTAssertEqual(state.catalog, [])
+        // ... und von vor dem 19.10.: ohne Notiz, Spanne und Saetze einzeln.
+        XCTAssertNil(state.machines.first?.note)
+        XCTAssertNil(state.days.first?.exercises.first?.repsMin)
+        XCTAssertEqual(state.last["m-1"]?.setReps, [])
     }
 
     func testDecodesWeekdaysAndTheCatalog() throws {
@@ -213,5 +217,188 @@ final class GymTests: XCTestCase {
         // Zwischenspeicher und Warteschlange: was die App selbst schreibt, liest sie wieder.
         let again = try APIClient.decoder().decode(GymState.self, from: APIClient.encoder().encode(state))
         XCTAssertEqual(again, state)
+    }
+
+    // MARK: - Notiz, Spanne, Saetze einzeln (19.10.)
+
+    func testDecodesNotesRangesAndSetReps() throws {
+        let json = """
+        {"today":"2026-10-19","nextDayId":"d-1","sessions":[],
+         "machines":[{"id":"m-1","name":"Gerät A","archived":false,"createdAt":"2026-10-14T08:00:00Z","note":"Sitz 4 · Lehne 2"},
+                     {"id":"m-2","name":"Gerät B","archived":false,"createdAt":"2026-10-14T08:00:00Z","note":null}],
+         "days":[{"id":"d-1","name":"Tag A","position":0,"weekdays":[],
+                  "exercises":[{"id":"e-1","machineId":"m-1","sets":3,"reps":10,"repsMin":8,"weightKg":40.0},
+                               {"id":"e-2","machineId":"m-2","sets":3,"reps":10,"repsMin":null,"weightKg":20.0}]}],
+         "last":{"m-1":{"date":"2026-10-16","weightKg":42.5,"sets":3,"reps":10,"setReps":[10,9,8]}}}
+        """
+        let state = try APIClient.decoder().decode(GymState.self, from: Data(json.utf8))
+        XCTAssertEqual(state.machine("m-1")?.note, "Sitz 4 · Lehne 2")
+        XCTAssertNil(state.machine("m-2")?.note)
+        XCTAssertEqual(state.days.first?.exercises.first?.repsRange, 8...10)
+        XCTAssertNil(state.days.first?.exercises.last?.repsRange)
+        XCTAssertEqual(state.last["m-1"]?.setReps, [10, 9, 8])
+        let again = try APIClient.decoder().decode(GymState.self, from: APIClient.encoder().encode(state))
+        XCTAssertEqual(again, state)
+
+        let history = try APIClient.decoder().decode([GymHistoryPoint].self, from: Data("""
+        [{"date":"2026-10-12","weightKg":40.0,"sets":3,"reps":10},
+         {"date":"2026-10-16","weightKg":42.5,"sets":3,"reps":10,"setReps":[10,9,8]}]
+        """.utf8))
+        XCTAssertEqual(history.map(\.setReps), [[], [10, 9, 8]], "ein aelterer Dienst schickt keine")
+    }
+
+    func testSchemeShowsARangeWithAnEnDash() {
+        XCTAssertEqual(GymFormat.scheme(sets: 2, reps: 10, repsMin: 8), "2×8\u{2013}10")
+        XCTAssertEqual(GymFormat.scheme(sets: 3, reps: 8, repsMin: nil), "3×8")
+        XCTAssertEqual(GymFormat.scheme(sets: 3, reps: 8, repsMin: 8), "3×8", "gleich reps: keine Spanne")
+        XCTAssertEqual(GymFormat.scheme(sets: 3, reps: 8, repsMin: 9), "3×8")
+        XCTAssertEqual(GymFormat.scheme(sets: 3, reps: 8, repsMin: 0), "3×8", "0 heisst beim Dienst keine Spanne")
+    }
+
+    func testLastShowsEachSetAtTheHeaviestWeight() {
+        func last(_ setReps: [Int]) -> String {
+            GymFormat.last(GymLast(date: today, weightKg: 40, sets: 3, reps: 10, setReps: setReps))
+        }
+        XCTAssertEqual(last([10, 9]), "letztes Mal 10, 9 · 40 kg")
+        XCTAssertEqual(last([10, 10]), "letztes Mal 2×10 · 40 kg", "die Saetze mit diesem Gewicht, nicht alle drei")
+        XCTAssertEqual(last([]), "letztes Mal 3×10 · 40 kg", "aeltere Staende wie bisher")
+
+        let point = GymHistoryPoint(date: today, weightKg: 37.5, sets: 3, reps: 8, setReps: [8, 8, 7])
+        XCTAssertEqual(GymFormat.history(point), "8, 8, 7 · 37,5 kg")
+        XCTAssertEqual(GymFormat.history(GymHistoryPoint(date: today, weightKg: 37.5, sets: 3, reps: 8)),
+                       "3×8 · 37,5 kg")
+    }
+
+    func testANoteGoesOnlyWhenThereIsOne() throws {
+        var machine = state().machines[0]
+        XCTAssertNil(try json(.machine(machine))["note"], "ohne fehlt das Feld - beim Dienst bleibt die Notiz")
+        machine.note = "Sitz 4"
+        XCTAssertEqual(try json(.machine(machine))["note"] as? String, "Sitz 4")
+        machine.note = ""
+        XCTAssertEqual(try json(.machine(machine))["note"] as? String, "", "leer loescht sie")
+    }
+
+    func testARangeGoesOnlyWhenThereIsOne() throws {
+        let plain = state().days[0].exercises[0]
+        let ranged = GymExercise(id: "e-2", machineId: "m-1", sets: 2, reps: 10, repsMin: 8, weightKg: 40)
+        XCTAssertNil(try json(.exercise(dayId: "d-1", exercise: plain))["repsMin"])
+        let body = try json(.exercise(dayId: "d-1", exercise: ranged))
+        XCTAssertEqual(body["repsMin"] as? Int, 8)
+        XCTAssertEqual(body["reps"] as? Int, 10, "reps bleibt die obere Grenze")
+
+        let day = GymDay(id: "d-1", name: "Tag A", position: 0, exercises: [plain, ranged], updatedAt: nil)
+        let exercises = try XCTUnwrap(try json(.day(day))["exercises"] as? [[String: Any]])
+        XCTAssertNil(exercises[0]["repsMin"], "auch im ganzen Tag nur mit Spanne")
+        XCTAssertEqual(exercises[1]["repsMin"] as? Int, 8)
+    }
+
+    func testTheOverlayShowsANoteAndARangeAtOnce() {
+        var machine = state().machines[0]
+        machine.note = "Sitz 4"
+        let ranged = GymExercise(id: "e-1", machineId: "m-1", sets: 3, reps: 10, repsMin: 8, weightKg: 40)
+        let shown = GymOverlay.apply([.machine(machine), .exercise(dayId: "d-1", exercise: ranged)], to: state())
+        XCTAssertEqual(shown.machine("m-1")?.note, "Sitz 4")
+        XCTAssertEqual(shown.days.first?.exercises.first?.repsRange, 8...10)
+    }
+
+    /// Was vor dem 19.10. in der Warteschlange lag, kennt beide Felder nicht -
+    /// und schickt sie deshalb auch nicht mit.
+    func testOlderQueuedChangesStillRead() throws {
+        let machine = try JSONDecoder().decode(PendingChange.self, from: Data("""
+        {"gym":{"_0":{"machine":{"_0":{"id":"m-1","name":"Gerät A","archived":false}}}}}
+        """.utf8))
+        let exercise = try JSONDecoder().decode(PendingChange.self, from: Data("""
+        {"gym":{"_0":{"exercise":{"dayId":"d-1","exercise":{"id":"e-1","machineId":"m-1","sets":3,"reps":8,"weightKg":40}}}}}
+        """.utf8))
+        let machineChange = try XCTUnwrap(machine.gym)
+        let exerciseChange = try XCTUnwrap(exercise.gym)
+        XCTAssertNil(try json(machineChange)["note"])
+        XCTAssertNil(try json(exerciseChange)["repsMin"])
+        XCTAssertEqual(try json(exerciseChange)["reps"] as? Int, 8)
+    }
+
+    func testRepsAndTheirRangeMoveTogether() {
+        let ranged = GymExercise(id: "e-1", machineId: "m-1", sets: 2, reps: 10, repsMin: 8, weightKg: 40)
+        XCTAssertEqual(ranged.repsLower, 8)
+        XCTAssertEqual(ranged.withReps(12).repsRange, 8...12, "nach oben bleibt die untere Grenze")
+        XCTAssertNil(ranged.withReps(8).repsRange, "bis auf „mindestens“ gesenkt: keine Spanne mehr")
+        XCTAssertEqual(ranged.withReps(7).repsMin, 7, "repsMin = reps - so nimmt der Dienst sie weg")
+
+        // Eben entfernt, aber noch nicht beim Dienst: ein Plus darf sie nicht zurueckholen.
+        let removed = GymExercise(id: "e-1", machineId: "m-1", sets: 2, reps: 10, repsMin: 10, weightKg: 40)
+        XCTAssertEqual(removed.repsLower, 10)
+        XCTAssertNil(removed.withReps(11).repsRange)
+        XCTAssertEqual(removed.withReps(11).repsMin, 11)
+
+        let plain = state().days[0].exercises[0]
+        XCTAssertEqual(plain.repsLower, 8, "ohne Spanne zeigt „mindestens“ dieselbe Zahl")
+        XCTAssertNil(plain.withReps(9).repsMin, "ohne Spanne bleibt das Feld weg")
+    }
+
+    func testANoteIsTrimmedAndCutLikeTheService() {
+        XCTAssertEqual(GymFormat.note("  Sitz 4\n"), "Sitz 4")
+        XCTAssertEqual(GymFormat.note("Sitz 4\nLehne 2"), "Sitz 4\nLehne 2", "Zeilenumbrueche bleiben")
+        XCTAssertEqual(GymFormat.note(String(repeating: "a", count: 250)).count, 200)
+        XCTAssertEqual(GymFormat.note(String(repeating: "\u{1F4AA}", count: 150)).utf16.count, 200, "Java zaehlt UTF-16")
+    }
+
+    // MARK: - Wiederholungen je Satz (19.10.)
+
+    /// Im Training mit Spanne zaehlt die Zahl nur fuer den Satz, der Plan bleibt.
+    @MainActor
+    func testATickCarriesTheRepsOfThisSetOnly() throws {
+        var gym = state()
+        gym.days[0].exercises[0] = GymExercise(id: "e-1", machineId: "m-1", sets: 3, reps: 10, repsMin: 8, weightKg: 40)
+        let store = GymStore(memory: gym)
+        let day = try XCTUnwrap(store.state?.days.first)
+        let exercise = day.exercises[0]
+
+        store.tickNext(exercise, on: day, reps: 9)
+        store.tickNext(exercise, on: day)
+        store.toggle(exercise, 2, on: day, reps: 0)
+
+        let sets = try XCTUnwrap(store.state?.sessions.first?.sets).sorted { $0.index < $1.index }
+        XCTAssertEqual(sets.map(\.reps), [9, 10, 1], "ohne Angabe der Plan, nie unter 1")
+        XCTAssertEqual(sets.map(\.weightKg), [40, 40, 40])
+        XCTAssertEqual(store.state?.days.first?.exercises.first, exercise, "der Plan bleibt")
+    }
+
+    @MainActor
+    func testANoteIsSetAndCleared() {
+        let store = GymStore(memory: state())
+        store.setNote(machineId: "m-1", to: "  Sitz 4 \n")
+        XCTAssertEqual(store.state?.machine("m-1")?.note, "Sitz 4")
+        store.setNote(machineId: "m-1", to: " ")
+        XCTAssertEqual(store.state?.machine("m-1")?.note, "", "leer geht als \"\" - nil hiesse „bleibt“")
+    }
+
+    // MARK: - Uhr
+
+    func testSetDoneCarriesTheRepsFromTheCrown() throws {
+        let message = WorkoutMessage.setDone(id: "x", exerciseId: "e-1", reps: 9)
+        XCTAssertEqual(WorkoutMessage.decode(try XCTUnwrap(message.encoded())), message)
+
+        let plan = try XCTUnwrap(WorkoutMessage.setDone(id: "y", exerciseId: "e-1", reps: nil).encoded())
+        XCTAssertFalse(String(decoding: plan, as: UTF8.self).contains("reps"), "ohne Spanne wie bisher")
+
+        // Eine Uhr von vor dem 19.10. schickt keine Wiederholungen.
+        XCTAssertEqual(WorkoutMessage.decode(Data(#"{"setDone":{"id":"z","exerciseId":"e-1"}}"#.utf8)),
+                       .setDone(id: "z", exerciseId: "e-1", reps: nil))
+    }
+
+    func testTheWatchGetsNoteAndRange() throws {
+        let current = WorkoutCurrent(exerciseId: "e-1", name: "Gerät A", note: "Sitz 4", set: 2, sets: 3,
+                                     reps: 10, repsMin: 8, weightKg: 40)
+        let message = WorkoutMessage.current(current)
+        XCTAssertEqual(WorkoutMessage.decode(try XCTUnwrap(message.encoded())), message)
+
+        // Ein iPhone von vor dem 19.10. schickt beides nicht.
+        let old = #"{"current":{"_0":{"exerciseId":"e-1","name":"Gerät A","set":1,"sets":3,"reps":8,"weightKg":40}}}"#
+        guard case .current(let decoded)? = WorkoutMessage.decode(Data(old.utf8)) else {
+            return XCTFail("alte Botschaft nicht lesbar")
+        }
+        XCTAssertNil(decoded?.note)
+        XCTAssertNil(decoded?.repsMin)
+        XCTAssertEqual(decoded?.reps, 8)
     }
 }

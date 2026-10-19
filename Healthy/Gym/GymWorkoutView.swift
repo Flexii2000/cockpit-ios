@@ -9,6 +9,12 @@ struct GymWorkoutView: View {
     let day: GymDay
     @Binding var sheet: GymSheet?
 
+    /// Die Wiederholungen des Satzes, der als naechster abgehakt wird - nur bei
+    /// einer Spanne, und nur fuer diesen Satz, nicht fuer den Plan (Felix,
+    /// 19.10.). `nil` ist die obere Grenze; nach jedem Haken und beim
+    /// Geraetewechsel steht sie wieder da (`progress`).
+    @State private var nextSetReps: Int?
+
     private var mirror: WorkoutMirror { WorkoutMirror.shared }
 
     var body: some View {
@@ -37,13 +43,30 @@ struct GymWorkoutView: View {
         }
         // Was die Uhr gerade zeigen soll - bei jedem Wechsel neu.
         .onChange(of: watchState, initial: true) { _, state in mirror.send(current: state) }
+        .onChange(of: progress) { nextSetReps = nil }
         .onAppear {
-            mirror.onSetDone = { exerciseId in
-                guard let exercise = day.exercises.first(where: { $0.id == exerciseId }) else { return }
-                store.tickNext(exercise, on: day)
+            mirror.onSetDone = { exerciseId, reps in
+                // Der Tag von jetzt, nicht der vom Erscheinen der Ansicht - sonst
+                // haekte die Uhr mit einem Gewicht von vorhin ab.
+                guard let day = store.workoutDay,
+                      let exercise = day.exercises.first(where: { $0.id == exerciseId }) else { return }
+                store.tickNext(exercise, on: day, reps: reps)
             }
             mirror.onEnd = { store.finish() }
         }
+    }
+
+    /// Welcher Satz an welchem Geraet dran ist - aendert es sich, gilt fuer den
+    /// naechsten wieder die obere Grenze.
+    private var progress: String {
+        guard let exercise = store.currentExercise else { return "" }
+        return "\(exercise.id)/\(store.doneCount(exercise, on: day))"
+    }
+
+    /// Mit Spanne die Wiederholungen fuer den naechsten Haken, sonst `nil`
+    /// (dann hakt der Plan ab).
+    private func repsForNextSet(_ exercise: GymExercise) -> Int? {
+        exercise.repsRange == nil ? nil : nextSetReps ?? exercise.reps
     }
 
     // MARK: - Werte
@@ -87,17 +110,29 @@ struct GymWorkoutView: View {
 
     private func current(_ exercise: GymExercise) -> some View {
         let done = store.doneCount(exercise, on: day)
+        let reps = repsForNextSet(exercise)
         return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(store.machineName(exercise.machineId))
-                    .font(.title2.weight(.bold))
-                Spacer()
-                Text("Satz \(min(done + 1, exercise.sets)) von \(exercise.sets)")
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(store.machineName(exercise.machineId))
+                        .font(.title2.weight(.bold))
+                    Spacer()
+                    Text("Satz \(min(done + 1, exercise.sets)) von \(exercise.sets)")
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                // Ein Feld, nicht nur im Blatt: die Sitzeinstellung traegt Felix am Geraet ein.
+                GymNoteField(note: store.state?.machine(exercise.machineId)?.note) {
+                    store.setNote(machineId: exercise.machineId, to: $0)
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1...3)
+                .id(exercise.id)
             }
-            GymSetCircles(store: store, day: day, exercise: exercise, size: 40)
-            GymPlanControls(store: store, dayId: day.id, exercise: exercise)
+            GymSetCircles(store: store, day: day, exercise: exercise, size: 40, reps: reps)
+            GymPlanControls(store: store, dayId: day.id, exercise: exercise,
+                            nextSetReps: Binding { nextSetReps ?? exercise.reps } set: { nextSetReps = $0 })
                 // Ein anderes Geraet ist ein anderes Feld - sonst stuende im
                 // Gewicht kurz noch die Zahl des vorigen.
                 .id(exercise.id)
@@ -112,7 +147,7 @@ struct GymWorkoutView: View {
                 .buttonStyle(.plain)
             }
             Button {
-                store.tickNext(exercise, on: day)
+                store.tickNext(exercise, on: day, reps: reps)
             } label: {
                 Label("Satz erledigt", systemImage: "checkmark")
                     .font(.headline)
@@ -174,11 +209,14 @@ struct GymWorkoutView: View {
 
     // MARK: - Uhr
 
-    /// Was die Uhr zeigt: das aktuelle Geraet mit Satz und Gewicht.
+    /// Was die Uhr zeigt: das aktuelle Geraet mit Notiz, Satz, Spanne und Gewicht.
     private var watchState: WorkoutCurrent? {
         guard let exercise = store.currentExercise else { return nil }
+        let note = store.state?.machine(exercise.machineId)?.note ?? ""
         return WorkoutCurrent(exerciseId: exercise.id, name: store.machineName(exercise.machineId),
+                              note: note.isEmpty ? nil : note,
                               set: min(store.doneCount(exercise, on: day) + 1, exercise.sets),
-                              sets: exercise.sets, reps: exercise.reps, weightKg: exercise.weightKg)
+                              sets: exercise.sets, reps: exercise.reps, repsMin: exercise.repsRange?.lowerBound,
+                              weightKg: exercise.weightKg)
     }
 }

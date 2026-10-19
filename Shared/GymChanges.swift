@@ -36,7 +36,8 @@ enum GymChange: Codable, Equatable, Sendable {
         switch self {
         case .machine(let machine):
             PendingRequest(method: "PUT", path: "/api/gym/machines/\(machine.id)",
-                           body: Self.encode(MachineBody(name: machine.name, archived: machine.archived)))
+                           body: Self.encode(MachineBody(name: machine.name, archived: machine.archived,
+                                                         note: machine.note)))
         case .day(let day):
             PendingRequest(method: "PUT", path: "/api/gym/days/\(day.id)",
                            body: Self.encode(DayBody(name: day.name, position: day.position,
@@ -44,7 +45,8 @@ enum GymChange: Codable, Equatable, Sendable {
         case .exercise(let dayId, let exercise):
             PendingRequest(method: "PUT", path: "/api/gym/days/\(dayId)/exercises/\(exercise.id)",
                            body: Self.encode(ExerciseBody(machineId: exercise.machineId, sets: exercise.sets,
-                                                          reps: exercise.reps, weightKg: exercise.weightKg)))
+                                                          reps: exercise.reps, repsMin: exercise.repsMin,
+                                                          weightKg: exercise.weightKg)))
         case .session(let id, let dayId, let date, let startedAt, let endedAt):
             PendingRequest(method: "PUT", path: "/api/gym/sessions/\(id)",
                            body: Self.encode(SessionBody(dayId: dayId, date: date, startedAt: startedAt,
@@ -66,9 +68,14 @@ enum GymChange: Codable, Equatable, Sendable {
 
     // MARK: - Ruempfe
 
-    private struct MachineBody: Encodable { let name: String; let archived: Bool }
+    // `note` und `repsMin` fehlen im Rumpf, solange sie `nil` sind (synthetisiert:
+    // `encodeIfPresent`) - beim Dienst heisst das „bleibt“. Auch in `DayBody`,
+    // dessen Uebungen als `GymExercise` gehen.
+    private struct MachineBody: Encodable { let name: String; let archived: Bool; let note: String? }
     private struct DayBody: Encodable { let name: String; let position: Int; let weekdays: [Int]; let exercises: [GymExercise] }
-    private struct ExerciseBody: Encodable { let machineId: String; let sets: Int; let reps: Int; let weightKg: Double }
+    private struct ExerciseBody: Encodable {
+        let machineId: String; let sets: Int; let reps: Int; let repsMin: Int?; let weightKg: Double
+    }
     private struct SessionBody: Encodable { let dayId: String; let date: CalendarDate; let startedAt: Date; let endedAt: Date? }
     private struct TickBody: Encodable { let weightKg: Double?; let reps: Int?; let doneAt: Date? }
 

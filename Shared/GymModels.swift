@@ -9,15 +9,48 @@ struct GymMachine: Codable, Equatable, Identifiable, Sendable {
     var name: String
     var archived: Bool
     var createdAt: Date?
+    /// Etwa die Sitzeinstellung (Felix, 19.10.) - haengt am Geraet, gilt also in
+    /// jedem Tag damit. `""` loescht sie beim Dienst, `nil` laesst sie stehen.
+    var note: String?
 }
 
-/// Ein Geraet an einem Trainingstag: „3×8 · 40 kg“.
+/// Ein Geraet an einem Trainingstag: „3×8 · 40 kg“, mit Spanne „2×8–10 · 40 kg“.
 struct GymExercise: Codable, Equatable, Identifiable, Sendable {
     let id: String
     var machineId: String
     var sets: Int
+    /// Mit Spanne die obere Grenze - das Ziel, mit dem abgehakt wird (Felix, 19.10.).
     var reps: Int
+    /// Die untere Grenze der Spanne. Eine ist es nur, wenn sie unter `reps`
+    /// liegt: zum Entfernen schickt die App `reps` selbst, denn `nil` hiesse
+    /// beim Dienst „bleibt“ (Vertrag §6).
+    var repsMin: Int?
     var weightKg: Double
+}
+
+extension GymExercise {
+    /// Eine echte Spanne, etwa 8...10 - sonst `nil`.
+    static func range(reps: Int, repsMin: Int?) -> ClosedRange<Int>? {
+        guard let repsMin, repsMin >= 1, repsMin < reps else { return nil }
+        return repsMin...reps
+    }
+
+    var repsRange: ClosedRange<Int>? { Self.range(reps: reps, repsMin: repsMin) }
+
+    /// Was „mindestens“ zeigt: ohne Spanne dieselbe Zahl wie `reps`.
+    var repsLower: Int { repsRange?.lowerBound ?? reps }
+
+    /// Eine neue obere Grenze. Die untere wandert mit, wenn sie sonst darueber
+    /// laege - und ohne Spanne bleibt es ohne: eine eben entfernte
+    /// (`repsMin == reps`) wuerde beim naechsten Plus sonst wieder eine.
+    func withReps(_ value: Int) -> GymExercise {
+        var changed = self
+        changed.reps = value
+        if let repsMin {
+            changed.repsMin = repsRange == nil ? value : min(repsMin, value)
+        }
+        return changed
+    }
 }
 
 struct GymDay: Codable, Equatable, Identifiable, Sendable {
@@ -79,6 +112,21 @@ struct GymLast: Codable, Equatable, Sendable {
     let weightKg: Double
     let sets: Int
     let reps: Int
+    /// Die Wiederholungen der Saetze mit diesem, dem schwersten Gewicht, nach
+    /// Satz (seit 19.10.) - leer in aelteren Staenden.
+    var setReps: [Int] = []
+}
+
+extension GymLast {
+    // Aeltere Antworten und Zwischenspeicher haben `setReps` nicht.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        date = try container.decode(CalendarDate.self, forKey: .date)
+        weightKg = try container.decode(Double.self, forKey: .weightKg)
+        sets = try container.decode(Int.self, forKey: .sets)
+        reps = try container.decode(Int.self, forKey: .reps)
+        setReps = try container.decodeIfPresent([Int].self, forKey: .setReps) ?? []
+    }
 }
 
 struct GymHistoryPoint: Codable, Equatable, Identifiable, Sendable {
@@ -86,7 +134,20 @@ struct GymHistoryPoint: Codable, Equatable, Identifiable, Sendable {
     let weightKg: Double
     let sets: Int
     let reps: Int
+    /// Wie bei `GymLast`; zwei Besuche an einem Tag: die des frueheren zuerst.
+    var setReps: [Int] = []
     var id: CalendarDate { date }
+}
+
+extension GymHistoryPoint {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        date = try container.decode(CalendarDate.self, forKey: .date)
+        weightKg = try container.decode(Double.self, forKey: .weightKg)
+        sets = try container.decode(Int.self, forKey: .sets)
+        reps = try container.decode(Int.self, forKey: .reps)
+        setReps = try container.decodeIfPresent([Int].self, forKey: .setReps) ?? []
+    }
 }
 
 /// Eine Muskelgruppe der Geraeteliste („Brust“ mit ihren Geraeten). Die Liste
@@ -176,8 +237,15 @@ enum GymFormat {
         return text + " kg"
     }
 
-    /// „3×8“.
-    static func scheme(sets: Int, reps: Int) -> String { "\(sets)×\(reps)" }
+    /// „3×8“, mit Spanne „2×8–10“.
+    static func scheme(sets: Int, reps: Int, repsMin: Int? = nil) -> String {
+        "\(sets)×" + (GymExercise.range(reps: reps, repsMin: repsMin).map(range) ?? "\(reps)")
+    }
+
+    /// „8–10“, mit Halbgeviertstrich wie im Vertrag.
+    static func range(_ range: ClosedRange<Int>) -> String {
+        "\(range.lowerBound)–\(range.upperBound)"
+    }
 
     static let weekdayNames = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
@@ -204,8 +272,36 @@ enum GymFormat {
         return String(weight(kg).dropLast(3))
     }
 
-    /// „letztes Mal 3×8 · 37,5 kg“.
+    /// „letztes Mal 3×8 · 37,5 kg“, „letztes Mal 10, 9 · 40 kg“.
     static func last(_ last: GymLast) -> String {
-        "letztes Mal " + scheme(sets: last.sets, reps: last.reps) + " · " + weight(last.weightKg)
+        "letztes Mal " + sets(last.setReps, sets: last.sets, reps: last.reps) + " · " + weight(last.weightKg)
+    }
+
+    /// Eine Zeile im Verlauf: „3×8 · 37,5 kg“, „10, 9 · 40 kg“.
+    static func history(_ point: GymHistoryPoint) -> String {
+        sets(point.setReps, sets: point.sets, reps: point.reps) + " · " + weight(point.weightKg)
+    }
+
+    /// Die Saetze mit dem schwersten Gewicht (Vertrag §6, 19.10.): alle gleich
+    /// „2×10“ - so viele Saetze, wie es mit diesem Gewicht waren -, sonst jeder
+    /// einzeln „10, 9“. Ohne `setReps` (aeltere Staende) wie bisher aus `sets`
+    /// und `reps`.
+    static func sets(_ setReps: [Int], sets: Int, reps: Int) -> String {
+        guard let first = setReps.first else { return scheme(sets: sets, reps: reps) }
+        return setReps.allSatisfy { $0 == first }
+            ? scheme(sets: setReps.count, reps: first)
+            : setReps.map(String.init).joined(separator: ", ")
+    }
+
+    /// Die Notiz, wie sie zum Dienst geht: ohne Leerraum aussen und hoechstens
+    /// 200 Zeichen. Gezaehlt wie der Dienst (Java, UTF-16) - mehr kaeme als
+    /// Ablehnung zurueck, und die Notiz waere weg.
+    static func note(_ text: String) -> String {
+        var kept = ""
+        for character in text.trimmingCharacters(in: .whitespacesAndNewlines) {
+            guard kept.utf16.count + character.utf16.count <= 200 else { break }
+            kept.append(character)
+        }
+        return kept.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

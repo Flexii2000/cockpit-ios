@@ -480,6 +480,82 @@ final class HealthyUITests: XCTestCase {
         shoot(app, "gym-beendet")
     }
 
+    /// Spanne, Notiz und Wiederholungen je Satz (19.10.) an den Vorfuehrdaten
+    /// (`COCKPIT_GYM_DEMO=1`: nur im Speicher, braucht keinen Dienst). Im Blatt
+    /// macht „mindestens“ aus 3×10 eine Spanne, die Notiz bleibt nach „Fertig“;
+    /// im Training aendert − nur den naechsten Satz, nach dem Haken steht
+    /// wieder die obere Grenze da, und der Plan bleibt.
+    func testGymRangeNoteAndRepsPerSet() {
+        let app = launch(tab: "gym", extra: ["COCKPIT_GYM_DEMO": "1"])
+
+        let row = app.buttons["gymExercise-e-demo-b"]
+        XCTAssertTrue(row.waitForExistence(timeout: 20), "keine Vorfuehrdaten")
+        XCTAssertTrue(row.label.contains("3×10 · 27,5 kg"), row.label)
+        row.tap()
+        let lower = app.buttons["mindestens: weniger"]
+        XCTAssertTrue(lower.waitForExistence(timeout: 5), "kein „mindestens“ im Blatt")
+        lower.tap()
+        lower.tap()
+        let note = app.descendants(matching: .any)["gymNote"]
+        note.tap()
+        note.typeText("Sitz 2")
+        shoot(app, "gym-blatt-spanne-notiz")
+        XCTAssertTrue(reps(app, "mindestens", 8).exists, "„mindestens“ nicht auf 8")
+        app.navigationBars.buttons["Fertig"].tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("3×8–10 · 27,5 kg"), row.label)
+
+        // Wieder offen: die Notiz ist uebernommen; „mindestens“ ganz hoch nimmt die Spanne weg.
+        row.tap()
+        XCTAssertTrue(note.waitForExistence(timeout: 5))
+        XCTAssertEqual(note.value as? String, "Sitz 2")
+        let higher = app.buttons["mindestens: mehr"]
+        higher.tap()
+        higher.tap()
+        higher.tap()
+        XCTAssertTrue(reps(app, "mindestens", 10).exists, "„mindestens“ geht nicht ueber die obere Grenze")
+        app.navigationBars.buttons["Fertig"].tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.label.contains("3×10 · 27,5 kg"), row.label)
+
+        // Training mit Tag A (vorgewaehlt ist er nur an seinen Wochentagen): Geraet A
+        // hat 8–10 und die Notiz „Sitz 4“.
+        app.buttons["gymDayMenu"].tap()
+        app.buttons.matching(NSPredicate(format: "label == 'Tag A' AND identifier != 'gymDayMenu'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["gymDayMenu"].label.contains("Tag A"), app.buttons["gymDayMenu"].label)
+        app.buttons["gymStart"].tap()
+        let done = app.buttons["gymSetDone"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "keine Trainingsansicht")
+        XCTAssertEqual(note.value as? String, "Sitz 4")
+        XCTAssertTrue(app.staticTexts["8–10"].exists, "keine Spanne neben „Wiederholungen“")
+        app.buttons["Wiederholungen: weniger"].tap()
+        XCTAssertTrue(reps(app, "Wiederholungen", 9).exists, "− aendert den Satz nicht")
+        shoot(app, "gym-training-spanne")
+        done.tap()
+        XCTAssertTrue(app.staticTexts["Satz 2 von 3"].waitForExistence(timeout: 5))
+        XCTAssertTrue(reps(app, "Wiederholungen", 10).exists, "nach dem Haken nicht wieder die obere Grenze")
+
+        // Die Notiz im Training: tippen, „Fertig“ ueber der Tastatur uebernimmt. Hinter
+        // den Text tippen - `tap()` trifft ein Textfeld an seinem Anfang, und der
+        // Zusatz landete vorn.
+        note.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        note.typeText(" · Lehne 2")
+        app.buttons["gymNoteDone"].tap()
+        shoot(app, "gym-training-notiz")
+        XCTAssertEqual(note.value as? String, "Sitz 4 · Lehne 2")
+
+        scrollDown(app, times: 1)
+        app.buttons["gymFinish"].tap()
+        let planned = app.buttons["gymExercise-e-demo-a"]
+        XCTAssertTrue(planned.waitForExistence(timeout: 10))
+        XCTAssertTrue(planned.label.contains("3×8–10 · 40 kg"), "der Plan hat sich geaendert: \(planned.label)")
+    }
+
+    /// Die Zahl eines „− n +“: Beschriftung wie die Zeile, Wert die Zahl.
+    private func reps(_ app: XCUIApplication, _ label: String, _ value: Int) -> XCUIElement {
+        app.staticTexts.matching(NSPredicate(format: "label == %@ AND value == %@", label, "\(value)")).firstMatch
+    }
+
     /// Im offenen Tag-Blatt: Name, wahlweise ein Wochentag, „Fertig“.
     private func addDay(_ app: XCUIApplication, _ name: String, weekday: Int?) {
         let field = app.textFields["gymName"]

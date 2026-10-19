@@ -47,6 +47,16 @@ final class GymStore {
         queue.observe(.weight) { [weak self] event in self?.handle(event) }
     }
 
+    #if DEBUG
+    /// Fuer Unit-Tests: ein Stand nur im Speicher wie bei den Vorfuehrdaten -
+    /// nichts geht an den Dienst, nichts in die Warteschlange.
+    init(memory state: GymState) {
+        isDemo = true
+        server = state
+        workout = nil
+    }
+    #endif
+
     /// Was fuer das Gym in der Warteschlange wartet.
     var pending: [GymChange] { queue.changes(for: .weight).compactMap(\.gym) }
 
@@ -225,6 +235,14 @@ final class GymStore {
         send(.machine(machine), label: clean)
     }
 
+    /// Die Notiz am Geraet (Felix, 19.10.); leer loescht sie (`""` an den Dienst).
+    func setNote(machineId: String, to note: String) {
+        let clean = GymFormat.note(note)
+        guard var machine = state?.machine(machineId), clean != (machine.note ?? "") else { return }
+        machine.note = clean
+        send(.machine(machine), label: machine.name)
+    }
+
     func machineName(_ id: String) -> String {
         state?.machine(id)?.name ?? "Gerät"
     }
@@ -241,8 +259,9 @@ final class GymStore {
     }
 
     /// Ein Satz an oder aus. Ohne Besuch fuer diesen Tag legt der erste Haken
-    /// einen an (Vertrag §6).
-    func toggle(_ exercise: GymExercise, _ index: Int, on day: GymDay) {
+    /// einen an (Vertrag §6). `reps`: die Wiederholungen dieses einen Satzes -
+    /// im Training mit Spanne (19.10.); ohne gelten die des Plans.
+    func toggle(_ exercise: GymExercise, _ index: Int, on day: GymDay, reps: Int? = nil) {
         guard let state else { return }
         let sessions = state.sessions(for: day.id, on: today)
         if let session = sessions.first(where: { $0.isDone(exercise.id, index) }) {
@@ -252,7 +271,7 @@ final class GymStore {
         }
         let sessionId = workoutSession(for: day) ?? openOrNewSession(for: day, in: state)
         send(.tick(sessionId: sessionId, exerciseId: exercise.id, index: index,
-                   weightKg: exercise.weightKg, reps: exercise.reps, doneAt: Date()),
+                   weightKg: exercise.weightKg, reps: min(max(reps ?? exercise.reps, 1), 100), doneAt: Date()),
              label: machineName(exercise.machineId))
         // Fertig mit diesem Geraet: das naechste offene ist dran.
         if chosenExerciseId == exercise.id, doneCount(exercise, on: day) >= exercise.sets {
@@ -260,10 +279,10 @@ final class GymStore {
         }
     }
 
-    /// Der naechste offene Satz eines Geraets - fuer „Satz erledigt“ auf der Uhr.
-    func tickNext(_ exercise: GymExercise, on day: GymDay) {
+    /// Der naechste offene Satz eines Geraets - fuer „Satz erledigt“.
+    func tickNext(_ exercise: GymExercise, on day: GymDay, reps: Int? = nil) {
         guard let index = (0..<exercise.sets).first(where: { !isDone(exercise, $0, on: day) }) else { return }
-        toggle(exercise, index, on: day)
+        toggle(exercise, index, on: day, reps: reps)
     }
 
     private func workoutSession(for day: GymDay) -> String? {
