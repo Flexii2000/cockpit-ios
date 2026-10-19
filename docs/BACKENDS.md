@@ -305,10 +305,10 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | GET | `/api/logbook/days?from=&to=` | `[LogbookDay]` |
 | GET | `/api/logbook/insights?days=30\|90\|180\|365` | `InsightsView` (Vorgabe 90, anderes → 400) |
 | GET | `/api/gym` | `GymState` — Geräte, Tage, `nextDayId`, Besuche gestern–morgen, `last` je Gerät, `catalog` (Geräteliste) (seit 14.10., Vertrag §6) |
-| GET | `/api/gym/history?machineId=&from=` | `[HistoryPoint]` — je Besuch der schwerste Satz, älteste zuerst |
-| PUT | `/api/gym/machines/{id}` | `{name?, archived?}` → `Machine`; Kennung der App (`m-…`), neu braucht `name` |
-| PUT | `/api/gym/days/{id}` | `{name?, position?, weekdays?, exercises?}` → `TrainingDay`; `exercises` ersetzt die ganze Liste, `weekdays` (ISO 1–7) die Wochentage — die App schickt immer den ganzen Tag |
-| PUT | `/api/gym/days/{dayId}/exercises/{id}` | `{machineId?, sets?, reps?, weightKg?, position?}` → `TrainingDay` — Gewicht im Training = neuer Plan |
+| GET | `/api/gym/history?machineId=&from=` | `[HistoryPoint]` — je Besuch der schwerste Satz samt `setReps`, älteste zuerst |
+| PUT | `/api/gym/machines/{id}` | `{name?, archived?, note?}` → `Machine`; Kennung der App (`m-…`), neu braucht `name`; `note` ≤ 200 Zeichen, `""` löscht sie (seit 19.10.) |
+| PUT | `/api/gym/days/{id}` | `{name?, position?, weekdays?, exercises?}` → `TrainingDay`; `exercises` ersetzt die ganze Liste (je Übung auch `repsMin?`), `weekdays` (ISO 1–7) die Wochentage — die App schickt immer den ganzen Tag |
+| PUT | `/api/gym/days/{dayId}/exercises/{id}` | `{machineId?, sets?, reps?, repsMin?, weightKg?, position?}` → `TrainingDay` — Gewicht im Training = neuer Plan, Wiederholungen nur ohne Spanne (mit Spanne gelten sie nur für den Satz) |
 | DELETE | `/api/gym/days/{id}` · `…/exercises/{id}` | 204, auch wenn nichts (mehr) da ist — braucht Netz, nicht in die Warteschlange |
 | PUT | `/api/gym/sessions/{id}` | `{dayId, date, startedAt, endedAt?}` → `Session`; der neueste Stand gilt ganz, die Sätze bleiben |
 | PUT | `/api/gym/sessions/{id}/sets/{exerciseId}/{index}` | `{weightKg, reps, doneAt?}` → `Session`; `{}` nimmt den Haken zurück, ohne Rumpf 400 |
@@ -337,10 +337,11 @@ HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | 
 LogbookView     behaviors: [Behavior], backfillDays (14), backfillFrom, today, days: [LogbookDay]
 Behavior        id ("b-…"), name, unit?, createdAt, archived
 GymState        today, machines: [Machine], days: [TrainingDay], nextDayId?, sessions: [Session],
-                last: {machineId: {date, weightKg, sets, reps}}, catalog: [{name, entries: [String]}]
-Machine         id ("m-…"), name, archived, createdAt
+                last: {machineId: {date, weightKg, sets, reps, setReps: [Int]}}, catalog: [{name, entries: [String]}]
+Machine         id ("m-…"), name, archived, createdAt, note? (seit 19.10., fehlt in alten Ständen)
 TrainingDay     id ("d-…"), name, position, weekdays: [1–7] (ISO, fehlt in alten Ständen), updatedAt, exercises: [{id ("e-…"), machineId, sets (1–10),
-                reps (1–100), weightKg (0–500, 0 = ohne Gewicht)}]
+                reps (1–100, mit Spanne die obere Grenze), repsMin? (< reps, sonst null), weightKg (0–500, 0 = ohne Gewicht)}]
+HistoryPoint    date, weightKg, sets, reps, setReps: [Int] (fehlt in alten Ständen)
 Session         id ("s-…"), dayId, date, startedAt, endedAt?, sets: [{exerciseId, machineId, index (0–19),
                 weightKg, reps, doneAt}]
 LogbookDay      date, savedAt, values: {behaviorId: 0 | 1 | Menge} - fehlt eine, ist sie an dem Tag offen
@@ -350,6 +351,17 @@ PredictorView   key, source (LOGBOOK | COHABIT | HEALTHY), id, name, kind (BINAR
                 variant (MAIN | DOSE), unitLabel?, perUnit, effect?, ciLow?, ciHigh?, p?, pAdjusted?,
                 nYes?, nNo?, n, meanYes?, meanNo?, status (OK | TOO_FEW | NOT_SEPARABLE)
 ```
+
+⚠️ **Gym: `note` und `repsMin` fehlen heißt „bleibt“ (seit 19.10., Vertrag §6).** Die App
+schickt sie deshalb nur, wenn sie einen Wert haben (`encodeIfPresent`) - eine Änderung ohne
+Notiz überschreibt keine, die eine andere App gespeichert hat. Zum **Löschen der Notiz** geht
+`""`, zum **Entfernen der Spanne** `repsMin` = `reps`: `repsMin` 0 oder ≥ `reps` speichert der
+Dienst als `null` (auch, wenn eine ältere App nur `reps` darunter senkt). `setReps` in `last`
+und im Verlauf sind die Wiederholungen der Sätze mit dem gezeigten, schwersten Gewicht nach
+Satz-Index; zwei Besuche an einem Tag: die des früheren zuerst. Nachgesehen in
+`../weight-app/…/gym/` (`MachineRequest`, `ExerciseRequest`, `LastSets`, `HistoryPoint`,
+`GymService`) auf dem Branch `gym-notes-ranges` - **noch nicht ausgerollt**. Ein älterer Dienst
+kennt beide Felder nicht: erst den Dienst ausrollen, dann die App.
 
 ⚠️ **Jede Antwort zählt für sich (seit 12.10.).** Die App schickt je Tipp einen
 Wert über die Warteschlange (`LogbookChange`); eine Verhaltensweise ohne Wert

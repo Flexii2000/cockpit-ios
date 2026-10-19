@@ -3,6 +3,46 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-19 — Gym: Notiz am Gerät, Spanne, Wiederholungen je Satz
+Anlass war ein Trainingsplan mit Spannen („3 × 8–10“), der je Satz Gewicht und Wiederholungen
+und je Gerät die Sitzeinstellung festhält. Felix' Entscheidungen (Vertrag
+`weight-app/docs/HEALTHY-CONTRACT.md` §6, Abschnitt „Notiz, Spanne, Sätze einzeln“):
+- **Notiz je Gerät** (`GymMachine.note`, bis 200 Zeichen): hängt am Gerät, gilt also in jedem
+  Tag damit. Ein Eingabefeld im Training direkt unter dem Gerät (Platzhalter „Notiz“) - dort
+  tippt Felix im ersten Training die Sitzeinstellung ein - und eins im Blatt des Geräts; die Uhr
+  zeigt sie als kleine Zeile. Verworfen: die Notiz auch in der Übersicht - gebraucht wird sie
+  am Gerät, und die Übersicht bleibt bei Plan und Haken.
+- **Spanne als `repsMin`, `reps` bleibt die obere Grenze** („Das Ziel steht da“): ältere Apps
+  zeigen und haken weiter mit `reps`. Eingestellt im Blatt mit „mindestens“ unter
+  „Wiederholungen“; gleich der oberen Grenze heißt keine Spanne.
+- **Im Training ändern „−“ und „+“ mit Spanne nur den nächsten Satz**, vorbelegt ist die obere
+  Grenze, nach jedem Haken und beim Gerätewechsel wieder; daneben klein die Spanne. Ohne
+  Spanne bleibt die Zahl der Plan wie bisher. Der Stepper ist derselbe „− n +“ wie sonst und
+  geht auch unter und über die Spanne (1–100). Verworfen: eine Reihe Zahlknöpfe, je
+  Wiederholungszahl der Spanne einer, statt des Steppers.
+- **Auf der Uhr dreht die Krone die Wiederholungen**, „Satz erledigt“ schickt sie mit
+  (`setDone` mit `reps`). Verworfen: die Spanne auf der Uhr nur anzeigen - dann hakte jeder Satz
+  von der Uhr mit der oberen Grenze ab, und man müsste am iPhone nachbessern.
+- **„letztes Mal“ und der Verlauf zeigen jeden Satz** mit dem schwersten Gewicht: alle gleich
+  „2×10 · 40 kg“ (die Zahl der Sätze mit diesem Gewicht), sonst „10, 9 · 40 kg“. Ob alle Sätze
+  die obere Grenze geschafft haben, zeigt der schwerste allein nicht.
+
+Ohne Rückfrage entschieden:
+- **Zum Entfernen einer Spanne schickt die App `repsMin` = `reps`**, nicht `null` - `null`
+  heißt beim Dienst „bleibt“. Bis die Antwort da ist, steht das so auch in der App; wird danach
+  „Wiederholungen“ erhöht, wandert `repsMin` mit (`GymExercise.withReps`) - sonst entstünde
+  aus der eben entfernten Spanne eine neue. Eine Spanne zeigt die App nur bei 1 ≤ `repsMin` <
+  `reps` (0 heißt beim Dienst auch keine).
+- **Die Notiz wird auf 200 Zeichen gekürzt, gezählt wie in Java (UTF-16)**, bevor sie rausgeht:
+  eine längere lehnte der Dienst ab, und mit der Ablehnung verschwände die ganze Notiz.
+- **Die Krone gehört den Wiederholungen, sobald die Seite des Geräts zu sehen ist** (und es
+  eine Spanne gibt) - kein Antippen vorher; ein grüner Rahmen um die Zahl zeigt es (watchOS
+  zeichnet für diese Ansicht keinen eigenen). Dafür blättert man auf dieser Seite mit Wischen.
+  Verworfen: erst die Zahl antippen, dann drehen - ein Schritt mehr, und wer es vergisst,
+  blättert mit der Krone zu „Beenden“.
+- **Auf schmalen iPhones (390 Punkt) rückt die Spanne unter „Wiederholungen“**, statt das Wort
+  zu trennen (`ViewThatFits`).
+
 ## 2026-10-14 (abends) — Gym-Habit in coHabit
 Felix: „ein Gym-Habit, das ich 2× die Woche abhaken will, automatisch abgehakt, wenn man einen
 Gym-Tag beendet hat, und in der Recovery-Auswertung“. In der Fragerunde gewählt:

@@ -1,5 +1,46 @@
 # Stand
 
+> **Gym: Notiz am Gerät, Spanne, Wiederholungen je Satz (19.10.):** Branch `gym-notes-ranges`
+> in cockpit-ios; der Weight Tracker bekommt `note`, `repsMin` und `setReps` parallel auf dem
+> gleichnamigen Branch (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §6, Abschnitt „Notiz,
+> Spanne, Sätze einzeln“). Nicht gemergt, nicht gepusht. **Erst der Dienst, dann Healthy samt
+> Uhr:** ein älterer Weight Tracker kennt `note` und `repsMin` nicht - Notiz und Spanne kämen
+> dort nie an.
+> - **Neu:** `GymMachine.note`, `GymExercise.repsMin` (`repsRange`, `repsLower`, `withReps`),
+>   `setReps` in `GymLast` und `GymHistoryPoint`; `GymFormat.scheme(…repsMin:)` („2×8–10“),
+>   `GymFormat.sets` („10, 9“ bzw. „2×10“), `GymFormat.note` (≤ 200 UTF-16-Zeichen wie Java);
+>   `GymNoteField` (Training unter dem Gerät, Blatt unter dem Namen), „mindestens“ im Blatt,
+>   im Training mit Spanne „Wiederholungen“ nur für den nächsten Satz (`nextSetReps`,
+>   `toggle`/`tickNext` mit `reps`); Uhr: Notiz-Zeile, Krone für die Wiederholungen,
+>   `setDone` mit `reps`, `WorkoutCurrent.note`/`repsMin`. `COCKPIT_WATCH_DEMO=machine` öffnet
+>   das Uhr-Training auf der Seite des Geräts. Nebenbei: „Satz erledigt“ von der Uhr hakt mit
+>   dem Plan von jetzt ab, nicht mit dem vom Start der Trainingsansicht (vorher ging ein im
+>   Training geändertes Gewicht so verloren).
+> - **Geprüft:** `tools/verify.sh` (alle fünf + `HealthyWatch`; Healthy 295 XCTests + 31
+>   Swift-Tests, Fokus 41, coHabit 182), darin 13 neue in `GymTests` (Format, Dekodieren ohne
+>   die neuen Felder, Rümpfe mit und ohne `note`/`repsMin`, Overlay, alte Einträge der
+>   Warteschlange, Wiederholungen je Satz im Store, Uhr-Botschaften). UI-Tests
+>   `testGymRangeNoteAndRepsPerSet` (Vorführdaten, kein Dienst nötig) und
+>   `testGymPlanTickAndTraining` gegen einen lokalen Weight Tracker vom Branch
+>   `gym-notes-ranges`; gegen denselben per curl: Notiz setzen/behalten/löschen, Spanne
+>   setzen/behalten/entfernen (`repsMin` = `reps` → `null`), `setReps` in `last` und Verlauf,
+>   und in der App „3×8–10 · 40 kg“, „letztes Mal 10, 9 · 40 kg“. Bilder hell und dunkel von
+>   Übersicht und Trainingsansicht, das Blatt hell, die Trainingsansicht auf dem iPhone 17e
+>   (390 Punkt: die Spanne rückt unter „Wiederholungen“), die Uhr im Simulator (42 und 40 mm,
+>   `COCKPIT_WATCH_DEMO=machine`; die Krone hat dort den Fokus, ein grüner Rahmen zeigt es -
+>   watchOS zeichnet hier selbst keinen).
+> - **Nicht geprüft:** das Drehen der Krone selbst - im Simulator nur, dass die Zahl den Fokus
+>   hat. Android (healthy-android) ist nicht Teil dieses Branches.
+> - **Nächster Schritt:** Review, dann den Weight Tracker (`gym-notes-ranges`) ausrollen und
+>   danach Healthy samt Uhr aufs iPhone.
+> - **Auf dem Gerät prüfen:** (1) Im ersten Training die Sitzeinstellung ins Feld „Notiz“ unter
+>   dem Gerät tippen, „Fertig“ über der Tastatur - steht danach im Blatt des Geräts und auf der
+>   Uhr. (2) Im Blatt „mindestens“ auf 8 → in der Übersicht „3×8–10“; wieder bis zur oberen
+>   Grenze → „3×10“. (3) Im Training mit Spanne „−“ → nur dieser Satz, nach „Satz erledigt“
+>   wieder die obere Grenze, der Plan bleibt. (4) Uhr: auf der Seite des Geräts dreht die Krone
+>   die Zahl (grüner Rahmen), „Satz erledigt“ hakt am iPhone mit dieser Zahl ab; blättern dort
+>   mit Wischen. (5) Am Tag nach dem Training „letztes Mal 10, 9 · 40 kg“.
+
 > **Gym-Habit in coHabit (14.10. abends):** Health-Metrik „Gym aus Healthy“ (`GYM`) – eine Serie,
 > z. B. „Gym, 2× pro Woche“, die der Dienst abhakt, sobald im Gym-Tab von Healthy ein Training
 > beendet ist (fragt `GET /api/gym/days` beim Weight Tracker): beim Anlegen, alle 15 Minuten und
