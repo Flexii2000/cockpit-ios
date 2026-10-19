@@ -14,9 +14,8 @@
 >   Swift-Tests, Fokus 41, coHabit 182), darin `TargetDistanceChartTests` (10). Im
 >   Simulator mit Vorführdaten hell und dunkel: nur Distanz (außen rechts), mit Defizit (innen
 >   links), mit kcal + Defizit, „Alles“, Sprechblase.
-> - **Noch nicht auf dem iPhone:** `main` ist gepusht, aber das iPhone war am 19.10. von 14:50 bis
->   15:11 nicht erreichbar („unavailable“: gesperrt oder nicht im WLAN). **Nächster Schritt:**
->   `tools/install-device.sh Healthy`, sobald es entsperrt im WLAN ist.
+> - **Auf Felix' iPhone und Uhr installiert am 19.10. um 15:43** (`tools/install-device.sh Healthy`;
+>   der erste Versuch von 14:50 bis 15:11 scheiterte, das iPhone war „unavailable“).
 > - **Auf dem Gerät prüfen:** Schalter „Distanz z. Target“ an - die Kurve liegt dort, wo Gewicht ⌀
 >   und Zielkurve auseinanderlaufen, die Nulllinie ist die Zielkurve.
 
