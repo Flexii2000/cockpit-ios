@@ -160,6 +160,7 @@ struct WeightTab: View {
                             kcalTarget: store.kcalTarget,
                             expenditureAverage: store.expenditureAverage,
                             deficitAverage: store.deficitAverage,
+                            distanceAverage: store.range.distanceAverage,
                             visible: store.visibleSeries)
 
             // Die Umschalter sind zugleich die Legende - eine zweite Liste

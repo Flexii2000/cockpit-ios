@@ -202,7 +202,7 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// Ein fuenfter Umschalter passte nicht in die Reihe.
     var offeredSeries: [WeightSeries] {
         switch self {
-        case .allTime: [.measured, .avg30, .target, .kcal, .kcalDay, .expenditure, .deficit]
+        case .allTime: [.measured, .avg30, .target, .targetDistance, .kcal, .kcalDay, .expenditure, .deficit]
         default:       WeightSeries.offered
         }
     }
@@ -220,14 +220,25 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// 14er darin kaum mehr - dieselbe Einschraenkung wie in der Weboberflaeche.
     var availableSeries: [WeightSeries] {
         switch self {
-        case .month: [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure, .deficit]
-        default:     [.measured, .avg7, .avg14, .avg30, .target, .kcal, .kcalDay, .expenditure, .deficit]
+        case .month: [.measured, .avg7, .target, .targetDistance, .kcal, .kcalDay, .expenditure, .deficit]
+        default:     [.measured, .avg7, .avg14, .avg30, .target, .targetDistance,
+                      .kcal, .kcalDay, .expenditure, .deficit]
         }
+    }
+
+    /// Wogegen „Distanz z. Target" misst: das Mittel, mit dem der Zeitraum
+    /// das Gewicht zeigt - in „Alles" das 30er (Vertrag §5).
+    var distanceAverage: WeightSeries {
+        self == .allTime ? .avg30 : .avg7
     }
 }
 
 enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     case measured, avg7, avg14, avg30, target
+    /// „Distanz z. Target": Gewicht ⌀ minus Zielkurve, auf eigener Skala mit
+    /// Nulllinie - dort liegt die Zielkurve (Vertrag §5). Nur angeboten
+    /// (Felix, 19.10.).
+    case targetDistance
     /// Das 7-Tage-Mittel der kcal aus dem Kalorienzaehler. Liegt auf einer
     /// eigenen Skala und wird in den Gewichtsbereich hineingerechnet, dieselbe
     /// Zusammenschau wie in der Weboberflaeche.
@@ -253,6 +264,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
         case .avg14:    "14-Tage-Mittel"
         case .avg30:    "30-Tage-Mittel"
         case .target:   "Zielkurve"
+        case .targetDistance: "Distanz z. Target"
         case .kcal:     "kcal ⌀"
         case .kcalDay:  "kcal Tag"
         case .expenditure: "Verbrauch ⌀"
@@ -264,7 +276,8 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// Weboberflaeche (`offeredSeries` in app.js): die langen Mittel dort
     /// nicht anbieten, statt einen Umschalter zu zeigen, den niemand
     /// benutzt. „Alles" hat sein eigenes Angebot, siehe `WeightRange`.
-    static let offered: [WeightSeries] = [.measured, .avg7, .target, .kcal, .kcalDay, .expenditure, .deficit]
+    static let offered: [WeightSeries] = [.measured, .avg7, .target, .targetDistance,
+                                          .kcal, .kcalDay, .expenditure, .deficit]
 
     static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .deficit]
 }

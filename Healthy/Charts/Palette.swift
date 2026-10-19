@@ -13,6 +13,10 @@ enum Palette {
     static let avg14    = Color.adaptive(light: 0xF57C00, dark: 0xFFB74D)
     static let avg30    = Color.adaptive(light: 0x7B1FA2, dark: 0xBA68C8)
     static let target   = Color.adaptive(light: 0xD32F2F, dark: 0xE57373)
+    /// „Distanz z. Target" - Pink (Felix, 19.10.): eigene Farbe statt des
+    /// Rots der Zielkurve, damit die Kurve neben ihr nicht als zweite
+    /// Zielkurve gelesen wird.
+    static let targetDistance = Color.adaptive(light: 0xC2255C, dark: 0xF06595)
     /// Die Aufnahme (kcal). Dunkel mit 85 % wie im Web - das volle Gelb
     /// strahlte dort heller als jede andere Kurve.
     static let kcal     = Color.adaptive(light: 0xD49C00, dark: 0xFFD54F, darkOpacity: 0.85)

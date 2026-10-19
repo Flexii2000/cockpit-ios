@@ -48,6 +48,7 @@ enum FoodChartData {
             case .avg14:    point.avg14
             case .avg30:    point.avg30
             case .target:   point.target
+            case .targetDistance: nil
             case .kcal:     nil
             case .kcalDay:  nil
             case .expenditure: nil
@@ -70,7 +71,7 @@ enum FoodChartData {
 
     /// „Defizit ⌀" auf seiner eigenen Skala, hineingerechnet in die kcal-Achse
     /// - an Luecken getrennt und gestrichelt wie „Verbrauch ⌀".
-    static func deficitRuns(_ deficit: [DayAverage], scale: DeficitScale,
+    static func deficitRuns(_ deficit: [DayAverage], scale: ZeroLineScale,
                             onto domain: ClosedRange<Double>) -> [AverageRun] {
         DaySeries.averageRuns(deficit, key: "deficit", map: { scale.position($0, in: domain) })
     }

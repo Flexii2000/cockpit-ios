@@ -1,5 +1,22 @@
 # Stand
 
+> **Healthy: „Distanz z. Target“ im Gewicht-Diagramm (19.10.):** neuer Schalter direkt hinter
+> „Zielkurve“, in allen Zeiträumen angeboten, nicht vorgewählt (Felix). Je Tag Gewicht ⌀ 7 minus
+> Zielkurve, in „Alles“ ⌀ 30 (`WeightRange.distanceAverage`), gepunktet wie das Mittel, in Pink
+> (`Palette.targetDistance`), auf eigener Skala mit gestrichelter Nulllinie (Vertrag
+> `weight-app/docs/HEALTHY-CONTRACT.md` §5, „Kurve „Distanz z. Target““). Kein neues Feld beim
+> Dienst - die App zieht `target` von `avg7`/`avg30` ab. Rechts außen mit Titel „Distanz“ nur ohne
+> kcal und Defizit (`WeightChartData.trailingScale`), sonst klein innen links. `DeficitScale` heißt
+> jetzt `ZeroLineScale` (`.deficit`, `.targetDistance`), `DeficitInsideLabels` jetzt
+> `InsideScaleLabels` (Farbe, Rand, Format). `COCKPIT_SERIES` nimmt mit „-“ eine vorgewählte Reihe
+> weg (`targetDistance,-deficit`). Branch `target-distance`.
+> - **Geprüft:** `tools/verify.sh` (alle fünf + `HealthyWatch`; Healthy 305 XCTests + 31
+>   Swift-Tests, Fokus 41, coHabit 182), darin `TargetDistanceChartTests` (10). Im
+>   Simulator mit Vorführdaten hell und dunkel: nur Distanz (außen rechts), mit Defizit (innen
+>   links), mit kcal + Defizit, „Alles“, Sprechblase.
+> - **Auf dem Gerät prüfen:** Schalter „Distanz z. Target“ an - die Kurve liegt dort, wo Gewicht ⌀
+>   und Zielkurve auseinanderlaufen, die Nulllinie ist die Zielkurve.
+
 > **Gym: Notiz am Gerät, Spanne, Wiederholungen je Satz (19.10.):** Branch `gym-notes-ranges`
 > in cockpit-ios; der Weight Tracker bekommt `note`, `repsMin` und `setReps` parallel auf dem
 > gleichnamigen Branch (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §6, Abschnitt „Notiz,

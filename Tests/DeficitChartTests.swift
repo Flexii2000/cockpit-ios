@@ -22,7 +22,7 @@ final class DeficitChartTests: XCTestCase {
     /// Nur Defizit: die Skala beginnt bei 0 und endet auf dem naechsten
     /// runden Schritt - wie im Web.
     func testScaleIncludesZero() {
-        let scale = DeficitScale(values: [300, 620])
+        let scale = ZeroLineScale.deficit([300, 620])
         XCTAssertEqual(scale.domain, 0...750)
         XCTAssertEqual(scale.step, 250)
         XCTAssertEqual(scale.ticks, [0, 250, 500, 750])
@@ -32,7 +32,7 @@ final class DeficitChartTests: XCTestCase {
     /// Defizit und Ueberschuss: beide Seiten der Nulllinie, innen 0 und die
     /// beiden Raender - hoechstens zwei runde Werte neben der 0.
     func testScaleWithSurplus() {
-        let scale = DeficitScale(values: [-150, 480, 210])
+        let scale = ZeroLineScale.deficit([-150, 480, 210])
         XCTAssertEqual(scale.domain, -250...500)
         XCTAssertEqual(scale.ticks, [-250, 0, 250, 500])
         XCTAssertEqual(scale.insideTicks, [-250, 0, 500])
@@ -40,7 +40,7 @@ final class DeficitChartTests: XCTestCase {
 
     /// Nur Ueberschuss: die 0 ist der obere Rand.
     func testScaleWithOnlySurplus() {
-        let scale = DeficitScale(values: [-300, -100])
+        let scale = ZeroLineScale.deficit([-300, -100])
         XCTAssertEqual(scale.domain, -500...0)
         XCTAssertEqual(scale.insideTicks, [-500, 0])
     }
@@ -48,17 +48,17 @@ final class DeficitChartTests: XCTestCase {
     /// Eine Spanne ueber 1.500 kcal rechnet in 500er Schritten, und ohne
     /// Werte gibt es trotzdem einen Bereich mit zwei Schritten.
     func testScaleStepsAndEmptyValues() {
-        let wide = DeficitScale(values: [-900, 1200])
+        let wide = ZeroLineScale.deficit([-900, 1200])
         XCTAssertEqual(wide.step, 500)
         XCTAssertEqual(wide.domain, -1000...1500)
-        XCTAssertEqual(DeficitScale(values: []).domain, 0...500)
-        XCTAssertEqual(DeficitScale(values: [10]).domain, 0...500, "mindestens zwei Schritte")
+        XCTAssertEqual(ZeroLineScale.deficit([]).domain, 0...500)
+        XCTAssertEqual(ZeroLineScale.deficit([10]).domain, 0...500, "mindestens zwei Schritte")
     }
 
     /// Die Abbildung in die Achse des Diagramms muss in beide Richtungen
     /// stimmen - sonst stuende rechts eine andere Zahl, als die Kurve zeigt.
     func testScaleMapsOntoTheChartAndBack() {
-        let scale = DeficitScale(values: [-150, 480])          // -250…500
+        let scale = ZeroLineScale.deficit([-150, 480])          // -250…500
         let kcalAxis = 1500.0...3000.0
         XCTAssertEqual(scale.position(-250, in: kcalAxis), 1500)
         XCTAssertEqual(scale.position(500, in: kcalAxis), 3000)
@@ -71,7 +71,7 @@ final class DeficitChartTests: XCTestCase {
     func testDeficitRunsOnTheKcalAxis() {
         let deficit = [average(1, 0), average(2, 250), average(4, 500), average(5, 250),
                        average(6, 0, complete: false)]
-        let scale = DeficitScale(values: deficit.map(\.kcal))   // 0…500
+        let scale = ZeroLineScale.deficit(deficit.map(\.kcal))   // 0…500
         let runs = FoodChartData.deficitRuns(deficit, scale: scale, onto: 1500...2500)
         XCTAssertEqual(runs.map(\.samples.count), [2, 2, 2])
         XCTAssertEqual(runs.map(\.complete), [true, true, false])

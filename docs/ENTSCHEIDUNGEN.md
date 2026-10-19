@@ -3,6 +3,27 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-19 — Gewicht-Diagramm: „Distanz z. Target“
+Felix' Entscheidungen (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §5):
+- **Gewicht ⌀ 7 minus Zielkurve**, in „Alles“ ⌀ 30 - der senkrechte Abstand der beiden
+  gezeichneten Linien, glatt und am Rand gepunktet wie das Mittel. Verworfen: das rollierende
+  7-Tage-Residuum wie die Kachel (endet genau auf deren Wert, läuft aber gut drei Tage hinter dem
+  ⌀ 7 her) und der rohe Messwert minus Zielkurve (springt von Tag zu Tag).
+- **Nur angeboten**, nicht vorgewählt - das vertraute Bild bleibt. Verworfen: vorgewählt.
+- **Name „Distanz z. Target“** wie die Kachel „Differenz z. Target“, auch hier, wo die Zielkurve
+  „Zielkurve“ heißt. Verworfen: „Residuum ⌀“.
+- **Pink** (`#C2255C` / `#F06595`). Verworfen: das Rot der Zielkurve (zwei rote Linien) und Türkis
+  (zwischen Messwert-Blau und ⌀-7-Grün).
+
+Ohne Rückfrage entschieden:
+- **Eigene Skala mit Nulllinie wie das Defizit**, Schritte 0,5 / 1 / 2 kg. Auf der kg-Achse wäre ein
+  Abstand von ein paar hundert Gramm ein flacher Strich.
+- **Innen links, wenn rechts belegt ist.** Innen rechts steht dann schon das Defizit; zwei
+  Beschriftungen am selben Rand überdeckten sich.
+- **Kein eigenes Feld beim Dienst.** Die App zieht zwei gelieferte Werte voneinander ab. Das ist
+  keine Rechenregel, die zwischen iOS und Android auseinanderlaufen könnte.
+- **`DeficitScale` → `ZeroLineScale`** statt einer zweiten, fast gleichen Skala.
+
 ## 2026-10-19 — Gym: Notiz am Gerät, Spanne, Wiederholungen je Satz
 Anlass war ein Trainingsplan mit Spannen („3 × 8–10“), der je Satz Gewicht und Wiederholungen
 und je Gerät die Sitzeinstellung festhält. Felix' Entscheidungen (Vertrag

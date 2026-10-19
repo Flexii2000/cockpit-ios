@@ -15,6 +15,8 @@ struct WeightChartView: View {
     let expenditureAverage: [DayAverage]
     /// „Defizit ⌀" vom Weight Tracker - auf eigener Skala mit Nulllinie.
     let deficitAverage: [DayAverage]
+    /// Das Mittel, gegen das „Distanz z. Target" misst (`WeightRange.distanceAverage`).
+    let distanceAverage: WeightSeries
     let visible: Set<WeightSeries>
 
     @State private var selectedDay: CalendarDate?
@@ -198,6 +200,25 @@ struct WeightChartView: View {
                 }
             }
 
+            if showsDistance {
+                // Der Abstand zur Zielkurve auf eigener Skala: die Nulllinie
+                // ist die Zielkurve, darueber zu schwer. Gepunktet wie das
+                // Mittel, aus dem er kommt.
+                RuleMark(y: .value("Distanz", distancePosition(0)))
+                    .foregroundStyle(Palette.targetDistance.opacity(0.8))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                ForEach(distanceSegments) { segment in
+                    ForEach(segment.samples) { sample in
+                        LineMark(x: .value("Tag", sample.date),
+                                 y: .value("kg", sample.value),
+                                 series: .value("Serie", segment.id))
+                    }
+                    .foregroundStyle(Palette.targetDistance)
+                    .lineStyle(StrokeStyle(lineWidth: 1.8, dash: segment.complete ? [] : [1, 5]))
+                    .interpolationMethod(.linear)
+                }
+            }
+
             if visible.contains(.measured) {
                 ForEach(samples(\.measured)) { sample in
                     LineMark(x: .value("Tag", sample.date),
@@ -290,7 +311,8 @@ struct WeightChartView: View {
                 }
             }
             // Ohne kcal-Skala gehoert die rechte Seite dem Defizit - aussen.
-            // Mit ihr steht es klein innen (`chartBackground`).
+            // Mit ihr steht es klein innen (`chartBackground`). Die Distanz
+            // bekommt sie nur, wenn beide fehlen.
             if deficitOutside {
                 AxisMarks(position: .trailing, values: deficitScale.ticks.map(deficitPosition)) { value in
                     if let mapped = value.as(Double.self) {
@@ -302,13 +324,28 @@ struct WeightChartView: View {
                     }
                 }
             }
+            if distanceOutside {
+                AxisMarks(position: .trailing, values: distanceScale.ticks.map(distancePosition)) { value in
+                    if let mapped = value.as(Double.self) {
+                        AxisValueLabel {
+                            Text(WeightChartData.distanceTick(distanceScale.value(at: mapped, in: yDomain)))
+                                .font(.caption2)
+                                .foregroundStyle(Palette.targetDistance)
+                        }
+                    }
+                }
+            }
         }
-        // Der Titel der Defizit-Skala, wenn sie aussen steht (Vertrag §5).
+        // Der Titel der Skala, die aussen rechts steht (Vertrag §5).
         .chartYAxisLabel(position: .top, alignment: .trailing, spacing: 4) {
             if deficitOutside {
                 Text("Defizit")
                     .font(.caption2)
                     .foregroundStyle(Palette.deficit)
+            } else if distanceOutside {
+                Text("Distanz")
+                    .font(.caption2)
+                    .foregroundStyle(Palette.targetDistance)
             }
         }
         // Hinter den Kurven: die Sprechblase soll die kleinen Zahlen
@@ -316,8 +353,16 @@ struct WeightChartView: View {
         .chartBackground { proxy in
             GeometryReader { geometry in
                 if deficitInside, let plot = proxy.plotFrame {
-                    DeficitInsideLabels(scale: deficitScale, target: yDomain,
-                                        proxy: proxy, plot: geometry[plot])
+                    InsideScaleLabels(scale: deficitScale, target: yDomain,
+                                      proxy: proxy, plot: geometry[plot],
+                                      color: Palette.deficit, edge: .trailing,
+                                      format: { GermanNumber.string($0) })
+                }
+                if distanceInside, let plot = proxy.plotFrame {
+                    InsideScaleLabels(scale: distanceScale, target: yDomain,
+                                      proxy: proxy, plot: geometry[plot],
+                                      color: Palette.targetDistance, edge: .leading,
+                                      format: WeightChartData.distanceTick)
                 }
             }
         }
@@ -383,6 +428,11 @@ struct WeightChartView: View {
         if visible.contains(.target), let value = point.target {
             result.append(CalloutEntry(label: "Ziel", value: value.kg, color: Palette.target))
         }
+        if visible.contains(.targetDistance),
+           let distance = WeightChartData.targetDistance(of: point, average: distanceAverage) {
+            result.append(CalloutEntry(label: "Distanz z. Target", value: distance.signedKg,
+                                       color: Palette.targetDistance))
+        }
         // Der kcal-Wert kommt aus der unveraenderten Reihe, nicht aus der in
         // die Gewichtsskala hineingerechneten - sonst staende dort eine Zahl,
         // die nur fuer die Zeichnung existiert.
@@ -411,8 +461,8 @@ struct WeightChartView: View {
 
     // MARK: - Defizit auf eigener Skala
 
-    private var deficitScale: DeficitScale {
-        DeficitScale(values: deficitAverage.map(\.kcal))
+    private var deficitScale: ZeroLineScale {
+        .deficit(deficitAverage.map(\.kcal))
     }
 
     private func deficitPosition(_ value: Double) -> Double {
@@ -427,15 +477,49 @@ struct WeightChartView: View {
                                      map: { scale.position($0, in: domain) })
     }
 
-    /// Rechts aussen steht die Defizit-Skala nur, solange dort keine kcal
-    /// stehen.
-    private var deficitOutside: Bool {
-        visible.contains(.deficit) && !deficitAverage.isEmpty && !usesKcalScale
+    private var trailingScale: WeightChartData.TrailingScale {
+        WeightChartData.trailingScale(visible: visible, hasDeficit: !deficitAverage.isEmpty,
+                                      hasDistance: !distanceValues.isEmpty)
     }
 
+    /// Rechts aussen steht die Defizit-Skala nur, solange dort keine kcal
+    /// stehen.
+    private var deficitOutside: Bool { trailingScale == .deficit }
+
     private var deficitInside: Bool {
-        visible.contains(.deficit) && !deficitAverage.isEmpty && usesKcalScale
+        visible.contains(.deficit) && !deficitAverage.isEmpty && trailingScale == .kcal
     }
+
+    // MARK: - Distanz z. Target auf eigener Skala
+
+    private var distanceValues: [Double] {
+        WeightChartData.targetDistances(points, average: distanceAverage)
+    }
+
+    private var showsDistance: Bool {
+        visible.contains(.targetDistance) && !distanceValues.isEmpty
+    }
+
+    private var distanceScale: ZeroLineScale {
+        .targetDistance(distanceValues)
+    }
+
+    private func distancePosition(_ value: Double) -> Double {
+        distanceScale.position(value, in: yDomain)
+    }
+
+    /// Skala und Bereich einmal, nicht je Punkt - wie beim Defizit.
+    private var distanceSegments: [ChartSegment] {
+        let scale = distanceScale, domain = yDomain
+        return WeightChartData.targetDistanceSegments(points, average: distanceAverage)
+            .map { $0.mapped { scale.position($0, in: domain) } }
+    }
+
+    /// Aussen rechts nur, wenn weder kcal noch Defizit dort stehen; sonst
+    /// innen links - innen rechts steht dann schon das Defizit.
+    private var distanceOutside: Bool { trailingScale == .targetDistance }
+
+    private var distanceInside: Bool { showsDistance && !distanceOutside }
 
     /// Die Flaeche gehoert zu „Defizit ⌀" und braucht beide Kurven, die sie
     /// einfassen (Vertrag §5).

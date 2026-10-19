@@ -85,11 +85,21 @@ final class WeightStore {
 
     /// Im Debug-Build zuschaltbar (`COCKPIT_SERIES=kcal,expenditure`): was hier
     /// nur angeboten ist, etwa „Verbrauch ⌀", laesst sich so ins Bild holen -
-    /// tippen kann der Simulator nicht.
+    /// tippen kann der Simulator nicht. Ein „-" davor schaltet eine vorgewaehlte
+    /// Reihe ab (`-deficit`), sonst kaeme „Distanz z. Target" nie allein nach
+    /// rechts aussen.
     private static func initialVisible(_ defaults: Set<WeightSeries>) -> Set<WeightSeries> {
         #if DEBUG
         if let raw = ProcessInfo.processInfo.environment["COCKPIT_SERIES"] {
-            return defaults.union(raw.split(separator: ",").compactMap { WeightSeries(rawValue: String($0)) })
+            var result = defaults
+            for item in raw.split(separator: ",") {
+                if item.hasPrefix("-") {
+                    WeightSeries(rawValue: String(item.dropFirst())).map { result.remove($0) }
+                } else {
+                    WeightSeries(rawValue: String(item)).map { result.insert($0) }
+                }
+            }
+            return result
         }
         #endif
         return defaults

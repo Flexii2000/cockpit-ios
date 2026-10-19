@@ -270,8 +270,10 @@ struct FoodChartView: View {
         .chartBackground { proxy in
             GeometryReader { geometry in
                 if deficitInside, let plot = proxy.plotFrame {
-                    DeficitInsideLabels(scale: deficitScale, target: kcalDomain,
-                                        proxy: proxy, plot: geometry[plot])
+                    InsideScaleLabels(scale: deficitScale, target: kcalDomain,
+                                      proxy: proxy, plot: geometry[plot],
+                                      color: Palette.deficit, edge: .trailing,
+                                      format: { GermanNumber.string($0) })
                 }
             }
         }
@@ -375,8 +377,8 @@ struct FoodChartView: View {
         FoodChartData.expenditureRuns(expenditure)
     }
 
-    private var deficitScale: DeficitScale {
-        DeficitScale(values: deficit.map(\.kcal))
+    private var deficitScale: ZeroLineScale {
+        .deficit(deficit.map(\.kcal))
     }
 
     private func deficitPosition(_ value: Double) -> Double {
