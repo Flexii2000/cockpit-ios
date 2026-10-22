@@ -122,7 +122,7 @@ final class HealthEnergyTests: XCTestCase {
                   asleepMinutes: 431, inBedMinutes: 470, awakeMinutes: 24, deepMinutes: 62,
                   remMinutes: 101, coreMinutes: 268, hrvSdnnMs: 48.3, hrvSdnnSamples: 4,
                   hrvRmssdMs: 39.9, hrvRmssdSamples: 6, sleepingHeartRate: 52.4,
-                  respiratoryRate: 14.2, source: "ios")
+                  respiratoryRate: 14.2, wristTemperatureCelsius: 35.84, source: "ios")
         }
         let data = try APIClient.encoder().encode(NightsUpload(nights: nights))
         XCTAssertLessThan(data.count, 1_000_000)

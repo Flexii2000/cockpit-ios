@@ -23,6 +23,8 @@ struct Night: Codable, Equatable, Sendable {
     let hrvRmssdSamples: Int?
     let sleepingHeartRate: Double?
     let respiratoryRate: Double?
+    /// Die Hauttemperatur am Handgelenk im Hauptschlaf, °C (seit 22.10.).
+    let wristTemperatureCelsius: Double?
     let source: String?
 }
 
@@ -47,7 +49,9 @@ enum RecoveryStatus: String, LenientEnum {
     case unknown
 }
 
-/// Wie bei Whoop: ab 67 gruen, bis 33 rot, dazwischen gelb.
+/// Seit 22.10. (Vertrag §3.2): ab 50 gruen - typisch oder besser -, bis 33 rot
+/// (mehr als eine Standardabweichung unter normal), dazwischen gelb. Die
+/// Grenzen zieht der Dienst; die App faerbt nur nach `band`.
 enum RecoveryBand: String, LenientEnum {
     case green = "GREEN", yellow = "YELLOW", red = "RED", unknown
 }
@@ -62,8 +66,11 @@ enum ComponentKey: String, LenientEnum {
     case hrv = "HRV"
     /// Der Puls im Schlaf - in der Oberflaeche „RHF".
     case sleepingHeartRate = "SLEEPING_HEART_RATE"
+    /// Steht seit 22.10. nur zum Ansehen da - Gewicht 0.
     case sleep = "SLEEP"
     case respiratoryRate = "RESPIRATORY_RATE"
+    /// Hauttemperatur am Handgelenk - nur ein Anstieg zaehlt, wie beim Atem.
+    case wristTemperature = "WRIST_TEMPERATURE"
     case unknown
 }
 
@@ -81,26 +88,31 @@ struct RecoveryCalibration: Decodable, Equatable, Sendable {
 /// Ein Baustein der Recovery einer Nacht.
 struct RecoveryComponent: Decodable, Equatable, Identifiable, Sendable {
     let key: ComponentKey
-    /// Der Messwert der Nacht in `unit` (HRV ms, Puls bpm, Schlaf min, Atem /min).
+    /// Der Messwert der Nacht in `unit` (HRV ms, Puls bpm, Schlaf min, Atem
+    /// /min, Temperatur °C).
     let value: Double
     let unit: String
-    /// Der Median der 60 Naechte davor; `nil`, solange zu wenige da sind.
+    /// Der Median der letzten 30 Naechte davor; `nil`, solange zu wenige da sind.
     let baseline: Double?
     /// Abstand zur Baseline in robusten Standardabweichungen, **positiv =
     /// besser**, auf ±3 begrenzt - auch beim Puls und beim Atem, wo weniger
     /// besser ist. Die App dreht nichts um.
     let z: Double?
-    /// Anteil am Score; 0, wenn der Baustein nicht einging.
+    /// Anteil am Score; 0, wenn der Baustein nicht einging - beim Schlaf
+    /// immer, beim Kalibrieren bei allen.
     let weight: Double
 
     var id: String { key.rawValue }
+
+    /// Ob der Baustein in den Score einging. Sonst ist sein Balken grau.
+    var counts: Bool { weight > 0 }
 }
 
 struct HrvTrend: Decodable, Equatable, Sendable {
     /// Ab vier Naechten in den sieben, sonst `nil`.
     let mean7Ms: Double?
     let nights7: Int
-    /// Der Normalbereich: Median ± 0,5 Streuung der 60 Naechte davor.
+    /// Der Normalbereich: Median ± 0,5 Streuung der letzten 30 Naechte davor.
     let normalLowMs: Double?
     let normalHighMs: Double?
     let status: TrendStatus
@@ -152,7 +164,7 @@ enum RecoveryRange: Int, CaseIterable, Identifiable, Sendable {
 // MARK: - Anzeige
 
 /// Die Recovery als Text - deutsch, mit den Namen aus dem Vertrag (§5):
-/// „Recovery", „HRV", „RHF", „Schlaf", „Atemfrequenz".
+/// „Recovery", „HRV", „RHF", „Schlaf", „Atemfrequenz", „Handgelenktemperatur".
 enum RecoveryFormat {
 
     /// Was im Ring steht: Score in Prozent; beim Kalibrieren die Naechte;
@@ -204,17 +216,20 @@ enum RecoveryFormat {
         case .sleepingHeartRate: "RHF"
         case .sleep:             "Schlaf"
         case .respiratoryRate:   "Atemfrequenz"
+        case .wristTemperature:  "Handgelenktemperatur"
         case .unknown:           "–"
         }
     }
 
-    /// „58 ms", „51 bpm", „7:41 h", „14,1 /min" - HRV und Puls ganz, der Atem
-    /// mit einer Stelle: dort ist ein Zehntel schon ein Unterschied.
+    /// „58 ms", „51 bpm", „7:41 h", „14,1 /min", „35,84 °C" - HRV und Puls
+    /// ganz, der Atem mit einer Stelle: dort ist ein Zehntel schon ein
+    /// Unterschied. Die Temperatur mit zwei - sie weicht nur um Zehntel ab.
     static func value(_ key: ComponentKey, _ value: Double, unit: String) -> String {
         switch key {
-        case .sleep:           hoursMinutes(value)
-        case .respiratoryRate: GermanNumber.string(value, decimals: 1) + " " + unit
-        default:               GermanNumber.string(value) + " " + unit
+        case .sleep:            hoursMinutes(value)
+        case .respiratoryRate:  GermanNumber.string(value, decimals: 1) + " " + unit
+        case .wristTemperature: GermanNumber.string(value, decimals: 2) + " " + unit
+        default:                GermanNumber.string(value) + " " + unit
         }
     }
 

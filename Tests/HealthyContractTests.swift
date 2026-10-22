@@ -105,23 +105,32 @@ final class HealthyContractTests: XCTestCase {
 
     // MARK: - Recovery
 
-    /// `RecoveryDay` mit allen Bausteinen - das Beispiel aus dem Vertrag §3.1.
+    /// `RecoveryDay` mit allen Bausteinen - das Beispiel aus dem Vertrag §3.1
+    /// (seit 22.10.: Schlaf mit Gewicht 0, dazu die Handgelenktemperatur).
     func testDecodesRecoveryDay() throws {
         let day = try decode(RecoveryDay.self, """
-        {"date":"2026-10-09","status":"OK","score":72,"band":"GREEN","composite":0.581,"hrvMethod":"SDNN",
-         "calibration":{"nights":60,"required":14},
-         "components":[{"key":"HRV","value":58.0,"unit":"ms","baseline":49.7,"z":1.12,"weight":0.5},
+        {"date":"2026-10-09","status":"OK","score":67,"band":"GREEN","composite":0.831,"hrvMethod":"SDNN",
+         "calibration":{"nights":30,"required":14},
+         "components":[{"key":"HRV","value":58.0,"unit":"ms","baseline":49.7,"z":1.12,"weight":0.55},
                        {"key":"SLEEPING_HEART_RATE","value":51.2,"unit":"bpm","baseline":54.0,"z":0.94,"weight":0.25},
-                       {"key":"SLEEP","value":461.0,"unit":"min","baseline":448.0,"z":0.31,"weight":0.15},
-                       {"key":"RESPIRATORY_RATE","value":14.1,"unit":"/min","baseline":14.3,"z":0.0,"weight":0.1}],
+                       {"key":"SLEEP","value":461.0,"unit":"min","baseline":448.0,"z":0.31,"weight":0.0},
+                       {"key":"RESPIRATORY_RATE","value":14.1,"unit":"/min","baseline":14.3,"z":0.0,"weight":0.1},
+                       {"key":"WRIST_TEMPERATURE","value":35.84,"unit":"°C","baseline":35.8,"z":-0.2,"weight":0.1}],
          "hrvTrend":{"mean7Ms":52.1,"nights7":6,"normalLowMs":46.9,"normalHighMs":52.6,"status":"WITHIN"}}
         """)
         XCTAssertEqual(day.status, .ok)
-        XCTAssertEqual(day.score, 72)
+        XCTAssertEqual(day.score, 67)
         XCTAssertEqual(day.band, .green)
         XCTAssertEqual(day.hrvMethod, .sdnn)
-        XCTAssertEqual(day.components.map(\.key), [.hrv, .sleepingHeartRate, .sleep, .respiratoryRate])
+        XCTAssertEqual(day.calibration, RecoveryCalibration(nights: 30, required: 14))
+        XCTAssertEqual(day.components.map(\.key),
+                       [.hrv, .sleepingHeartRate, .sleep, .respiratoryRate, .wristTemperature])
         XCTAssertEqual(day.component(.sleepingHeartRate)?.z, 0.94)
+        XCTAssertEqual(day.component(.wristTemperature)?.value, 35.84)
+        XCTAssertEqual(day.component(.wristTemperature)?.unit, "°C")
+        XCTAssertEqual(day.component(.wristTemperature)?.z, -0.2)
+        XCTAssertEqual(day.component(.sleep)?.counts, false, "Schlaf geht nicht ein")
+        XCTAssertEqual(day.component(.hrv)?.counts, true)
         XCTAssertEqual(day.hrvTrend?.status, .within)
         XCTAssertEqual(day.hrvTrend?.normalHighMs, 52.6)
     }
@@ -199,6 +208,7 @@ final class HealthyContractTests: XCTestCase {
          "predictors":[{"key":"LOGBOOK:b-1a2b3c4d","source":"LOGBOOK","id":"b-1a2b3c4d","name":"Verhalten A",
            "kind":"BINARY","variant":"MAIN","unitLabel":null,"perUnit":1.0,
            "effect":8.12,"ciLow":3.2,"ciHigh":13.04,"p":0.0021,"pAdjusted":0.019,
+           "hrvEffectPercent":9.4,"sleepingHeartRateEffectBpm":-1.85,
            "nYes":41,"nNo":37,"n":78,"meanYes":61.3,"meanNo":52.4,"status":"OK"},
           {"key":"LOGBOOK:b-5e6f7a8b:DOSE","source":"LOGBOOK","id":"b-5e6f7a8b","name":"Verhalten B",
            "kind":"AMOUNT","variant":"DOSE","unitLabel":"Stück","perUnit":1.0,
@@ -217,6 +227,10 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(insights.predictors[1].sourceId, "b-5e6f7a8b")
         XCTAssertEqual(insights.predictors[2].perUnit, 100)
         XCTAssertEqual(insights.unavailableSources, ["coHabit"])
+        XCTAssertEqual(insights.predictors[0].hrvEffectPercent, 9.4)
+        XCTAssertEqual(insights.predictors[0].sleepingHeartRateEffectBpm, -1.85)
+        XCTAssertNil(insights.predictors[1].hrvEffectPercent, "ein aelterer Dienst kennt die Felder nicht")
+        XCTAssertNil(insights.predictors[1].sleepingHeartRateEffectBpm)
     }
 
     /// Was die App schickt: beim Aendern fehlt, was gleich bleibt; ein Wert je
@@ -247,12 +261,32 @@ final class HealthyContractTests: XCTestCase {
         [{"date":"2026-10-09","sleepStart":"2026-10-08T21:34:00Z","sleepEnd":"2026-10-09T05:12:00.120Z",
           "asleepMinutes":431,"inBedMinutes":470,"awakeMinutes":24,"deepMinutes":62,"remMinutes":101,
           "coreMinutes":268,"hrvSdnnMs":48.3,"hrvSdnnSamples":4,"hrvRmssdMs":null,"hrvRmssdSamples":null,
-          "sleepingHeartRate":52.4,"respiratoryRate":14.2,"source":"ios"}]
+          "sleepingHeartRate":52.4,"respiratoryRate":14.2,"wristTemperatureCelsius":35.84,"source":"ios"},
+         {"date":"2026-10-10","asleepMinutes":402,"source":"ios"}]
         """)
         let night = try XCTUnwrap(nights.first)
         XCTAssertEqual(night.asleepMinutes, 431)
         XCTAssertEqual(night.sleepStart, APIClient.parseInstant("2026-10-08T21:34:00Z"))
         XCTAssertNil(night.hrvRmssdMs)
+        XCTAssertEqual(night.wristTemperatureCelsius, 35.84)
         XCTAssertEqual(night.source, "ios")
+        XCTAssertNil(nights[1].wristTemperatureCelsius, "eine Nacht von vor dem 22.10. hat keine")
+    }
+
+    /// Was `POST /api/nights` bekommt: die Temperatur unter ihrem Namen aus
+    /// dem Vertrag §2.1; ohne Messung fehlt das Feld (= unbekannt).
+    func testEncodesWristTemperature() throws {
+        func json(_ temperature: Double?) throws -> [String: Any] {
+            let night = Night(date: CalendarDate(year: 2026, month: 10, day: 9), sleepStart: nil, sleepEnd: nil,
+                              asleepMinutes: 431, inBedMinutes: nil, awakeMinutes: nil, deepMinutes: nil,
+                              remMinutes: nil, coreMinutes: nil, hrvSdnnMs: 48.3, hrvSdnnSamples: 4,
+                              hrvRmssdMs: nil, hrvRmssdSamples: nil, sleepingHeartRate: 52.4,
+                              respiratoryRate: 14.2, wristTemperatureCelsius: temperature, source: "ios")
+            let data = try APIClient.encoder().encode(NightsUpload(nights: [night]))
+            let body = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+            return try XCTUnwrap((body["nights"] as? [[String: Any]])?.first)
+        }
+        XCTAssertEqual(try json(35.84)["wristTemperatureCelsius"] as? Double, 35.84)
+        XCTAssertNil(try json(nil)["wristTemperatureCelsius"])
     }
 }

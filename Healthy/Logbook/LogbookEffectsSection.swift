@@ -67,7 +67,8 @@ struct LogbookEffectsSection: View {
     }
 }
 
-/// „Name  +8,1 %-Pkt **" und darunter „[+3,2; +13,0] · 41 ja · 37 nein".
+/// „Name  +8,1 %-Pkt **", darunter die Bausteine „HRV +9 % · RHF −1,9 bpm"
+/// und „[+3,2; +13,0] · 41 ja · 37 nein".
 struct LogbookEffectRow: View {
 
     let predictor: Predictor
@@ -91,6 +92,12 @@ struct LogbookEffectRow: View {
                             .foregroundStyle(color)
                             .fixedSize()
                     }
+                }
+                // Ohne Farbe und ohne Sterne: getestet ist nur der Effekt darueber.
+                if let components = LogbookFormat.components(predictor) {
+                    Text(components)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
                 }
                 Text(LogbookFormat.detail(predictor))
                     .font(.caption.monospacedDigit())

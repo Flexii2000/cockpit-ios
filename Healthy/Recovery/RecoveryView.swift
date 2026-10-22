@@ -145,7 +145,7 @@ private struct RecoveryComponentRow: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 84, alignment: .leading)
-                ZBar(z: component.z)
+                ZBar(z: component.z, counts: component.counts)
             }
         }
         .accessibilityElement(children: .combine)
@@ -156,9 +156,14 @@ private struct RecoveryComponentRow: View {
 /// Mitte nach rechts, wenn es besser war, nach links, wenn schlechter - bis
 /// ±3. Der Dienst liefert z schon so, dass positiv besser heisst, auch beim
 /// Puls; hier wird nichts umgedreht.
+///
+/// Grau, wenn der Baustein nicht in den Score einging (Gewicht 0: der Schlaf
+/// seit 22.10. immer, beim Kalibrieren alle) - so sieht man ohne Text, was
+/// zaehlt.
 struct ZBar: View {
 
     let z: Double?
+    var counts = true
 
     static let limit = 3.0
 
@@ -172,7 +177,7 @@ struct ZBar: View {
                     .fill(Color.primary.opacity(0.08))
                 if z != nil {
                     Capsule()
-                        .fill(clamped >= 0 ? Tone.good.color : Tone.warn.color)
+                        .fill(fill(clamped))
                         .frame(width: max(length, 3))
                         .offset(x: clamped >= 0 ? half : half - max(length, 3))
                 }
@@ -184,6 +189,11 @@ struct ZBar: View {
         }
         .frame(height: 8)
         .accessibilityHidden(true)
+    }
+
+    private func fill(_ clamped: Double) -> Color {
+        guard counts else { return Color.secondary.opacity(0.55) }
+        return clamped >= 0 ? Tone.good.color : Tone.warn.color
     }
 }
 

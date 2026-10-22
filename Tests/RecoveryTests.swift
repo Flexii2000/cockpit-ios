@@ -75,6 +75,23 @@ final class RecoveryTests: XCTestCase {
         XCTAssertEqual(RecoveryFormat.trend(day(9).hrvTrend), "⌀ 7 Nächte 52 ms")
     }
 
+    /// Die Handgelenktemperatur mit zwei Stellen - sie weicht nur um Zehntel ab.
+    func testWristTemperatureWithTwoDecimals() {
+        let warmth = RecoveryComponent(key: .wristTemperature, value: 35.84, unit: "°C", baseline: 35.8,
+                                       z: -0.2, weight: 0.1)
+        XCTAssertEqual(RecoveryFormat.label(.wristTemperature), "Handgelenktemperatur")
+        XCTAssertEqual(RecoveryFormat.value(.wristTemperature, 35.84, unit: "°C"), "35,84 °C")
+        XCTAssertEqual(RecoveryFormat.baseline(warmth), "⌀ 35,80 °C")
+    }
+
+    /// Gewicht 0 heisst: ging nicht ein - der Schlaf seit 22.10. immer.
+    func testOnlyWeightedComponentsCount() {
+        let components = day(9).components
+        XCTAssertTrue(components[0].counts)
+        XCTAssertFalse(RecoveryComponent(key: .sleep, value: 461, unit: "min", baseline: 448, z: 0.31,
+                                         weight: 0).counts)
+    }
+
     // MARK: - HRV-Kurve
 
     /// Linie und Band reissen an Luecken ab; das Band gibt es nur an Tagen

@@ -118,7 +118,7 @@ enum HealthNights {
         phases.max { $0.asleepSeconds < $1.asleepSeconds || ($0.asleepSeconds == $1.asleepSeconds && $0.start > $1.start) }
     }
 
-    // MARK: - Schritte 4 bis 9: was in der Nacht steht
+    // MARK: - Schritte 4 bis 10: was in der Nacht steht
 
     /// Die Nacht zu einer Hauptschlafphase.
     ///
@@ -129,10 +129,12 @@ enum HealthNights {
     ///   - hrvRmssd: `nil` vor iOS 27 - dann kennt Health die Methode nicht.
     ///   - sleepingHeartRate: das zeitgewichtete Mittel ueber die Phase
     ///     (`HealthReader.average`).
+    ///   - wristTemperature: `appleSleepingWristTemperature` - leer ohne
+    ///     Leserecht oder ohne Uhr, die sie misst; die Nacht geht trotzdem raus.
     /// - Returns: `nil`, wenn die Phase nicht taugt (leer, laenger als ein Tag).
     static func night(_ main: MainSleep, inBed: [SleepSegment], hrvSdnn: [HealthReading],
                       hrvRmssd: [HealthReading]?, respiratory: [HealthReading],
-                      sleepingHeartRate: Double?) -> Night? {
+                      sleepingHeartRate: Double?, wristTemperature: [HealthReading] = []) -> Night? {
         let window = main.start...main.end
         let sleep = main.segments.filter(\.stage.isAsleep)
         let asleep = minutes(unionSeconds(sleep, within: window))
@@ -165,6 +167,7 @@ enum HealthNights {
                      hrvRmssdMs: rmssd?.value, hrvRmssdSamples: rmssd?.count,
                      sleepingHeartRate: sleepingHeartRate.flatMap { plausible(round1($0), 20...220) },
                      respiratoryRate: respiratoryRate(respiratory, main),
+                     wristTemperatureCelsius: Self.wristTemperature(wristTemperature, main),
                      source: "ios")
     }
 
@@ -187,6 +190,18 @@ enum HealthNights {
             .map(\.value)
         guard !values.isEmpty else { return nil }
         return plausible(round1(values.reduce(0, +) / Double(values.count)), 3...60)
+    }
+
+    /// Die Handgelenktemperatur der Nacht: das Mittel der Messungen, die die
+    /// Phase **ueberlappen** - die Uhr schreibt eine je Schlaf, ueber dessen
+    /// ganze Dauer. Zwei Nachkommastellen; ausserhalb von 20–45 °C fehlt sie
+    /// lieber (Vertrag §2.1, §2.2).
+    static func wristTemperature(_ readings: [HealthReading], _ main: MainSleep) -> Double? {
+        let values = readings.filter {
+            $0.start <= main.end && ($0.end ?? $0.start) >= main.start && $0.value > 0
+        }.map(\.value)
+        guard !values.isEmpty else { return nil }
+        return plausible(round2(values.reduce(0, +) / Double(values.count)), 20...45)
     }
 
     /// `exp(Mittel(ln x))`; `nil` ohne Werte.
@@ -233,6 +248,11 @@ enum HealthNights {
     /// Eine Nachkommastelle, wie im Vertrag.
     private static func round1(_ value: Double) -> Double {
         (value * 10).rounded() / 10
+    }
+
+    /// Zwei Nachkommastellen - die Temperatur weicht nur um Zehntel ab.
+    private static func round2(_ value: Double) -> Double {
+        (value * 100).rounded() / 100
     }
 
     /// Was der Dienst als unplausibel ablehnt, fehlt lieber - sonst scheiterte

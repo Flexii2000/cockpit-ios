@@ -53,6 +53,9 @@ final class HealthSync {
     private let hrvSdnn = HKQuantityType(.heartRateVariabilitySDNN)
     private let heartRate = HKQuantityType(.heartRate)
     private let respiratoryRate = HKQuantityType(.respiratoryRate)
+    /// Seit 22.10. ein Baustein der Recovery (Vertrag §3.2) - misst die Uhr ab
+    /// Series 8 im Schlaf.
+    private let wristTemperature = HKQuantityType(.appleSleepingWristTemperature)
 
     /// RMSSD kennt Health erst ab iOS 27. Beide Methoden gehen getrennt zum
     /// Dienst; welche zaehlt, entscheidet er (Vertrag §3.2) - so kalibriert
@@ -87,13 +90,16 @@ final class HealthSync {
 
     /// Naechte: die letzten 14 bei jedem Abgleich, einmalig 425 in Bloecken
     /// zu 60 (Vertrag §2.1). 425 = ein Jahr, der laengste Logbook-Zeitraum,
-    /// plus die 60 Naechte, gegen die der Dienst die aeltesten davon rechnet -
-    /// sonst haetten sie keinen Score. 60 Naechte sind gut 20 kB - weit unter
-    /// den 200 je Anfrage.
+    /// plus Vorlauf, damit auch die aeltesten davon eine Baseline haben (die
+    /// letzten 30 Naechte davor) - sonst haetten sie keinen Score. 60 Naechte
+    /// sind gut 20 kB - weit unter den 200 je Anfrage.
     static let nightWindowDays = 14
     static let nightBackfillDays = 425
     static let nightBlockDays = 60
-    private let nightsCursorKey = "health.nights.backfillCursor"
+    /// Seit 22.10. ein neuer Cursor: die Rueckholung laeuft einmal erneut,
+    /// damit die alten Naechte die Handgelenktemperatur bekommen. Der alte
+    /// (`health.nights.backfillCursor`) bleibt einfach liegen.
+    private let nightsCursorKey = "health.nights.backfillCursor.temperature"
     /// Der Inhalt des zuletzt geschickten Naechte-Fensters. Ein Weckruf, der
     /// nichts Neues bringt (die Uhr schreibt Schlaf in Raten), schickt nichts.
     private let nightsHashKey = "health.nights.windowHash"
@@ -125,12 +131,13 @@ final class HealthSync {
 
     // MARK: - Erlaubnis
 
-    /// Alles, was Healthy aus Health liest. Bewusst nicht: Hauttemperatur,
-    /// Sauerstoff und Apples Tages-Ruhepuls - sie gehen in die Recovery nicht
-    /// ein (docs/ENTSCHEIDUNGEN.md, 09.10.).
+    /// Alles, was Healthy aus Health liest. Bewusst nicht: Sauerstoff und
+    /// Apples Tages-Ruhepuls - sie gehen in die Recovery nicht ein
+    /// (docs/ENTSCHEIDUNGEN.md, 09.10.). Die Handgelenktemperatur seit 22.10.
+    /// schon - iOS fragt danach einmal neu.
     private var readTypes: Set<HKObjectType> {
         var types: Set<HKObjectType> = [bodyMass, stepCount, activeEnergy, basalEnergy, sleep,
-                                        hrvSdnn, heartRate, respiratoryRate]
+                                        hrvSdnn, heartRate, respiratoryRate, wristTemperature]
         if let hrvRmssd { types.insert(hrvRmssd) }
         return types
     }
@@ -265,6 +272,9 @@ final class HealthSync {
             rmssd = try await reader.samples(hrvRmssd, unit: milliseconds, from: from, to: hrvTo)
         }
         let breathing = try await reader.samples(respiratoryRate, unit: perMinute, from: from, to: to)
+        // Ohne Leserecht liefert HealthKit hier still nichts - die Naechte
+        // gehen dann ohne Temperatur raus, wie bisher.
+        let temperature = try await reader.samples(wristTemperature, unit: .degreeCelsius(), from: from, to: to)
 
         var nights: [Night] = []
         for main in mains {
@@ -272,7 +282,8 @@ final class HealthSync {
             // misst nachts bis zu alle fuenf Sekunden.
             let heart = try await reader.average(heartRate, unit: perMinute, from: main.start, to: main.end)
             if let night = HealthNights.night(main, inBed: segments, hrvSdnn: sdnn, hrvRmssd: rmssd,
-                                              respiratory: breathing, sleepingHeartRate: heart) {
+                                              respiratory: breathing, sleepingHeartRate: heart,
+                                              wristTemperature: temperature) {
                 nights.append(night)
             }
         }

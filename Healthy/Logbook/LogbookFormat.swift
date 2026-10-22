@@ -3,6 +3,7 @@ import Foundation
 /// Die Effekte als Text - deutsch, mit „−" (U+2212), wie im Vertrag (§4.1, §5):
 ///
 ///     Name  +8,1 %-Pkt **
+///     HRV +9 % · RHF −1,9 bpm
 ///     [+3,2; +13,0] · 41 ja · 37 nein
 enum LogbookFormat {
 
@@ -27,6 +28,21 @@ enum LogbookFormat {
         guard let effect = predictor.effect else { return nil }
         let stars = stars(predictor.pAdjusted)
         return stars.isEmpty ? self.effect(effect) : self.effect(effect) + " " + stars
+    }
+
+    /// Die Bausteine unter dem Effekt: „HRV +9 % · RHF −1,9 bpm" - HRV ganz,
+    /// der Puls mit einer Stelle, beide mit Vorzeichen; was auf null rundet,
+    /// steht ohne („HRV 0 %"). Fehlt einer, steht der andere allein; fehlen
+    /// beide, gibt es die Zeile nicht (Vertrag §4.2).
+    static func components(_ predictor: Predictor) -> String? {
+        var parts: [String] = []
+        if let hrv = predictor.hrvEffectPercent {
+            parts.append("HRV " + GermanNumber.string(hrv, signed: true) + " %")
+        }
+        if let heart = predictor.sleepingHeartRateEffectBpm {
+            parts.append("RHF " + GermanNumber.string(heart, decimals: 1, signed: true) + " bpm")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// „je 1.000 Schritte", „je Stück" - wofuer der Effekt einer Menge gilt.

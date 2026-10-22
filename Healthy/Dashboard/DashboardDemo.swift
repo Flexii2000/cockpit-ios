@@ -125,20 +125,23 @@ extension DashboardDemo {
     /// Die Recovery `offset` Tage vor heute. Heute so wie das freigegebene
     /// Dashboard („HRV 58 ms · RHF 49 · 7:41 h", 72 % gruen); davor ein paar
     /// Wochen mit Luecken, Naechten ohne HRV und einem Normalband, das sich
-    /// langsam bewegt.
+    /// langsam bewegt. Gewichte wie seit 22.10. (Vertrag §3.2): HRV 55, Puls
+    /// 25, Atem 10, Temperatur 10, Schlaf 0.
     static func recoveryDay(offset: Int, today: CalendarDate = .today()) -> RecoveryDay? {
         let date = today.adding(days: -offset)
         if offset == 0 {
             return RecoveryDay(
-                date: date, status: .ok, score: 72, band: .green, composite: 0.581, hrvMethod: .sdnn,
-                calibration: RecoveryCalibration(nights: 60, required: 14),
+                date: date, status: .ok, score: 72, band: .green, composite: 0.91, hrvMethod: .sdnn,
+                calibration: RecoveryCalibration(nights: 30, required: 14),
                 components: [
-                    RecoveryComponent(key: .hrv, value: 58, unit: "ms", baseline: 49.7, z: 1.12, weight: 0.5),
+                    RecoveryComponent(key: .hrv, value: 58, unit: "ms", baseline: 49.7, z: 1.12, weight: 0.55),
                     RecoveryComponent(key: .sleepingHeartRate, value: 49.2, unit: "bpm", baseline: 52.0,
                                       z: 1.85, weight: 0.25),
-                    RecoveryComponent(key: .sleep, value: 461, unit: "min", baseline: 448, z: 0.31, weight: 0.15),
+                    RecoveryComponent(key: .sleep, value: 461, unit: "min", baseline: 448, z: 0.31, weight: 0),
                     RecoveryComponent(key: .respiratoryRate, value: 14.6, unit: "/min", baseline: 14.3,
                                       z: -0.9, weight: 0.1),
+                    RecoveryComponent(key: .wristTemperature, value: 35.84, unit: "°C", baseline: 35.8,
+                                      z: -0.2, weight: 0.1),
                 ],
                 hrvTrend: HrvTrend(mean7Ms: 52.1, nights7: 6, normalLowMs: 46.9, normalHighMs: 52.6,
                                    status: .within))
@@ -150,29 +153,37 @@ extension DashboardDemo {
         let heart = 52 + 2.5 * noise(offset, 5)
         let sleep = (440 + 45 * noise(offset, 6)).rounded()
         let breath = 14.3 + 0.4 * noise(offset, 7)
+        let warmth = 35.8 + 0.2 * noise(offset, 8)
+        // Ohne HRV ging nichts ein: alle Gewichte 0, wie beim Dienst.
+        let counted = offset % 17 != 9
         let heartComponent = RecoveryComponent(key: .sleepingHeartRate, value: (heart * 10).rounded() / 10,
-                                               unit: "bpm", baseline: 52, z: -(heart - 52) / 1.5, weight: 0.25)
+                                               unit: "bpm", baseline: 52, z: -(heart - 52) / 1.5,
+                                               weight: counted ? 0.25 : 0)
         let sleepComponent = RecoveryComponent(key: .sleep, value: sleep, unit: "min", baseline: 448,
-                                               z: (sleep - 448) / 30, weight: 0.15)
+                                               z: (sleep - 448) / 30, weight: 0)
         let breathComponent = RecoveryComponent(key: .respiratoryRate, value: (breath * 10).rounded() / 10,
                                                 unit: "/min", baseline: 14.3, z: -max(0, (breath - 14.3) / 0.3),
-                                                weight: 0.1)
+                                                weight: counted ? 0.1 : 0)
+        let warmthComponent = RecoveryComponent(key: .wristTemperature, value: (warmth * 100).rounded() / 100,
+                                                unit: "°C", baseline: 35.8, z: -max(0, (warmth - 35.8) / 0.15),
+                                                weight: counted ? 0.1 : 0)
         // Ab und zu misst die Uhr nachts keine HRV - die Werte stehen trotzdem da.
-        if offset % 17 == 9 {
+        if !counted {
             return RecoveryDay(date: date, status: .noHrv, score: nil, band: nil, composite: nil, hrvMethod: nil,
-                               calibration: RecoveryCalibration(nights: 60, required: 14),
-                               components: [heartComponent, sleepComponent, breathComponent], hrvTrend: nil)
+                               calibration: RecoveryCalibration(nights: 30, required: 14),
+                               components: [heartComponent, sleepComponent, breathComponent, warmthComponent],
+                               hrvTrend: nil)
         }
         let hrv = (49.5 + 5 * sin(Double(offset) * 0.7) + 4 * noise(offset, 3)).rounded()
         let middle = (band.0 + band.1) / 2
         let score = Int(max(4, min(96, 50 + (hrv - middle) * 5 + 8 * noise(offset, 4))).rounded())
         return RecoveryDay(
             date: date, status: .ok, score: score,
-            band: score >= 67 ? .green : score <= 33 ? .red : .yellow, composite: nil, hrvMethod: .sdnn,
-            calibration: RecoveryCalibration(nights: 60, required: 14),
+            band: score >= 50 ? .green : score <= 33 ? .red : .yellow, composite: nil, hrvMethod: .sdnn,
+            calibration: RecoveryCalibration(nights: 30, required: 14),
             components: [RecoveryComponent(key: .hrv, value: hrv, unit: "ms", baseline: middle,
-                                           z: (log(hrv) - log(middle)) / 0.12, weight: 0.5),
-                         heartComponent, sleepComponent, breathComponent],
+                                           z: (log(hrv) - log(middle)) / 0.12, weight: 0.55),
+                         heartComponent, sleepComponent, breathComponent, warmthComponent],
             hrvTrend: HrvTrend(mean7Ms: nil, nights7: 0, normalLowMs: band.0, normalHighMs: band.1,
                                status: .unknown))
     }
@@ -340,24 +351,30 @@ extension DashboardDemo {
         func row(_ key: String, _ source: PredictorSource, _ name: String, _ kind: PredictorKind,
                  _ variant: PredictorVariant = .main, unit: String? = nil, perUnit: Double = 1,
                  effect: Double? = nil, ci: (Double, Double)? = nil, p: Double? = nil, pAdjusted: Double? = nil,
+                 hrv: Double? = nil, heart: Double? = nil,
                  yes: Int? = nil, no: Int? = nil, n: Int, status: PredictorStatus = .ok) -> Predictor {
             Predictor(key: key, source: source, sourceId: key, name: name, kind: kind, variant: variant,
                       unitLabel: unit, perUnit: perUnit, effect: effect, ciLow: ci?.0, ciHigh: ci?.1, p: p,
-                      pAdjusted: pAdjusted, nYes: yes, nNo: no, n: n, meanYes: nil, meanNo: nil, status: status)
+                      pAdjusted: pAdjusted, hrvEffectPercent: hrv, sleepingHeartRateEffectBpm: heart,
+                      nYes: yes, nNo: no, n: n, meanYes: nil, meanNo: nil, status: status)
         }
         // Kuerzere Zeitraeume haben weniger Tage - und breitere Intervalle.
         let scale = Double(min(days, 90)) / 90
         let predictors = [
             row("LOGBOOK:b-demo-a", .logbook, "Verhalten A", .binary, effect: 8.12, ci: (3.2, 13.04),
-                p: 0.0004, pAdjusted: 0.004, yes: Int(41 * scale), no: Int(37 * scale), n: Int(78 * scale)),
+                p: 0.0004, pAdjusted: 0.004, hrv: 9.4, heart: -1.85,
+                yes: Int(41 * scale), no: Int(37 * scale), n: Int(78 * scale)),
             row("COHABIT:c-demo", .cohabit, "Gewohnheit A", .binary, effect: -6.4, ci: (-10.9, -1.9),
-                p: 0.003, pAdjusted: 0.03, yes: Int(30 * scale), no: Int(52 * scale), n: Int(82 * scale)),
+                p: 0.003, pAdjusted: 0.03, hrv: -7.6, heart: 2.1,
+                yes: Int(30 * scale), no: Int(52 * scale), n: Int(82 * scale)),
             row("HEALTHY:steps", .healthy, "Schritte", .amount, unit: "Schritte", perUnit: 1000,
-                effect: 1.3, ci: (0.2, 2.4), p: 0.02, pAdjusted: 0.12, n: Int(84 * scale)),
+                effect: 1.3, ci: (0.2, 2.4), p: 0.02, pAdjusted: 0.12, hrv: 1.2, heart: -0.3, n: Int(84 * scale)),
             row("LOGBOOK:b-demo-c", .logbook, "Verhalten C", .binary, effect: -3.0, ci: (-7.5, 1.5),
-                p: 0.19, pAdjusted: 0.76, yes: Int(44 * scale), no: Int(34 * scale), n: Int(78 * scale)),
+                p: 0.19, pAdjusted: 0.76, hrv: -2.8,
+                yes: Int(44 * scale), no: Int(34 * scale), n: Int(78 * scale)),
             row("LOGBOOK:b-demo-c:DOSE", .logbook, "Verhalten C", .amount, .dose, unit: "Stück",
-                effect: -1.8, ci: (-3.9, 0.3), p: 0.09, pAdjusted: 0.45, n: Int(44 * scale)),
+                effect: -1.8, ci: (-3.9, 0.3), p: 0.09, pAdjusted: 0.45, hrv: -1.5, heart: 0.4,
+                n: Int(44 * scale)),
             row("HEALTHY:deficit", .healthy, "Defizit", .amount, unit: "kcal", perUnit: 100,
                 effect: -0.4, ci: (-1.1, 0.3), p: 0.26, pAdjusted: 0.78, n: Int(70 * scale)),
             row("LOGBOOK:b-demo-b", .logbook, "Verhalten B", .binary, yes: 3, no: 5, n: 8, status: .tooFew),

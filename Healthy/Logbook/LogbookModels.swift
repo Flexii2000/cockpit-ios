@@ -95,13 +95,17 @@ struct Predictor: Decodable, Identifiable, Equatable, Sendable {
     /// Der Schritt, auf den sich der Effekt einer Menge bezieht (1.000
     /// Schritte, 100 kcal).
     let perUnit: Double
-    /// In Prozentpunkten Recovery.
+    /// In Prozentpunkten Recovery an einer typischen Nacht (Vertrag §4.1).
     let effect: Double?
     let ciLow: Double?
     let ciHigh: Double?
     let p: Double?
     /// Nach Holm ueber alle auswertbaren Zeilen - danach richten sich die Sterne.
     let pAdjusted: Double?
+    /// Der Effekt auf die HRV in % (seit 22.10.) - ohne Intervall, ohne Sterne.
+    let hrvEffectPercent: Double?
+    /// Der Effekt auf den Puls im Schlaf in bpm (seit 22.10.).
+    let sleepingHeartRateEffectBpm: Double?
     let nYes: Int?
     let nNo: Int?
     let n: Int
@@ -113,7 +117,7 @@ struct Predictor: Decodable, Identifiable, Equatable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case key, source, sourceId = "id", name, kind, variant, unitLabel, perUnit, effect, ciLow, ciHigh,
-             p, pAdjusted, nYes, nNo, n, meanYes, meanNo, status
+             p, pAdjusted, hrvEffectPercent, sleepingHeartRateEffectBpm, nYes, nNo, n, meanYes, meanNo, status
     }
 }
 

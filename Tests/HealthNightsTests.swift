@@ -261,6 +261,43 @@ final class HealthNightsTests: XCTestCase {
                      "was der Dienst ablehnt, fehlt lieber - sonst scheiterte die ganze Anfrage")
     }
 
+    // MARK: - Handgelenktemperatur
+
+    private func warmth(_ start: Date, _ end: Date, _ value: Double) -> HealthReading {
+        HealthReading(start: start, value: value, isWatch: true, end: end)
+    }
+
+    /// Die Uhr schreibt eine Messung je Schlaf: zaehlt, was die Phase
+    /// ueberlappt - auch wenn es vor dem Einschlafen beginnt.
+    func testWristTemperatureOverlappingThePhase() throws {
+        let main = try XCTUnwrap(mains([segment(at(8, 23), at(9, 6))], [october9]).first)
+        let readings = [warmth(at(8, 22, 40), at(9, 6, 5), 35.84),
+                        warmth(at(8, 13), at(8, 14), 36.9),
+                        warmth(at(9, 6, 1), at(9, 7), 36.5)]
+        let result = try XCTUnwrap(HealthNights.night(main, inBed: [], hrvSdnn: [], hrvRmssd: nil,
+                                                      respiratory: [], sleepingHeartRate: nil,
+                                                      wristTemperature: readings))
+        XCTAssertEqual(result.wristTemperatureCelsius, 35.84,
+                       "der Mittagsschlaf und die Messung nach dem Aufwachen zaehlen nicht")
+    }
+
+    /// Mehrere Messungen: ihr Mittel, auf zwei Nachkommastellen.
+    func testWristTemperatureAveragesAndRoundsToTwoDecimals() throws {
+        let main = try XCTUnwrap(mains([segment(at(8, 23), at(9, 6))], [october9]).first)
+        let readings = [warmth(at(8, 23), at(9, 2), 35.811), warmth(at(9, 2), at(9, 6), 35.93)]
+        XCTAssertEqual(HealthNights.wristTemperature(readings, main), 35.87)
+    }
+
+    /// Ohne Messung (kein Leserecht, keine Uhr, die sie misst) fehlt sie - die
+    /// Nacht geht trotzdem raus. Ausserhalb von 20–45 °C fehlt sie lieber,
+    /// sonst scheiterte die ganze Anfrage.
+    func testWristTemperatureMissingOrImplausible() throws {
+        let main = try XCTUnwrap(mains([segment(at(8, 23), at(9, 6))], [october9]).first)
+        XCTAssertNil(try XCTUnwrap(night(main)).wristTemperatureCelsius)
+        XCTAssertNil(HealthNights.wristTemperature([warmth(at(8, 23), at(9, 6), 51)], main))
+        XCTAssertNil(HealthNights.wristTemperature([warmth(at(8, 23), at(9, 6), 0)], main))
+    }
+
     // MARK: - Zum Dienst
 
     /// Zeitpunkte als ISO 8601 mit `Z`, wie Jacksons `Instant` sie liest; was

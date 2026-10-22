@@ -7,13 +7,18 @@ struct DaySum: Sendable, Equatable {
     let value: Double
 }
 
-/// Ein Messwert aus Health (HRV, Atemfrequenz), auf das Noetige eingedampft.
+/// Ein Messwert aus Health (HRV, Atemfrequenz, Handgelenktemperatur), auf das
+/// Noetige eingedampft.
 struct HealthReading: Sendable, Equatable {
     let start: Date
     let value: Double
     /// Von der Apple Watch gemessen. Die Nacht bevorzugt ihre Werte - das
     /// iPhone misst HRV hoechstens mit Zusatzgeraeten, und die messen anders.
     let isWatch: Bool
+    /// Das Ende der Messung. Nur die Temperatur braucht es - sie gilt fuer
+    /// einen ganzen Schlaf und zaehlt, wenn sie die Phase ueberlappt; `nil`
+    /// heisst „ein Zeitpunkt".
+    var end: Date?
 }
 
 /// Ein Schlafsegment, so wie Health es kennt: Stadium, Zeitraum, Quelle.
@@ -148,14 +153,15 @@ struct HealthReader: Sendable {
 
     // MARK: - Messwerte
 
-    /// Einzelmessungen eines Typs (HRV, Atemfrequenz) im Fenster.
+    /// Einzelmessungen eines Typs (HRV, Atemfrequenz, Temperatur) im Fenster.
     func samples(_ type: HKQuantityType, unit: HKUnit, from: Date, to: Date) async throws -> [HealthReading] {
         let samples = try await samples(of: type, from: from, to: to)
         return samples.compactMap { sample in
             guard let quantity = sample as? HKQuantitySample else { return nil }
             return HealthReading(start: quantity.startDate,
                                  value: quantity.quantity.doubleValue(for: unit),
-                                 isWatch: Self.isWatch(quantity))
+                                 isWatch: Self.isWatch(quantity),
+                                 end: quantity.endDate)
         }
     }
 
