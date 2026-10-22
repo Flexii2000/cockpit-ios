@@ -1,8 +1,7 @@
 # Stand
 
 > **Healthy: Recovery als Abstand, letzte 30 Nächte, Handgelenktemperatur, Effekte je Baustein
-> (22.10.):** Branch `recovery-distance` in cockpit-ios; der Weight Tracker rechnet es auf dem
-> gleichnamigen Branch (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5,
+> (22.10.):** in `main` (`d49697a`); der Weight Tracker rechnet es seit 22.10. 11:50 live (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5,
 > Entscheidungen in `docs/ENTSCHEIDUNGEN.md`). Die App rechnet nichts davon nach: Score, Bänder
 > (ab 50 grün) und Gewichte kommen vom Dienst.
 > - **Neu:** `Night.wristTemperatureCelsius` aus `appleSleepingWristTemperature` (Messungen, die
@@ -22,9 +21,10 @@
 >   Beschriftung passt neben den Wert) und Effekte.
 > - **Nicht geprüft:** der Health-Dialog mit der neuen Zeile, echte Temperaturwerte und die
 >   erneute Rückholung - im Simulator gibt es kein Health.
-> - **Nächster Schritt:** den Weight Tracker (`recovery-distance`) ausrollen, dann Healthy aufs
->   iPhone. Ein älterer Dienst überliest die Temperatur (Spring ignoriert unbekannte Felder) und
->   schickt keine Bausteine - die App lässt dann nur die neuen Zeilen weg.
+> - **Nächster Schritt:** Healthy aufs iPhone (`tools/install-device.sh Healthy`). Am 22.10. ging
+>   das nicht: Felix war im Firmennetz, das Geräte voneinander abschirmt, und der Mac führte das
+>   iPhone nicht einmal mehr als gekoppelt (nur Uhr und iPad) - im Heimnetz oder per Kabel
+>   erneut. Android 1.10 (61) ist veröffentlicht.
 > - **Auf dem Gerät prüfen:** (1) Beim ersten Start fragt iOS nach „Handgelenktemperatur“ -
 >   erlauben. (2) Recovery-Seite: Zeile „Handgelenktemperatur“ als letzte, der Schlaf-Balken
 >   grau. (3) Effekte: unter jedem Effekt „HRV … % · RHF … bpm“.
