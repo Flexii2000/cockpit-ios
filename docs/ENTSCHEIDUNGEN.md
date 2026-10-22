@@ -3,6 +3,39 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-22 — Recovery: Abstand statt Rang, letzte 30 Nächte, Temperatur, Effekte je Baustein
+Felix' Entscheidungen (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5; gerechnet
+im Weight Tracker, die App zeigt nur):
+- **Score = Abstand zum Normalbereich** (Composite in Standardabweichungen, logistisch auf 1–99,
+  50 = typisch). Verworfen: der Rang unter den Baseline-Nächten (seit 10.10.) — auf Dauer jede
+  dritte Nacht rot, und die schlechteste der Baseline bekam immer 1, egal wie schlecht.
+- **Grün ab 50** (typisch oder besser), rot bis 33 (mehr als eine Standardabweichung darunter).
+  Verworfen: die Whoop-Grenzen 33/67 (Gelb = normal, Grün nur etwa jede sechste Nacht).
+- **Baseline = die letzten 30 Nächte**, höchstens ein Jahr zurück. Verworfen: die 60 Tage davor (mit
+  einer Uhr, die nicht jede Nacht getragen wird, kamen oft keine 14 Nächte zusammen) und die letzten
+  60 Nächte (träger).
+- **Schlaf raus, Handgelenktemperatur rein** (einseitig, 10 %; HRV 55, Puls 25, Atem 10). Der
+  Schlaf bleibt als Zeile mit Gewicht 0. Verworfen: nur eins von beiden, oder alles wie bisher.
+- **Effekte: Punkte + Bausteine** — die Recovery-Punkte bleiben die Hauptzahl mit Sternen, darunter
+  „HRV +9 % · RHF −1,9 bpm“ ohne Sterne. Verworfen: nur Bausteine (HRV als Hauptzahl, Holm über
+  mehr Zeilen, keine Recovery-Punkte) und nur Punkte.
+
+Ohne Rückfrage entschieden (App):
+- **Ein Baustein mit Gewicht 0 bekommt einen grauen Balken** (Schlaf immer, beim Kalibrieren
+  alle) — man sieht, was zählt, ohne Text. Verworfen: ein Hinweis „zählt nicht“ (kein Erklärtext)
+  und die Schlaf-Zeile ausblenden (Felix wollte sie behalten).
+- **Temperatur mit zwei Nachkommastellen** („35,84 °C“, „⌀ 35,80 °C“). Verworfen: eine wie beim
+  Atem — „35,8 °C“ gegen „⌀ 35,8 °C“ sähe nach keiner Abweichung aus, wo eine ist.
+- **Die Temperatur zählt, wenn die Messung die Phase überlappt**, nicht nur, wenn sie darin
+  beginnt: die Uhr schreibt eine Messung über den ganzen Schlaf, die vor dem Einschlafen beginnen
+  kann. Ohne Leserecht liefert HealthKit still nichts — die Nacht geht dann ohne Temperatur raus,
+  kein Abbruch wie bei einer gescheiterten HRV-Abfrage.
+- **Die Rückholung der 425 Nächte läuft einmal erneut, über einen neuen Cursor**
+  (`health.nights.backfillCursor.temperature`), damit die alten Nächte die Temperatur bekommen.
+  Verworfen: den alten Cursor löschen (dieselbe Wirkung, aber der neue Name sagt, warum).
+- **Was auf null rundet, steht ohne Vorzeichen** („HRV 0 %“, „RHF 0,0 bpm“) — wie überall
+  (`GermanNumber`), kein „−0“.
+
 ## 2026-10-19 — Gewicht-Diagramm: „Distanz z. Target“
 Felix' Entscheidungen (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §5):
 - **Gewicht ⌀ 7 minus Zielkurve**, in „Alles“ ⌀ 30 - der senkrechte Abstand der beiden

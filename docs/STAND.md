@@ -1,5 +1,34 @@
 # Stand
 
+> **Healthy: Recovery als Abstand, letzte 30 Nächte, Handgelenktemperatur, Effekte je Baustein
+> (22.10.):** Branch `recovery-distance` in cockpit-ios; der Weight Tracker rechnet es auf dem
+> gleichnamigen Branch (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5,
+> Entscheidungen in `docs/ENTSCHEIDUNGEN.md`). Die App rechnet nichts davon nach: Score, Bänder
+> (ab 50 grün) und Gewichte kommen vom Dienst.
+> - **Neu:** `Night.wristTemperatureCelsius` aus `appleSleepingWristTemperature` (Messungen, die
+>   die Phase überlappen, Mittel, zwei Stellen, 20–45 °C, `HealthNights.wristTemperature`;
+>   `HealthReading.end`), neue Zeile im Health-Dialog; die Rückholung der 425 Nächte läuft einmal
+>   erneut (Cursor `health.nights.backfillCursor.temperature`). `ComponentKey.wristTemperature`
+>   („Handgelenktemperatur“, `35,84 °C`, `⌀ 35,80 °C`); `RecoveryComponent.counts` - Gewicht 0
+>   (Schlaf immer, beim Kalibrieren alle) gibt einen grauen Balken (`ZBar(counts:)`).
+>   `Predictor.hrvEffectPercent`/`sleepingHeartRateEffectBpm` und darunter in jeder Effekt-Zeile
+>   `HRV +9 % · RHF −1,9 bpm` (`LogbookFormat.components`). Vorführdaten mit den neuen Gewichten,
+>   Temperatur und Bausteinen.
+> - **Geprüft:** `tools/verify.sh` (alle fünf + `HealthyWatch`; Healthy 314 XCTests + 31
+>   Swift-Tests, Fokus 41, coHabit 182), darin neu: Temperatur in `HealthNightsTests` (überlappt,
+>   Mittel und Rundung, fehlt/unplausibel), `HealthyContractTests` (Baustein, Effekt-Felder, Nacht
+>   hin und zurück), `LogbookFormatTests` (Bausteinzeile, Rundung auf null), `RecoveryTests`.
+>   Im Simulator mit Vorführdaten hell und dunkel: Recovery-Seite (iPhone 17 und 17e - die lange
+>   Beschriftung passt neben den Wert) und Effekte.
+> - **Nicht geprüft:** der Health-Dialog mit der neuen Zeile, echte Temperaturwerte und die
+>   erneute Rückholung - im Simulator gibt es kein Health.
+> - **Nächster Schritt:** den Weight Tracker (`recovery-distance`) ausrollen, dann Healthy aufs
+>   iPhone. Ein älterer Dienst überliest die Temperatur (Spring ignoriert unbekannte Felder) und
+>   schickt keine Bausteine - die App lässt dann nur die neuen Zeilen weg.
+> - **Auf dem Gerät prüfen:** (1) Beim ersten Start fragt iOS nach „Handgelenktemperatur“ -
+>   erlauben. (2) Recovery-Seite: Zeile „Handgelenktemperatur“ als letzte, der Schlaf-Balken
+>   grau. (3) Effekte: unter jedem Effekt „HRV … % · RHF … bpm“.
+
 > **Healthy: „Distanz z. Target“ im Gewicht-Diagramm (19.10.):** neuer Schalter direkt hinter
 > „Zielkurve“, in allen Zeiträumen angeboten, nicht vorgewählt (Felix). Je Tag Gewicht ⌀ 7 minus
 > Zielkurve, in „Alles“ ⌀ 30 (`WeightRange.distanceAverage`), gepunktet wie das Mittel, in Pink

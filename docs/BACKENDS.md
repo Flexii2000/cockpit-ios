@@ -294,7 +294,7 @@ unten mit 404 — die App lässt die Karte dann weg, ohne Fehlermeldung.
 | GET | `/api/nights?from=&to=` | `[Night]` |
 | GET | `/api/recovery/today` | `RecoveryDay` — `NO_NIGHT`, solange die Nacht von heute nicht da ist |
 | GET | `/api/recovery?from=&to=` | `[RecoveryDay]` — nur Tage mit Nacht (≤ 400 Tage) |
-| GET/PUT | `/api/recovery/settings` | `{sleepNeedMinutes}` (240–720, Vorgabe 480) — ändert auch alte Scores |
+| GET/PUT | `/api/recovery/settings` | `{sleepNeedMinutes}` (240–720, Vorgabe 480) — ändert Baseline und z der Zeile „Schlaf“, auch alter Nächte; in den Score geht Schlaf seit 22.10. nicht mehr ein |
 | GET | `/api/logbook` | `LogbookView` — alle Verhaltensweisen (auch archivierte) und die gespeicherten Tage der Nachtragsfrist |
 | POST | `/api/logbook/behaviors` | `{name, unit?}` → 201 `Behavior` (Name 1–40, Einheit ≤ 16, höchstens 30 aktive) |
 | PUT | `/api/logbook/behaviors/{id}` | `{name?, archived?}` → `Behavior` — die Einheit bleibt |
@@ -327,12 +327,13 @@ Calibration     status (OK | CLAMPED | TOO_FEW_TRACKED_DAYS | TOO_FEW_WEIGHTS | 
 Night           date (Aufwachtag), sleepStart?, sleepEnd? (Instant mit "Z"), asleepMinutes (0–1.440),
                 inBedMinutes?, awakeMinutes?, deepMinutes?, remMinutes?, coreMinutes?,
                 hrvSdnnMs?, hrvSdnnSamples?, hrvRmssdMs?, hrvRmssdSamples?,
-                sleepingHeartRate?, respiratoryRate?, source? ("ios" | "android")
+                sleepingHeartRate?, respiratoryRate?, wristTemperatureCelsius? (20–45 °C, seit 22.10.),
+                source? ("ios" | "android")
 RecoveryDay     date, status (OK | CALIBRATING | NO_HRV | TOO_SHORT | NO_NIGHT), score?, band?
                 (GREEN | YELLOW | RED), composite?, hrvMethod? (SDNN | RMSSD),
                 calibration {nights, required}, components: [RecoveryComponent], hrvTrend?
-RecoveryComponent key (HRV | SLEEPING_HEART_RATE | SLEEP | RESPIRATORY_RATE), value, unit
-                ("ms" | "bpm" | "min" | "/min"), baseline?, z?, weight
+RecoveryComponent key (HRV | SLEEPING_HEART_RATE | SLEEP | RESPIRATORY_RATE | WRIST_TEMPERATURE
+                (seit 22.10.)), value, unit ("ms" | "bpm" | "min" | "/min" | "°C"), baseline?, z?, weight
 HrvTrend        mean7Ms?, nights7, normalLowMs?, normalHighMs?, status (BELOW | WITHIN | ABOVE | UNKNOWN)
 LogbookView     behaviors: [Behavior], backfillDays (14), backfillFrom, today, days: [LogbookDay]
 Behavior        id ("b-…"), name, unit?, createdAt, archived
@@ -349,6 +350,7 @@ InsightsView    days, from, to, nightsWithScore, outcomeStatus (OK | TOO_FEW_NIG
                 sources {cohabit, food: OK | UNAVAILABLE}, predictors: [PredictorView]
 PredictorView   key, source (LOGBOOK | COHABIT | HEALTHY), id, name, kind (BINARY | AMOUNT),
                 variant (MAIN | DOSE), unitLabel?, perUnit, effect?, ciLow?, ciHigh?, p?, pAdjusted?,
+                hrvEffectPercent?, sleepingHeartRateEffectBpm? (beide seit 22.10.),
                 nYes?, nNo?, n, meanYes?, meanNo?, status (OK | TOO_FEW | NOT_SEPARABLE)
 ```
 
@@ -373,8 +375,13 @@ hinterher. Anlegen, Ändern und Löschen von Verhaltensweisen nur online.
 ⚠️ **`id` ist bei `PredictorView` nicht eindeutig:** eine Verhaltensweise mit
 Einheit hat zwei Zeilen (`MAIN` ja/nein und `DOSE` je Einheit) mit derselben
 `id`; eindeutig ist `key`. Die App liest `id` als `sourceId`. `effect` steht
-in Prozentpunkten Recovery am nächsten Morgen, bei Mengen je `perUnit`
-(1.000 Schritte, 100 kcal); die Sterne richten sich nach `pAdjusted` (Holm).
+in Prozentpunkten Recovery am nächsten Morgen **an einer typischen Nacht**
+(seit 22.10. linear über den Abstand gerechnet, Vertrag §4.1), bei Mengen je
+`perUnit` (1.000 Schritte, 100 kcal); die Sterne richten sich nach `pAdjusted`
+(Holm, nur über `effect`). Darunter seit 22.10. die Bausteine ohne Intervall
+und ohne Sterne: `hrvEffectPercent` in %, `sleepingHeartRateEffectBpm` in bpm
+— `null` ohne genug Nächte mit dem Baustein, und ein älterer Dienst schickt
+sie gar nicht (die App lässt die Zeile dann weg).
 Die Reihenfolge kommt vom Dienst: signifikant zuerst, dann nach |Effekt|,
 dann die übrigen. coHabit-Werte holt der Dienst selbst
 (`/cohabit/api/me/days`, siehe coHabit), die App fragt dort nichts.
@@ -382,8 +389,14 @@ dann die übrigen. coHabit-Werte holt der Dienst selbst
 ⚠️ **`score`, `band`, `composite` gibt es nur bei `OK`**, `hrvTrend` auch nur
 dann. Die Bausteine stehen trotzdem da, sobald die Nacht den Wert hat
 (`NO_HRV`, `CALIBRATING` mit Gewicht 0), `baseline`/`z` erst mit genug Nächten
-(HRV 14, andere 7). **`z` ist schon „positiv = besser"**, auch beim Puls und
-beim Atem; die App dreht nichts um. Unbekannte Werte der Aufzählungen
+(HRV 14, andere 7). **`z` ist schon „positiv = besser"**, auch beim Puls,
+beim Atem und bei der Temperatur; die App dreht nichts um. **Seit 22.10.**
+(Vertrag §3.2, nachgesehen im Vertrag `fb29a8c`, Dienst auf dem Branch
+`recovery-distance`): Baseline sind die letzten 30 Nächte (höchstens 365 Tage
+zurück), der Score ist der Abstand zum Normalbereich statt des Rangs, die
+Bänder liegen bei ≥ 50 grün und ≤ 33 rot — die App färbt nur nach `band`.
+`SLEEP` hat immer `weight` 0; ein Baustein mit Gewicht 0 bekommt in der App
+einen grauen Balken (`RecoveryComponent.counts`). Unbekannte Werte der Aufzählungen
 (neuer Status, neuer Baustein) liest die App als `unknown`
 (`LenientEnum`), statt an der ganzen Antwort zu scheitern.
 
