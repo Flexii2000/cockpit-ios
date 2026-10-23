@@ -20,7 +20,8 @@
 >   UI-Test `testFoodHistoryOffersTheDailyDeficit` (Schalter erreichbar, angetippt). Im Simulator
 >   mit Vorführdaten hell und dunkel: Gewicht-Diagramm (90 Tage mit beiden Kurven, 30 Tage nur
 >   der Tageswert) und Essen-Verlauf.
-> - **Nächster Schritt:** aufs iPhone, zusammen mit der Uhr-Komplikation (Eintrag darüber).
+> - **Nächster Schritt:** aufs iPhone, zusammen mit der Uhr-Komplikation (Eintrag darüber) -
+>   am 23.10. 18:15–18:35 war das iPhone nicht erreichbar (`tools/install-device.sh Healthy`).
 
 > **Healthy: Heute-Kachel mit dem Rest (23.10. 15:30, Felix):** die große Sperrbildschirm-Kachel
 > zeigt unter dem kcal-Ring `750 kcal übrig` bzw. `120 kcal drüber` statt des Gegessenen; der Ring
