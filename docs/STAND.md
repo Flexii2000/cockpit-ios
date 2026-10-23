@@ -32,6 +32,12 @@
 > - **Nicht geprüft:** echte Trainings und Puls (der Simulator misst nichts), das Spiegeln
 >   des Krafttrainings mit der neuen Uhr-App, die Zustellung eines Ergebnisses an den Dienst
 >   und das Eintragen bei Playtomic (das erste echte Match ist der erste Lauf).
+> - **Installiert** auf Felix' iPhone und Uhr am 23.10. um 14:25 (Sport samt `SportWatch`,
+>   danach Healthy samt Uhr ohne Gym). Xcode hatte kein Konto mehr angemeldet („No Accounts“) -
+>   die Profile der neuen Bundle-IDs mit HealthKit hat `install-device.sh` über den
+>   App-Store-Connect-Schlüssel von `testflight.sh` angelegt (`~/.appstoreconnect`). Das VPN des
+>   Macs lief dabei (Default-Route `utun4`), das iPhone war trotzdem erreichbar.
+> - **Nächster Schritt:** die Prüfungen auf dem Gerät unten.
 > - **Auf dem Gerät prüfen:** (1) Sport öffnen - Padel zeigt dasselbe wie die Seite, Zugang
 >   per Zahnrad (der Privat-Token liegt schon im geteilten Schlüsselbund). (2) Gym → „Training
 >   starten“: die Uhr-App Sport geht auf (nicht mehr Healthy); Satz abhaken, nach 90 s

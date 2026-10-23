@@ -28,7 +28,8 @@ case "$APP" in
     # -allowProvisioningUpdates beim ersten Mal an, solange Xcode angemeldet ist.
     coHabit) BUNDLE="com.fherrmann.cohabit" ;;
     # Neue Bundle-IDs mit HealthKit, dazu die Uhr-App (23.10.) - das Profil legt
-    # -allowProvisioningUpdates beim ersten Mal an.
+    # -allowProvisioningUpdates beim ersten Mal an, ohne Xcode-Konto ueber den
+    # API-Schluessel (unten).
     Sport)   BUNDLE="com.fherrmann.sport" ;;
     *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit, Sport oder all sein." >&2; exit 1 ;;
 esac
@@ -84,8 +85,22 @@ fi
 # aufgibt, weist ein Geraet ab, das gleich geantwortet haette.
 echo "Ziel: $DEVICE_NAME ($DEVICE_STATE)"
 tools/bootstrap.sh > /dev/null
+
+# Neue Bundle-IDs brauchen beim ersten Bau ein Profil vom Developer-Konto. Ohne
+# angemeldetes Xcode-Konto ("No Accounts", 23.10. nach dem Wechsel auf Xcode 27)
+# legt es der API-Schluessel von tools/testflight.sh an, sofern er da ist.
+CONFIG="$HOME/.appstoreconnect/config"
+[ -f "$CONFIG" ] && . "$CONFIG"
+ASC_KEY_ID="${ASC_KEY_ID:-}"
+ASC_ISSUER_ID="${ASC_ISSUER_ID:-}"
+KEY="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+AUTH=()
+if [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -f "$KEY" ]; then
+    AUTH=(-authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+fi
+
 xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
-    -destination 'generic/platform=iOS' -allowProvisioningUpdates \
+    -destination 'generic/platform=iOS' -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} \
     -derivedDataPath build/device -quiet
 
 # Den Tunnel unmittelbar vorher wecken. Er faellt zwischen zwei Kommandos
