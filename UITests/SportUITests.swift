@@ -189,6 +189,26 @@ final class SportUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 10), name)
     }
 
+    // MARK: - Padel
+
+    /// Alle Abschnitte des Padel-Tabs an den Vorfuehrdaten (`COCKPIT_PADEL_DEMO=1`, kein Dienst
+    /// noetig): naechster Termin mit Countdown, Gebucht, Ergebnisse, Geplant, Serien, Plaetze.
+    func testPadelDemoShowsEverySection() {
+        let app = launch(tab: "padel", extra: ["COCKPIT_PADEL_DEMO": "1", "COCKPIT_NO_HEALTH": "1"])
+        XCTAssertTrue(app.descendants(matching: .any)["padelNext"].waitForExistence(timeout: 20), "kein naechster Termin")
+        shoot(app, "padel-1")
+        XCTAssertTrue(app.buttons["Einladen"].firstMatch.exists, "kein Einladen an der Buchung")
+        for page in 2...5 {
+            scrollDown(app, times: 3)
+            shoot(app, "padel-\(page)")
+        }
+        XCTAssertTrue(app.staticTexts["Mo · 18:00 bis 21:30 · 90′"].waitForExistence(timeout: 5), "keine Serie")
+        app.buttons["padelAdd"].tap()
+        app.buttons["Serie …"].tap()
+        XCTAssertTrue(app.navigationBars["Neue Serie"].waitForExistence(timeout: 5))
+        shoot(app, "padel-neue-serie")
+    }
+
     func testTabsAreReachable() {
         let app = launch(tab: "padel", extra: ["COCKPIT_GYM_DEMO": "1", "COCKPIT_PADEL_DEMO": "1"])
         XCTAssertTrue(app.navigationBars["Padel"].waitForExistence(timeout: 20))
