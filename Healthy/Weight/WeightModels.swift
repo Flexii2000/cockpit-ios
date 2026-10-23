@@ -202,7 +202,8 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// Ein fuenfter Umschalter passte nicht in die Reihe.
     var offeredSeries: [WeightSeries] {
         switch self {
-        case .allTime: [.measured, .avg30, .target, .targetDistance, .kcal, .kcalDay, .expenditure, .deficit]
+        case .allTime: [.measured, .avg30, .target, .targetDistance, .kcal, .kcalDay, .expenditure, .deficit,
+                        .deficitDay]
         default:       WeightSeries.offered
         }
     }
@@ -220,9 +221,10 @@ enum WeightRange: String, CaseIterable, Identifiable, Sendable {
     /// 14er darin kaum mehr - dieselbe Einschraenkung wie in der Weboberflaeche.
     var availableSeries: [WeightSeries] {
         switch self {
-        case .month: [.measured, .avg7, .target, .targetDistance, .kcal, .kcalDay, .expenditure, .deficit]
+        case .month: [.measured, .avg7, .target, .targetDistance, .kcal, .kcalDay, .expenditure, .deficit,
+                      .deficitDay]
         default:     [.measured, .avg7, .avg14, .avg30, .target, .targetDistance,
-                      .kcal, .kcalDay, .expenditure, .deficit]
+                      .kcal, .kcalDay, .expenditure, .deficit, .deficitDay]
         }
     }
 
@@ -254,6 +256,10 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// auf eigener Skala mit Nulllinie. Vorgewaehlt (Felix, 12.10.); mit
     /// „Verbrauch ⌀" und „kcal ⌀" faerbt es die Flaeche zwischen den beiden.
     case deficit
+    /// „Defizit Tag": das Defizit jedes abgeschlossenen Tages selbst, auf der
+    /// Skala von „Defizit ⌀" - blass wie „kcal Tag", nur angeboten (Felix,
+    /// 23.10.). Heute nie, auch nicht als Prognose.
+    case deficitDay
 
     var id: String { rawValue }
 
@@ -269,6 +275,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
         case .kcalDay:  "kcal Tag"
         case .expenditure: "Verbrauch ⌀"
         case .deficit:  "Defizit ⌀"
+        case .deficitDay: "Defizit Tag"
         }
     }
 
@@ -277,7 +284,7 @@ enum WeightSeries: String, CaseIterable, Identifiable, Sendable {
     /// nicht anbieten, statt einen Umschalter zu zeigen, den niemand
     /// benutzt. „Alles" hat sein eigenes Angebot, siehe `WeightRange`.
     static let offered: [WeightSeries] = [.measured, .avg7, .target, .targetDistance,
-                                          .kcal, .kcalDay, .expenditure, .deficit]
+                                          .kcal, .kcalDay, .expenditure, .deficit, .deficitDay]
 
     static let defaultVisible: Set<WeightSeries> = [.avg7, .target, .deficit]
 }

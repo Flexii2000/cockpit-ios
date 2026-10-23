@@ -137,10 +137,13 @@ enum WeightChartData {
         case none, kcal, deficit, targetDistance
     }
 
+    /// - Parameter hasDailyDeficit: ob „Defizit Tag" Werte hat - es liegt auf
+    ///   derselben Skala wie „Defizit ⌀" und braucht sie auch allein.
     static func trailingScale(visible: Set<WeightSeries>, hasDeficit: Bool,
-                              hasDistance: Bool) -> TrailingScale {
+                              hasDailyDeficit: Bool = false, hasDistance: Bool) -> TrailingScale {
         if !visible.isDisjoint(with: [.kcal, .kcalDay, .expenditure]) { return .kcal }
-        if visible.contains(.deficit) && hasDeficit { return .deficit }
+        if (visible.contains(.deficit) && hasDeficit)
+            || (visible.contains(.deficitDay) && hasDailyDeficit) { return .deficit }
         if visible.contains(.targetDistance) && hasDistance { return .targetDistance }
         return .none
     }

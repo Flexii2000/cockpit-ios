@@ -229,6 +229,22 @@ final class HealthyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Gewicht täglich"].isHittable, "kein Schalter hinter dem Rand")
     }
 
+    /// „Defizit Tag" steht hinter „Defizit ⌀" und ist aus; angetippt liegt der
+    /// Tageswert blass hinter dem Mittel (Felix, 23.10.). Einen Debug-Schalter
+    /// fuer die Kurven im Verlauf gibt es nicht - antippen kann nur der Test.
+    func testFoodHistoryOffersTheDailyDeficit() {
+        let app = launch(tab: "food", extra: demo)
+        XCTAssertTrue(app.staticTexts["Frühstück"].waitForExistence(timeout: 20))
+        let chip = app.buttons["Defizit Tag"]
+        for _ in 0..<12 where !chip.isHittable {
+            scrollFoodList(app)
+        }
+        XCTAssertTrue(chip.isHittable, "„Defizit Tag“ steht bei den Schaltern")
+        shoot(app, "essen-verlauf-defizit-tag-aus")
+        chip.tap()
+        shoot(app, "essen-verlauf-defizit-tag")
+    }
+
     /// Ein Tipp auf eine Benachrichtigung darf die App nicht umbringen.
     ///
     /// Die Benachrichtigung kommt von aussen (`xcrun simctl push`), nicht aus

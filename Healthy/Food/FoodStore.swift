@@ -50,6 +50,9 @@ final class FoodStore {
     /// die getrackten Tage liefen, die Flaeche zwischen „Verbrauch ⌀" und
     /// „kcal ⌀" faerbt die Luecke.
     var showDeficit = true
+    /// „Defizit Tag" - nur angeboten wie „kcal Tag" (Felix, 23.10.): die
+    /// Tageswerte springen, das Mittel sagt, wie die Woche lief.
+    var showDeficitDay = false
     /// Die Energiebilanz je Tag vom Weight Tracker - fuer die Kurven
     /// „Verbrauch ⌀" und „Defizit ⌀" im Verlauf. Faellt er aus (oder kennt
     /// sie noch nicht), fehlen nur die Kurven - der Tag steht trotzdem da.
@@ -141,6 +144,11 @@ final class FoodStore {
             .filter { $0.date >= historyFrom && $0.date <= historyTo }
             .compactMap(\.deficitAverage)
             .sorted { $0.date < $1.date }
+    }
+
+    /// „Defizit Tag" im Fenster des Verlaufs - nur abgeschlossene Tage.
+    var dailyDeficit: [DayValue] {
+        FoodChartData.dailyDeficits(energyByDay.values.filter { $0.date >= historyFrom && $0.date <= historyTo })
     }
 
     /// Eintraege des Tages nach Mahlzeiten.

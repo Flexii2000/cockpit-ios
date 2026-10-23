@@ -80,6 +80,66 @@ final class DeficitChartTests: XCTestCase {
         XCTAssertEqual(runs[2].samples.map(\.value), [2000, 1500], "der gestrichelte Teil setzt am festen an")
     }
 
+    // MARK: - Defizit Tag
+
+    private func energy(_ dayOfMonth: Int, _ deficit: Double?, projected: Bool = false) -> EnergyDay {
+        EnergyDay(date: day(dayOfMonth), activeKcal: 600, basalKcal: 2000, basalImputed: false,
+                  watchKcal: 2600, factor: 1, calibrationStatus: .ok, expenditureKcal: 2600,
+                  intakeKcal: deficit.map { 2600 - $0 }, tracked: deficit != nil, deficitKcal: deficit,
+                  projected: projected, expenditureAvg7: nil, deficitAvg7: nil, avg7Complete: false)
+    }
+
+    /// Nur abgeschlossene Tage (Felix, 23.10.): heute fehlt, auch als
+    /// Prognose, und ein Tag ohne Wert ist keine Null, sondern fehlt.
+    func testDailyDeficitLeavesOutTodayAndDaysWithoutValue() {
+        let days = [energy(9, 520), energy(6, 400), energy(7, nil), energy(8, -150),
+                    energy(10, 300, projected: true)]
+        let daily = FoodChartData.dailyDeficits(days, today: day(10))
+        XCTAssertEqual(daily.map(\.date), [day(6), day(8), day(9)], "sortiert, ohne Luecke und ohne heute")
+        XCTAssertEqual(daily.map(\.value), [400, -150, 520])
+    }
+
+    /// An einer Luecke reisst die Linie ab; ein Tag zwischen zwei Luecken ist
+    /// ein Punkt - wie bei „kcal Tag".
+    func testDailyDeficitBreaksAtGaps() {
+        let daily = [DayValue(date: day(1), value: 0), DayValue(date: day(2), value: 500),
+                     DayValue(date: day(4), value: 250)]
+        let scale = ZeroLineScale.deficit(daily.map(\.value))   // 0…500
+        let runs = FoodChartData.dailyDeficitRuns(daily, scale: scale, onto: 1500...2500)
+        XCTAssertEqual(runs.map(\.samples.count), [2, 1])
+        XCTAssertTrue(runs[1].isSingle)
+        XCTAssertEqual(runs[0].samples.map(\.value), [1500, 2500])
+        XCTAssertEqual(runs[1].samples.map(\.value), [2000])
+    }
+
+    /// Beide Kurven teilen eine Skala; die Tageswerte zaehlen nur, solange
+    /// „Defizit Tag" an ist - sonst druecken sie das Mittel flach.
+    func testTheScaleTakesTheDailyValuesOnlyWhileTheCurveIsOn() {
+        let averages = [average(1, 300), average(2, 450)]
+        let daily = [DayValue(date: day(1), value: -600), DayValue(date: day(2), value: 1100)]
+        XCTAssertEqual(FoodChartData.deficitScale(averages: averages, showAverage: true,
+                                                  daily: daily, showDaily: false).domain, 0...500)
+        XCTAssertEqual(FoodChartData.deficitScale(averages: averages, showAverage: true,
+                                                  daily: daily, showDaily: true).domain, -1000...1500)
+        XCTAssertEqual(FoodChartData.deficitScale(averages: averages, showAverage: false,
+                                                  daily: daily, showDaily: true).domain, -1000...1500,
+                       "allein richtet sich die Skala nach den Tageswerten")
+    }
+
+    /// „Defizit Tag" braucht die Skala rechts auch allein - aber erst, wenn es
+    /// Werte hat, und nach den kcal.
+    func testTheDailyDeficitTakesTheRightSide() {
+        XCTAssertEqual(WeightChartData.trailingScale(visible: [.avg7, .deficitDay, .targetDistance],
+                                                     hasDeficit: true, hasDailyDeficit: true,
+                                                     hasDistance: true), .deficit)
+        XCTAssertEqual(WeightChartData.trailingScale(visible: [.avg7, .deficitDay, .targetDistance],
+                                                     hasDeficit: true, hasDailyDeficit: false,
+                                                     hasDistance: true), .targetDistance)
+        XCTAssertEqual(WeightChartData.trailingScale(visible: [.kcalDay, .deficitDay],
+                                                     hasDeficit: true, hasDailyDeficit: true,
+                                                     hasDistance: false), .kcal)
+    }
+
     // MARK: - Flaeche
 
     /// Liegt der Verbrauch ueberall darueber, ist es ein Stueck in

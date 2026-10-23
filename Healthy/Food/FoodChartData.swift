@@ -53,6 +53,7 @@ enum FoodChartData {
             case .kcalDay:  nil
             case .expenditure: nil
             case .deficit:  nil
+            case .deficitDay: nil
             }
             return raw.map { DayValue(date: point.date, value: $0) }
         }
@@ -74,6 +75,33 @@ enum FoodChartData {
     static func deficitRuns(_ deficit: [DayAverage], scale: ZeroLineScale,
                             onto domain: ClosedRange<Double>) -> [AverageRun] {
         DaySeries.averageRuns(deficit, key: "deficit", map: { scale.position($0, in: domain) })
+    }
+
+    /// „Defizit Tag" (Vertrag §5, Felix 23.10.): `deficitKcal` jedes
+    /// abgeschlossenen Tages. Heute nie, auch nicht als Prognose - die Kurve
+    /// zeigt, was war, nicht was sein koennte. Tage ohne Wert (nicht getrackt,
+    /// keine Uhr) fehlen und werden zur Luecke.
+    static func dailyDeficits(_ days: [EnergyDay], today: CalendarDate = .today()) -> [DayValue] {
+        days.compactMap { day in
+            guard day.date < today, !day.projected, let deficit = day.deficitKcal else { return nil }
+            return DayValue(date: day.date, value: deficit)
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    /// Die Skala beider Defizit-Kurven - sie teilen sie, sonst laegen dieselben
+    /// kcal auf zwei Hoehen. Die Tageswerte zaehlen nur, solange ihre Kurve an
+    /// ist: sie schwanken weit mehr als das Mittel und druecken es sonst flach.
+    static func deficitScale(averages: [DayAverage], showAverage: Bool,
+                             daily: [DayValue], showDaily: Bool) -> ZeroLineScale {
+        .deficit((showAverage ? averages.map(\.kcal) : []) + (showDaily ? daily.map(\.value) : []))
+    }
+
+    /// „Defizit Tag" auf der Defizit-Skala, an jeder Luecke getrennt wie „kcal Tag".
+    static func dailyDeficitRuns(_ daily: [DayValue], scale: ZeroLineScale,
+                                 onto domain: ClosedRange<Double>) -> [ChartRun] {
+        DaySeries.runs(daily.map { DayValue(date: $0.date, value: scale.position($0.value, in: domain)) },
+                       key: "deficitDay")
     }
 
     /// Ausgemessen an dem, was zu sehen ist - das Mittel braucht weniger

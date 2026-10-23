@@ -160,6 +160,7 @@ struct WeightTab: View {
                             kcalTarget: store.kcalTarget,
                             expenditureAverage: store.expenditureAverage,
                             deficitAverage: store.deficitAverage,
+                            dailyDeficit: store.dailyDeficit,
                             distanceAverage: store.range.distanceAverage,
                             visible: store.visibleSeries)
 
@@ -169,11 +170,12 @@ struct WeightTab: View {
             // lag der letzte Chip unsichtbar hinter dem Rand.
             FlowLayout(spacing: 8) {
                 ForEach(store.range.offeredSeries) { series in
-                    // „Verbrauch ⌀" und „Defizit ⌀" nur, wenn es einen Verbrauch
-                    // gibt - ohne Uhr oder mit einem aelteren Dienst waeren es
-                    // Schalter ohne Kurve.
+                    // „Verbrauch ⌀", „Defizit ⌀" und „Defizit Tag" nur, wenn es
+                    // einen Verbrauch gibt - ohne Uhr oder mit einem aelteren
+                    // Dienst waeren es Schalter ohne Kurve.
                     if store.range.availableSeries.contains(series),
-                       ![.expenditure, .deficit].contains(series) || !store.expenditureAverage.isEmpty {
+                       ![.expenditure, .deficit, .deficitDay].contains(series)
+                        || !store.expenditureAverage.isEmpty {
                         SeriesChip(title: series.title,
                                    color: series.color,
                                    isOn: store.visibleSeries.contains(series)) {

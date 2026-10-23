@@ -534,11 +534,13 @@ struct FoodTab: View {
                           showExpenditure: store.showExpenditure,
                           deficit: store.deficitAverage,
                           showDeficit: store.showDeficit,
+                          dailyDeficit: store.dailyDeficit,
+                          showDeficitDay: store.showDeficitDay,
                           from: store.historyFrom,
                           to: store.historyTo,
                           weightOverlay: store.weightOverlay)
 
-            // Die Umschalter sind zugleich die Legende. Sechs passen nicht in
+            // Die Umschalter sind zugleich die Legende. Sieben passen nicht in
             // eine iPhone-Breite - sie brechen um, statt seitlich zu scrollen:
             // was am Rand abgeschnitten ist, findet niemand.
             FlowLayout(spacing: 8) {
@@ -561,6 +563,12 @@ struct FoodTab: View {
                     SeriesChip(title: "Defizit ⌀", color: Palette.deficit,
                                isOn: store.showDeficit) {
                         store.showDeficit.toggle()
+                    }
+                    // Der Tageswert direkt dahinter, wie „kcal Tag" hinter
+                    // „kcal ⌀" - nur angeboten (Vertrag §5).
+                    SeriesChip(title: "Defizit Tag", color: Palette.deficit.opacity(0.55),
+                               isOn: store.showDeficitDay) {
+                        store.showDeficitDay.toggle()
                     }
                 }
                 SeriesChip(title: "Gewicht ⌀", color: Palette.avg7,

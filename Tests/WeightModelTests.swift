@@ -342,4 +342,18 @@ final class WeightWidgetTests: XCTestCase {
         XCTAssertEqual(WeightRange.allTime.defaultVisible, [.avg30, .target, .deficit])
         XCTAssertEqual(WeightSeries.deficit.title, "Defizit ⌀")
     }
+
+    /// „Defizit Tag" direkt hinter „Defizit ⌀", in jedem Zeitraum, nie
+    /// vorgewaehlt - wie „kcal Tag" hinter „kcal ⌀" (Felix, 23.10.).
+    func testDailyDeficitFollowsTheAverageAndIsOnlyOffered() {
+        for range in WeightRange.allCases {
+            let offered = range.offeredSeries
+            XCTAssertEqual(offered.firstIndex(of: .deficitDay),
+                           offered.firstIndex(of: .deficit).map { $0 + 1 }, range.title)
+            XCTAssertTrue(range.availableSeries.contains(.deficitDay), range.title)
+            XCTAssertFalse(range.defaultVisible.contains(.deficitDay), range.title)
+        }
+        XCTAssertEqual(WeightSeries.deficitDay.title, "Defizit Tag")
+        XCTAssertEqual(WeightSeries(rawValue: "deficitDay"), .deficitDay, "COCKPIT_SERIES=deficitDay")
+    }
 }

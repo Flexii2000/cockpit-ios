@@ -15,6 +15,9 @@ struct WeightChartView: View {
     let expenditureAverage: [DayAverage]
     /// „Defizit ⌀" vom Weight Tracker - auf eigener Skala mit Nulllinie.
     let deficitAverage: [DayAverage]
+    /// „Defizit Tag": der Tageswert jedes abgeschlossenen Tages, auf derselben
+    /// Skala, blass wie „kcal Tag".
+    let dailyDeficit: [DayValue]
     /// Das Mittel, gegen das „Distanz z. Target" misst (`WeightRange.distanceAverage`).
     let distanceAverage: WeightSeries
     let visible: Set<WeightSeries>
@@ -174,13 +177,41 @@ struct WeightChartView: View {
                 }
             }
 
-            if visible.contains(.deficit) && !deficitAverage.isEmpty {
+            if showsDeficitScale {
                 // Das Defizit auf eigener Skala: ueber der gestrichelten
-                // Nulllinie Defizit, darunter Ueberschuss; gestrichelt, solange
-                // das Fenster nicht ganz vorbei ist.
+                // Nulllinie Defizit, darunter Ueberschuss. Die Nulllinie
+                // gehoert beiden Defizit-Kurven und steht einmal.
                 RuleMark(y: .value("Defizit", deficitPosition(0)))
                     .foregroundStyle(Palette.deficit.opacity(0.8))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            }
+
+            if showsDailyDeficit {
+                // Der Tageswert: blass und duenn wie „kcal Tag", hinter dem
+                // Mittel. An jeder Luecke getrennt - ein Tag ohne Wert ist
+                // unbekannt, nicht null.
+                ForEach(dailyDeficitRuns) { run in
+                    if run.isSingle, let only = run.samples.first {
+                        PointMark(x: .value("Tag", only.date),
+                                  y: .value("kg", only.value))
+                        .foregroundStyle(WeightSeries.deficitDay.color)
+                        .symbolSize(12)
+                    } else {
+                        ForEach(run.samples) { sample in
+                            LineMark(x: .value("Tag", sample.date),
+                                     y: .value("kg", sample.value),
+                                     series: .value("Serie", run.id))
+                        }
+                        .foregroundStyle(WeightSeries.deficitDay.color)
+                        .lineStyle(StrokeStyle(lineWidth: 1.1))
+                        .interpolationMethod(.linear)
+                    }
+                }
+            }
+
+            if visible.contains(.deficit) && !deficitAverage.isEmpty {
+                // Das Mittel, gestrichelt, solange das Fenster nicht ganz
+                // vorbei ist.
                 ForEach(deficitRuns) { run in
                     if run.isSingle, let only = run.samples.first {
                         PointMark(x: .value("Tag", only.date),
@@ -456,13 +487,19 @@ struct WeightChartView: View {
             result.append(CalloutEntry(label: "Defizit ⌀ 7 Tage", value: EnergyFormat.kcal(deficit.kcal),
                                        color: Palette.deficit))
         }
+        if visible.contains(.deficitDay),
+           let deficit = dailyDeficit.first(where: { $0.date == point.date }) {
+            result.append(CalloutEntry(label: "Defizit", value: EnergyFormat.kcal(deficit.value),
+                                       color: WeightSeries.deficitDay.color))
+        }
         return result
     }
 
     // MARK: - Defizit auf eigener Skala
 
     private var deficitScale: ZeroLineScale {
-        .deficit(deficitAverage.map(\.kcal))
+        FoodChartData.deficitScale(averages: deficitAverage, showAverage: visible.contains(.deficit),
+                                   daily: dailyDeficit, showDaily: visible.contains(.deficitDay))
     }
 
     private func deficitPosition(_ value: Double) -> Double {
@@ -477,8 +514,22 @@ struct WeightChartView: View {
                                      map: { scale.position($0, in: domain) })
     }
 
+    private var dailyDeficitRuns: [ChartRun] {
+        FoodChartData.dailyDeficitRuns(dailyDeficit, scale: deficitScale, onto: yDomain)
+    }
+
+    private var showsDailyDeficit: Bool {
+        visible.contains(.deficitDay) && !dailyDeficit.isEmpty
+    }
+
+    /// Die Skala samt Nulllinie, sobald eine der beiden Defizit-Kurven etwas zeigt.
+    private var showsDeficitScale: Bool {
+        (visible.contains(.deficit) && !deficitAverage.isEmpty) || showsDailyDeficit
+    }
+
     private var trailingScale: WeightChartData.TrailingScale {
         WeightChartData.trailingScale(visible: visible, hasDeficit: !deficitAverage.isEmpty,
+                                      hasDailyDeficit: !dailyDeficit.isEmpty,
                                       hasDistance: !distanceValues.isEmpty)
     }
 
@@ -487,7 +538,7 @@ struct WeightChartView: View {
     private var deficitOutside: Bool { trailingScale == .deficit }
 
     private var deficitInside: Bool {
-        visible.contains(.deficit) && !deficitAverage.isEmpty && trailingScale == .kcal
+        showsDeficitScale && trailingScale == .kcal
     }
 
     // MARK: - Distanz z. Target auf eigener Skala

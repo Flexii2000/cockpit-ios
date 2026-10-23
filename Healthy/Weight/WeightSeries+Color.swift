@@ -14,6 +14,7 @@ extension WeightSeries {
         case .kcalDay:  Palette.kcal.opacity(0.55)
         case .expenditure: Palette.expenditure
         case .deficit:  Palette.deficit
+        case .deficitDay: Palette.deficit.opacity(0.55)
         }
     }
 }

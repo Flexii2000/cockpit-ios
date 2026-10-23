@@ -52,6 +52,8 @@ final class WeightStore {
     private(set) var expenditureAverage: [DayAverage] = []
     /// „Defizit ⌀" ebenso - aus denselben Energietagen.
     private(set) var deficitAverage: [DayAverage] = []
+    /// „Defizit Tag": der Tageswert jedes abgeschlossenen Tages, ebenso.
+    private(set) var dailyDeficit: [DayValue] = []
 
     private(set) var stepsToday: Int?
     /// Bis das Backend geantwortet hat. Ohne Vorgabe zeigte die Karte im
@@ -227,6 +229,7 @@ final class WeightStore {
         guard first <= end else {
             expenditureAverage = []
             deficitAverage = []
+            dailyDeficit = []
             return
         }
         // Still: ohne Uhr, mit einem aelteren Dienst oder ohne Netz fehlen
@@ -235,6 +238,7 @@ final class WeightStore {
         let days = (try? await energyApi.days(from: start, to: end)) ?? []
         expenditureAverage = days.compactMap(\.expenditureAverage)
         deficitAverage = days.compactMap(\.deficitAverage)
+        dailyDeficit = FoodChartData.dailyDeficits(days)
     }
 
     func select(_ range: WeightRange) async {
@@ -442,6 +446,7 @@ extension WeightStore {
         let days = DashboardDemo.energyDays(from: first, to: last)
         expenditureAverage = days.compactMap(\.expenditureAverage)
         deficitAverage = days.compactMap(\.deficitAverage)
+        dailyDeficit = FoodChartData.dailyDeficits(days)
     }
 }
 #endif
