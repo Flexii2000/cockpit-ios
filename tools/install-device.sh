@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Baut die App signiert und installiert sie auf dem iPhone.
 #
-#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit>            # bauen und installieren
-#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> --launch   # danach auch starten
-#   tools/install-device.sh all                                              # alle fuenf
+#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport>            # bauen und installieren
+#   tools/install-device.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport> --launch   # danach auch starten
+#   tools/install-device.sh all                                                    # alle sechs
 #
 # Das Geraet wird selbst gesucht: es muss einmal mit Xcode gekoppelt worden
 # sein, danach reicht dasselbe WLAN - ein Kabel ist nur beim ersten Mal noetig.
@@ -16,7 +16,7 @@ APP="${1:-}"
 LAUNCH=false
 [ "${2:-}" = "--launch" ] && LAUNCH=true
 if [ "$APP" = "all" ]; then
-    for each in Healthy Vault Fokus Einkaufsliste coHabit; do "$0" "$each" ${2:-}; done
+    for each in Healthy Vault Fokus Einkaufsliste coHabit Sport; do "$0" "$each" ${2:-}; done
     exit 0
 fi
 case "$APP" in
@@ -27,7 +27,10 @@ case "$APP" in
     # Neue Bundle-ID mit Push, App-Gruppe und HealthKit: das Profil legt
     # -allowProvisioningUpdates beim ersten Mal an, solange Xcode angemeldet ist.
     coHabit) BUNDLE="com.fherrmann.cohabit" ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit oder all sein." >&2; exit 1 ;;
+    # Neue Bundle-IDs mit HealthKit, dazu die Uhr-App (23.10.) - das Profil legt
+    # -allowProvisioningUpdates beim ersten Mal an.
+    Sport)   BUNDLE="com.fherrmann.sport" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit, Sport oder all sein." >&2; exit 1 ;;
 esac
 
 JSON=$(mktemp)
@@ -107,19 +110,19 @@ fi
 PLUGINS="build/device/Build/Products/Debug-iphoneos/$APP.app/PlugIns"
 if [ -d "$PLUGINS" ]; then
     echo "Erweiterungen: $(ls "$PLUGINS" | tr '\n' ' ')"
-elif [ "$APP" != "Vault" ] && [ "$APP" != "Einkaufsliste" ]; then
+elif [ "$APP" != "Vault" ] && [ "$APP" != "Einkaufsliste" ] && [ "$APP" != "Sport" ]; then
     echo "WARNUNG: keine PlugIns im Bundle - das Widget ist nicht eingebettet." >&2
 fi
 
-# Healthy bringt seit 14.10. die Uhr-App mit (kcal-Komplikation, Krafttraining).
-# Auf das automatische Nachinstallieren durch das iPhone ist bei Entwickler-
-# Builds kein Verlass - deshalb direkt auf die gekoppelte Uhr. Scheitert das,
-# nur eine Warnung: das iPhone ist dann trotzdem fertig. Die Uhr braucht den
-# Entwicklermodus (Einstellungen > Datenschutz & Sicherheit) und muss im
-# Profil des Teams stehen.
-if [ "$APP" = "Healthy" ]; then
-    WATCH_APP="build/device/Build/Products/Debug-iphoneos/Healthy.app/Watch/HealthyWatch.app"
-    if [ ! -d "$WATCH_APP/PlugIns/HealthyWatchWidget.appex" ]; then
+# Healthy bringt seit 14.10. die Uhr-App mit (kcal-Komplikation), Sport seit
+# 23.10. seine (Krafttraining, Padel). Auf das automatische Nachinstallieren
+# durch das iPhone ist bei Entwickler-Builds kein Verlass - deshalb direkt auf
+# die gekoppelte Uhr. Scheitert das, nur eine Warnung: das iPhone ist dann
+# trotzdem fertig. Die Uhr braucht den Entwicklermodus (Einstellungen >
+# Datenschutz & Sicherheit) und muss im Profil des Teams stehen.
+if [ "$APP" = "Healthy" ] || [ "$APP" = "Sport" ]; then
+    WATCH_APP="build/device/Build/Products/Debug-iphoneos/$APP.app/Watch/${APP}Watch.app"
+    if [ "$APP" = "Healthy" ] && [ ! -d "$WATCH_APP/PlugIns/HealthyWatchWidget.appex" ]; then
         echo "WARNUNG: die Komplikation ist nicht in der Uhr-App eingebettet." >&2
     fi
     WATCH_ID=$(python3 - "$JSON" <<'PY'
@@ -155,7 +158,7 @@ PY
             echo "WARNUNG: Uhr-App nicht installiert - Entwicklermodus auf der Uhr an?" >&2
             echo "(Der Schalter erscheint erst, wenn DeviceHub die Uhr einmal geoeffnet hat -" >&2
             echo "Xcode 27: Xcode.app/Contents/Applications/DeviceHub.app.)" >&2
-            echo "Sonst einmal in Xcode das Schema HealthyWatch auf der Uhr starten." >&2
+            echo "Sonst einmal in Xcode das Schema ${APP}Watch auf der Uhr starten." >&2
         fi
     else
         echo "Keine gekoppelte Uhr gefunden - nur das iPhone." >&2
