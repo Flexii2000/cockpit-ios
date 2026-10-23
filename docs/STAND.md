@@ -9,6 +9,7 @@
 > - **Geprüft:** `tools/verify.sh Sport` (57 Tests, neu: Spieler über Sätze, Antippen, Tie-Break,
 >   alter Stand ohne Spieler) und `SportWatch`. Im Simulator 42 und 46 mm: normale Seite (Ball
 >   links bei „Die“) und ein Tie-Break (Ball rechts), mit Vorführdaten.
+> - **Installiert** auf Felix' iPhone und Uhr am 23.10. um 14:41 (`12d7953`).
 > - **Auf dem Gerät prüfen:** Ball antippen tauscht links/rechts, ein Tipp daneben zählt einen
 >   Punkt; „Zurück“ in der Mitte; die untere Hälfte ganz zu sehen.
 
