@@ -53,7 +53,7 @@ struct KcalProvider: TimelineProvider {
 }
 
 /// kcal gegessen gegen das Tagesziel, im Stil der Temperatur-Komplikation
-/// (Felix, 14.10.: links 0, Mitte gegessen, rechts Tagesziel).
+/// (Felix, 14.10.: links 0, rechts Tagesziel; seit 23.10. in der Mitte der Rest).
 struct KcalComplication: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetKind.watchKcal, provider: KcalProvider()) { entry in
@@ -61,7 +61,7 @@ struct KcalComplication: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Kalorien")
-        .description("Heute gegessen gegen dein Tagesziel.")
+        .description("Was heute noch übrig ist.")
         .supportedFamilies([.accessoryCircular])
     }
 }

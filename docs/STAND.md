@@ -1,5 +1,10 @@
 # Stand
 
+> **Healthy: Uhr-Komplikation mit dem Rest (23.10. 18:00, Felix):** in der Mitte steht, was
+> übrig ist (`750`, drüber `+120`), statt des Gegessenen; der Bogen füllt sich weiter mit dem
+> Gegessenen (links 0, rechts das Ziel). Auch in der Uhr-App, dieselbe `KcalGaugeView`. Test in
+> `RemainingCaloriesTests`.
+
 > **Healthy: Heute-Kachel mit dem Rest (23.10. 15:30, Felix):** die große Sperrbildschirm-Kachel
 > zeigt unter dem kcal-Ring `750 kcal übrig` bzw. `120 kcal drüber` statt des Gegessenen; der Ring
 > füllt sich weiter mit dem Gegessenen. Text aus `RemainingCalories.remainingValue`/`remainingUnit`

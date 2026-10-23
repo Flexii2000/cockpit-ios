@@ -50,6 +50,15 @@ final class RemainingCaloriesTests: XCTestCase {
         XCTAssertEqual(over.remainingUnit, "kcal drüber")
     }
 
+    /// Seit 23.10. steht auch auf der Uhr der Rest in der Mitte (Felix) - drueber
+    /// mit Plus davor wie im runden Ring des Sperrbildschirms, fuer „drüber“ ist
+    /// dort kein Platz.
+    func testTheWatchShowsTheRemainderInTheMiddle() {
+        XCTAssertEqual(KcalGaugeView.center(consumed: 1550, target: 2300), "750")
+        XCTAssertEqual(KcalGaugeView.center(consumed: 2420, target: 2300), "+120")
+        XCTAssertEqual(KcalGaugeView.center(consumed: 2300.4, target: 2300), "0")
+    }
+
     /// Wie im Essen-Tab: der Bogen reicht bis zum 1,25-fachen des Ziels, damit
     /// die Zielkerbe nicht am Bogenende sitzt.
     func testRatioLeavesRoomAboveTheTarget() {

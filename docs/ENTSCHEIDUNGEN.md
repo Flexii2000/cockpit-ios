@@ -3,6 +3,18 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-23 (18:00) — Healthy: die Uhr-Komplikation zeigt den Rest in der Mitte
+Felix: „hatte ich nicht gesagt, ich möchte, dass im Health-Widget auf der Uhr die übrigen und
+nicht die verbrauchten kcal in der Mitte angezeigt werden?“ - mit „iOS-Widget“ (15:30) war auch
+die Uhr gemeint; dort war die Komplikation bewusst stehen geblieben.
+- **Mitte: der Rest** (`KcalGaugeView.center`), drüber mit Plus davor (`+120`) wie im runden
+  Ring des Sperrbildschirms - für „drüber“ ist im runden Feld kein Platz. Gilt für die
+  Komplikation und die Uhr-App, die dieselbe Ansicht zeigt.
+- **Der Bogen bleibt**: links 0 (grün), rechts das Tagesziel (orange), gefüllt mit dem
+  Gegessenen - wie auf dem iPhone. Verworfen: den Bogen mit dem Rest füllen (er liefe vom
+  vollen Ziel rückwärts, gegen die 0 links).
+- Damit ist die Entscheidung vom 14.10. („Mitte gegessen“) zurückgenommen.
+
 ## 2026-10-23 (15:30) — Healthy: die Heute-Kachel zeigt den Rest statt des Gegessenen
 Felix: „im iOS-Widget hätte ich gerne die noch übrigen kcal und nicht mehr die verzehrten“.
 Gegessenes zeigte nur noch die große Sperrbildschirm-Kachel „Heute“; die Kalorien-Kacheln
@@ -14,8 +26,8 @@ zeigen schon den Rest.
   dem Platz geschuldet, hier passt das Wort.
 - **Der Ring füllt sich weiter mit dem Gegessenen** gegen das Ziel, wie beim runden kcal-Ring.
   Verworfen: ein Ring, der sich leert - er liefe gegen den Schritte-Ring daneben.
-- Die Uhr-Komplikation bleibt bei „gegessen in der Mitte“ (Felix' Entscheidung vom 14.10., hier
-  ging es nur um iOS).
+- ~~Die Uhr-Komplikation bleibt bei „gegessen in der Mitte“~~ - falsch verstanden, siehe
+  18:00: auch auf der Uhr steht jetzt der Rest.
 
 ## 2026-10-23 (nachmittags) — Sport-Uhr: Zählseite nach dem ersten Ausprobieren
 Felix' Entscheidungen:
