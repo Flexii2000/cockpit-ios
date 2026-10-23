@@ -16,7 +16,7 @@ enum PadelTimes {
     }
 }
 
-/// Neue Serie: Wochentag, erster und spaetester Beginn, Dauer, Club, Mitspieler (Felix, 23.10.).
+/// Neue Serie: Wochentag, erster und spaetester Beginn, Dauer, Club, Mitspieler, Level (Felix, 23.10.).
 struct PadelSeriesSheet: View {
 
     let store: PadelStore
@@ -30,6 +30,8 @@ struct PadelSeriesSheet: View {
     /// Leer: alle Clubs, Aspria als Rueckfall.
     @State private var club = ""
     @State private var partner = ""
+    /// Wie auf der Seite vorgewaehlt: Felix will die Eingrenzung eigentlich immer.
+    @State private var levelLimit = true
 
     var body: some View {
         NavigationStack {
@@ -54,6 +56,10 @@ struct PadelSeriesSheet: View {
                 Picker("Mitspieler", selection: $partner) {
                     ForEach(store.overview?.partners ?? []) { Text($0.label).tag($0.id) }
                 }
+                Picker("Level", selection: $levelLimit) {
+                    Text("−0,5/+0,7").tag(true)
+                    Text("Alle").tag(false)
+                }
             }
             .navigationTitle("Neue Serie")
             .navigationBarTitleDisplayMode(.inline)
@@ -64,7 +70,8 @@ struct PadelSeriesSheet: View {
                             let request = PadelSeriesRequest(weekday: weekday, start: start, durationMinutes: minutes,
                                                              latestStart: latest.isEmpty ? nil : latest,
                                                              club: club.isEmpty ? nil : club,
-                                                             partner: partner.isEmpty ? nil : partner)
+                                                             partner: partner.isEmpty ? nil : partner,
+                                                             levelLimit: levelLimit)
                             if await store.createSeries(request) { dismiss() }
                         }
                     }

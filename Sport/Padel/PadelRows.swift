@@ -350,6 +350,7 @@ struct PadelSeriesRow: View {
                 if let first = series.firstDate {
                     PadelTag(text: "ab " + PadelFormat.dayLabel(first, "").trimmingCharacters(in: .whitespaces))
                 }
+                if series.levelLimit == true { PadelTag(text: "Level −0,5/+0,7") }
                 if !series.active { PadelTag(text: "pausiert") }
             }
             PadelActions {

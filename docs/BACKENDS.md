@@ -1289,8 +1289,12 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
   Serien ist `partner` immer gesetzt - ohne Eintrag in der Datei der erste Mitspieler, wie vor
   dem 23.10.
 - **`PUT /api/series/{id}`** ersetzt Wochentag, Beginn, Dauer, `latestStart` und `club`;
-  `partner` und `from` (erster Tag der Serie) bleiben bei `null`, `active` ohne Wert ist `true`.
-  Pausieren schickt deshalb alles zurück, wie es kam.
+  `partner`, `from` (erster Tag der Serie) und `levelLimit` bleiben bei `null`, `active` ohne Wert
+  ist `true`. Pausieren schickt deshalb alles zurück, wie es kam.
+- **`levelLimit`** (seit 23.10.) an Serie und `SeriesRequest`: jede Buchung der Serie wird auf
+  −0,5 bis +0,7 um Felix' aktuelles Level eingegrenzt (Playtomic `min_level`/`max_level`). Beim
+  Anlegen ohne Wert: alle Level. `POST /api/admin/level/{matchId}` grenzt eine einzelne Buchung
+  ein; die App ruft es nicht.
 - **`POST /api/results`** - was die Uhr nach einem Match schickt (`PadelMatchReport`):
   `{"id": "<UUID>", "startedAt", "endedAt", "rule": "golden"|"silver", "sets": [{"us": 6, "them": 4}, …]}`.
   - Nur abgeschlossene, gültige Sätze (6:0 bis 6:4, 7:5, 7:6), einer bis drei; Kennung

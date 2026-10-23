@@ -115,12 +115,24 @@ final class PadelTests: XCTestCase {
         let json = """
         {"id":"s","weekday":"MONDAY","weekdayLabel":"Mo","start":"18:00","durationMinutes":90,"active":true,
          "latestStart":"21:30","club":"mitte","clubs":["mitte"],"partner":"b","partnerLabel":"Person B",
-         "firstDate":"2026-11-06","partnerColor":"#14B8A6"}
+         "firstDate":"2026-11-06","partnerColor":"#14B8A6","levelLimit":true}
         """
         let series = try APIClient.decoder().decode(PadelSeries.self, from: Data(json.utf8))
         XCTAssertEqual(PadelPlan.title(series), "Mo · 18:00 bis 21:30 · 90′")
+        XCTAssertEqual(series.levelLimit, true)
         XCTAssertNotNil(PadelColor.color(series.partnerColor))
         XCTAssertNil(PadelColor.color("nicht"))
+    }
+
+    func testANewSeriesSendsItsLevelChoiceAndPausingLeavesIt() throws {
+        let new = PadelSeriesRequest(weekday: "MONDAY", start: "18:00", durationMinutes: 90, latestStart: nil,
+                                     club: "mitte", partner: "b", levelLimit: true)
+        let pause = PadelSeriesRequest(weekday: "MONDAY", start: "18:00", durationMinutes: 90, active: false,
+                                       latestStart: nil, club: "mitte", partner: "b")
+        let sent = try JSONSerialization.jsonObject(with: APIClient.encoder().encode(new)) as? [String: Any]
+        let paused = try JSONSerialization.jsonObject(with: APIClient.encoder().encode(pause)) as? [String: Any]
+        XCTAssertEqual(sent?["levelLimit"] as? Bool, true)
+        XCTAssertNil(paused?["levelLimit"], "ohne Angabe laesst der Dienst die Eingrenzung, wie sie ist")
     }
 
     func testABookingSaysHowLongItCanBeCancelled() {

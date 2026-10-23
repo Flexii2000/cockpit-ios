@@ -29,6 +29,15 @@
 > (auch in der Kalorien-Kachel), Test in `RemainingCaloriesTests`. Auf Felix' iPhone und Uhr installiert
 > am 23.10. 15:33.
 
+> **Sport, Padel: Level-Grenze je Serie (23.10. abends, Felix):** „Neue Serie“ hat „Level“
+> (−0,5/+0,7 vorgewählt, wie auf der Seite, oder „Alle“), die Serienzeile zeigt „Level −0,5/+0,7“.
+> Gesetzt wird die Grenze vom Padel-Dienst bei jeder Buchung (`padel`, `a434e2b`, `2fdada8`); alle
+> bestehenden Serien sind umgestellt, die drei offenen Buchungen eingegrenzt (1,64 bis 2,84 bei
+> Level 2,14). Pausieren lässt die Wahl, wie sie ist (`levelLimit` fehlt im PUT).
+> - **Geprüft:** `tools/verify.sh Sport` (58 Tests, neu: Feld lesen, Wahl senden, beim Pausieren
+>   nicht).
+> - **Auf dem Gerät prüfen:** Padel → „+“ → „Serie …“: Zeile „Level“; an den Serien das Schild.
+
 > **Sport-Uhr, Zählseite (23.10. nachmittags, Felix nach dem ersten Ausprobieren):** die anderen
 > oben, wir unten; der Ball steht links oder rechts beim Spieler, der aufschlägt (je Team
 > abwechselnd, anfangs rechts, Antippen tauscht, läuft über Sätze und Tie-Break weiter -

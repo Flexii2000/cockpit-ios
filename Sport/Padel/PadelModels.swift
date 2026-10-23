@@ -82,6 +82,9 @@ struct PadelSeries: Decodable, Equatable, Identifiable, Sendable {
     /// Erster Tag, solange er noch kommt (yyyy-MM-dd).
     let firstDate: String?
     let partnerColor: String?
+    /// Buchungen auf −0,5 bis +0,7 um Felix' Level eingegrenzt (23.10.); `nil` bei einem Dienst von
+    /// vorher.
+    let levelLimit: Bool?
 }
 
 struct PadelCourt: Decodable, Equatable, Identifiable, Sendable {
@@ -172,6 +175,8 @@ struct PadelSeriesRequest: Encodable, Equatable, Sendable {
     let club: String?
     let partner: String?
     var from: String?
+    /// `nil`: beim Aendern bleibt die Eingrenzung, wie sie ist.
+    var levelLimit: Bool?
 }
 
 struct PadelSlotRequest: Encodable, Equatable, Sendable {

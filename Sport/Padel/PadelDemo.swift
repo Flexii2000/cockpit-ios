@@ -103,10 +103,10 @@ enum PadelDemo {
          "series":[
           {"id":"s-1","weekday":"MONDAY","weekdayLabel":"Mo","start":"18:00","durationMinutes":90,"active":true,
            "latestStart":"21:30","club":"mitte","clubs":["mitte"],"partner":"b","partnerLabel":"Person B",
-           "firstDate":"\(friday.iso)","partnerColor":"\(turquoise)"},
+           "firstDate":"\(friday.iso)","partnerColor":"\(turquoise)","levelLimit":true},
           {"id":"s-2","weekday":"TUESDAY","weekdayLabel":"Di","start":"18:00","durationMinutes":90,"active":true,
            "latestStart":"21:00","club":null,"clubs":["mitte","Padelon"],"partner":"a","partnerLabel":"Person A",
-           "firstDate":null,"partnerColor":"\(yellow)"},
+           "firstDate":null,"partnerColor":"\(yellow)","levelLimit":true},
           {"id":"s-3","weekday":"SATURDAY","weekdayLabel":"Sa","start":"08:30","durationMinutes":90,"active":false,
            "latestStart":null,"club":"aspria","clubs":["Aspria"],"partner":"a","partnerLabel":"Person A",
            "firstDate":null,"partnerColor":"\(yellow)"}],
