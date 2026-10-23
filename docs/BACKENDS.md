@@ -425,6 +425,12 @@ mit Eintrag (das Mittel des Kalorienzählers) - in Wochen mit lückenhaften
 Einträgen ist sie deshalb breiter, als die Linie hoch ist. Ein älterer Dienst
 schickt das Feld nicht; die App liest es dann als `null`.
 
+⚠️ **„Defizit Tag" nimmt `deficitKcal` nur vor heute** (seit 2026-10-23,
+`FoodChartData.dailyDeficits`): heute ist der Wert eine Prognose (`projected`)
+und gehört nicht in eine Kurve, die zeigt, was war. Tage ohne `deficitKcal`
+sind Lücke, nicht 0. Ein eigenes Feld gibt es dafür nicht - es ist derselbe
+Tageswert aus `GET /api/energy`.
+
 ⚠️ **Energie: heute und gestern gewinnt je Feld das Maximum**, ältere Tage
 ersetzt der neue Wert (dann hat Health iPhone und Uhr fertig
 zusammengeführt). Ein fehlendes Feld lässt den gespeicherten Wert stehen. Die

@@ -3,6 +3,23 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-23 (abends) — Healthy: „Defizit Tag“, das Defizit jedes Tages als Kurve
+Felix: „eine zusätzliche Defizit-Kurve, die den tatsächlichen Wert anzeigt“ - in allen
+Oberflächen, also im Essen-Verlauf und im Gewicht-Diagramm (Vertrag §5).
+- **Nur abgeschlossene Tage** (Felix, in der Fragerunde): heute fehlt, auch als Prognose;
+  Tage ohne Wert (nicht getrackt, keine Uhr) sind Lücke. Verworfen: heute als Prognose
+  gestrichelt angehängt - der Wert ändert sich über den Tag, die Kurve soll zeigen, was war.
+- **Wie „kcal Tag“ zu „kcal ⌀“:** blasse dünne Linie in der Defizit-Farbe (55 %), Schalter
+  direkt hinter „Defizit ⌀“, nur angeboten, ohne Verbrauch nicht da. Verworfen: vorgewählt -
+  die Tageswerte springen um über tausend kcal, das Mittel sagt, wie die Woche lief.
+- **Eine Skala für beide Defizit-Kurven**, die Tageswerte zählen nur, solange ihre Kurve an
+  ist; die Nulllinie steht einmal. Verworfen: eine eigene Skala für die Tageswerte - dieselben
+  kcal lägen auf zwei Höhen, und rechts stünden zwei Defizit-Achsen. Der Preis: mit beiden
+  Kurven wird „Defizit ⌀“ flacher.
+- **Kein Debug-Schalter für die Kurven im Essen-Verlauf**: der UI-Test
+  `testFoodHistoryOffersTheDailyDeficit` tippt „Defizit Tag“ an. Verworfen: `COCKPIT_SERIES`
+  auch im Essen-Tab auswerten - ein Schalter mit zwei Bedeutungen.
+
 ## 2026-10-23 (15:30) — Healthy: die Heute-Kachel zeigt den Rest statt des Gegessenen
 Felix: „im iOS-Widget hätte ich gerne die noch übrigen kcal und nicht mehr die verzehrten“.
 Gegessenes zeigte nur noch die große Sperrbildschirm-Kachel „Heute“; die Kalorien-Kacheln

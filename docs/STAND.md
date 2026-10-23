@@ -1,5 +1,22 @@
 # Stand
 
+> **Healthy: „Defizit Tag“ (23.10. abends, Felix):** Branch `deficit-day`. Neue Kurve im
+> Essen-Verlauf und im Gewicht-Diagramm (Vertrag §5): `deficitKcal` jedes **abgeschlossenen**
+> Tages - heute nie, auch nicht als Prognose; Tage ohne Wert sind Lücke - auf der Skala von
+> „Defizit ⌀“, blass (55 %) wie „kcal Tag“. Schalter „Defizit Tag“ direkt hinter „Defizit ⌀“,
+> nur angeboten, ohne Verbrauch nicht da. Die Skala nimmt die Tageswerte nur, solange die Kurve
+> an ist; die Nulllinie gehört beiden und gilt auch, wenn nur der Tageswert an ist (dann auch
+> rechts außen bzw. innen beschriftet). Sprechblase `Defizit: 520 kcal`. Rechnerei in
+> `FoodChartData.dailyDeficits`/`deficitScale`/`dailyDeficitRuns`, im Gewicht-Tab
+> `WeightSeries.deficitDay` (`COCKPIT_SERIES=deficitDay`) und
+> `WeightChartData.trailingScale(hasDailyDeficit:)`.
+> - **Geprüft:** `tools/verify.sh`; neu in `DeficitChartTests` (heute und Tage ohne Wert fehlen,
+>   Lücken, Skala nur bei eingeschalteter Kurve, rechte Seite) und `WeightModelTests` (Angebot);
+>   UI-Test `testFoodHistoryOffersTheDailyDeficit` (Schalter erreichbar, angetippt). Im Simulator
+>   mit Vorführdaten hell und dunkel: Gewicht-Diagramm (90 Tage mit beiden Kurven, 30 Tage nur
+>   der Tageswert) und Essen-Verlauf.
+> - **Nächster Schritt:** nach `main` und aufs iPhone.
+
 > **Healthy: Heute-Kachel mit dem Rest (23.10. 15:30, Felix):** die große Sperrbildschirm-Kachel
 > zeigt unter dem kcal-Ring `750 kcal übrig` bzw. `120 kcal drüber` statt des Gegessenen; der Ring
 > füllt sich weiter mit dem Gegessenen. Text aus `RemainingCalories.remainingValue`/`remainingUnit`
