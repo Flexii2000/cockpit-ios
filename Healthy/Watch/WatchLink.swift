@@ -2,9 +2,8 @@ import Foundation
 import WatchConnectivity
 
 /// Der Draht zur Uhr ueber WatchConnectivity (14.10.): der Token fuer die
-/// kcal-Komplikation, ihr Stand nach jeder Essensaenderung und - als Rueckfall,
-/// wenn die gespiegelte Trainings-Session gerade nicht zustellt - die
-/// Botschaften des Trainings.
+/// kcal-Komplikation und ihr Stand nach jeder Essensaenderung. Das Krafttraining
+/// ist am 23.10. mit dem Gym-Tab nach Sport gezogen, samt eigener Uhr-App.
 ///
 /// Die Uhr hat ihren eigenen Schluesselbund; an die geteilte Gruppe des iPhones
 /// kommt sie nicht heran. Deshalb geht der Token einmal hier hinueber - der
@@ -31,9 +30,6 @@ final class WatchLink {
         guard let session else { return }
         relay.onActivated = {
             Task { @MainActor in WatchLink.shared.sendContext() }
-        }
-        relay.onWorkoutMessage = { data in
-            Task { @MainActor in WorkoutMirror.shared.receiveFallback(data) }
         }
         session.delegate = relay
         session.activate()
@@ -68,13 +64,6 @@ final class WatchLink {
         try? session.updateApplicationContext(context)
     }
 
-    /// Rueckfall fuer Trainings-Botschaften an die Uhr, solange die gespiegelte
-    /// Session nicht steht.
-    func sendWorkout(_ data: Data) {
-        guard let session, session.activationState == .activated, session.isWatchAppInstalled else { return }
-        session.transferUserInfo([WatchKeys.workoutMessage: data])
-    }
-
     private func flush() {
         guard let snapshot = pendingSnapshot, let session, session.activationState == .activated,
               session.isPaired, session.isWatchAppInstalled,
@@ -95,7 +84,6 @@ final class WatchLink {
 final class WatchLinkRelay: NSObject, WCSessionDelegate, @unchecked Sendable {
 
     nonisolated(unsafe) var onActivated: (@Sendable () -> Void)?
-    nonisolated(unsafe) var onWorkoutMessage: (@Sendable (Data) -> Void)?
 
     nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState,
                              error: (any Error)?) {
@@ -112,9 +100,5 @@ final class WatchLinkRelay: NSObject, WCSessionDelegate, @unchecked Sendable {
     nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
         // Uhr-App gerade installiert: Token und Stand hinterher.
         if session.isWatchAppInstalled { onActivated?() }
-    }
-
-    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        if let data = userInfo[WatchKeys.workoutMessage] as? Data { onWorkoutMessage?(data) }
     }
 }

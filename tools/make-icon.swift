@@ -4,7 +4,7 @@
 // woraus ein Icon besteht, und eine Aenderung ist eine Zeile statt einer
 // neuen Bilddatei aus einem Grafikprogramm.
 //
-//   swift tools/make-icon.swift <healthy|vault|fokus|einkaufsliste|cohabit> <pfad/icon-1024.png>
+//   swift tools/make-icon.swift <healthy|vault|fokus|einkaufsliste|cohabit|sport> <pfad/icon-1024.png>
 //
 // Vier Motive, vier Farbwelten - jede App soll auf dem Homebildschirm sofort
 // als sie selbst zu erkennen sein:
@@ -14,6 +14,7 @@
 //   einkaufsliste  eine Einkaufstasche mit Haken, petrol   (die Liste, abgehakt)
 //   cohabit  das grosse „H" der Wortmarke auf Violett, dazu der angeschnittene
 //            Pfirsich-Kreis der Karten                   (gemeinsam, dieselbe Marke)
+//   sport    der Spieler mit Schlaeger (SF Symbol figure.tennis) auf Ballgelb  (Padel, Gym)
 // Bewusst grob: bei 60 px auf dem Homebildschirm ueberlebt nur, was kraeftig
 // ist. Keine Schrift, keine feinen Linien.
 
@@ -23,7 +24,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 guard CommandLine.arguments.count > 2 else {
-    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkaufsliste|cohabit> <pfad/icon-1024.png>")
+    fatalError("Aufruf: make-icon.swift <healthy|vault|fokus|einkaufsliste|cohabit|sport> <pfad/icon-1024.png>")
 }
 let variant = CommandLine.arguments[1]
 let outputPath = CommandLine.arguments[2]
@@ -173,6 +174,29 @@ case "fokus":
         tinted.draw(in: rect)
         NSGraphicsContext.restoreGraphicsState()
     }
+
+case "sport":
+    // Sport (23.10.): Padel und Gym. Der Spieler mit Schlaeger (SF Symbol figure.tennis) in
+    // Dunkelblau auf dem Gelbgruen eines Padel-Balls - keine der anderen Apps traegt diese Farbe.
+    background(0xE4F77A, 0x8FC31F)
+    let config = NSImage.SymbolConfiguration(pointSize: 700, weight: .semibold)
+    guard let symbol = NSImage(systemSymbolName: "figure.tennis", accessibilityDescription: nil)?
+            .withSymbolConfiguration(config) else {
+        fatalError("Kein SF Symbol figure.tennis")
+    }
+    let tinted = NSImage(size: symbol.size)
+    tinted.lockFocus()
+    symbol.draw(in: NSRect(origin: .zero, size: symbol.size))
+    NSColor(calibratedRed: 0.05, green: 0.12, blue: 0.22, alpha: 1).set()
+    NSRect(origin: .zero, size: symbol.size).fill(using: .sourceAtop)
+    tinted.unlockFocus()
+    let height = side * 0.64
+    let width = height * symbol.size.width / symbol.size.height
+    let rect = NSRect(x: (side - width) / 2, y: (side - height) / 2, width: width, height: height)
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+    tinted.draw(in: rect)
+    NSGraphicsContext.restoreGraphicsState()
 
 case "einkaufsliste":
     // Eine Einkaufstasche auf Petrol - eine Farbe, die keine der anderen

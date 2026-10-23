@@ -1,5 +1,5 @@
 import XCTest
-@testable import Healthy
+@testable import Sport
 
 /// Das Gym in der App (14.10.): was wartet, liegt ueber dem Stand des Dienstes
 /// (`GymOverlay`), und jede Aenderung ist ein PUT mit dem ganzen Stand ihres Ziels.
@@ -386,19 +386,36 @@ final class GymTests: XCTestCase {
                        .setDone(id: "z", exerciseId: "e-1", reps: nil))
     }
 
-    func testTheWatchGetsNoteAndRange() throws {
+    func testTheWatchGetsThePlanWithNoteRangeAndAllMachines() throws {
         let current = WorkoutCurrent(exerciseId: "e-1", name: "Gerät A", note: "Sitz 4", set: 2, sets: 3,
                                      reps: 10, repsMin: 8, weightKg: 40)
-        let message = WorkoutMessage.current(current)
+        let plan = WorkoutPlan(current: current,
+                               stations: [WorkoutStation(exerciseId: "e-1", name: "Gerät A", done: 1, sets: 3),
+                                          WorkoutStation(exerciseId: "e-2", name: "Gerät B", done: 2, sets: 2)],
+                               lastSetAt: Date(timeIntervalSince1970: 1_761_000_000))
+        let message = WorkoutMessage.plan(plan)
         XCTAssertEqual(WorkoutMessage.decode(try XCTUnwrap(message.encoded())), message)
+        XCTAssertTrue(plan.stations[1].isDone)
+        XCTAssertFalse(plan.stations[0].isDone)
 
-        // Ein iPhone von vor dem 19.10. schickt beides nicht.
-        let old = #"{"current":{"_0":{"exerciseId":"e-1","name":"Gerät A","set":1,"sets":3,"reps":8,"weightKg":40}}}"#
-        guard case .current(let decoded)? = WorkoutMessage.decode(Data(old.utf8)) else {
-            return XCTFail("alte Botschaft nicht lesbar")
-        }
-        XCTAssertNil(decoded?.note)
-        XCTAssertNil(decoded?.repsMin)
-        XCTAssertEqual(decoded?.reps, 8)
+        // Alles erledigt: kein aktuelles Geraet, die Liste bleibt.
+        let done = WorkoutMessage.plan(WorkoutPlan(current: nil, stations: plan.stations, lastSetAt: nil))
+        XCTAssertEqual(WorkoutMessage.decode(try XCTUnwrap(done.encoded())), done)
+    }
+
+    func testChoosingAMachineOnTheWatchIsAcknowledgedOnce() throws {
+        let message = WorkoutMessage.choose(id: "c-1", exerciseId: "e-2")
+        XCTAssertEqual(WorkoutMessage.decode(try XCTUnwrap(message.encoded())), message)
+    }
+
+    @MainActor
+    func testTheLastTickOfTheDayIsWhenThePauseStarted() throws {
+        let store = GymStore(memory: state())
+        let day = try XCTUnwrap(store.state?.days.first)
+        XCTAssertNil(store.lastSetAt(on: day))
+        let exercise = try XCTUnwrap(day.exercises.first)
+        store.toggle(exercise, 0, on: day)
+        let first = try XCTUnwrap(store.lastSetAt(on: day))
+        XCTAssertLessThan(abs(first.timeIntervalSinceNow), 5)
     }
 }

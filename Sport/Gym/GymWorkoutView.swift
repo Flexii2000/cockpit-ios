@@ -42,7 +42,7 @@ struct GymWorkoutView: View {
             .padding(.bottom, 60)
         }
         // Was die Uhr gerade zeigen soll - bei jedem Wechsel neu.
-        .onChange(of: watchState, initial: true) { _, state in mirror.send(current: state) }
+        .onChange(of: watchPlan, initial: true) { _, plan in mirror.send(plan: plan) }
         .onChange(of: progress) { nextSetReps = nil }
         .onAppear {
             mirror.onSetDone = { exerciseId, reps in
@@ -52,6 +52,7 @@ struct GymWorkoutView: View {
                       let exercise = day.exercises.first(where: { $0.id == exerciseId }) else { return }
                 store.tickNext(exercise, on: day, reps: reps)
             }
+            mirror.onChoose = { exerciseId in store.chosenExerciseId = exerciseId }
             mirror.onEnd = { store.finish() }
         }
     }
@@ -209,14 +210,21 @@ struct GymWorkoutView: View {
 
     // MARK: - Uhr
 
-    /// Was die Uhr zeigt: das aktuelle Geraet mit Notiz, Satz, Spanne und Gewicht.
-    private var watchState: WorkoutCurrent? {
-        guard let exercise = store.currentExercise else { return nil }
-        let note = store.state?.machine(exercise.machineId)?.note ?? ""
-        return WorkoutCurrent(exerciseId: exercise.id, name: store.machineName(exercise.machineId),
-                              note: note.isEmpty ? nil : note,
-                              set: min(store.doneCount(exercise, on: day) + 1, exercise.sets),
-                              sets: exercise.sets, reps: exercise.reps, repsMin: exercise.repsRange?.lowerBound,
-                              weightKg: exercise.weightKg)
+    /// Was die Uhr zeigt: das aktuelle Geraet mit Notiz, Satz, Spanne und Gewicht, alle Geraete
+    /// des Tages zum Wechseln und wann zuletzt ein Satz fertig war (die Pause, 23.10.).
+    private var watchPlan: WorkoutPlan {
+        let current = store.currentExercise.map { exercise in
+            let note = store.state?.machine(exercise.machineId)?.note ?? ""
+            return WorkoutCurrent(exerciseId: exercise.id, name: store.machineName(exercise.machineId),
+                                  note: note.isEmpty ? nil : note,
+                                  set: min(store.doneCount(exercise, on: day) + 1, exercise.sets),
+                                  sets: exercise.sets, reps: exercise.reps, repsMin: exercise.repsRange?.lowerBound,
+                                  weightKg: exercise.weightKg)
+        }
+        let stations = day.exercises.map { exercise in
+            WorkoutStation(exerciseId: exercise.id, name: store.machineName(exercise.machineId),
+                           done: store.doneCount(exercise, on: day), sets: exercise.sets)
+        }
+        return WorkoutPlan(current: current, stations: stations, lastSetAt: store.lastSetAt(on: day))
     }
 }

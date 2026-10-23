@@ -26,9 +26,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         HealthSync.shared.startObserving()
-        // Startet die Uhr ein Training, weckt iOS die App im Hintergrund - der
-        // Handler fuer die gespiegelte Session muss dann schon stehen.
-        WorkoutMirror.shared.install()
         WatchLink.shared.activate()
         // Muss hier stehen und nicht in einer `.task`: iOS reicht den Tipp auf
         // eine Benachrichtigung gleich nach dem Start durch.

@@ -1,7 +1,7 @@
 import Foundation
 
-/// Das Gym in Healthy (Felix, 14.10.): Trainingstage mit Geraeten, Saetze
-/// abhaken, „Training starten“.
+/// Das Gym (Felix, 14.10., bis 23.10. in Healthy, seitdem in Sport): Trainingstage mit
+/// Geraeten, Saetze abhaken, „Training starten“.
 ///
 /// Gezeigt wird der Stand des Dienstes und darueber, was in der Warteschlange
 /// wartet (`GymOverlay`) - ein Haken steht sofort, auch im Keller ohne Netz,
@@ -256,6 +256,11 @@ final class GymStore {
 
     func doneCount(_ exercise: GymExercise, on day: GymDay) -> Int {
         (0..<max(exercise.sets, 1)).filter { isDone(exercise, $0, on: day) }.count
+    }
+
+    /// Wann heute an diesem Tag zuletzt ein Satz abgehakt wurde - fuer die Pause auf der Uhr.
+    func lastSetAt(on day: GymDay) -> Date? {
+        state?.sessions(for: day.id, on: today).flatMap(\.sets).compactMap(\.doneAt).max()
     }
 
     /// Ein Satz an oder aus. Ohne Besuch fuer diesen Tag legt der erste Haken

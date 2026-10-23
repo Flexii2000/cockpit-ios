@@ -2,9 +2,9 @@
 # Startet die App im Simulator - mit Zugang, damit man die Oberflaeche mit
 # echten Daten sieht statt mit Fehlermeldungen.
 #
-#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> [tab] [screenshot.png]
+#   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport> [tab] [screenshot.png]
 #
-# Tabs: Healthy dashboard|food|weight|gym|widget|recovery|logbook|effects
+# Tabs: Healthy dashboard|food|weight|widget|recovery|logbook|effects, Sport padel|gym
 # (recovery = Dashboard samt dieser Seite; logbook, effects = Dashboard an dieser
 # Stelle), Vault grades|finance,
 # Fokus todo|forest|shopping|evaluation|widget, Einkaufsliste (hat nur die eine Seite),
@@ -69,7 +69,7 @@
 # COCKPIT_RANGE=allTime stellt den Gewicht-Tab auf einen Zeitraum
 # (month, last90, last180, year, threeYears, allTime).
 #
-# COCKPIT_GYM_DEMO=1 fuellt den Gym-Tab (Healthy) mit zwei erfundenen Tagen und
+# COCKPIT_GYM_DEMO=1 fuellt den Gym-Tab (Sport, bis 23.10. Healthy) mit zwei erfundenen Tagen und
 # Verlauf, nur im Speicher; COCKPIT_GYM_WORKOUT=1 startet dazu gleich das Training.
 # COCKPIT_EVALUATION_DEMO=1 fuellt den Evaluation-Tab mit einem Jahr erfundener
 # Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie in der Datei.
@@ -125,7 +125,8 @@ case "$APP" in
     Fokus)   BUNDLE="com.fherrmann.fokus" ;;
     Einkaufsliste) BUNDLE="com.fherrmann.einkauf" ;;
     coHabit) BUNDLE="com.fherrmann.cohabit" ;;
-    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder coHabit sein." >&2; exit 1 ;;
+    Sport)   BUNDLE="com.fherrmann.sport" ;;
+    *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit oder Sport sein." >&2; exit 1 ;;
 esac
 
 if [ "$APP" = "coHabit" ]; then
@@ -177,6 +178,8 @@ SIMCTL_CHILD_COCKPIT_EVALUATION_DEMO="${COCKPIT_EVALUATION_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_DASHBOARD_DEMO="${COCKPIT_DASHBOARD_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_GYM_DEMO="${COCKPIT_GYM_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_GYM_WORKOUT="${COCKPIT_GYM_WORKOUT:-}" \
+SIMCTL_CHILD_COCKPIT_PADEL_DEMO="${COCKPIT_PADEL_DEMO:-}" \
+SIMCTL_CHILD_COCKPIT_URL_PADEL="${COCKPIT_URL_PADEL:-}" \
 SIMCTL_CHILD_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}" \
 SIMCTL_CHILD_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \

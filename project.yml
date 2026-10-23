@@ -1,13 +1,15 @@
 # Quelle des Xcode-Projekts. Die .xcodeproj wird daraus erzeugt und ist
 # NICHT eingecheckt - siehe docs/ENTSCHEIDUNGEN.md.
 #
-# Fuenf Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
-#   Healthy  - Dashboard, Essen, Gewicht, Gym  com.fherrmann.cockpit (die alte ID, bleibt)
+# Sechs Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
+#   Healthy  - Dashboard, Essen, Gewicht     com.fherrmann.cockpit (die alte ID, bleibt)
 #   Vault    - Noten, Finanzen           com.fherrmann.vault
 #   Fokus    - To-Do, Wald, Einkauf, Evaluation  com.fherrmann.fokus
 #   Einkaufsliste - nur die Liste       com.fherrmann.einkauf (fuer ein zweites Handy)
 #   coHabit  - Habits mit Freunden       com.fherrmann.cohabit (eigene Anmeldung je Person),
 #              dazu Kachel (.widget) und Bild in Benachrichtigungen (.notifications)
+#   Sport    - Padel, Gym                com.fherrmann.sport (seit 23.10.), dazu die Uhr-App
+#              (.watchkitapp) fuer Krafttraining und Padel-Matches
 #
 # Neue Swift-Datei hinzufuegen: Datei in den passenden Ordner legen und
 # tools/bootstrap.sh laufen lassen. Ganze Ordner sind eingebunden, keine
@@ -114,7 +116,7 @@ targets:
       - target: HealthyWidget
         embed: true
       # Die Uhr-App (14.10.): landet in Healthy.app/Watch/ und kommt mit Healthy
-      # auf die Uhr - kcal-Komplikation und das Krafttraining aus dem Gym-Tab.
+      # auf die Uhr - die kcal-Komplikation (das Krafttraining ist seit 23.10. in Sport).
       - target: HealthyWatch
         embed: true
     info:
@@ -154,9 +156,6 @@ targets:
         # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
         # App beim ersten HealthKit-Aufruf.
         INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Gewicht, Schritte, Energieverbrauch, Schlaf und Herzwerte aus Health in Healthy landen.
-        # Das Krafttraining (Gym, 14.10.): die Uhr zeichnet es auf und spiegelt es
-        # hierher. Ohne den Satz beendet sich die App beim Fragen nach der Erlaubnis.
-        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Damit dein Krafttraining aus dem Gym-Tab als Training in Health landet.
         # Der Barcode-Scanner im Essen-Tab. Ohne den Satz beendet iOS die App
         # beim ersten Kamerazugriff.
         INFOPLIST_KEY_NSCameraUsageDescription: Zum Scannen der Barcodes auf Lebensmittelpackungen.
@@ -193,8 +192,8 @@ targets:
         SKIP_INSTALL: YES
 
   # ----------------------------------------------------------- Healthy Uhr
-  # Die Uhr-App von Healthy (14.10.): kcal-Komplikation im Stil der Temperatur
-  # und das Krafttraining, das der Gym-Tab startet und gespiegelt bekommt.
+  # Die Uhr-App von Healthy (14.10.): kcal-Komplikation im Stil der Temperatur.
+  # Das Krafttraining ist am 23.10. mit dem Gym-Tab in die Uhr-App von Sport gezogen.
   # Einzel-Target-App ohne WatchKit-Erweiterung (watchOS 7+). Kein
   # `<<: *app_settings`: das setzt iPhone-Schluessel und Geraetefamilie 1.
   # Keine App-Gruppe (Entscheidung 12.10.): Uhr-App und Komplikation teilen den
@@ -221,19 +220,14 @@ targets:
         CFBundleDisplayName: Healthy
         WKApplication: true
         WKCompanionAppBundleIdentifier: com.fherrmann.cockpit
-        # Das Training laeuft weiter, wenn das Handgelenk sinkt.
-        WKBackgroundModes: [workout-processing]
     entitlements:
       path: HealthyWatch/HealthyWatch.entitlements
       properties:
-        com.apple.developer.healthkit: true
         keychain-access-groups:
           - *shared_group
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.watchkitapp
-        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Puls und Kalorien deines Krafttrainings live auf dem iPhone stehen.
-        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Damit dein Krafttraining aus dem Gym-Tab als Training in Health landet.
 
   HealthyWatchWidget:
     type: app-extension
@@ -555,6 +549,78 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         SKIP_INSTALL: YES
 
+  # ------------------------------------------------------------------ Sport
+  # Padel - die Autobuchung bei Playtomic (fherrmann.com/padel), mit dem Privat-Cookie wie
+  # To-Do - und das Gym beim Weight Tracker (bis 23.10. in Healthy). Dazu die Uhr-App fuer
+  # das gespiegelte Krafttraining und Padel-Matches.
+  Sport:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sport
+      - path: Core
+      - path: Shared
+      # Botschaften zwischen iPhone und Uhr, das Zaehlen beim Padel, Ergebnisse auf dem Weg.
+      - path: SportWatchShared
+    dependencies:
+      # Landet in Sport.app/Watch/ und kommt mit Sport auf die Uhr.
+      - target: SportWatch
+        embed: true
+    entitlements:
+      path: Sport/Sport.entitlements
+      properties:
+        # Das gespiegelte Krafttraining der Uhr: ohne Erlaubnis fuer Trainings stellt HealthKit
+        # die Session nicht zu.
+        com.apple.developer.healthkit: true
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)com.fherrmann.sport
+          - *shared_group
+    settings:
+      base:
+        <<: *app_settings
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.sport
+        INFOPLIST_KEY_CFBundleDisplayName: Sport
+        # Ohne diese Saetze beendet iOS die App beim ersten HealthKit-Aufruf hart.
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Puls und Kalorien deines Krafttrainings live auf dem iPhone stehen.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Damit dein Krafttraining als Training in Health landet.
+
+  # Die Uhr-App von Sport (23.10.): das Krafttraining, das der Gym-Tab startet und gespiegelt
+  # bekommt, und Padel-Matches, die hier starten - beide als Training in Health. Wie bei
+  # Healthy eine Einzel-Target-App ohne WatchKit-Erweiterung und ohne `<<: *app_settings`.
+  SportWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "11.0"
+    sources:
+      - path: SportWatch
+      - path: SportWatchShared
+      - path: Shared
+        excludes: *watch_excludes
+    info:
+      # WKApplication und WKBackgroundModes haben keinen INFOPLIST_KEY_-Schalter.
+      path: SportWatch/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Sport
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.fherrmann.sport
+        # Das Training laeuft weiter, wenn das Handgelenk sinkt.
+        WKBackgroundModes: [workout-processing]
+    entitlements:
+      path: SportWatch/SportWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        # Derselbe Gruppenname wie auf dem iPhone, damit `Shared/Keychain.swift` bleibt, wie es
+        # ist - die Uhr hat ihren eigenen Schluesselbund (fuer den Token vom iPhone).
+        keychain-access-groups:
+          - *shared_group
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.sport.watchkitapp
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Puls und Kalorien beim Training live auf der Uhr stehen.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Damit Krafttraining und Padel als Training in Health landen.
+
   # ------------------------------------------------------------------ Tests
   # Ein Bundle fuer alle Unit-Tests: sie pruefen Shared und Core, und die
   # liegen in jeder App. Healthy ist der Wirt, weil sie alles davon uebersetzt.
@@ -584,6 +650,15 @@ targets:
       - path: CohabitTests
     dependencies:
       - target: coHabit
+
+  # Gym (seit 23.10. hier), Padel und das Zaehlen auf der Uhr: Sport ist der Wirt.
+  SportTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SportTests
+    dependencies:
+      - target: Sport
 
   # Je App ein UI-Test-Bundle - XCUIApplication() ist immer die App, an der
   # das Bundle haengt. Der Harness (start, scrollDown, shoot ...) liegt in
@@ -648,6 +723,18 @@ targets:
     settings:
       base:
         TEST_TARGET_NAME: coHabit
+
+  SportUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests/Harness.swift
+      - path: UITests/SportUITests.swift
+    dependencies:
+      - target: Sport
+    settings:
+      base:
+        TEST_TARGET_NAME: Sport
 
 # Ein Schema je App. Ohne expliziten Block erzeugt xcodebuild die Schemata
 # selbst - und was ein Test-Bundle dabei erbt, entscheidet dann Xcode.
@@ -718,5 +805,25 @@ schemes:
       targets:
         - CohabitTests
         - coHabitUITests
+    run:
+      config: Debug
+  Sport:
+    build:
+      targets:
+        Sport: all
+    test:
+      targets:
+        - SportTests
+        - SportUITests
+      # Wie bei Healthy: kein Health-Dialog mitten im Testlauf.
+      environmentVariables:
+        COCKPIT_NO_HEALTH: "1"
+    run:
+      config: Debug
+  # Die Uhr allein - fuer verify.sh und um sie in Xcode direkt auf die Uhr zu spielen.
+  SportWatch:
+    build:
+      targets:
+        SportWatch: all
     run:
       config: Debug

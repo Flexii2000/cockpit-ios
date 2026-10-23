@@ -39,7 +39,10 @@ struct GymTab: View {
                 }
             }
         }
-        .task { await store.load() }
+        .task {
+            await store.load()
+            await WorkoutMirror.shared.requestAuthorization()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await store.load() } }
         }

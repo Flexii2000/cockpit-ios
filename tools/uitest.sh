@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Faehrt die Oberflaeche automatisiert durch und legt Screenshots ab.
 #
-#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit>             # alle UI-Tests der App
-#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit> testSwipe   # nur einer
+#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport>             # alle UI-Tests der App
+#   tools/uitest.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport> testSwipe   # nur einer
 #   COCKPIT_TOUR=1 tools/uitest.sh coHabit CohabitTourUITests/testTourOfAllScreens
 #                                    # jeder Bildschirm von coHabit, hell und dunkel
 #
@@ -36,7 +36,7 @@ cd "$(dirname "$0")/.."
 APP="${1:-}"
 FILTER="${2:-}"
 DEVICE="${DEVICE:-iPhone 17}"
-case "$APP" in Healthy|Vault|Fokus|Einkaufsliste|coHabit) ;; *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste oder coHabit sein." >&2; exit 1 ;; esac
+case "$APP" in Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport) ;; *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit oder Sport sein." >&2; exit 1 ;; esac
 BUNDLE_NAME="${APP}UITests"
 # Die Testklasse heisst wie das Bundle - ausser bei coHabit (Swift-Typen
 # beginnen gross). Ein Filter „Klasse/test" waehlt eine andere Klasse.
@@ -76,6 +76,8 @@ export TEST_RUNNER_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}"
 # Healthy gegen einen lokal gestarteten Weight Tracker bzw. Kalorienzaehler.
 export TEST_RUNNER_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}"
 export TEST_RUNNER_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}"
+# Sport gegen einen lokal gestarteten Padel-Dienst.
+export TEST_RUNNER_COCKPIT_URL_PADEL="${COCKPIT_URL_PADEL:-}"
 # coHabit: Adresse des lokalen Dienstes, der Token der Person, als die die
 # App laeuft, und der einer zweiten, die im Einladungs-Test einlaedt.
 export TEST_RUNNER_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}"

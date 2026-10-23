@@ -142,14 +142,14 @@ final class HealthSync {
         return types
     }
 
-    /// Fragt nach Leseerlaubnis - und seit 14.10. nach der fuer Trainings: das
-    /// Krafttraining zeichnet die Uhr auf und spiegelt es hierher (`WorkoutMirror`).
+    /// Fragt nach Leseerlaubnis. Die fuer Trainings fragt seit 23.10. Sport - mit dem Gym-Tab
+    /// ist das gespiegelte Krafttraining dorthin gezogen.
     /// Ein „nein" ist kein Fehler - dann bleibt es beim Eintragen von Hand.
     @discardableResult
     func requestPermission() async -> Bool {
         guard isAvailable else { return false }
         do {
-            try await store.requestAuthorization(toShare: [HKObjectType.workoutType()], read: readTypes)
+            try await store.requestAuthorization(toShare: [], read: readTypes)
             return true
         } catch {
             return false

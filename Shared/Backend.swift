@@ -15,6 +15,8 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
     case shopping
     /// Habits mit Freunden - eigene App, eigener Token je Person.
     case cohabit
+    /// Die Padel-Autobuchung (Sport, 23.10.) - Felix mit dem Privat-Cookie.
+    case padel
 
     var id: String { rawValue }
 
@@ -46,6 +48,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         // Die API liegt eine Ebene tiefer als die Weboberflaeche
         // (fherrmann.com/cohabit/); die Pfade der App beginnen danach.
         case .cohabit: URL(string: "https://fherrmann.com/cohabit/api")!
+        case .padel:   URL(string: "https://fherrmann.com/padel")!
         }
     }
 
@@ -59,6 +62,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .todo:    "To-Do"
         case .shopping: "Einkaufsliste"
         case .cohabit: "coHabit"
+        case .padel:   "Padel"
         }
     }
 
@@ -72,6 +76,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .todo:    "checklist"
         case .shopping: "cart"
         case .cohabit: "person.2"
+        case .padel:   "figure.tennis"
         }
     }
 }

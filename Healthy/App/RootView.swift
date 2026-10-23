@@ -2,9 +2,10 @@ import SwiftUI
 
 /// Was in der Leiste unten steht. Das Dashboard zuerst, und dort macht die
 /// App auf: es fasst zusammen, was die anderen Tabs im Einzelnen zeigen.
-/// Evaluation und Einkauf sind am 14.10. nach Fokus gezogen - fuer den Gym-Tab.
+/// Evaluation und Einkauf sind am 14.10. nach Fokus gezogen, der Gym-Tab am 23.10.
+/// nach Sport.
 enum TabSelection: Hashable {
-    case dashboard, food, weight, gym
+    case dashboard, food, weight
     #if DEBUG
     /// Nur zum Ansehen der Kacheln - siehe WidgetPreviewTab.
     case widget
@@ -25,7 +26,6 @@ enum TabSelection: Hashable {
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "food":       return .food
         case "weight":     return .weight
-        case "gym":        return .gym
         case "widget":     return .widget
         default:           return .dashboard
         }
@@ -133,9 +133,6 @@ struct RootView: View {
             }
             Tab(Backend.weight.title, systemImage: Backend.weight.systemImage, value: TabSelection.weight) {
                 WeightTab()
-            }
-            Tab("Gym", systemImage: "dumbbell", value: TabSelection.gym) {
-                GymTab()
             }
             #if DEBUG
             if TabSelection.showsWidgetPreview {

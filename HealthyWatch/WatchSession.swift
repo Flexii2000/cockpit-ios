@@ -4,7 +4,7 @@ import WidgetKit
 
 /// Die Uhr-Seite von `WatchLink`: nimmt Token und kcal-Stand vom iPhone an,
 /// legt sie in den Schluesselbund der Uhr und laesst die Komplikation neu
-/// zeichnen. Dazu der Rueckfallweg fuer Trainings-Botschaften.
+/// zeichnen.
 @MainActor
 final class WatchSession {
 
@@ -27,9 +27,6 @@ final class WatchSession {
                 if ComplicationStore.save(snapshot: snapshot) { WidgetCenter.shared.reloadAllTimelines() }
             }
         }
-        relay.onWorkout = { data in
-            Task { @MainActor in WorkoutManager.shared.receive(data) }
-        }
         let session = WCSession.default
         session.delegate = relay
         session.activate()
@@ -46,12 +43,6 @@ final class WatchSession {
             try? await Task.sleep(for: .milliseconds(250))
         }
     }
-
-    /// Rueckfall, wenn die gespiegelte Session gerade nicht zustellt.
-    func sendWorkout(_ data: Data) {
-        guard WCSession.default.activationState == .activated else { return }
-        WCSession.default.transferUserInfo([WatchKeys.workoutMessage: data])
-    }
 }
 
 /// Der Delegat - WatchConnectivity ruft ihn auf einer eigenen Warteschlange.
@@ -59,7 +50,6 @@ final class WatchSessionRelay: NSObject, WCSessionDelegate, @unchecked Sendable 
 
     nonisolated(unsafe) var onToken: (@Sendable (String) -> Void)?
     nonisolated(unsafe) var onSnapshot: (@Sendable (Data) -> Void)?
-    nonisolated(unsafe) var onWorkout: (@Sendable (Data) -> Void)?
 
     nonisolated func take(context: [String: Any]) {
         if let token = context[WatchKeys.privateToken] as? String, !token.isEmpty { onToken?(token) }
@@ -77,6 +67,5 @@ final class WatchSessionRelay: NSObject, WCSessionDelegate, @unchecked Sendable 
 
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         if let data = userInfo[WatchKeys.snapshot] as? Data { onSnapshot?(data) }
-        if let data = userInfo[WatchKeys.workoutMessage] as? Data { onWorkout?(data) }
     }
 }

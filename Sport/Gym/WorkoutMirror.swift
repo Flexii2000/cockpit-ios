@@ -5,9 +5,10 @@ import HealthKit
 ///
 /// „Training starten“ weckt die Uhr-App (`startWatchApp`); die Uhr fuehrt die
 /// `HKWorkoutSession` samt Messung und spiegelt sie hierher. Das iPhone misst
-/// selbst nichts (es hat keinen Pulssensor) - es bekommt Puls, kcal und „Satz
-/// erledigt“ als Botschaften (`WorkoutMessage`) und schickt das aktuelle
-/// Geraet zurueck. Gespeichert wird das Training von der Uhr.
+/// selbst nichts (es hat keinen Pulssensor) - es bekommt Puls, kcal, „Satz
+/// erledigt“ und „dieses Geraet“ als Botschaften (`WorkoutMessage`) und schickt
+/// den Plan zurueck: das aktuelle Geraet und alle des Tages. Gespeichert wird das
+/// Training von der Uhr. Seit 23.10. in Sport mit eigener Uhr-App (vorher Healthy).
 @MainActor
 @Observable
 final class WorkoutMirror {
@@ -21,11 +22,13 @@ final class WorkoutMirror {
     /// offenen Satz dieses Geraets ab, mit Spanne mit den Wiederholungen von
     /// der Krone (`nil`: wie geplant).
     @ObservationIgnored var onSetDone: ((_ exerciseId: String, _ reps: Int?) -> Void)?
+    /// An der Uhr ein anderes Geraet gewaehlt (eines ist besetzt).
+    @ObservationIgnored var onChoose: ((_ exerciseId: String) -> Void)?
     /// Auf der Uhr beendet - dann endet das Training auch hier.
     @ObservationIgnored var onEnd: (() -> Void)?
 
     @ObservationIgnored private var session: HKWorkoutSession?
-    @ObservationIgnored private var lastSent: WorkoutCurrent??
+    @ObservationIgnored private var lastSent: WorkoutPlan?
     /// Schon abgehakte Botschaften der Uhr - sie wiederholt, bis die Quittung kommt.
     @ObservationIgnored private var handled: Set<String> = []
 
@@ -64,6 +67,15 @@ final class WorkoutMirror {
         }
     }
 
+    /// Einmal, bevor das erste Training startet (der Gym-Tab erscheint): ohne die Erlaubnis
+    /// fuer Trainings spiegelt HealthKit die Session der Uhr nicht hierher. Bis 23.10. fragte
+    /// Healthy das beim Start mit.
+    func requestAuthorization() async {
+        guard isAvailable else { return }
+        let read: Set<HKObjectType> = [HKQuantityType(.heartRate), HKQuantityType(.activeEnergyBurned)]
+        try? await store.requestAuthorization(toShare: [HKObjectType.workoutType()], read: read)
+    }
+
     /// „Training starten“: die Uhr-App mit einem Krafttraining wecken.
     func start() {
         guard isAvailable else { return }
@@ -81,14 +93,15 @@ final class WorkoutMirror {
         metrics = nil
         lastSent = nil
         onSetDone = nil
+        onChoose = nil
         onEnd = nil
     }
 
-    /// Das aktuelle Geraet an die Uhr - nur, wenn es sich geaendert hat.
-    func send(current: WorkoutCurrent?) {
-        guard lastSent != .some(current) else { return }
-        lastSent = .some(current)
-        sendMessage(.current(current))
+    /// Der Plan an die Uhr - nur, wenn er sich geaendert hat.
+    func send(plan: WorkoutPlan) {
+        guard lastSent != plan else { return }
+        lastSent = plan
+        sendMessage(.plan(plan))
     }
 
     // MARK: - Intern
@@ -96,7 +109,7 @@ final class WorkoutMirror {
     private func attach(_ session: HKWorkoutSession) {
         self.session = session
         // Was die Uhr zeigen soll, kennt sie noch nicht.
-        if case .some(let current) = lastSent { sendMessage(.current(current)) }
+        if let lastSent { sendMessage(.plan(lastSent)) }
     }
 
     private func ended() {
@@ -115,13 +128,20 @@ final class WorkoutMirror {
                 onSetDone?(exerciseId, reps)
             }
             sendMessage(.ack(id: id))
+        case .choose(let id, let exerciseId):
+            if !handled.contains(id) {
+                handled.insert(id)
+                onChoose?(exerciseId)
+            }
+            sendMessage(.ack(id: id))
         case .end:
             ended()
             let end = onEnd
             onSetDone = nil
+            onChoose = nil
             onEnd = nil
             end?()
-        case .current, .ack:
+        case .plan, .ack:
             break
         }
     }
@@ -132,7 +152,7 @@ final class WorkoutMirror {
         if let session {
             Task { try? await session.sendToRemoteWorkoutSession(data: data) }
         } else {
-            WatchLink.shared.sendWorkout(data)
+            SportWatchLink.shared.sendWorkout(data)
         }
     }
 

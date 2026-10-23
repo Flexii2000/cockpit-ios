@@ -3,21 +3,6 @@ import SwiftUI
 /// Die Karten des Dashboards. Jede zeigt eine Zusammenfassung und fuehrt
 /// dorthin, wo das Einzelne steht - die Zahlen kommen fertig aus den Diensten.
 
-/// Der Rahmen aller Karten: dieselbe Flaeche wie die Kacheln im Gewicht-Tab.
-private struct DashboardCardStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-    }
-}
-
-extension View {
-    func dashboardCard() -> some View { modifier(DashboardCardStyle()) }
-}
-
 /// Ueberschrift einer Karte mit dem Pfeil, der sagt: hier geht es weiter.
 private struct CardTitle: View {
     let title: String
