@@ -21,10 +21,10 @@
 >   Beschriftung passt neben den Wert) und Effekte.
 > - **Nicht geprüft:** der Health-Dialog mit der neuen Zeile, echte Temperaturwerte und die
 >   erneute Rückholung - im Simulator gibt es kein Health.
-> - **Nächster Schritt:** Healthy aufs iPhone (`tools/install-device.sh Healthy`). Am 22.10. ging
->   das nicht: Felix war im Firmennetz, das Geräte voneinander abschirmt, und der Mac führte das
->   iPhone nicht einmal mehr als gekoppelt (nur Uhr und iPad) - im Heimnetz oder per Kabel
->   erneut. Android 1.10 (61) ist veröffentlicht.
+> - **Installiert** auf Felix' iPhone und Uhr am 23.10. 11:14 (am 22.10. ging es nicht: im
+>   Firmennetz schirmt das WLAN die Geräte voneinander ab, und hinter dem VPN des Macs findet
+>   devicectl das iPhone auch zu Hause nicht - VPN pausieren). Android 1.10 (61) ist veröffentlicht.
+> - **Nächster Schritt:** die Prüfungen auf dem Gerät unten.
 > - **Auf dem Gerät prüfen:** (1) Beim ersten Start fragt iOS nach „Handgelenktemperatur“ -
 >   erlauben. (2) Recovery-Seite: Zeile „Handgelenktemperatur“ als letzte, der Schlaf-Balken
 >   grau. (3) Effekte: unter jedem Effekt „HRV … % · RHF … bpm“.
