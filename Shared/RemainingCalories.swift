@@ -32,6 +32,13 @@ struct RemainingCalories: Codable, Equatable, Sendable {
 
     var isOver: Bool { remaining.kcal < 0 }
 
+    /// Der Rest als Zahl ohne Vorzeichen - was er bedeutet, sagt `remainingUnit`.
+    var remainingValue: String { abs(remaining.kcal).whole }
+
+    /// „kcal übrig“, drueber „kcal drüber“ - dieselben Worte in jeder Kachel, die den
+    /// Rest zeigt.
+    var remainingUnit: String { isOver ? "kcal drüber" : "kcal übrig" }
+
     /// Wie im Essen-Tab: der Bogen reicht bis zum 1,25-fachen des Ziels, damit
     /// die Zielkerbe nicht am Bogenende sitzt.
     var ratio: Double {

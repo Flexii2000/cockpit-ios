@@ -38,6 +38,18 @@ final class RemainingCaloriesTests: XCTestCase {
         XCTAssertEqual(value.remaining.kcal, -200)
     }
 
+    /// Seit 23.10. zeigt auch die Heute-Kachel den Rest (Felix) - in denselben
+    /// Worten wie die Kalorien-Kachel, drueber ohne Minus.
+    func testTheRemainderIsWordedForTheTiles() {
+        let left = RemainingCalories(day: day("2026-09-02", consumed: 1550, target: 2300))
+        XCTAssertEqual(left.remainingValue, "750")
+        XCTAssertEqual(left.remainingUnit, "kcal übrig")
+
+        let over = RemainingCalories(day: day("2026-09-02", consumed: 2420, target: 2300))
+        XCTAssertEqual(over.remainingValue, "120")
+        XCTAssertEqual(over.remainingUnit, "kcal drüber")
+    }
+
     /// Wie im Essen-Tab: der Bogen reicht bis zum 1,25-fachen des Ziels, damit
     /// die Zielkerbe nicht am Bogenende sitzt.
     func testRatioLeavesRoomAboveTheTarget() {

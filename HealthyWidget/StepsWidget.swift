@@ -85,7 +85,7 @@ struct TodayWidget: Widget {
                 .widgetURL(URL(string: "healthy://dashboard"))
         }
         .configurationDisplayName("Heute")
-        .description("Gegessen und Schritte, je gegen dein Ziel.")
+        .description("Übrige kcal und Schritte von heute.")
         .supportedFamilies([.accessoryRectangular])
     }
 }

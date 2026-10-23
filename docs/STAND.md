@@ -1,5 +1,10 @@
 # Stand
 
+> **Healthy: Heute-Kachel mit dem Rest (23.10. 15:30, Felix):** die große Sperrbildschirm-Kachel
+> zeigt unter dem kcal-Ring `750 kcal übrig` bzw. `120 kcal drüber` statt des Gegessenen; der Ring
+> füllt sich weiter mit dem Gegessenen. Text aus `RemainingCalories.remainingValue`/`remainingUnit`
+> (auch in der Kalorien-Kachel), Test in `RemainingCaloriesTests`.
+
 > **Sport-Uhr, Zählseite (23.10. nachmittags, Felix nach dem ersten Ausprobieren):** die anderen
 > oben, wir unten; der Ball steht links oder rechts beim Spieler, der aufschlägt (je Team
 > abwechselnd, anfangs rechts, Antippen tauscht, läuft über Sätze und Tie-Break weiter -

@@ -25,7 +25,9 @@ struct StepsCircleView: View {
 
 /// Die grosse Sperrbildschirm-Kachel (14.10., Felix' Wahl „zwei Ringe
 /// nebeneinander“): links kcal gegessen gegen das Ziel, rechts Schritte gegen
-/// das Ziel, die Zahlen darunter.
+/// das Ziel. Unter dem kcal-Ring steht seit 23.10. der Rest statt des
+/// Gegessenen (Felix) - der Ring fuellt sich weiter mit dem Gegessenen wie der
+/// runde kcal-Ring, sonst liefe er gegen den Schritte-Ring daneben.
 struct TodayOverviewView: View {
 
     let calories: WidgetState
@@ -33,7 +35,8 @@ struct TodayOverviewView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            column(icon: "fork.knife", ratio: kcalRatio, value: kcalText, unit: "kcal",
+            column(icon: "fork.knife", ratio: kcalRatio, value: kcalText,
+                   unit: calories.calories?.remainingUnit ?? "kcal",
                    dimmed: calories.calories?.isStale() ?? false)
                 .frame(maxWidth: .infinity)
             column(icon: "figure.walk", ratio: steps.ratio, value: steps.steps.map(String.init) ?? "–",
@@ -50,7 +53,7 @@ struct TodayOverviewView: View {
     private var kcalText: String {
         switch calories {
         case .noAccess: "–"
-        default: calories.calories.map { $0.consumed.kcal.whole } ?? "–"
+        default: calories.calories?.remainingValue ?? "–"
         }
     }
 

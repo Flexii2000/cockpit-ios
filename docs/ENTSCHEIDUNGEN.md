@@ -3,6 +3,20 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-23 (15:30) — Healthy: die Heute-Kachel zeigt den Rest statt des Gegessenen
+Felix: „im iOS-Widget hätte ich gerne die noch übrigen kcal und nicht mehr die verzehrten“.
+Gegessenes zeigte nur noch die große Sperrbildschirm-Kachel „Heute“; die Kalorien-Kacheln
+zeigen schon den Rest.
+- **Unter dem kcal-Ring steht der Rest in den Worten der Kalorien-Kachel**: `750` `kcal übrig`,
+  drüber `120` `kcal drüber` (`RemainingCalories.remainingValue`/`remainingUnit`, beide Kacheln
+  nehmen sie). Verworfen: nur die Zahl mit „kcal“ - neben „8.123 Schritte“ (zum Ziel hin)
+  läse sich der Rest wie Gegessenes; das Plus des kleinen runden Rings („+120“) - dort ist es
+  dem Platz geschuldet, hier passt das Wort.
+- **Der Ring füllt sich weiter mit dem Gegessenen** gegen das Ziel, wie beim runden kcal-Ring.
+  Verworfen: ein Ring, der sich leert - er liefe gegen den Schritte-Ring daneben.
+- Die Uhr-Komplikation bleibt bei „gegessen in der Mitte“ (Felix' Entscheidung vom 14.10., hier
+  ging es nur um iOS).
+
 ## 2026-10-23 (nachmittags) — Sport-Uhr: Zählseite nach dem ersten Ausprobieren
 Felix' Entscheidungen:
 - **Die anderen oben, wir unten** - wie das Feld von unserer Seite aus. Verworfen: wir oben (so

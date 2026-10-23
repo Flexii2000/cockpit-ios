@@ -124,8 +124,8 @@ struct CaloriesWidgetView: View {
             GaugeView(ratio: value.ratio,
                       tone: NutritionTone.kcalTone(consumed: value.consumed,
                                                    targets: value.targets),
-                      main: abs(value.remaining.kcal).whole,
-                      sub: value.isOver ? "kcal drüber" : "kcal übrig",
+                      main: value.remainingValue,
+                      sub: value.remainingUnit,
                       lineWidth: 8,
                       mainFont: .title2)
             if value.isStale() {
