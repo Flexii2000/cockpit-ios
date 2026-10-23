@@ -3,6 +3,51 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-23 — Sport: eigene App für Padel und Gym, eigene Uhr-App, Ergebnisse von der Uhr
+Felix' Entscheidungen:
+- **Eigene App „Sport“** (`com.fherrmann.sport`) mit Padel und Gym; der Gym-Tab zieht aus
+  Healthy aus. Verworfen: Padel als weiterer Tab in Healthy (Healthy ist Essen, Gewicht,
+  Recovery) und Padel weiter nur als Seite des Dienstes.
+- **Padel-Tab nativ.** Verworfen: die Seite des Dienstes im WebView (schneller gebaut, aber
+  ohne letzten Stand ohne Netz und fremd neben dem Gym-Tab).
+- **Eigene Uhr-App „Sport“**; die Uhr-App von Healthy behält nur die kcal-Komplikation und
+  verliert HealthKit ganz. Verworfen: das Krafttraining in Healthys Uhr-App lassen -
+  `HKHealthStore.startWatchApp` weckt nur die Uhr-App der eigenen App, der Gym-Tab in Sport
+  könnte sie nicht starten.
+- **Training auf der Uhr:** Pausenzeit (einmal Vibrieren 90 s nach dem letzten Satz),
+  Geräteliste zum Wechseln (wenn eins besetzt ist), Sätze abhaken. Nicht gewählt: Gewicht auf
+  der Uhr ändern, einen Satz zurücknehmen.
+- **Padel-Match auf der Uhr** als Training in Health (vor allem die kcal), mit Seiten für
+  Werte, Musik und Punkte; Golden oder Silver Point einstellbar; wer aufschlägt, läuft über
+  das Satzende weiter. Das Ergebnis landet von selbst an der Playtomic-Buchung zu dieser Zeit,
+  sobald Playtomic das Eintragen erlaubt.
+
+Ohne Rückfrage entschieden:
+- **Zuordnung und Eintragen macht der Padel-Dienst**, die Uhr schickt nur Beginn, Ende, Regel
+  und Sätze (`POST /api/results`). Verworfen: die App trägt selbst bei Playtomic ein - die
+  Playtomic-API erreicht nur der Heimserver, und die Anmeldung dort liegt beim Dienst.
+- **Die Uhr schickt selbst und zugleich übers iPhone**, der Dienst nimmt jede Kennung nur
+  einmal an. Verworfen: nur einer der Wege - beim Padel hat die Uhr meist nur das iPhone als
+  Netz, und `transferUserInfo` erreicht das iPhone auch, wenn Sport dort nicht läuft.
+- **Abgegeben werden nur fertige Sätze, und nur, wenn alle gültig sind** (6 mit zwei Spielen
+  Abstand, 7:5, 7:6). Beenden geht jederzeit; ein angefangener Satz fällt weg. Verworfen: den
+  laufenden Satz mitschicken - bei Playtomic stünde dann ein Ergebnis, das nie gespielt wurde,
+  und der Dienst nimmt ihn ohnehin nicht an (`ResultService.validate`).
+- **Silver Point = beim ersten 40:40 Vorteil, beim zweiten entscheidet der nächste Punkt.**
+  Verworfen: der „Star Point“ (zweimal Vorteil, erst das dritte 40:40 entscheidet) - Felix
+  nannte Golden und Silver.
+- **Ein Match zählt bis zwei gewonnene Sätze**, danach nimmt die Uhr keinen Punkt mehr an.
+  Verworfen: offen weiterzählen - Playtomic kennt drei Sätze (`Set-1` bis `Set-3`), gespielt
+  wird auf zwei gewonnene.
+- **Die Farbe eines Mitspielers kommt vom Dienst** (`partnerColor`), die App kennt keine Namen
+  - das Repo ist öffentlich, und Seite und App färben so gleich. Verworfen: Farben je Name in
+  der App.
+- **Padel-Tab in Reihenfolge und Wortlaut der Seite** (`padel/…/static/app.js`): nächster
+  Termin, Gebucht, Ergebnisse, Geplant, Serien, Plätze. Verworfen: eine eigene Gliederung -
+  zwei Ansichten mit verschiedenen Wörtern für denselben Zustand.
+- **Ein Match startet auf der Uhr, nicht gespiegelt.** Verworfen: vom iPhone starten wie das
+  Krafttraining - beim Padel liegt das iPhone in der Tasche.
+
 ## 2026-10-22 — Recovery: Abstand statt Rang, letzte 30 Nächte, Temperatur, Effekte je Baustein
 Felix' Entscheidungen (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5; gerechnet
 im Weight Tracker, die App zeigt nur):

@@ -1,15 +1,16 @@
-# Cockpit — Healthy, Vault, Fokus, Einkaufsliste, coHabit
+# Cockpit — Healthy, Vault, Fokus, Einkaufsliste, coHabit, Sport
 
-Fünf iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
+Sechs iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste auf dem iPhone
 bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker), Gym; Uhr-App mit kcal-Komplikation und Krafttraining | `com.fherrmann.cockpit` | – |
+| **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker); Uhr-App mit kcal-Komplikation | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | To-Do, Wald, Einkaufsliste, Evaluation | `com.fherrmann.fokus` | Evaluation, Face ID |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
 | **coHabit** | Habits gemeinsam mit Freunden: Heute, Timeline, Statistik, Profil | `com.fherrmann.cohabit` | – |
+| **Sport** | Padel (Autobuchung bei Playtomic), Gym (Weight Tracker); Uhr-App mit Krafttraining und Padel-Matches | `com.fherrmann.sport` | – |
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
 Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
@@ -17,6 +18,20 @@ eine geteilte Keychain-Gruppe in allen Apps — außer coHabit: dort hat jede
 Person ihren eigenen Token, eingefügt als Link.
 
 ## Was die Apps können
+
+**Padel** — die Autobuchung bei Playtomic, wie auf ihrer Seite
+`fherrmann.com/padel`: der nächste Termin mit Countdown bis zur Freigabe, die
+Buchungen (stornieren, einladen, öffentlich stellen, zusammenführen), Geplant,
+Serien und die Reihenfolge der Plätze. Termine sind in der Farbe des Mitspielers
+hinterlegt. Auf der Uhr startet ein **Padel-Match** als Training in Health: eine
+Seite zählt die Punkte (Golden oder Silver Point, wer aufschlägt), eine zeigt
+Dauer, Puls und kcal, eine steuert die Musik. Nach dem Match trägt der Dienst das
+Ergebnis bei Playtomic an der Buchung ein.
+
+**Gym** — die Trainingstage beim Weight Tracker; „Training starten" weckt die
+Uhr. Dort: das Gerät, das dran ist, Sätze abhaken (Wiederholungen mit der Krone),
+nach 90 Sekunden Pause vibriert sie, und die Geräteliste wechselt zu einem
+anderen, wenn eins besetzt ist.
 
 **Dashboard** — der erste Tab in Healthy, dort macht die App auf: die
 **Recovery** des Morgens (Score aus HRV, Puls im Schlaf, Schlaf und
@@ -114,8 +129,8 @@ Challenge-Platz.
 
 ```bash
 tools/bootstrap.sh                        # erzeugt Cockpit.xcodeproj aus project.yml
-tools/verify.sh                           # alle fünf bauen + Unit-Tests; tools/verify.sh Vault für eine
-tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle fünf
+tools/verify.sh                           # alle sechs bauen + Unit-Tests; tools/verify.sh Vault für eine
+tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle sechs
 ```
 
 Zum Ansehen im Simulator und zum automatisierten Durchklicken — immer mit der
@@ -133,7 +148,7 @@ gestarteten Notendienst statt gegen den Server — wie, steht im Kopf von
 
 Aufs iPhone gibt es zwei Wege. **Ohne Xcode-Fenster:**
 `tools/install-device.sh all --launch` — sucht das gekoppelte Gerät selbst,
-baut signiert und installiert alle drei. **Mit Xcode:** Projekt öffnen, oben in der Leiste
+baut signiert und installiert alle. **Mit Xcode:** Projekt öffnen, oben in der Leiste
 das iPhone als Ziel wählen, ⌘R.
 
 Gekoppelt wird einmalig per Kabel; hakt man in Xcode unter *Window → Devices
@@ -161,7 +176,7 @@ Keychain und werden von da an als Cookies gesetzt:
 
 | Token | Wofür | Wo er steht (auf dem Server) |
 |---|---|---|
-| `fh_private` | Essen-Tab und das Widget (gilt für alles unter `.fherrmann.com`) | `/etc/nginx/conf.d/private-mode.conf` |
+| `fh_private` | Essen-Tab, To-Do, Padel und das Widget (gilt für alles unter `.fherrmann.com`) | `/etc/nginx/conf.d/private-mode.conf` |
 | `weight_app_token` | Gewicht-Tab, Schritte, Dashboard (Recovery, Energie, Logbook) | `/etc/health-viz.env` |
 | `grades_token` + Benutzer + Passwort | Noten-Tab | `~/services/grades/grades.env` |
 
@@ -176,8 +191,9 @@ und TOTP-Code an; das Session-Cookie hält sieben Tage und verlängert sich bei
 Nutzung.
 
 **Health** fragt beim ersten Öffnen des Dashboards nach Erlaubnis für
-Gewicht, Schritte, Energie, Schlaf und Herzwerte (seit 14.10. auch: Trainings
-speichern, für das Krafttraining der Uhr). **Bewegung & Fitness** fragt Healthy
+Gewicht, Schritte, Energie, Schlaf und Herzwerte. Sport fragt beim ersten
+Krafttraining (iPhone) bzw. beim ersten Öffnen (Uhr) nach Trainings, Puls und
+Energie. **Bewegung & Fitness** fragt Healthy
 einmal beim Start - für die Schritte auf dem Sperrbildschirm. **Benachrichtigungen** fragt
 die erste Schnellerfassung ab (oder die ersten Fragen der Evaluation in Fokus bzw. die
 erste Verhaltensweise im Logbook). Beides lässt sich später in den iOS-Einstellungen ändern. Meldungen über

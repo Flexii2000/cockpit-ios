@@ -1,20 +1,21 @@
 # Arbeitsregeln für `cockpit-ios`
 
-Fünf iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
+Sechs iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
-`weight.fherrmann.com` samt Gym; dazu eine Uhr-App mit kcal-Komplikation und
-Krafttraining),
+`weight.fherrmann.com`; dazu eine Uhr-App mit kcal-Komplikation),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
 `finanzen.fherrmann.com`), **Fokus** (To-Do `fherrmann.com/todo`, Wald —
 Fokus-Sessions beim Habits-Dienst, Einkaufsliste `fherrmann.com/shopping-list`,
 Evaluation nur auf dem iPhone — beide seit 14.10. aus Healthy), **Einkaufsliste** (nur die Einkaufsliste — für das Handy
-von Joana, deren Token nur diesen einen Dienst öffnet) und **coHabit**
+von Joana, deren Token nur diesen einen Dienst öffnet), **coHabit**
 (Habits gemeinsam mit Freunden, `fherrmann.com/cohabit` — der frühere
-Habits-Dienst; eigener Token je Person, eigene Kacheln).
+Habits-Dienst; eigener Token je Person, eigene Kacheln) und **Sport** (seit
+23.10.: Padel-Autobuchung `fherrmann.com/padel` und das Gym beim Weight Tracker,
+bis dahin in Healthy; dazu die Uhr-App mit Krafttraining und Padel-Matches).
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
-`../grades`, `../habits`, `../todo`, `../shopping`) — von hier aus wird an
+`../grades`, `../habits`, `../todo`, `../shopping`, `../padel`) — von hier aus wird an
 ihnen nichts geändert, auch nicht "mal eben". Gerechnet wird in den Diensten (Sträh­nen, Abschlussnote,
 Tagessummen); die Apps zeigen.
 
@@ -23,19 +24,21 @@ Tagessummen); die Apps zeigen.
 | Ordner | übersetzt von | darf |
 |---|---|---|
 | `Shared/` | alle Apps **und** beide Erweiterungen | nichts, das es in einer Erweiterung nicht gibt (`UIApplication.shared`) |
-| `Core/` | alle fünf Apps (coHabit nimmt daraus nur `Notifications` und `FlowLayout`; Netz, Fehler- und Offline-Leisten hat es eigene) | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
+| `Core/` | alle sechs Apps (coHabit nimmt daraus nur `Notifications` und `FlowLayout`; Netz, Fehler- und Offline-Leisten hat es eigene) | nichts, das nur eine App kennt (Diagramm-Typen, Tab-Namen) |
 | `Shopping/` | Fokus **und** Einkaufsliste (bis 14.10. Healthy statt Fokus) | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy ein `DishEditSheet` hat |
-| `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/` | genau diese App | alles |
+| `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/`, `Sport/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
 | `HealthyWatch/`, `HealthyWatchWidget/` | die Uhr-App von Healthy und ihre Komplikation (watchOS) | dazu `Shared/` **ohne** die iPhone-Kacheln (`_watch_excludes` in project.yml: `CaloriesWidgetView`, `Color+Hex`, `Macro`, `GaugeView`, `Focus*`) — was dort neu dazukommt, muss auf watchOS bauen |
 | `HealthyWatchShared/` | Healthy, HealthyWatch **und** HealthyWatchWidget | Botschaften zwischen iPhone und Uhr, Komplikations-Stand und -Ansicht — nur Foundation/SwiftUI |
+| `SportWatch/` | die Uhr-App von Sport (watchOS) | Krafttraining und Padel-Match; dazu `Shared/` mit denselben `_watch_excludes` wie HealthyWatch |
+| `SportWatchShared/` | Sport **und** SportWatch | Botschaften des Trainings (`WorkoutMessage`, `WorkoutPlan`), das Zählen beim Padel (`PadelScore`), Ergebnisse auf dem Weg zum Dienst (`PadelReportOutbox`) — nur Foundation, kein HealthKit |
 | `coHabit/` | nur coHabit | alles |
 | `CohabitShared/` | coHabit **und** `coHabitWidget` | API-Client mit Bearer, Modelle, Postausgang, App-Gruppe `group.com.fherrmann.cohabit`, App-Intents und die Kachel-Ansichten — nichts, das es in einer Erweiterung nicht gibt |
 | `coHabitNotifications/` | nur die Notification Service Extension von coHabit | eine Datei; dazu einzeln (project.yml) `CohabitShared/NotificationImage.swift`, `ImageFormat.swift`, `CohabitToken.swift` und `Shared/Keychain.swift`, `Backend.swift` - **diese drei aus `CohabitShared/` duerfen nichts aus dem Rest von `CohabitShared/` benutzen**, sonst baut die Erweiterung nicht |
 | `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei plus `FocusShared/`, kein `Shared/`: legt beim Intervallstart den Schild (neu), nimmt ihn am Ende weg und ersetzt die Ende-Meldung durch „Apps wieder frei", sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
-`tools/verify.sh` immer alle fünf - und die Uhr. `TabSelection` und `Router` gibt es je App;
+`tools/verify.sh` immer alle sechs - und beide Uhren. `TabSelection` und `Router` gibt es je App;
 sie werden nicht geteilt.
 
 ## Vor dem ersten Handgriff
@@ -72,19 +75,19 @@ Routen wirklich aufmachen.
 
 ```bash
 tools/bootstrap.sh                 # einmalig + nach Änderungen an project.yml
-tools/verify.sh                    # baut alle fuenf + die Uhr fuer den Simulator, Unit-Tests in Healthy, Fokus, coHabit
+tools/verify.sh                    # baut alle sechs + beide Uhren fuer den Simulator, Unit-Tests in Healthy, Fokus, coHabit, Sport
 tools/verify.sh Vault              # nur eine
 tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
-tools/install-device.sh all --launch             # alle fuenf aufs iPhone (oder eine)
+tools/install-device.sh all --launch             # alle sechs aufs iPhone (oder eine), Healthy und Sport samt Uhr
 tools/testflight.sh Einkaufsliste                # archivieren + zu TestFlight hochladen (API-Schluessel mit Rolle Admin)
 tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen (signiert wie der Upload)
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkaufsliste`, `coHabit`; `verify.sh` kennt dazu `HealthyWatch`). Tabs: Healthy `dashboard|food|weight|gym|widget|recovery|logbook|effects`
+`Fokus`, `Einkaufsliste`, `coHabit`, `Sport`; `verify.sh` kennt dazu `HealthyWatch` und `SportWatch`). Tabs: Healthy `dashboard|food|weight|widget|recovery|logbook|effects`
 (`recovery` ist das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle), Vault
 `grades|finance`, Fokus `todo|forest|shopping|evaluation|widget`, Einkaufsliste hat nur die eine Seite,
-coHabit `today|timeline|stats|profile|new|widget`;
+coHabit `today|timeline|stats|profile|new|widget`, Sport `padel|gym`;
 `setup` öffnet das Zugang-Blatt (nicht in coHabit — dort ist der Zugang ein
 eingefügter Link).
 
@@ -195,9 +198,11 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `gym`, `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
-| `COCKPIT_GYM_DEMO=1` | füllt den Gym-Tab (Healthy) mit zwei erfundenen Tagen („Tag A", „Gerät A", zwei Spannen, Notiz „Sitz 4") und acht Wochen Verlauf - nur im Speicher, nie gesendet; `COCKPIT_GYM_WORKOUT=1` startet dazu gleich das Training samt erfundener Uhr-Werte |
-| `COCKPIT_WATCH_DEMO=kcal\|workout\|machine` | in der Uhr-App (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 bzw. ein laufendes Training - der Uhren-Simulator spiegelt kein Training und legt keine Komplikation aufs Zifferblatt; `machine` öffnet das Training auf der Seite des Geräts (Notiz, Spanne mit Krone) - blättern kann der Simulator nicht |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`; Sport `padel`, `gym`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_GYM_DEMO=1` | füllt den Gym-Tab (Sport, bis 23.10. Healthy) mit zwei erfundenen Tagen („Tag A", „Gerät A", zwei Spannen, Notiz „Sitz 4") und acht Wochen Verlauf - nur im Speicher, nie gesendet; `COCKPIT_GYM_WORKOUT=1` startet dazu gleich das Training samt erfundener Uhr-Werte |
+| `COCKPIT_WATCH_DEMO=kcal` | in der Uhr-App von Healthy (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 - der Uhren-Simulator legt keine Komplikation aufs Zifferblatt |
+| `COCKPIT_WATCH_DEMO=padel\|padel-metrics\|workout\|stations\|home` | in der Uhr-App von Sport (ebenso per `SIMCTL_CHILD_`): ein Padel-Match bei 6:4 3:2 und 40:40 mit Golden Point (`padel-metrics` auf der Seite mit Dauer, Puls und kcal), ein laufendes Krafttraining (`stations` auf der Geräteliste) bzw. der Start ohne Health-Dialog mit einem Ergebnis von heute - der Uhren-Simulator spiegelt kein Training, misst nichts und kann nicht blättern. Werte erfunden, nichts geht an Health oder den Dienst |
+| `COCKPIT_PADEL_DEMO=1` | füllt den Padel-Tab (Sport) mit erfundenen Terminen, Buchungen, Serien und einem Ergebnis, Mitspieler „Person A" (gelb) und „Person B" (türkis) - nur im Speicher, keine Anfrage an den Dienst; Ändern tut nichts |
 | `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Fokus) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
 | `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation (Fokus) mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
 | `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Recovery-Seite, Logbook mit Platzhaltern („Verhalten A", gestern halb beantwortet), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
@@ -216,7 +221,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |
 | `COCKPIT_FOREST_RANGE=month` | stellt den Wald auf einen Ausschnitt (`today`, `week`, `month`, `year`) |
 | `COCKPIT_FOREST_HOUR=19.5` | stellt die Uhr der Insel (Stunde in UTC) — Tag, Dämmerung und Nacht folgen sonst dem echten Sonnenstand über Hamburg |
-| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`, `_WEIGHT`, `_FOOD`) - gegen einen lokal gestarteten Dienst; der Privat-Token (beim Weight Tracker dessen eigener) wird dann auch fuer diesen Rechner als Cookie gesetzt |
+| `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_PADEL`, `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`, `_WEIGHT`, `_FOOD`) - gegen einen lokal gestarteten Dienst; der Privat-Token (beim Weight Tracker dessen eigener) wird dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_URL_KLIPY=http://127.0.0.1:48793/api/v1` | GIF-Suche in coHabit gegen `tools/klipy-stub.py` statt KLIPY - ohne echten Schluessel (nur auf dem Server) antwortet KLIPY nicht. `uitest.sh` reicht es an `testSendAGifFromTheSearch` weiter |
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann. Wirkt auch ohne Zugang: ein Setup-Link (`cohabit://setup?token=…`) meldet dann an, ein Einladungslink oeffnet die Registrierung |

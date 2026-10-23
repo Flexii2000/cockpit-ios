@@ -1,7 +1,7 @@
 # Die Backends
 
 Referenz für den Client. **Quelle ist der Code der Dienste** — Java in
-`../food`, `../weight-app` und `../habits` (coHabit), Python in `../grades`. Steht hier etwas anderes
+`../food`, `../weight-app`, `../habits` (coHabit) und `../padel`, Python in `../grades`. Steht hier etwas anderes
 als dort, gilt dort. Die Android-App (`../healthy-android`) spricht dieselben
 Endpunkte von Kalorienzähler und Weight Tracker, mit einem persönlichen Token
 statt der Cookies (siehe „Persönliche Token" unten).
@@ -18,6 +18,7 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | coHabit (früher Habits) | `https://fherrmann.com/cohabit/api` | `Authorization: Bearer` — Token **je Person** | **nativ** (App coHabit), daneben Web unter `/cohabit/` und Android |
 | Wald-Sessions | `https://fherrmann.com/habits/api/focus` | Cookie `fh_private` | **nativ** (Fokus, Wald) |
 | To-Do | `https://fherrmann.com/todo` | Cookie `fh_private` | **nativ** (Fokus) — daneben eine Weboberfläche |
+| Padel | `https://fherrmann.com/padel` | Cookie `fh_private` (Felix); Mitspieler mit eigener Seite: Cookie `padel_token` | **nativ** (Sport, seit 23.10.) — daneben die Seite des Dienstes |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
 also keine ATS-Ausnahme nötig). Kein VPN, kein Heimnetz-Zwang.
@@ -1243,6 +1244,60 @@ an, und geht der Eintrag in einem gleichnamigen offenen auf, trifft die Kennung
 der App diesen (`clientIds`). `clear-checked` schickt die Kennungen, die die App
 abgehakt sah (`{ids}`) — ein Haken der anderen Person, der inzwischen dazukam,
 bleibt. Gerichte und Regeln pflegen wartet auf die Antwort.
+
+## Padel — `/padel/api` (seit 2026-10-23)
+
+Die Autobuchung bei Playtomic (Dienst `../padel`, dort `README.md` und `CLAUDE.md`). Gelesen
+aus `controller/PadelController.java`, `dto/Views.java`, `security/SecurityConfig.java` und
+`results/ResultService.java`. Die App kennt nur Felix' Zugang (`fh_private`); Mitspieler haben
+die Seite des Dienstes mit ihrem eigenen Cookie.
+
+| Methode | Pfad | Antwort | Wer |
+|---|---|---|---|
+| GET | `/api/overview` | `Overview` | alle; ein Mitspieler sieht nur seine Termine |
+| GET | `/api/bookings` | `[BookingView]` - live aus Playtomic, dauert und kann für sich scheitern | alle (gefiltert) |
+| POST | `/api/occurrences/{id}/skip` · `/unskip` (`?day=true`: der ganze Tag, jeder Club) | `Overview` | alle |
+| POST | `/api/occurrences/{id}/retry` | `Overview` | Felix |
+| PUT | `/api/occurrences/{id}` (`SlotRequest`: verschieben) | `Overview` | Felix |
+| POST | `/api/occurrences` (`SlotRequest`: einmalig, mit `club`, `partner`) | `Overview`, 201 | Felix |
+| DELETE | `/api/occurrences/{id}` (`?day=true`) | `Overview` | Felix |
+| POST · PUT · DELETE | `/api/series`, `/api/series/{id}` (`SeriesRequest`) | `Overview` | Felix |
+| PUT | `/api/settings` (`courtOrder`, `splitPayment` - je `null` lässt) | `Overview` | Felix |
+| POST | `/api/bookings/{matchId}/cancel` · `/publish` | `[BookingView]` | alle (eigene) |
+| POST | `/api/bookings/{matchId}/merge` | `[BookingView]` | Felix |
+| GET | `/api/bookings/{matchId}/invite` | `{"url"}` | alle |
+| POST | `/api/results` (`ResultRequest`) | `ResultView` | Felix (die Uhr) |
+| GET | `/api/status`, `/api/admin/**` | - | Felix; die App ruft sie nicht |
+
+- **Jede Änderung antwortet mit dem neuen Stand** (`Overview` bzw. den Buchungen); die App zeigt
+  die Antwort und rechnet nichts nach. Nichts davon geht in einen Postausgang - ob ausgesetzt,
+  gebucht oder storniert ist, muss man sofort wissen.
+- **Ohne Zugang 403** (ohne `text/html` im `Accept` ohne Rumpf), `APIClient` macht daraus
+  `notAuthorised`. Andere Fehler kommen als deutscher Klartext (`PlainTextErrors`).
+- **Zeiten:** `releaseAt`, `watchUntil`, `now` als ISO-Zeitpunkt (mit Mikrosekunden);
+  `date` als `yyyy-MM-dd`, `start`/`end` als `HH:mm` in Berliner Zeit. `SeriesRequest.weekday`
+  ist ein Java-`DayOfWeek` (`"MONDAY"`).
+- **`partner` und `partnerColor`** (`#rrggbb` oder `null`) stehen an Terminen, Buchungen, Serien
+  und Ergebnissen, Farbe nur in Felix' Ansicht. `Overview.partners` (`PartnerView`: `id`,
+  `label`, `color`) ist die Auswahl beim Einplanen, `null` vor dem 23.10. An Terminen und
+  Serien ist `partner` immer gesetzt - ohne Eintrag in der Datei der erste Mitspieler, wie vor
+  dem 23.10.
+- **`PUT /api/series/{id}`** ersetzt Wochentag, Beginn, Dauer, `latestStart` und `club`;
+  `partner` und `from` (erster Tag der Serie) bleiben bei `null`, `active` ohne Wert ist `true`.
+  Pausieren schickt deshalb alles zurück, wie es kam.
+- **`POST /api/results`** - was die Uhr nach einem Match schickt (`PadelMatchReport`):
+  `{"id": "<UUID>", "startedAt", "endedAt", "rule": "golden"|"silver", "sets": [{"us": 6, "them": 4}, …]}`.
+  - Nur abgeschlossene, gültige Sätze (6:0 bis 6:4, 7:5, 7:6), einer bis drei; Kennung
+    `[A-Za-z0-9-]{1,64}`, höchstens sechs Stunden. Sonst 400 „Kein gültiges Ergebnis.“ - ein
+    zweiter Versuch hilft nicht, `PadelReportOutbox` wirft es weg.
+  - Dieselbe Kennung zweimal ist ein Ergebnis (die Uhr schickt direkt und übers iPhone).
+  - Ein Tie-Break, den die Uhr mitschickt, bleibt unbeachtet.
+  - Der Dienst sucht die Buchung, die zur selben Zeit lief (Beginn bis drei Stunden vor dem
+    Start auf der Uhr), und trägt nach der Platzmiete ein, sobald Playtomic es zulässt (alle zwei
+    Minuten, bis sechs Stunden nach dem Ende). Ein schon eingetragenes Ergebnis überschreibt er
+    nie. Was daraus wurde, steht in `Overview.results` - nur in Felix' Ansicht, die letzten 14
+    Tage (`ResultView.status`: `WAITING`, `SUBMITTED`, `ALREADY_ENTERED`, `NO_BOOKING`,
+    `NOT_POSSIBLE`, `FAILED`; `statusText` zum Anzeigen).
 
 ## Finance Cockpit — kein API
 

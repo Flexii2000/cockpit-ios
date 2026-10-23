@@ -1,7 +1,7 @@
 # Stand
 
-> **Sport (23.10., Branch `sport`, nicht gemergt, nicht installiert):** neue App „Sport“
-> (`com.fherrmann.sport`) mit Padel und Gym, dazu die Uhr-App `SportWatch`. Felix' Wünsche:
+> **Sport (23.10.):** neue App „Sport“ (`com.fherrmann.sport`) mit Padel und Gym, dazu die
+> Uhr-App `SportWatch` (Entscheidungen in `docs/ENTSCHEIDUNGEN.md`, 23.10.). Felix' Wünsche:
 > - Padel-Seite nativ.
 > - Gym-Tab aus Healthy dorthin.
 > - Eigene Uhr-App fürs Krafttraining. Healthys Uhr behält nur die kcal-Komplikation.
@@ -10,27 +10,35 @@
 > - Padel-Matches auf der Uhr: Workout in Health, Seiten Werte · Punkte · Musik, Golden oder
 >   Silver Point, Aufschlag über Sätze. Das Ergebnis geht an den Padel-Dienst; der trägt es
 >   nach der Platzmiete bei Playtomic ein (dort live seit 23.10., `f1c1876`).
-> - **Fertig im Code:**
->   - Gerüst, Gym umgezogen (`Sport/Gym`, Tests `SportTests/GymTests`).
->   - `SportWatch` mit Krafttraining und Padel.
->   - `SportWatchShared` (Botschaften `WorkoutPlan`/`choose`, `PadelScore`, `PadelReportOutbox`).
->   - Healthy ohne Gym, Uhr nur kcal; `Core/CardStyle.swift`, `Backend.padel`.
->   - `APIClient.send(…query:)`, Icon `make-icon.swift sport`, Skripte (verify, run-simulator,
->     uitest) kennen Sport.
-> - **Geprüft:** nur `xcodebuild build -scheme Sport` (samt SportWatch) ohne Warnungen.
->   `tools/verify.sh` (alle Apps, Tests inkl. `PadelScoreTests`) ist **noch nicht gelaufen**,
->   ebenso keine Bilder von Uhr oder App.
-> - **Offen:**
->   1. Der native Padel-Tab: `Sport/Padel/PadelTab.swift` ist ein Platzhalter. Funktionsumfang
->      wie `padel/src/main/resources/static/app.js`, dazu Ergebnisse und `partnerColor` aus
->      dem Dienst.
->   2. `tools/verify.sh`.
->   3. Uhr-Bilder (`COCKPIT_WATCH_DEMO=padel|workout|stations`).
->   4. `install-device.sh` für Sport samt Uhr (Kopie des Healthy-Uhrteils).
->   5. Doku: CLAUDE.md-Tabelle, ARCHITEKTUR, ENTSCHEIDUNGEN, BACKENDS.
->   6. Installieren (Heimnetz, VPN aus).
->   7. Danach `sport` nach `main`.
-
+> - **Fertig:**
+>   - Gym umgezogen (`Sport/Gym`, Tests `SportTests/GymTests`), Healthy ohne Gym, Uhr nur kcal.
+>   - `SportWatch` mit Krafttraining (Plan, Geräteliste, Pause) und Padel (Spielstand,
+>     Zurück, Werte, Musik).
+>   - `SportWatchShared`: Botschaften `WorkoutPlan`/`choose`, `PadelScore`,
+>     `PadelReportOutbox`.
+>   - Der native Padel-Tab (`Sport/Padel`): nächster Termin mit Countdown, Gebucht
+>     (Stornieren, Einladen, öffentlich, Zusammenführen), Ergebnisse, Geplant je Tag und
+>     Mitspieler (Aussetzen, Fortsetzen, Nochmal, Verschieben, Entfernen), Serien (Anlegen, Pausieren,
+>     Löschen), Einmalig, Plätze, Kalender, Stand. Farbe je Mitspieler vom Dienst.
+>     Vorführdaten `COCKPIT_PADEL_DEMO=1`.
+>   - Uhr-Vorführungen `COCKPIT_WATCH_DEMO=padel|padel-metrics|workout|stations|home`.
+>   - `install-device.sh Sport` installiert samt Uhr-App; Doku (CLAUDE.md, ARCHITEKTUR,
+>     ENTSCHEIDUNGEN, BACKENDS „Padel“, README).
+> - **Geprüft:** `tools/verify.sh` (alle sechs + beide Uhren; Healthy 282 XCTests + 31
+>   Swift-Tests, Fokus 41, coHabit 182, Sport 53: `GymTests`, `PadelScoreTests`,
+>   `PadelTests`), UI-Tests `SportUITests` (Gym, Tabs,
+>   `testPadelDemoShowsEverySection` hell und dunkel). Uhr im Simulator (Series 12, 42 mm):
+>   Spielstand, Werte, Training, Geräteliste, Start - alles mit Vorführdaten.
+> - **Nicht geprüft:** echte Trainings und Puls (der Simulator misst nichts), das Spiegeln
+>   des Krafttrainings mit der neuen Uhr-App, die Zustellung eines Ergebnisses an den Dienst
+>   und das Eintragen bei Playtomic (das erste echte Match ist der erste Lauf).
+> - **Auf dem Gerät prüfen:** (1) Sport öffnen - Padel zeigt dasselbe wie die Seite, Zugang
+>   per Zahnrad (der Privat-Token liegt schon im geteilten Schlüsselbund). (2) Gym → „Training
+>   starten“: die Uhr-App Sport geht auf (nicht mehr Healthy); Satz abhaken, nach 90 s
+>   vibriert sie, Geräteliste wechselt. (3) Auf der Uhr Padel starten, ein paar Punkte, Zurück,
+>   Beenden - das Training steht in Fitness mit kcal. (4) Nach einem echten Match: unter
+>   „Ergebnisse“ „bei Playtomic eingetragen“ bzw. was der Dienst meldet. (5) Healthys Uhr-App:
+>   nur noch der Tagesstand, die Komplikation läuft weiter.
 
 > **Healthy: Recovery als Abstand, letzte 30 Nächte, Handgelenktemperatur, Effekte je Baustein
 > (22.10.):** in `main` (`d49697a`); der Weight Tracker rechnet es seit 22.10. 11:50 live (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5,

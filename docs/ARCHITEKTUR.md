@@ -31,6 +31,8 @@ danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
           + To-Do in Fokus (Bereiche als Seiten im Tab; der Dienst hat daneben Kacheln im Browser)
 2026-09   + coHabit als fünfte App: die Habits ziehen aus Fokus aus und werden
             gemeinsam mit Freunden verfolgt (eigene Anmeldung je Person, Web daneben)
+2026-10   + Sport als sechste App: Padel nativ (bis dahin nur die Seite des Dienstes) und
+            das Gym aus Healthy, eigene Uhr-App für Krafttraining und Padel-Matches
 ```
 
 ### Aufbau eines nativen Tabs
@@ -50,7 +52,7 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Healthy/            App: Dashboard, Essen, Gewicht, Gym, Health-Abgleich, Diagramm-Bausteine
+Healthy/            App: Dashboard, Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine (Gym seit 23.10. in Sport)
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
   Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, darunter
                     das Logbook; Vorführdaten - auch für Essen- und Gewicht-Tab
@@ -59,8 +61,6 @@ Healthy/            App: Dashboard, Essen, Gewicht, Gym, Health-Abgleich, Diagra
   Logbook/          Logbook und Effekte im Dashboard (LogbookSection, LogbookDays), Verhalten-Blatt,
                     Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
-  Gym/              Trainingstage, Haken, Trainingsansicht (seit 14.10.), beim Weight Tracker;
-                    WorkoutMirror: das gespiegelte Training der Uhr
   Watch/            WatchLink: Token und kcal-Stand an die Uhr (WatchConnectivity)
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync),
                     Schritte für die Sperrbildschirm-Kacheln (StepsWidgetBridge)
@@ -84,17 +84,29 @@ Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg 
   App/
 Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Fokus UND Einkaufsliste
                     (bis 14.10. Healthy statt Fokus)
-Core/               was alle fünf Apps brauchen, aber keine Erweiterung (coHabit nur Notifications):
+Sport/              App (seit 23.10.): Padel und Gym
+  App/              Einstieg, Tab-Gerüst, AppDelegate (gespiegeltes Training, Draht zur Uhr)
+  Padel/            Autobuchung bei Playtomic über den Padel-Dienst: nächster Termin, Buchungen,
+                    Ergebnisse von der Uhr, Geplant, Serien, Plätze; Vorführdaten
+  Gym/              Trainingstage, Haken, Trainingsansicht (seit 14.10., bis 23.10. in Healthy),
+                    beim Weight Tracker; WorkoutMirror: das gespiegelte Training der Uhr
+  Watch/            SportWatchLink: Token an die Uhr, Ergebnisse und Trainings-Botschaften als Rückfall
+Core/               was alle sechs Apps brauchen, aber keine Erweiterung (coHabit nur Notifications):
                     Zugang (Cookies, Keychain-Wanderung), Sperre samt Sperrbildschirm,
                     Benachrichtigungen, Zugang-Blatt, Fehler-/Offline-Leisten
 Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert), seit 14.10.
                     dazu Schritte (Ring) und „Heute" (kcal + Schritte) auf dem Sperrbildschirm
-HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Training, Tagesstand
+HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Tagesstand (das Training
+                    seit 23.10. in SportWatch)
 HealthyWatchWidget/ kcal-Komplikation der Uhr (Stil der Temperatur-Komplikation)
 HealthyWatchShared/ was iPhone und Uhr teilen: Botschaften (WatchMessages), Komplikations-Stand
                     und -Ansicht - Healthy, HealthyWatch und HealthyWatchWidget übersetzen es
+SportWatch/         Uhr-App von Sport (watchOS 11, in Sport.app/Watch/): Krafttraining (vom iPhone
+                    gestartet und gespiegelt) und Padel-Match (auf der Uhr gestartet), beide in Health
+SportWatchShared/   was Sport und SportWatch teilen: Trainings-Botschaften, das Zählen beim Padel,
+                    Postausgang der Ergebnisse
 FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session
 FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
                     Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
@@ -103,15 +115,16 @@ FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallsta
 Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
 FokusTests/         Unit-Tests der Evaluation samt Übernahme aus Healthy (Wirt: Fokus)
 CohabitTests/       Unit-Tests von coHabit (Wirt: coHabit - CohabitShared liegt nur dort)
-UITests/            Harness.swift (gemeinsam) + je App eine Datei, fünf Bundles
-project.yml         Quelle des Xcode-Projekts - fünf App-Targets, YAML-Anker für Gemeinsames
+SportTests/         Unit-Tests von Gym, Padel-Tab und dem Zählen beim Padel (Wirt: Sport)
+UITests/            Harness.swift (gemeinsam) + je App eine Datei, sechs Bundles
+project.yml         Quelle des Xcode-Projekts - sechs App-Targets, YAML-Anker für Gemeinsames
 tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · make-icon
 docs/               diese Doku
 ```
 
-⚠️ **Fünf Apps, ein Repo.** Nicht fünf Repos: Zugang, Cookies, Cache,
-Postausgang, Sperre, Tools und Harness würden sonst vierfach gepflegt. Was
-in `Core/` liegt, muss in allen vier Apps übersetzen — wer dort etwas
+⚠️ **Sechs Apps, ein Repo.** Nicht sechs Repos: Zugang, Cookies, Cache,
+Postausgang, Sperre, Tools und Harness würden sonst sechsfach gepflegt. Was
+in `Core/` liegt, muss in allen Apps übersetzen — wer dort etwas
 einbaut, das nur eine App kennt (Diagramm-Typen, Tab-Namen), bricht die
 anderen. `Shopping/` ist der eine Ordner, den genau zwei Apps teilen: der
 Einkaufs-Tab in Fokus (bis 14.10. in Healthy) und die ganze App Einkaufsliste sind derselbe Code. `TabSelection` und `Router` sind deshalb **je App** klein
@@ -431,19 +444,44 @@ zurück. Fokus (`Fokus/Evaluation/EvaluationImport`) prüft, schreibt, liest zur
 quittiert und räumt den Eintrag weg - Antworten, die es schon hat, überschreibt es
 nie (die aus Healthy liegen dann daneben als `evaluation-healthy.json`).
 
-**Healthy: Gym und Uhr (14.10.).** Trainingstage, Geräte, Besuche und Haken liegen
+**Sport: Gym und Uhr (14.10. in Healthy, seit 23.10. in Sport).** Trainingstage, Geräte, Besuche und Haken liegen
 beim Weight Tracker (Vertrag §6); jeder Schreibweg ist ein PUT mit der Kennung der
 App und geht durch die Warteschlange (`GymChange`), angezeigt wird der Stand des
 Dienstes mit `GymOverlay` darüber. Welcher Tag dran ist und „letztes Mal" rechnet
 der Dienst. Ob ein Training läuft, merkt sich die App (`ActiveWorkout`). „Training
-starten" weckt die Uhr-App mit einem Krafttraining (`HKHealthStore.startWatchApp`);
+starten" weckt die Uhr-App von Sport mit einem Krafttraining (`HKHealthStore.startWatchApp`);
 die Uhr führt `HKWorkoutSession` + `HKLiveWorkoutBuilder`, spiegelt die Session
 aufs iPhone (`startMirroringToCompanionDevice`) und speichert am Ende in Health.
 Über die gespiegelte Session gehen `WorkoutMessage`s: Puls und kcal von der Uhr,
-das aktuelle Gerät zur Uhr, „Satz erledigt" mit Kennung und Quittung zurück (nur
-das iPhone schreibt zum Dienst). Der Handler für die Spiegelung steht im
-`AppDelegate`, weil iOS die App dafür im Hintergrund weckt; die HealthKit-Delegaten
-sind `nonisolated` und reichen nur Werte weiter.
+der Plan zur Uhr (`WorkoutPlan`: das aktuelle Gerät, alle Geräte des Tages mit ihren
+Haken, der letzte Satz für die Pausenzeit), „Satz erledigt" und „anderes Gerät"
+(`choose`) mit Kennung und Quittung zurück (nur das iPhone schreibt zum Dienst;
+quittiert es nicht, geht die Botschaft nach fünf Versuchen per WatchConnectivity).
+90 Sekunden nach dem letzten Satz vibriert die Uhr einmal. Der Handler für die
+Spiegelung steht im `AppDelegate`, weil iOS die App dafür im Hintergrund weckt; die
+HealthKit-Delegaten sind `nonisolated` und reichen nur Werte weiter.
+
+**Sport: Padel auf der Uhr (23.10.).** Ein Match startet auf der Uhr
+(`WorkoutManager.startPadel`): ein eigenes `HKWorkoutSession` (`.paddleSports`, drinnen),
+nicht gespiegelt - das iPhone muss nicht dabei sein. Gezählt wird in `PadelScore`
+(`SportWatchShared`, getestet): Golden oder Silver Point (erst Vorteil, beim zweiten
+40:40 entscheidet der nächste Punkt), Tie-Break bei 6:6, der Aufschlag wechselt je
+Spiel und läuft über das Satzende weiter. Der Stand wird nach jedem Punkt gemerkt,
+ein Absturz der App verliert ihn nicht; „Zurück" nimmt Punkte zurück. Am Ende
+speichert die Uhr das Training in Health (kcal) und gibt ein gültiges Ergebnis ab:
+direkt an den Padel-Dienst (`POST /api/results` mit dem Privat-Token, den
+`SportWatchLink` als Kontext schickt) und zugleich übers iPhone (`transferUserInfo`),
+beide über `PadelReportOutbox`; der Dienst nimmt jede Kennung nur einmal an. Welche
+Buchung dazugehört und wann es bei Playtomic eingetragen wird, entscheidet der Dienst
+(`padel/README.md`), nicht die App.
+
+**Sport: der Padel-Tab (23.10.).** Nativ, nach dem Muster API · Store · View, mit dem
+Privat-Cookie wie To-Do (`Backend.padel`). Er zeigt, was die Seite des Dienstes zeigt,
+in derselben Reihenfolge und mit denselben Texten (`PadelPlan` bildet `app.js` nach:
+ein Eintrag je Tag und Mitspieler, Status, Freigabe, Rückfall); gerechnet wird beim
+Dienst - jede Änderung antwortet mit der neuen Übersicht. Die Buchungen kommen live von
+Playtomic und dürfen für sich scheitern. Die Farbe eines Mitspielers (die beiden mit
+eigener Seite haben je eine) kommt vom Dienst (`partnerColor`), die App kennt keine Namen.
 
 **Healthy: das Logbook liegt beim Dienst, die Erinnerung auf dem iPhone.**
 Verhaltensweisen und Werte stehen im Weight Tracker (je Person, die Effekte
