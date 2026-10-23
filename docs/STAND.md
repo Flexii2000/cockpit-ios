@@ -36,6 +36,7 @@
 > Level 2,14). Pausieren lässt die Wahl, wie sie ist (`levelLimit` fehlt im PUT).
 > - **Geprüft:** `tools/verify.sh Sport` (58 Tests, neu: Feld lesen, Wahl senden, beim Pausieren
 >   nicht).
+> - **Installiert** auf Felix' iPhone und Uhr am 23.10. um 23:25 (`d2030ba`).
 > - **Auf dem Gerät prüfen:** Padel → „+“ → „Serie …“: Zeile „Level“; an den Serien das Schild.
 
 > **Sport-Uhr, Zählseite (23.10. nachmittags, Felix nach dem ersten Ausprobieren):** die anderen
