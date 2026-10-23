@@ -3,6 +3,30 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-23 (nachmittags) — Sport-Uhr: Zählseite nach dem ersten Ausprobieren
+Felix' Entscheidungen:
+- **Die anderen oben, wir unten** - wie das Feld von unserer Seite aus. Verworfen: wir oben (so
+  war es zuerst).
+- **Der Aufschlag merkt sich den Spieler, links oder rechts.** Je Team schlägt abwechselnd der
+  linke und der rechte Spieler auf; der Ball steht in der Hälfte des aufschlagenden Teams auf
+  dessen Seite und läuft über die Sätze weiter. Verworfen: die Seite, von der innerhalb eines
+  Spiels aufgeschlagen wird (erster Punkt rechts, dann abwechselnd).
+- **Anfangs rechts, Antippen des Balls tauscht** - beim ersten Aufschlagspiel eines Teams und
+  wenn ein Team zu Satzbeginn die Reihenfolge ändert. Verworfen: links oder rechts vor dem Start
+  wählen (das andere Team ginge so ohnehin erst bei seinem ersten Aufschlagspiel).
+- **Versehentliche Punkte direkt auf der Zählseite zurücknehmen.**
+
+Ohne Rückfrage entschieden:
+- **„Zurück“ links in der Zeile zwischen den Hälften**, die Steuerseite behält ihres. Verworfen:
+  nur auf der Steuerseite - mitten im Spiel ein Wischen zu weit weg. Es nimmt die letzte Aktion
+  zurück, auch ein Antippen des Balls.
+- **Im Tie-Break wechseln die Spieler reihum wie in den Spielen**, und danach geht es so weiter.
+  Die Regel lässt beiden Teams zu Satzbeginn die Wahl - dafür ist das Antippen da.
+- **Die Zählseite lässt unten Platz für die Seitenpunkte.** Verworfen: bis an den Rand (so war es,
+  und die runden Ecken des Displays schnitten die untere Hälfte an).
+- **Ein gemerkter Stand von vorher lädt weiter** (`storedServers` fehlt → rechts), damit ein
+  laufendes Match ein Update übersteht.
+
 ## 2026-10-23 — Sport: eigene App für Padel und Gym, eigene Uhr-App, Ergebnisse von der Uhr
 Felix' Entscheidungen:
 - **Eigene App „Sport“** (`com.fherrmann.sport`) mit Padel und Gym; der Gym-Tab zieht aus

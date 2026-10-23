@@ -466,8 +466,11 @@ HealthKit-Delegaten sind `nonisolated` und reichen nur Werte weiter.
 nicht gespiegelt - das iPhone muss nicht dabei sein. Gezählt wird in `PadelScore`
 (`SportWatchShared`, getestet): Golden oder Silver Point (erst Vorteil, beim zweiten
 40:40 entscheidet der nächste Punkt), Tie-Break bei 6:6, der Aufschlag wechselt je
-Spiel und läuft über das Satzende weiter. Der Stand wird nach jedem Punkt gemerkt,
-ein Absturz der App verliert ihn nicht; „Zurück" nimmt Punkte zurück. Am Ende
+Spiel und läuft über das Satzende weiter - je Team abwechselnd der linke und der rechte
+Spieler (`PadelServers`, anfangs rechts; der Ball auf der Uhr tauscht beim Antippen).
+Der Stand wird nach jedem Punkt gemerkt, ein Absturz der App verliert ihn nicht;
+„Zurück" (auf der Zählseite und auf der Steuerseite) nimmt Punkte und das Antippen des
+Balls zurück. Am Ende
 speichert die Uhr das Training in Health (kcal) und gibt ein gültiges Ergebnis ab:
 direkt an den Padel-Dienst (`POST /api/results` mit dem Privat-Token, den
 `SportWatchLink` als Kontext schickt) und zugleich übers iPhone (`transferUserInfo`),

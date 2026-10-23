@@ -1,5 +1,17 @@
 # Stand
 
+> **Sport-Uhr, Zählseite (23.10. nachmittags, Felix nach dem ersten Ausprobieren):** die anderen
+> oben, wir unten; der Ball steht links oder rechts beim Spieler, der aufschlägt (je Team
+> abwechselnd, anfangs rechts, Antippen tauscht, läuft über Sätze und Tie-Break weiter -
+> `PadelServers` in `PadelScore`); „Zurück“ jetzt auch direkt auf der Zählseite (Mittelzeile links,
+> nimmt auch das Antippen des Balls zurück); unten nichts mehr abgeschnitten (Platz für die
+> Seitenpunkte statt `ignoresSafeArea`). Entscheidungen in `docs/ENTSCHEIDUNGEN.md`.
+> - **Geprüft:** `tools/verify.sh Sport` (57 Tests, neu: Spieler über Sätze, Antippen, Tie-Break,
+>   alter Stand ohne Spieler) und `SportWatch`. Im Simulator 42 und 46 mm: normale Seite (Ball
+>   links bei „Die“) und ein Tie-Break (Ball rechts), mit Vorführdaten.
+> - **Auf dem Gerät prüfen:** Ball antippen tauscht links/rechts, ein Tipp daneben zählt einen
+>   Punkt; „Zurück“ in der Mitte; die untere Hälfte ganz zu sehen.
+
 > **Sport (23.10.):** neue App „Sport“ (`com.fherrmann.sport`) mit Padel und Gym, dazu die
 > Uhr-App `SportWatch` (Entscheidungen in `docs/ENTSCHEIDUNGEN.md`, 23.10.). Felix' Wünsche:
 > - Padel-Seite nativ.
