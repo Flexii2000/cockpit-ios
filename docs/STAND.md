@@ -1,6 +1,11 @@
 # Stand
 
-> **Healthy: „Defizit Tag“ (23.10. abends, Felix):** Branch `deficit-day`. Neue Kurve im
+> **Healthy: Uhr-Komplikation mit dem Rest (23.10. 18:00, Felix):** in der Mitte steht, was
+> übrig ist (`750`, drüber `+120`), statt des Gegessenen; der Bogen füllt sich weiter mit dem
+> Gegessenen (links 0, rechts das Ziel). Auch in der Uhr-App, dieselbe `KcalGaugeView`. Test in
+> `RemainingCaloriesTests`.
+
+> **Healthy: „Defizit Tag“ (23.10. abends, Felix):** in `main`. Neue Kurve im
 > Essen-Verlauf und im Gewicht-Diagramm (Vertrag §5): `deficitKcal` jedes **abgeschlossenen**
 > Tages - heute nie, auch nicht als Prognose; Tage ohne Wert sind Lücke - auf der Skala von
 > „Defizit ⌀“, blass (55 %) wie „kcal Tag“. Schalter „Defizit Tag“ direkt hinter „Defizit ⌀“,
@@ -15,7 +20,7 @@
 >   UI-Test `testFoodHistoryOffersTheDailyDeficit` (Schalter erreichbar, angetippt). Im Simulator
 >   mit Vorführdaten hell und dunkel: Gewicht-Diagramm (90 Tage mit beiden Kurven, 30 Tage nur
 >   der Tageswert) und Essen-Verlauf.
-> - **Nächster Schritt:** nach `main` und aufs iPhone.
+> - **Nächster Schritt:** aufs iPhone, zusammen mit der Uhr-Komplikation (Eintrag darüber).
 
 > **Healthy: Heute-Kachel mit dem Rest (23.10. 15:30, Felix):** die große Sperrbildschirm-Kachel
 > zeigt unter dem kcal-Ring `750 kcal übrig` bzw. `120 kcal drüber` statt des Gegessenen; der Ring

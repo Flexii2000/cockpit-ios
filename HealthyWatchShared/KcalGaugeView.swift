@@ -1,8 +1,10 @@
 import SwiftUI
 
 /// Die kcal-Komplikation (Felix, 14.10.) im Stil der Temperatur-Komplikation:
-/// ein Bogen mit Verlauf von Gruen nach Orange, links „0“, in der Mitte, was
-/// heute gegessen ist, rechts das Tagesziel. Ueber dem Ziel bleibt der Bogen voll.
+/// ein Bogen mit Verlauf von Gruen nach Orange, links „0“, rechts das
+/// Tagesziel; der Bogen fuellt sich mit dem, was heute gegessen ist, und bleibt
+/// ueber dem Ziel voll. In der Mitte steht seit 23.10., was noch uebrig ist
+/// (Felix) - vorher das Gegessene.
 ///
 /// Liegt in `HealthyWatchShared`, damit auch die Kachel-Vorschau der iPhone-App
 /// sie zeigen kann - den Uhren-Simulator kann niemand aufs Zifferblatt legen.
@@ -17,7 +19,7 @@ struct KcalGaugeView: View {
             Gauge(value: min(consumed, target), in: 0...target) {
                 Text("kcal")
             } currentValueLabel: {
-                Text(String(Int(consumed.rounded())))
+                Text(Self.center(consumed: consumed, target: target))
             } minimumValueLabel: {
                 // Die Grenzen muessen reine `Text` sein - der Stil verkleinert sie selbst.
                 Text("0").foregroundStyle(.green)
@@ -27,7 +29,7 @@ struct KcalGaugeView: View {
             .gaugeStyle(.accessoryCircular)
             .tint(Gradient(colors: [.green, .yellow, .orange]))
             .accessibilityLabel("Kalorien")
-            .accessibilityValue("\(Int(consumed.rounded())) von \(Int(target.rounded()))")
+            .accessibilityValue(Self.spokenRest(consumed: consumed, target: target))
         } else {
             Gauge(value: 0) {
                 Text("kcal")
@@ -36,5 +38,17 @@ struct KcalGaugeView: View {
             }
             .gaugeStyle(.accessoryCircular)
         }
+    }
+
+    /// Der Rest in der Mitte, drueber mit Plus davor - wie der runde kcal-Ring auf
+    /// dem iPhone-Sperrbildschirm: fuer „drüber“ ist kein Platz.
+    static func center(consumed: Double, target: Double) -> String {
+        let rest = Int((target - consumed).rounded())
+        return rest < 0 ? "+\(-rest)" : "\(rest)"
+    }
+
+    private static func spokenRest(consumed: Double, target: Double) -> String {
+        let rest = Int((target - consumed).rounded())
+        return rest < 0 ? "\(-rest) kcal drüber" : "\(rest) kcal übrig"
     }
 }
