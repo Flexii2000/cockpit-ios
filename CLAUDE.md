@@ -251,7 +251,9 @@ kamen genau daher (04.09.).
 `install-device.sh` sucht das iPhone selbst. Es muss einmal per Kabel mit
 Xcode gekoppelt worden sein (Xcode 27: App DeviceHub, „Connect via network"),
 danach reicht dasselbe WLAN. Ist es gesperrt oder nicht im Netz, bricht das
-Skript mit einer Erklärung ab statt mit einem Fehlercode.
+Skript mit einer Erklärung ab statt mit einem Fehlercode. Ist in Xcode kein
+Konto angemeldet („No Accounts“), legt es die Profile neuer Bundle-IDs über den
+App-Store-Connect-Schlüssel von `testflight.sh` an (`~/.appstoreconnect`, 23.10.).
 
 **Nie behaupten, etwas baue, ohne `tools/verify.sh` gelaufen zu haben.**
 Swift-Code, der nur "aussieht wie er kompiliert", ist ungeprüfter Code —
