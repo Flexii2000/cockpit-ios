@@ -318,6 +318,13 @@ final class WorkoutManager {
     /// Fuer Aufnahmen im Uhren-Simulator (`COCKPIT_WATCH_DEMO`) - dort gibt es kein
     /// gespiegeltes Training und keine Messung.
     func showDemo(_ which: String) {
+        if which == "home" {
+            // Der Start ohne den Health-Dialog, den der Simulator nicht wegklicken kann.
+            lastReport = PadelMatchReport(id: "demo", startedAt: Date().addingTimeInterval(-5_400),
+                                          endedAt: Date().addingTimeInterval(-600), rule: .golden,
+                                          sets: [PadelSetScore(us: 6, them: 4), PadelSetScore(us: 6, them: 2)])
+            return
+        }
         startDate = Date().addingTimeInterval(-754)
         heartRate = 128
         activeKcal = 143

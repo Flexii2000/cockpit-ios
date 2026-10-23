@@ -7,7 +7,7 @@ struct PadelWatchView: View {
 
     enum Page: Hashable { case controls, score, metrics, music }
 
-    @State private var page = Page.score
+    @State private var page = PadelWatchView.firstPage
     private var workout: WorkoutManager { WorkoutManager.shared }
 
     var body: some View {
@@ -18,6 +18,14 @@ struct PadelWatchView: View {
             NowPlayingView().tag(Page.music)
         }
         .tabViewStyle(.page)
+    }
+
+    private static var firstPage: Page {
+        #if DEBUG
+        // Fuer Aufnahmen: der Uhren-Simulator kann nicht blaettern.
+        if ProcessInfo.processInfo.environment["COCKPIT_WATCH_DEMO"] == "padel-metrics" { return .metrics }
+        #endif
+        return .score
     }
 }
 
