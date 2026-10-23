@@ -1,5 +1,37 @@
 # Stand
 
+> **Sport (23.10., Branch `sport`, nicht gemergt, nicht installiert):** neue App „Sport“
+> (`com.fherrmann.sport`) mit Padel und Gym, dazu die Uhr-App `SportWatch`. Felix' Wünsche:
+> - Padel-Seite nativ.
+> - Gym-Tab aus Healthy dorthin.
+> - Eigene Uhr-App fürs Krafttraining. Healthys Uhr behält nur die kcal-Komplikation.
+> - Training auf der Uhr schöner, mit Pausenzeit (Vibration nach 90 s), Geräteliste zum
+>   Wechseln und Sätze abhaken.
+> - Padel-Matches auf der Uhr: Workout in Health, Seiten Werte · Punkte · Musik, Golden oder
+>   Silver Point, Aufschlag über Sätze. Das Ergebnis geht an den Padel-Dienst; der trägt es
+>   nach der Platzmiete bei Playtomic ein (dort live seit 23.10., `f1c1876`).
+> - **Fertig im Code:**
+>   - Gerüst, Gym umgezogen (`Sport/Gym`, Tests `SportTests/GymTests`).
+>   - `SportWatch` mit Krafttraining und Padel.
+>   - `SportWatchShared` (Botschaften `WorkoutPlan`/`choose`, `PadelScore`, `PadelReportOutbox`).
+>   - Healthy ohne Gym, Uhr nur kcal; `Core/CardStyle.swift`, `Backend.padel`.
+>   - `APIClient.send(…query:)`, Icon `make-icon.swift sport`, Skripte (verify, run-simulator,
+>     uitest) kennen Sport.
+> - **Geprüft:** nur `xcodebuild build -scheme Sport` (samt SportWatch) ohne Warnungen.
+>   `tools/verify.sh` (alle Apps, Tests inkl. `PadelScoreTests`) ist **noch nicht gelaufen**,
+>   ebenso keine Bilder von Uhr oder App.
+> - **Offen:**
+>   1. Der native Padel-Tab: `Sport/Padel/PadelTab.swift` ist ein Platzhalter. Funktionsumfang
+>      wie `padel/src/main/resources/static/app.js`, dazu Ergebnisse und `partnerColor` aus
+>      dem Dienst.
+>   2. `tools/verify.sh`.
+>   3. Uhr-Bilder (`COCKPIT_WATCH_DEMO=padel|workout|stations`).
+>   4. `install-device.sh` für Sport samt Uhr (Kopie des Healthy-Uhrteils).
+>   5. Doku: CLAUDE.md-Tabelle, ARCHITEKTUR, ENTSCHEIDUNGEN, BACKENDS.
+>   6. Installieren (Heimnetz, VPN aus).
+>   7. Danach `sport` nach `main`.
+
+
 > **Healthy: Recovery als Abstand, letzte 30 Nächte, Handgelenktemperatur, Effekte je Baustein
 > (22.10.):** in `main` (`d49697a`); der Weight Tracker rechnet es seit 22.10. 11:50 live (Vertrag `weight-app/docs/HEALTHY-CONTRACT.md` §2, §3.2, §4.1, §5,
 > Entscheidungen in `docs/ENTSCHEIDUNGEN.md`). Die App rechnet nichts davon nach: Score, Bänder
