@@ -63,18 +63,20 @@ struct APIClient: Sendable {
         return try await perform(req, queueWhenOffline: queueWhenOffline)
     }
 
-    /// Wie `send`, mit Abfrage im Pfad (`?day=true`) - fuer Padel, wo eine Aenderung oft gar
-    /// keinen Rumpf hat (aussetzen, stornieren). Nie in den Postausgang: ob gebucht oder
-    /// storniert ist, muss man jetzt wissen.
+    /// Wie `send`, mit Abfrage im Pfad (`?day=true`) - fuer Padel (23.10.). Nie in den
+    /// Postausgang: ob gebucht oder storniert ist, muss man jetzt wissen.
     func send<Body: Encodable, T: Decodable>(
-        _ method: String, _ path: String, query: [URLQueryItem], body: Body?
+        _ method: String, _ path: String, query: [URLQueryItem], body: Body
     ) async throws -> T {
         var req = request(method: method, path: path, query: query)
-        if let body {
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try Self.encoder().encode(body)
-        }
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try Self.encoder().encode(body)
         return try await perform(req)
+    }
+
+    /// Eine Aenderung ohne Rumpf (aussetzen, stornieren bei Padel), wahlweise mit Abfrage.
+    func send<T: Decodable>(_ method: String, _ path: String, query: [URLQueryItem] = []) async throws -> T {
+        try await perform(request(method: method, path: path, query: query))
     }
 
     @discardableResult
