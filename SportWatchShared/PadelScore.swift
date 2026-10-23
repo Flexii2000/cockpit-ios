@@ -26,6 +26,26 @@ enum PadelSide: String, Codable, CaseIterable, Sendable {
     var other: PadelSide { self == .us ? .them : .us }
 }
 
+/// Welcher der beiden Spieler eines Teams aufschlaegt - so, wie der Ball auf der Uhr in der
+/// Haelfte des Teams steht (Felix, 23.10.).
+enum PadelPlayer: String, Codable, Sendable {
+    case left, right
+
+    var other: PadelPlayer { self == .left ? .right : .left }
+}
+
+/// Je Team der Spieler, der das naechste Aufschlagspiel des Teams hat - im laufenden, wer gerade
+/// aufschlaegt. Anfangs rechts (Felix, 23.10.); stimmt das nicht, tippt man auf den Ball.
+struct PadelServers: Codable, Equatable, Sendable {
+    var us = PadelPlayer.right
+    var them = PadelPlayer.right
+
+    subscript(side: PadelSide) -> PadelPlayer {
+        get { side == .us ? us : them }
+        set { if side == .us { us = newValue } else { them = newValue } }
+    }
+}
+
 /// Zwei Zahlen, eine je Seite - Spiele, Punkte oder ein Satz.
 struct PadelPair: Codable, Equatable, Sendable {
     var us = 0
@@ -53,7 +73,7 @@ struct PadelSetScore: Codable, Equatable, Sendable {
 }
 
 /// Der Spielstand. Jeder Punkt macht einen neuen; zurueck geht es ueber den alten
-/// (`PadelMatchState` haelt den Verlauf).
+/// (`PadelMatch` haelt den Verlauf).
 struct PadelScore: Codable, Equatable, Sendable {
 
     let rule: PadelDeuceRule
@@ -71,13 +91,33 @@ struct PadelScore: Codable, Equatable, Sendable {
     private(set) var server: PadelSide
     /// Wer den laufenden Tie-Break eroeffnet hat - die anderen beginnen den naechsten Satz.
     private(set) var tieBreakOpener: PadelSide?
+    /// `nil` in einem Stand, den die Uhr vor dem Merken der Spieler gespeichert hat - dann gilt
+    /// wieder „rechts“.
+    private var storedServers: PadelServers?
 
     init(rule: PadelDeuceRule, firstServer: PadelSide) {
         self.rule = rule
         server = firstServer
+        storedServers = PadelServers()
     }
 
     var isTieBreak: Bool { tieBreakOpener != nil }
+
+    /// Wer in jedem Team als Naechstes aufschlaegt.
+    private(set) var servers: PadelServers {
+        get { storedServers ?? PadelServers() }
+        set { storedServers = newValue }
+    }
+
+    /// Links oder rechts im Team, das gerade aufschlaegt.
+    var servingPlayer: PadelPlayer { servers[server] }
+
+    /// Der Ball steht beim falschen Spieler: im aufschlagenden Team ist es der andere - fuer das
+    /// erste Aufschlagspiel eines Teams und wenn ein Team zu Satzbeginn die Reihenfolge tauscht.
+    mutating func switchServingPlayer() {
+        guard winner == nil else { return }
+        servers[server] = servers[server].other
+    }
 
     /// Gewonnene Saetze je Seite.
     var setsWon: PadelPair {
@@ -140,7 +180,9 @@ struct PadelScore: Codable, Equatable, Sendable {
         points = PadelPair()
         advantage = nil
         deuces = 0
-        // Der Aufschlag wechselt nach jedem Spiel - auch ueber das Ende eines Satzes hinweg.
+        // Der Aufschlag wechselt nach jedem Spiel - auch ueber das Ende eines Satzes hinweg -, und
+        // im Team, das aufgeschlagen hat, ist beim naechsten Mal der andere Spieler dran.
+        servers[server] = servers[server].other
         server = server.other
         if games.us == 6 && games.them == 6 {
             tieBreakOpener = server
@@ -150,19 +192,24 @@ struct PadelScore: Codable, Equatable, Sendable {
     }
 
     /// Bis 7 mit zwei Punkten Abstand. Aufschlag: der Eroeffner einen Punkt, danach je zwei.
+    /// Die Spieler wechseln reihum wie in den Spielen: endet der Durchgang eines Teams, ist dort
+    /// beim naechsten Mal der andere dran.
     private mutating func tieBreakPoint(for side: PadelSide) {
+        let servedBy = server
         points[side] += 1
         let played = points.us + points.them
         guard let opener = tieBreakOpener else { return }
         if points[side] >= 7 && points[side] - points[side.other] >= 2 {
             games[side] += 1
             let tieBreak = points
+            servers[servedBy] = servers[servedBy].other
             // Wer im Tie-Break zuerst annahm, schlaegt im naechsten Satz zuerst auf.
             server = opener.other
             finishSet(tieBreak: tieBreak)
             return
         }
         server = ((played + 1) / 2) % 2 == 0 ? opener : opener.other
+        if server != servedBy { servers[servedBy] = servers[servedBy].other }
     }
 
     private mutating func finishSet(tieBreak: PadelPair?) {

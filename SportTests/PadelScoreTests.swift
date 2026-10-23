@@ -2,7 +2,8 @@ import XCTest
 @testable import Sport
 
 /// Das Zaehlen auf der Uhr (Felix, 23.10.): Golden und Silver Point, Tie-Break, Aufschlag
-/// ueber Saetze hinweg - und was davon als Ergebnis an den Padel-Dienst geht.
+/// ueber Saetze hinweg samt Spieler links oder rechts - und was davon als Ergebnis an den
+/// Padel-Dienst geht.
 final class PadelScoreTests: XCTestCase {
 
     private func points(_ score: inout PadelScore, _ sides: [PadelSide]) {
@@ -63,6 +64,60 @@ final class PadelScoreTests: XCTestCase {
         XCTAssertEqual(score.server, .us)
         games(&score, [.us])
         XCTAssertEqual(score.server, .them)
+    }
+
+    func testEachTeamAlternatesItsServerAcrossSets() {
+        var score = PadelScore(rule: .golden, firstServer: .us)
+        XCTAssertEqual(score.servingPlayer, .right, "anfangs rechts")
+        games(&score, [.us])
+        XCTAssertEqual(score.server, .them)
+        XCTAssertEqual(score.servingPlayer, .right, "die anderen schlagen zum ersten Mal auf")
+        games(&score, [.us])
+        XCTAssertEqual(score.server, .us)
+        XCTAssertEqual(score.servingPlayer, .left, "bei uns ist jetzt der andere dran")
+        // 6:0 - wir haben rechts, links, rechts aufgeschlagen; im neuen Satz geht es links weiter.
+        games(&score, [.us, .us, .us, .us])
+        XCTAssertEqual(score.sets, [PadelSetScore(us: 6, them: 0)])
+        XCTAssertEqual(score.server, .us)
+        XCTAssertEqual(score.servingPlayer, .left)
+    }
+
+    func testTappingTheBallSwitchesThePlayerAndTheRotationFollows() {
+        var score = PadelScore(rule: .golden, firstServer: .them)
+        score.switchServingPlayer()
+        XCTAssertEqual(score.servingPlayer, .left)
+        XCTAssertEqual(score.servers.us, .right, "nur im Team, das aufschlaegt")
+        games(&score, [.them, .us])
+        XCTAssertEqual(score.server, .them)
+        XCTAssertEqual(score.servingPlayer, .right)
+    }
+
+    func testTieBreakRotatesThePlayersToo() {
+        var score = PadelScore(rule: .golden, firstServer: .us)
+        games(&score, [.us, .them, .us, .them, .us, .them, .us, .them, .us, .them, .us, .them])
+        // Zwoelf Spiele: jeder hat dreimal aufgeschlagen, dran ist wieder, wer anfing.
+        XCTAssertEqual(score.server, .us)
+        XCTAssertEqual(score.servingPlayer, .right)
+        points(&score, [.us])
+        XCTAssertEqual(score.server, .them)
+        XCTAssertEqual(score.servingPlayer, .right)
+        points(&score, [.us, .us])
+        XCTAssertEqual(score.server, .us)
+        XCTAssertEqual(score.servingPlayer, .left, "der Partner dessen, der eroeffnet hat")
+        points(&score, [.us, .us])
+        XCTAssertEqual(score.server, .them)
+        XCTAssertEqual(score.servingPlayer, .left)
+    }
+
+    func testAScoreSavedBeforeThePlayersWereKeptStillLoads() throws {
+        var score = PadelScore(rule: .golden, firstServer: .us)
+        games(&score, [.us])
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(score)) as? [String: Any])
+        XCTAssertNotNil(json["storedServers"])
+        json["storedServers"] = nil
+        let old = try JSONDecoder().decode(PadelScore.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(old.server, .them)
+        XCTAssertEqual(old.servingPlayer, .right)
     }
 
     func testSevenFiveEndsASetWithoutTieBreak() {

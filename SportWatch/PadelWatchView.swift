@@ -29,34 +29,34 @@ struct PadelWatchView: View {
     }
 }
 
-/// Zwei Haelften zum Antippen: oben wir, unten die anderen. Je Seite die Punkte gross, daneben
-/// die Saetze und die Spiele im laufenden Satz; der Ball zeigt, wer aufschlaegt.
+/// Zwei Haelften zum Antippen, wie das Feld von unserer Seite aus (Felix, 23.10.): oben die
+/// anderen, unten wir. Je Seite die Punkte gross, darueber die Saetze und die Spiele im laufenden
+/// Satz. Der Ball steht beim Spieler, der aufschlaegt - links oder rechts, Antippen tauscht.
+/// Dazwischen „Zurueck“ fuer einen versehentlich gezaehlten Punkt.
 struct PadelScorePage: View {
 
     private var workout: WorkoutManager { WorkoutManager.shared }
 
     var body: some View {
-        if let score = workout.padel?.score {
+        if let match = workout.padel {
             VStack(spacing: 3) {
-                half(.us, score)
-                badge(score)
-                half(.them, score)
+                half(.them, match.score)
+                middle(match.score, canUndo: !match.history.isEmpty)
+                half(.us, match.score)
             }
-            .ignoresSafeArea(edges: .bottom)
+            // Unten liegen die Seitenpunkte, und die runden Ecken des Displays schneiden an, was
+            // bis an den Rand reicht (Felix, 23.10.: „unten abgeschnitten“).
+            .padding(.bottom, 2)
         }
     }
 
     private func half(_ side: PadelSide, _ score: PadelScore) -> some View {
-        Button {
+        let serving = score.server == side && score.winner == nil
+        return Button {
             workout.point(for: side)
         } label: {
             VStack(spacing: 0) {
                 HStack(spacing: 4) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 7))
-                        .foregroundStyle(.yellow)
-                        .opacity(score.server == side && score.winner == nil ? 1 : 0)
-                        .accessibilityLabel(score.server == side ? "Aufschlag" : "")
                     Text(side == .us ? "Wir" : "Die")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -85,6 +85,26 @@ struct PadelScorePage: View {
         .buttonStyle(.plain)
         .disabled(score.winner != nil)
         .accessibilityLabel(side == .us ? "Punkt für uns" : "Punkt für die anderen")
+        .overlay(alignment: score.servingPlayer == .left ? .leading : .trailing) {
+            if serving { ball(score.servingPlayer) }
+        }
+    }
+
+    /// Der Ball als eigener Knopf ueber der Haelfte - gross genug fuer den Finger, damit ein Tipp
+    /// daneben ein Punkt bleibt.
+    private func ball(_ player: PadelPlayer) -> some View {
+        Button {
+            workout.switchServingPlayer()
+        } label: {
+            Image(systemName: "tennisball.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(.yellow)
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(player == .left ? "Aufschlag links" : "Aufschlag rechts")
+        .accessibilityHint("Tauscht den Spieler")
     }
 
     private func points(_ side: PadelSide, _ score: PadelScore) -> String {
@@ -92,16 +112,33 @@ struct PadelScorePage: View {
         return winner == side ? "✓" : ""
     }
 
-    /// Was gerade besonders ist: der entscheidende Punkt, ein Tie-Break, das Ende.
-    @ViewBuilder
-    private func badge(_ score: PadelScore) -> some View {
+    /// Links „Zurueck“, in der Mitte, was gerade besonders ist: der entscheidende Punkt, ein
+    /// Tie-Break, das Ende.
+    private func middle(_ score: PadelScore, canUndo: Bool) -> some View {
         let text: String? = score.winner != nil ? "Match vorbei"
             : score.isTieBreak ? "Tie-Break"
             : score.isDecidingPoint ? score.rule.label
             : nil
-        Text(text ?? " ")
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(.yellow)
-            .frame(height: 12)
+        return ZStack {
+            Text(text ?? " ")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.yellow)
+            HStack {
+                Button {
+                    workout.undoPoint()
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.caption2.weight(.bold))
+                        .frame(width: 38, height: 22)
+                        .background(Color.white.opacity(0.16), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!canUndo)
+                .opacity(canUndo ? 1 : 0.4)
+                .accessibilityLabel("Zurück")
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: 22)
     }
 }

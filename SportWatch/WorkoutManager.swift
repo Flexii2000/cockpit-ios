@@ -205,6 +205,15 @@ final class WorkoutManager {
         WKInterfaceDevice.current().play(.retry)
     }
 
+    /// Ball antippen: im aufschlagenden Team schlaegt der andere Spieler auf.
+    func switchServingPlayer() {
+        guard var match = padel else { return }
+        match.switchServingPlayer()
+        padel = match
+        match.save()
+        WKInterfaceDevice.current().play(.click)
+    }
+
     // MARK: - Beenden
 
     /// Beenden - auf der Uhr getippt oder vom iPhone verlangt. Padel gibt sein Ergebnis ab.
@@ -367,8 +376,17 @@ struct PadelMatch: Codable, Equatable, Sendable {
     }
 
     mutating func point(for side: PadelSide) {
+        apply { $0.point(for: side) }
+    }
+
+    /// Wie ein Punkt im Verlauf - „Zurueck“ nimmt auch ein versehentliches Antippen des Balls zurueck.
+    mutating func switchServingPlayer() {
+        apply { $0.switchServingPlayer() }
+    }
+
+    private mutating func apply(_ change: (inout PadelScore) -> Void) {
         let before = score
-        score.point(for: side)
+        change(&score)
         guard score != before else { return }
         history.append(before)
         // Zuruecknehmen braucht man fuer die letzten Punkte, nicht fuer das ganze Match.
