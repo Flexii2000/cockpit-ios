@@ -3,6 +3,43 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-26 — Fokus: „Heute" im To-Do-Tab
+Felix: „ich habe immer eine ganze Menge in der Todo-App stehen“ - er will einzelne Aufgaben
+per Klick in „Heute“ holen, dort ordnen, was zuerst drankommt, und Aufgaben ohne Liste
+anlegen. In iOS eine Unterseite von To-Do, im Web ein Reiter direkt neben „To-Do“.
+Entschieden in der Fragerunde:
+- **Kein Tagesreset:** was geholt ist, bleibt, bis es erledigt oder rausgenommen ist.
+  Verworfen: jeden Morgen leer (Offenes fällt in seine Liste zurück) und „leer, aber Gestern
+  zum Übernehmen anbieten“. Erledigtes steht bis Mitternacht durchgestrichen unten.
+- **Unteraufgaben auch einzeln:** eine geholte Aufgabe bringt ihre Unteraufgaben mit,
+  eine Unteraufgabe lässt sich aber auch allein holen (dann „Uni › Hausarbeit“ darunter).
+  Verworfen: nur Hauptaufgaben; jede Zeile für sich ohne Unteraufgaben.
+- **Umschalter in der Titelzeile** (`To-Do | Heute`, Felix: „auf der gleichen Ebene wie
+  To-Do“), gemerkt über Neustarts. Verworfen: Heute als erste Wischseite vor den Bereichen;
+  ein Knopf, der Heute als eigene Seite öffnet; der Umschalter als eigene Zeile unter dem
+  Titel. Folge: der Name des Bereichs steht jetzt über der Liste („Uni · 3 offen“) statt im
+  Titel.
+- **Holen per Sonne in jeder Zeile** (grau: nicht in Heute, orange: drin), dazu im Menü
+  „Nach Heute holen“ - wie im Browser. Zuerst hatte Felix „Wischen nach rechts + Menü“
+  gewählt (Sonne nur an geholten, damit die Listen ruhig bleiben). Das ging nicht: das
+  blätternde TabView der Bereiche nimmt sich jede waagerechte Geste, im UI-Test landete das
+  Wischen in „Uni“ statt bei der Aktion - das trifft auch das alte „Löschen“ per Wischen
+  nach links. Felix hat dann die Sonne gewählt. Verworfen: nur das Menü (zwei Schritte statt
+  eines Klicks); Bereiche ohne Blättern (Wechsel über ein Menü am Namen), damit beide
+  Wischgesten gehen. Im Browser stand erst der Text „Heute“ neben „Löschen“ - der schob die
+  Knöpfe jeder Zeile unter den Titel, darum auch dort die Sonne.
+- **Ordnen über „Ordnen“** neben der Kopfzeile: die Griffe von iOS (≡), „Fertig“ beendet.
+  Geplant war nur langes Drücken und Ziehen ohne Bearbeiten-Modus - das hängt auf dem iPhone
+  davon ab, ob die Liste Ziehen zulässt (ab Werk aus), und ließ sich nicht prüfen: XCUITest
+  bewegt in dieser Liste nicht einmal die Griffe. Die Griffe gehen sicher; `onMove` gilt für
+  beides, zieht das lange Drücken auf dem Gerät doch, umso besser. Im Browser zieht man am
+  Griff ⠿ direkt. Rausnehmen bzw. Löschen (ohne Bereich) liegt
+  in Heute auf dem Wischen nach links - dort blättert nichts.
+- **„Heute“ als Liste von Kennungen beim Dienst**, nicht als Feld an der Aufgabe: die
+  Reihenfolge ist ein `PUT /api/today`, ohne Ränge, die beim Einfügen umgerechnet werden
+  müssten. Im Overlay ebenso eine Liste, die Einträge selbst kommen aus den Bereichen
+  (Aufgaben ohne Bereich in einem namenlosen Bereich, der nie als Seite erscheint).
+
 ## 2026-10-23 (18:00) — Healthy: die Uhr-Komplikation zeigt den Rest in der Mitte
 Felix: „hatte ich nicht gesagt, ich möchte, dass im Health-Widget auf der Uhr die übrigen und
 nicht die verbrauchten kcal in der Mitte angezeigt werden?“ - mit „iOS-Widget“ (15:30) war auch

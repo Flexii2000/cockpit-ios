@@ -56,6 +56,59 @@ final class FokusUITests: XCTestCase {
         shoot(app, "todo-sofort")
     }
 
+    /// „Heute" gegen einen lokalen To-Do-Dienst: in „Privat" holt die Sonne in der
+    /// Zeile eine Aufgabe, in „Heute" steht sie dann unten, „Ordnen" zeigt die
+    /// Griffe, Wischen nach links nimmt sie wieder raus; eine Aufgabe ohne Bereich
+    /// steht sofort da.
+    /// Erwartet in „Privat" eine offene Aufgabe „Fahrrad reparieren", die noch nicht
+    /// geholt ist, und in „Heute" schon mindestens eine andere.
+    ///
+    /// Wischen auf einer Zeile in den Bereichen prueft er nicht: das blaetternde
+    /// TabView nimmt sich die Geste und zeigt den naechsten Bereich (26.10.).
+    @MainActor
+    func testPickIntoTodayOrderAndTakeOut() throws {
+        let url = ProcessInfo.processInfo.environment["COCKPIT_URL_TODO"] ?? ""
+        try XCTSkipIf(!url.hasPrefix("http://127.0.0.1"), "nur gegen einen lokalen To-Do-Dienst")
+        let app = start(tab: "todo", extra: ["COCKPIT_URL_TODO": url, "COCKPIT_TODO_MODE": "lists",
+                                             "COCKPIT_TODO_AREA": "Privat"])
+        let cell = app.cells.containing(.staticText, identifier: "Fahrrad reparieren").firstMatch
+        XCTAssertTrue(cell.waitForExistence(timeout: 20), "keine Aufgabe zum Holen")
+        cell.buttons["Nach Heute holen"].tap()
+        XCTAssertTrue(cell.buttons["Aus Heute nehmen"].waitForExistence(timeout: 3), "die Sonne wurde nicht orange")
+        shoot(app, "heute-geholt")
+
+        app.segmentedControls["todoMode"].buttons["Heute"].tap()
+        let picked = app.cells.containing(.staticText, identifier: "Fahrrad reparieren").firstMatch
+        XCTAssertTrue(picked.waitForExistence(timeout: 3), "nicht in Heute")
+        XCTAssertFalse(app.cells.firstMatch.staticTexts["Fahrrad reparieren"].exists, "sollte hinten stehen")
+        shoot(app, "heute-unten")
+        // Ordnen: die Griffe von iOS erscheinen. Ziehen kann XCUITest sie in dieser
+        // Liste nicht - weder per Element noch per Koordinate kam ein `onMove` an
+        // (26.10.); das prueft Felix auf dem Geraet, die Reihenfolge selbst die
+        // Unit-Tests (`TodoTodayOverlayTests`, `TodoTodayTest` im Dienst).
+        app.buttons["orderToday"].tap()
+        let handle = picked.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] 'reorder'")).firstMatch
+        XCTAssertTrue(handle.waitForExistence(timeout: 3), "kein Griff zum Ordnen")
+        shoot(app, "heute-ordnen")
+        app.buttons["orderToday"].tap()
+        XCTAssertTrue(handle.waitForNonExistence(timeout: 3), "„Fertig“ beendet das Ordnen nicht")
+
+        // Wischen nach links: hier blaettert nichts.
+        picked.swipeLeft()
+        let out = app.buttons["Raus"].firstMatch
+        _ = out.waitForExistence(timeout: 3)
+        shoot(app, "heute-raus")
+        XCTAssertTrue(out.exists, "kein „Raus“ beim Wischen")
+        out.tap()
+        XCTAssertTrue(picked.waitForNonExistence(timeout: 3), "noch in Heute")
+
+        let field = app.textFields["newTodayTodo"].firstMatch
+        field.tap()
+        field.typeText("Ohne Bereich aus dem UI-Test\n")
+        XCTAssertTrue(app.staticTexts["Ohne Bereich aus dem UI-Test"].waitForExistence(timeout: 3))
+        shoot(app, "heute-ohne-bereich")
+    }
+
     // MARK: - Kategorien
 
     private var environment: [String: String] { ProcessInfo.processInfo.environment }

@@ -10,6 +10,35 @@ struct TodoBoard: Decodable, Sendable, Equatable {
     /// Erledigte, die aelter als die Sichtfrist sind und nicht mitkommen.
     let hiddenDoneCount: Int
     let now: Date
+    /// „Heute" (seit 26.10.). Optional, weil ein Brett aus dem Offline-Speicher
+    /// von vorher es nicht kennt - das soll trotzdem laden.
+    var today: TodoToday? = nil
+}
+
+/// „Heute": was Felix sich fuer den Tag geholt hat, in seiner Reihenfolge, dazu
+/// die Aufgaben ohne Bereich. Fertig sortiert vom Dienst - offene oben, darunter
+/// was heute erledigt wurde.
+struct TodoToday: Decodable, Sendable, Equatable {
+    /// Offene Eintraege samt offener Unteraufgaben darunter.
+    let openCount: Int
+    let items: [TodoTodayItem]
+
+    static let empty = TodoToday(openCount: 0, items: [])
+}
+
+/// Ein Eintrag in „Heute" mit dem, was die Zeile dazuschreibt.
+struct TodoTodayItem: Decodable, Identifiable, Sendable, Equatable {
+    /// Der Bereich - `nil` bei einer Aufgabe, die nur in „Heute" steht.
+    let areaId: String?
+    let areaName: String?
+    /// Bei einer einzeln geholten Unteraufgabe die Aufgabe darueber („Hausarbeit ›“).
+    let parentId: String?
+    let parentTitle: String?
+    /// Bei einer Hauptaufgabe mit ihren Unteraufgaben.
+    let todo: TodoItem
+
+    var id: String { todo.id }
+    var isAdHoc: Bool { areaId == nil }
 }
 
 /// Ein Bereich - in der App eine Seite, im Browser eine Kachel.
@@ -35,6 +64,9 @@ struct TodoItem: Decodable, Identifiable, Sendable, Equatable {
     let visibleUntil: Date?
     /// Faelligkeit - eine Anzeige, ueberfaellig heisst rot.
     let dueAt: CalendarDate?
+    /// Ob sie selbst in „Heute" steht. Eine Unteraufgabe, die mit ihrer Aufgabe
+    /// dort steht, hat `false`.
+    var today = false
     /// Zeitpunkte, zu denen der Dienst eine Push-Nachricht schickt.
     let reminders: [TodoReminder]
     let children: [TodoItem]
@@ -73,7 +105,7 @@ extension TodoItem {
     /// Muss hier stehen: Swift erzeugt `CodingKeys` nur, wenn es den Decoder
     /// selbst ableitet.
     private enum CodingKeys: String, CodingKey {
-        case id, title, link, createdAt, doneAt, visibleUntil, dueAt, reminders, children
+        case id, title, link, createdAt, doneAt, visibleUntil, dueAt, today, reminders, children
     }
 
     /// Wie der synthetisierte Decoder, nur der Link ist nachsichtig: fehlt er,
@@ -90,6 +122,7 @@ extension TodoItem {
         doneAt = try container.decodeIfPresent(Date.self, forKey: .doneAt)
         visibleUntil = try container.decodeIfPresent(Date.self, forKey: .visibleUntil)
         dueAt = try container.decodeIfPresent(CalendarDate.self, forKey: .dueAt)
+        today = try container.decodeIfPresent(Bool.self, forKey: .today) ?? false
         reminders = try container.decode([TodoReminder].self, forKey: .reminders)
         children = try container.decode([TodoItem].self, forKey: .children)
     }
@@ -116,12 +149,21 @@ struct TodoReminder: Decodable, Identifiable, Sendable, Equatable {
 /// es liest. `id` vergibt die App, wenn sie die Aufgabe schon zeigt, bevor der
 /// Dienst sie kennt (ohne Netz angelegt) - kleingeschrieben, wie der Dienst sie
 /// erwartet; dieselbe Kennung zweimal legt dort nichts doppelt an.
+///
+/// Ohne `areaId`, mit `today`: eine Aufgabe, die nur in „Heute" steht.
 struct TodoDraft: Encodable, Sendable {
-    let areaId: String
+    let areaId: String?
     let parentId: String?
     let title: String
     let dueAt: String?
     var id: String? = nil
+    /// Gleich nach „Heute" holen.
+    var today: Bool? = nil
+}
+
+/// Die Reihenfolge in „Heute", zuerst oben.
+struct TodayOrder: Encodable, Sendable {
+    let ids: [String]
 }
 
 /// Text und Faelligkeit aendern - ohne `dueAt` gibt es keine mehr.

@@ -172,7 +172,7 @@ final class PendingChangesTests: XCTestCase {
         queue.enqueue(.todo(.update(id: "a", title: "Aufgabe B", dueAt: CalendarDate(year: 2026, month: 10, day: 20))),
                       label: "Aufgabe B")
         XCTAssertEqual(queue.count(for: .todo), 1)
-        guard case .todo(.create(_, _, _, let title, let dueAt, _)) = queue.changes(for: .todo).first else {
+        guard case .todo(.create(_, _, _, let title, let dueAt, _, _)) = queue.changes(for: .todo).first else {
             return XCTFail()
         }
         XCTAssertEqual(title, "Aufgabe B")

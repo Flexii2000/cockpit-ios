@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// Haelt das Brett und schickt Haken, neue Aufgaben, neue Bereiche.
 ///
@@ -35,6 +36,9 @@ final class TodoStore {
     }
 
     var areas: [TodoArea] { board?.areas ?? [] }
+
+    /// „Heute", wie es zu sehen ist - samt dem, was wartet.
+    var today: TodoToday { board?.today ?? .empty }
 
     private static let registeredTokenKey = "todo.registeredPushToken"
 
@@ -101,6 +105,29 @@ final class TodoStore {
         return true
     }
 
+    /// Eine Aufgabe ohne Bereich - sie steht nur in „Heute".
+    @discardableResult
+    func addToday(title: String) -> Bool {
+        guard checked(title) else { return false }
+        let id = UUID().uuidString.lowercased()
+        queue.enqueue(.todo(.create(id: id, areaId: nil, parentId: nil, title: title, dueAt: nil, at: Date(),
+                                    today: true)), label: title)
+        return true
+    }
+
+    /// Nach „Heute" holen (ans Ende) oder wieder rausnehmen.
+    func setToday(_ todo: TodoItem, _ today: Bool) {
+        queue.enqueue(.todo(.setToday(id: todo.id, today: today)), label: todo.title)
+    }
+
+    /// Nach dem Ziehen in „Heute": die offenen in ihrer neuen Reihenfolge.
+    /// Erledigtes steht ohnehin darunter und zieht nicht mit.
+    func moveToday(from source: IndexSet, to destination: Int) {
+        var ids = today.items.filter { !$0.todo.isDone }.map(\.id)
+        ids.move(fromOffsets: source, toOffset: destination)
+        queue.enqueue(.todo(.orderToday(ids: ids)), label: "Heute")
+    }
+
     @discardableResult
     func update(_ todo: TodoItem, title: String, dueAt: CalendarDate?) -> Bool {
         guard checked(title) else { return false }
@@ -124,11 +151,10 @@ final class TodoStore {
     /// Der aktuelle Stand einer Aufgabe nach einem Neuladen - fuer ein Blatt,
     /// das offen bleibt, waehrend sich das Brett darunter aendert.
     func current(_ todo: TodoItem) -> TodoItem? {
-        for area in areas {
-            for item in area.todos {
-                if item.id == todo.id { return item }
-                if let child = item.children.first(where: { $0.id == todo.id }) { return child }
-            }
+        // Aufgaben ohne Bereich stehen nur in „Heute".
+        for item in areas.flatMap(\.todos) + today.items.map(\.todo) {
+            if item.id == todo.id { return item }
+            if let child = item.children.first(where: { $0.id == todo.id }) { return child }
         }
         return nil
     }

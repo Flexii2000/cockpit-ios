@@ -4,9 +4,20 @@ import SwiftUI
 /// Server. Eine Seite je Bereich statt eines Auswahlfelds oben: drei kurze
 /// Namen passen in ein Segment, der vierte nicht mehr, und Bereiche sollen
 /// sich anlegen lassen.
+///
+/// Daneben „Heute" (seit 26.10.): ein Umschalter in der Titelzeile, auf einer
+/// Ebene mit „To-Do" - so wollte es Felix, statt einer eigenen Zeile darunter.
+/// Der Name des Bereichs steht dafuer ueber der Liste.
 struct TodoTab: View {
 
+    enum Mode: String {
+        case lists, today
+    }
+
     @State private var store = TodoStore()
+    /// Gemerkt: wer morgens in „Heute" arbeitet, will nach dem Wechsel in eine
+    /// andere App nicht wieder bei den Listen landen.
+    @AppStorage("todo.mode") private var mode: Mode = .lists
     @State private var page: String?
     @State private var newArea = false
     @State private var newAreaName = ""
@@ -23,22 +34,36 @@ struct TodoTab: View {
                     }
                     .padding()
                     .frame(maxHeight: .infinity, alignment: .top)
+                } else if mode == .today {
+                    TodayPage(store: store)
                 } else {
                     pages
                 }
             }
             .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner(backend: .todo) }
-            .navigationTitle(currentArea?.name ?? "To-Do")
+            .navigationTitle(mode == .today ? "Heute" : currentArea?.name ?? "To-Do")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { AccessButton() }
+                ToolbarItem(placement: .principal) {
+                    Picker("Ansicht", selection: $mode) {
+                        Text("To-Do").tag(Mode.lists)
+                        Text("Heute").tag(Mode.today)
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    .accessibilityIdentifier("todoMode")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button("Neuer Bereich …") { newArea = true }
-                        if let area = currentArea {
-                            Button("„\(area.name)“ umbenennen …") { renameTarget = area }
-                            Button("„\(area.name)“ löschen …", role: .destructive) { deleteTarget = area }
+                        if mode == .lists {
+                            Button("Neuer Bereich …") { newArea = true }
+                            if let area = currentArea {
+                                Button("„\(area.name)“ umbenennen …") { renameTarget = area }
+                                Button("„\(area.name)“ löschen …", role: .destructive) { deleteTarget = area }
+                            }
+                            Divider()
                         }
-                        Divider()
                         Toggle("Ältere erledigte zeigen", isOn: Binding(
                             get: { store.showsHidden },
                             set: { value in Task { await store.setShowsHidden(value) } }))
@@ -90,6 +115,14 @@ struct TodoTab: View {
             }
             .refreshable { await store.load() }
             .task { await store.load() }
+            #if DEBUG
+            // COCKPIT_TODO_MODE=today oeffnet „Heute" - fuer Aufnahmen.
+            .onAppear {
+                if let wanted = ProcessInfo.processInfo.environment["COCKPIT_TODO_MODE"].flatMap(Mode.init) {
+                    mode = wanted
+                }
+            }
+            #endif
             .onChange(of: renameTarget?.id) { _, _ in renameName = renameTarget?.name ?? "" }
         }
     }
@@ -140,7 +173,6 @@ private struct AreaPage: View {
     @State private var detail: TodoItem?
     @FocusState private var typing: Bool
     @FocusState private var subFocus: String?
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
         List {
@@ -151,9 +183,9 @@ private struct AreaPage: View {
             }
             Section {
                 ForEach(area.todos) { todo in
-                    row(todo, indent: false)
+                    row(todo, under: nil)
                     ForEach(todo.children) { child in
-                        row(child, indent: true)
+                        row(child, under: todo)
                     }
                     if !todo.isDone {
                         ghostRow(under: todo)
@@ -163,7 +195,8 @@ private struct AreaPage: View {
                     Text("Nichts offen.").foregroundStyle(.secondary)
                 }
             } header: {
-                Text(area.openCount == 1 ? "1 offen" : "\(area.openCount) offen")
+                // Der Name stand vorher im Titel - dort sitzt jetzt der Umschalter.
+                Text("\(area.name) · " + (area.openCount == 1 ? "1 offen" : "\(area.openCount) offen"))
             } footer: {
                 if area.hiddenDoneCount > 0, !store.showsHidden {
                     Text("\(area.hiddenDoneCount) ältere erledigte sind ausgeblendet – im Menü einblenden.")
@@ -230,26 +263,11 @@ private struct AreaPage: View {
         typing = false
     }
 
-    /// Der Pfeil neben dem Titel oeffnet den Link in Safari. Ein eigener Knopf
-    /// statt der ganzen Zeile: der Tipp auf den Text oeffnet weiter das Blatt,
-    /// und die Wischaktionen bleiben, wo sie sind. Das Polster vergroessert
-    /// die Tippflaeche, ohne die Zeile hoeher zu machen.
-    private func linkButton(_ link: URL, for todo: TodoItem) -> some View {
-        Button { openURL(link) } label: {
-            Image(systemName: "arrow.up.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(todo.isDone ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Link öffnen")
-        .accessibilityIdentifier("link-\(todo.id)")
-    }
-
-    private func row(_ todo: TodoItem, indent: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+    /// - Parameter parent: die Aufgabe darueber, bei einer Unteraufgabe. Steht
+    ///   die in „Heute", kommt die Unteraufgabe mit - einzeln holen gibt es dann nicht.
+    private func row(_ todo: TodoItem, under parent: TodoItem?) -> some View {
+        let canPin = parent?.today != true && (!todo.isDone || todo.today)
+        return HStack(alignment: .firstTextBaseline, spacing: 10) {
             Button {
                 store.toggle(todo)
             } label: {
@@ -273,7 +291,7 @@ private struct AreaPage: View {
                         .strikethrough(todo.isDone)
                         .foregroundStyle(todo.isDone ? .secondary : .primary)
                     if let link = todo.link {
-                        linkButton(link, for: todo)
+                        TodoLinkButton(link: link, todo: todo)
                     }
                 }
                 if todo.dueAt != nil || !todo.reminders.isEmpty {
@@ -299,6 +317,22 @@ private struct AreaPage: View {
             .contentShape(Rectangle())
             .onTapGesture { detail = todo }
             Spacer(minLength: 0)
+            // Die Sonne holt nach „Heute" und nimmt wieder raus - ein Tipp. Erst
+            // sollte das Wischen nach rechts sein, aber das blaetternde TabView
+            // nimmt sich jede waagerechte Geste und zeigt den naechsten Bereich.
+            if canPin {
+                Button { store.setToday(todo, !todo.today) } label: {
+                    Image(systemName: todo.today ? "sun.max.fill" : "sun.max")
+                        .font(.subheadline)
+                        .foregroundStyle(todo.today ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.tertiary))
+                        .padding(.horizontal, 4)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(todo.today ? "Aus Heute nehmen" : "Nach Heute holen")
+                .accessibilityValue(todo.today ? "in Heute" : "")
+                .accessibilityIdentifier("today-\(todo.id)")
+            }
             // Der Pfeil sagt, dass hinter der Zeile mehr ist: Faelligkeit
             // und Erinnerungen. Ohne ihn fand das niemand.
             Button { detail = todo } label: {
@@ -308,8 +342,14 @@ private struct AreaPage: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.leading, indent ? 28 : 0)
+        .padding(.leading, parent == nil ? 0 : 28)
         .contextMenu {
+            if canPin {
+                Button { store.setToday(todo, !todo.today) } label: {
+                    Label(todo.today ? "Aus Heute nehmen" : "Nach Heute holen",
+                          systemImage: todo.today ? "sun.max" : "sun.max.fill")
+                }
+            }
             Button { detail = todo } label: {
                 Label("Fälligkeit und Erinnerungen …", systemImage: "calendar.badge.clock")
             }
@@ -329,13 +369,38 @@ private struct AreaPage: View {
     }
 }
 
+/// Der Pfeil neben dem Titel oeffnet den Link in Safari. Ein eigener Knopf
+/// statt der ganzen Zeile: der Tipp auf den Text oeffnet weiter das Blatt,
+/// und die Wischaktionen bleiben, wo sie sind. Das Polster vergroessert
+/// die Tippflaeche, ohne die Zeile hoeher zu machen.
+struct TodoLinkButton: View {
+
+    let link: URL
+    let todo: TodoItem
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        Button { openURL(link) } label: {
+            Image(systemName: "arrow.up.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(todo.isDone ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Link öffnen")
+        .accessibilityIdentifier("link-\(todo.id)")
+    }
+}
 
 /// Faelligkeit und Erinnerungen einer Aufgabe.
 struct TodoDetailSheet: View {
 
     let todo: TodoItem
     let store: TodoStore
-    let area: TodoArea
+    /// `nil` bei einer Aufgabe ohne Bereich - die bekommt keine Unteraufgaben.
+    let area: TodoArea?
     /// Nur Hauptaufgaben bekommen Unteraufgaben - eine Ebene, nicht mehr.
     let isTopLevel: Bool
     @Environment(\.dismiss) private var dismiss
@@ -346,7 +411,7 @@ struct TodoDetailSheet: View {
     @State private var reminderAt = Date().addingTimeInterval(3600)
     @State private var newSub = ""
 
-    init(todo: TodoItem, store: TodoStore, area: TodoArea, isTopLevel: Bool) {
+    init(todo: TodoItem, store: TodoStore, area: TodoArea?, isTopLevel: Bool) {
         self.todo = todo
         self.store = store
         self.area = area
@@ -362,7 +427,7 @@ struct TodoDetailSheet: View {
 
     private func addSub() {
         let text = newSub.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty, store.add(title: text, to: area, under: live) else { return }
+        guard let area, !text.isEmpty, store.add(title: text, to: area, under: live) else { return }
         newSub = ""
     }
 
@@ -378,7 +443,7 @@ struct TodoDetailSheet: View {
                 } footer: {
                     Text("Überfällig wird rot - mehr passiert nicht.")
                 }
-                if isTopLevel {
+                if isTopLevel, area != nil {
                     Section("Unteraufgaben") {
                         ForEach(live.children) { child in
                             Text(child.title)

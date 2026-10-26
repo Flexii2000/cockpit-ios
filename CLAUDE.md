@@ -216,6 +216,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_NO_PUSH=1` | keine Push-Anmeldung — sonst meldet jeder Testlauf eine Simulator-Kennung beim food-Backend an |
 | `COCKPIT_ASK_PUSH=1` | fragt trotzdem nach der Benachrichtigungs-Erlaubnis (ohne sie zeigt der Simulator nichts an), meldet aber weiterhin keine Kennung an — fuer `pushtest.sh` |
 | `COCKPIT_TODO_AREA=Uni` | öffnet im To-Do-Tab eine bestimmte Seite - wischen kann der Simulator nicht |
+| `COCKPIT_TODO_MODE=today` | öffnet im To-Do-Tab „Heute" (`lists` die Bereiche) - der Umschalter merkt sich sonst die letzte Wahl |
 | `COCKPIT_NO_SCREENTIME=1` | Wald-Tab ohne Bildschirmzeit: kein Erlaubnis-Dialog, kein Schild, keine DeviceActivity — im Simulator gibt es das alles nicht, und so lässt sich eine Session trotzdem pflanzen |
 | `COCKPIT_NO_SHORTCUTS=1` | Wald-Tab ohne den Sprung in die Kurzbefehle-App beim Pflanzen - sonst verlässt die App mitten im UI-Test den Vordergrund |
 | `COCKPIT_FOREST_RUNNING=45` | zeigt im Wald-Tab eine laufende Session mit 45 Minuten Rest (ohne Schild, ohne Baum am Ende) |

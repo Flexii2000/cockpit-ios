@@ -1141,7 +1141,7 @@ setzt nichts zusammen.
 |---|---|---|
 | GET | `/api/board?all=false` | Bereiche mit sichtbaren Aufgaben; `all=true` auch ältere erledigte |
 | POST/PUT/DELETE | `/api/areas[/{id}]` | Bereich anlegen `{name}`, umbenennen, löschen (samt Aufgaben) |
-| POST | `/api/todos` | `{areaId, parentId?, title, link?, notification?}` — `parentId` macht eine Unteraufgabe (eine Ebene); `notification` `{title, body}` schickt beim Anlegen einen Push an Fokus (nutzt nur der Kalorienzähler) |
+| POST | `/api/todos` | `{areaId, parentId?, title, link?, notification?, id?, today?}` — `parentId` macht eine Unteraufgabe (eine Ebene); `notification` `{title, body}` schickt beim Anlegen einen Push an Fokus (nutzt nur der Kalorienzähler); `today: true` holt sie gleich nach „Heute", ohne `areaId` ist es eine Aufgabe ohne Bereich (ohne `today` bleibt ein fehlender Bereich ein 400) |
 | PUT | `/api/todos/{id}` | `{title, dueAt?}` — ohne `dueAt` gibt es keine Fälligkeit mehr; `link` bleibt, wie er ist |
 | POST | `/api/todos/{id}/reminders` | `{at}` als Zeitpunkt **mit Zone** (`ReminderDraft` schreibt ISO mit `Z`), nur Zukunft |
 | DELETE | `/api/todos/{id}/reminders/{rid}` | Erinnerung weg |
@@ -1149,13 +1149,29 @@ setzt nichts zusammen.
 | POST | `/api/todos/{id}/done` | abhaken — idempotent, der erste Zeitpunkt bleibt |
 | DELETE | `/api/todos/{id}/done` | Haken zurück, auch nach dem Verschwinden |
 | DELETE | `/api/todos/{id}` | wirklich löschen, samt Unteraufgaben |
+| POST | `/api/todos/{id}/today` | nach „Heute" holen, ans Ende — idempotent; steht ihre Aufgabe darüber schon dort, passiert nichts |
+| DELETE | `/api/todos/{id}/today` | aus „Heute" nehmen; Aufgabe ohne Bereich: 400 |
+| PUT | `/api/today` | `{ids}` — Reihenfolge, zuerst oben; unbekannte zählen nicht, nicht genannte rutschen ans Ende |
 
 ```
-Board     areas[], includesHidden, hiddenDoneCount, now
+Board     areas[], today, includesHidden, hiddenDoneCount, now
 AreaView  id, name, position, openCount, hiddenDoneCount, todos[]
 TodoView  id, title, link | null, createdAt, doneAt | null, visibleUntil | null,
-          dueAt | null (ISO-Datum), reminders[] {id, at, sentAt | null}, children[]
+          dueAt | null (ISO-Datum), today, reminders[] {id, at, sentAt | null}, children[]
+TodayView openCount, items[] {areaId | null, areaName | null, parentId | null, parentTitle | null, todo}
 ```
+
+⚠️ **„Heute"** (seit 2026-10-26, To-Do `ec73d69`): eine Reihenfolge von
+Kennungen beim Dienst, kein Tagesreset — was geholt ist, bleibt bis zum Haken
+oder Rausnehmen. `today.items` kommt fertig sortiert: offene in Felix'
+Reihenfolge, dann **heute** Erledigtes (zuletzt erledigte oben); Erledigtes von
+gestern fehlt dort, steht aber im Bereich weiter drei Tage. Eine geholte
+Hauptaufgabe bringt ihre Unteraufgaben mit (`todo.children`, Erledigtes nur von
+heute); eine einzeln geholte Unteraufgabe trägt `parentTitle`. `TodoView.today`
+heißt *selbst geholt* — eine Unteraufgabe unter einer geholten Aufgabe hat
+`false` und lässt sich nicht einzeln holen. Aufgaben **ohne Bereich**
+(`areaId: null`) stehen nur in `today`, nie in `areas`. Die App dekodiert
+`today` optional: ein Brett aus dem Offline-Speicher von vorher hat es nicht.
 
 ⚠️ **Den Link setzt nur das Anlegen** (seit 2026-09-26): Torbens
 Feature-Wünsche legt der Kalorienzähler als Unteraufgabe unter „Healthy“
@@ -1194,7 +1210,9 @@ Kennung mit (`id`, kleingeschriebene UUID): der Dienst übernimmt sie, und
 dieselbe Kennung zweimal legt nichts an. `DELETE` auf eine schon gelöschte
 Aufgabe ist ein 404 — für die App erledigt. Bereiche und Erinnerungen bleiben
 auf Antwort angewiesen; Erinnerungen gibt es erst, wenn der Dienst die Aufgabe
-kennt.
+kennt. Holen, Rausnehmen und die Reihenfolge von „Heute" gehen ebenfalls durch
+die Warteschlange (`setToday`, `orderToday` — die letzte Reihenfolge gilt),
+ebenso das Anlegen ohne Bereich (`create` mit `areaId: nil, today: true`).
 
 ## Einkaufsliste — `/shopping-list/api`
 

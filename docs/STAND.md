@@ -1,5 +1,20 @@
 # Stand
 
+> **Fokus: „Heute“ im To-Do-Tab (26.10., Felix):** oben in der Titelzeile `To-Do | Heute`
+> (gemerkt). In den Bereichen holt die Sonne in jeder Zeile (oder das Menü) eine Aufgabe nach
+> Heute, orange heißt drin; der Bereichsname steht jetzt über der Liste („Uni · 3 offen“).
+> ⚠️ Wischen auf Zeilen geht in den Bereichen nicht - das Blättern zwischen ihnen nimmt sich
+> die Geste (auch das alte „Löschen“ per Wischen); in „Heute“ geht es.
+> „Heute“: offene in eigener Reihenfolge („Ordnen“ zeigt die Griffe), darunter heute Erledigtes,
+> unten „Neue Aufgabe“ für Aufgaben ohne Bereich. Wischen nach links: „Raus“ bzw. Löschen.
+> Dienst und Web: To-Do `ec73d69` (ausgerollt 26.10. 12:41, Reiter „Heute“ neben „To-Do“).
+> Regeln und Verworfenes in `ENTSCHEIDUNGEN.md`, API in `BACKENDS.md`.
+> - **Geprüft:** `tools/verify.sh`; neu `TodoTodayOverlayTests` (Holen, Ordnen, ohne Bereich,
+>   Mitternacht, Unteraufgaben, alte Warteschlange lesbar). Im Simulator gegen einen lokalen
+>   Dienst hell und dunkel; UI-Test `testPickIntoTodayOrderAndTakeOut` (Sonne, Umschalter,
+>   Ordnen am Griff, „Raus“ per Wischen, Aufgabe ohne Bereich).
+> - **Debug:** `COCKPIT_TODO_MODE=today|lists`.
+
 > **Healthy: Uhr-Komplikation mit dem Rest (23.10. 18:00, Felix):** in der Mitte steht, was
 > übrig ist (`750`, drüber `+120`), statt des Gegessenen; der Bogen füllt sich weiter mit dem
 > Gegessenen (links 0, rechts das Ziel). Auch in der Uhr-App, dieselbe `KcalGaugeView`. Test in
