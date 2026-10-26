@@ -17,12 +17,14 @@ extension LenientEnum {
     }
 }
 
-/// Ob der Verbrauch der Uhr am Gewicht abgeglichen werden konnte. Nur `ok`
-/// und `clamped` tragen einen eigenen Faktor; sonst gilt 1.
+/// Ob der Verbrauch der Uhr am Gewicht abgeglichen werden konnte. Nur `ok`,
+/// `clamped` und `fixed` tragen einen eigenen Faktor; sonst gilt 1.
 enum CalibrationStatus: String, LenientEnum {
     case ok = "OK"
     /// Der gemessene Faktor lag ausserhalb von 0,7 bis 1,3.
     case clamped = "CLAMPED"
+    /// Fester Faktor der Person (Vertrag §1.5) - gilt an jedem Tag.
+    case fixed = "FIXED"
     case tooFewTrackedDays = "TOO_FEW_TRACKED_DAYS"
     case tooFewWeights = "TOO_FEW_WEIGHTS"
     case tooFewWatchDays = "TOO_FEW_WATCH_DAYS"

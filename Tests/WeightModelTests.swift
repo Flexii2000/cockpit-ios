@@ -259,11 +259,11 @@ final class WeightWidgetTests: XCTestCase {
 
     /// `GET /api/energy/summary`, Feld fuer Feld wie `EnergySummary.java`.
     private func energy(deficit7: Double?, days: Int = 7, factor: Double = 0.921,
-                        tracked: Int = 25) -> EnergySummary {
+                        tracked: Int = 25, status: String = "OK") -> EnergySummary {
         let json = """
         {"today":null,"deficit7":\(jsonNumber(deficit7)),"deficit7Days":\(days),
          "expenditure7":2612.4,"expenditure7Days":7,
-         "calibration":{"status":"OK","factor":\(factor),"rawFactor":\(factor),
+         "calibration":{"status":"\(status)","factor":\(factor),"rawFactor":\(factor),
            "windowFrom":"2026-09-11","windowTo":"2026-10-08","measuredKcal":2160.0,
            "measuredSeKcal":96.0,"watchKcal":2346.0,"intakeKcal":1980.0,
            "weightSlopeKgPerWeek":-0.164,"trackedDays":\(tracked),"weightDays":27,"watchDays":28},
@@ -291,6 +291,11 @@ final class WeightWidgetTests: XCTestCase {
         XCTAssertEqual(WeightWidget.calibration.value(TileInput(weight: weight, energy: energy(deficit7: nil, factor: 1.03))), "+3 %")
         XCTAssertEqual(WeightWidget.calibration.value(TileInput(weight: weight, energy: energy(deficit7: nil, factor: 1))), "0 %")
         XCTAssertEqual(WeightWidget.calibration.note(TileInput(weight: weight, energy: energy(deficit7: nil, tracked: 1))), "1 Tag")
+
+        // Ein fester Faktor (Vertrag §1.5) kommt aus keinem Fenster.
+        let fixed = TileInput(weight: weight, energy: energy(deficit7: nil, factor: 0.96, status: "FIXED"))
+        XCTAssertEqual(WeightWidget.calibration.value(fixed), "−4 %")
+        XCTAssertEqual(WeightWidget.calibration.note(fixed), "fest")
     }
 
     /// Ein Dienst ohne Energie: die drei Kacheln zeigen einen Strich, die

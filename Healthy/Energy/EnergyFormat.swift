@@ -97,9 +97,11 @@ enum EnergyFormat {
         summary.map { calibration($0.calibration.factor) } ?? "–"
     }
 
-    /// „25 Tage" - die getrackten Tage im Fenster der Kalibrierung.
+    /// „25 Tage" - die getrackten Tage im Fenster der Kalibrierung; „fest"
+    /// bei einem festen Faktor, der aus keinem Fenster kommt.
     static func calibrationNote(_ summary: EnergySummary?) -> String? {
-        guard let days = summary?.calibration.trackedDays else { return nil }
-        return days == 1 ? "1 Tag" : "\(days) Tage"
+        guard let calibration = summary?.calibration else { return nil }
+        if calibration.status == .fixed { return "fest" }
+        return calibration.trackedDays == 1 ? "1 Tag" : "\(calibration.trackedDays) Tage"
     }
 }

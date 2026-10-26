@@ -408,7 +408,10 @@ Endpunkten zusammensetzt.
 
 ⚠️ **Verbrauch ist kalibriert.** `expenditureKcal` = `watchKcal × factor`; der
 Faktor gleicht die Uhr über die 28 Tage davor am Gewicht ab (0,7–1,3, ohne
-genug Daten 1 mit Grund in `calibrationStatus`). `deficitKcal` gibt es nur an
+genug Daten 1 mit Grund in `calibrationStatus`). Seit 26.10. kann eine Person
+einen **festen Faktor** haben (`GET`/`PUT /api/energy/settings`,
+`{"fixedFactor":0.96}`, Status `FIXED` an jedem Tag; Felix: 0,96) - die Kachel
+„Kalibrierung“ zeigt dann „fest“ statt „N Tage“. Die App setzt ihn nicht. `deficitKcal` gibt es nur an
 getrackten Tagen und heute — heute als Prognose (`projected`), und gar nicht,
 wenn der Kalorienzähler nicht antwortete (dann ist die Aufnahme unbekannt,
 nicht 0). Die App zeigt das nur an (Formate in `EnergyFormat`, Vertrag §5)

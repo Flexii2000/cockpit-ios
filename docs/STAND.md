@@ -1,5 +1,13 @@
 # Stand
 
+> **Healthy: fester Kalibrierfaktor (26.10., Felix):** Weight Tracker `be25633` live seit
+> 26.10. 17:39, Felix' Faktor ist fest 0,96 (`FIXED`, Vertrag §1.5). In der App nur die Notiz
+> der Kachel „Kalibrierung“: „fest“ statt „N Tage“ (`EnergyFormat.calibrationNote`, Test in
+> `WeightModelTests`). Bis zur Installation zeigt die alte App „−4 % · 28 Tage“ - sie liest
+> `FIXED` als `unknown`, der Wert stimmt trotzdem.
+> - **Geprüft:** `tools/verify.sh Healthy` (299 Unit-Tests), nur Healthy-Dateien geändert.
+> - **Noch nicht auf dem iPhone:** `tools/install-device.sh Healthy` im Heimnetz.
+
 > **Fokus: „Heute“ im To-Do-Tab (26.10., Felix):** oben in der Titelzeile `To-Do | Heute`
 > (gemerkt). In den Bereichen holt die Sonne in jeder Zeile (oder das Menü) eine Aufgabe nach
 > Heute, orange heißt drin; der Bereichsname steht jetzt über der Liste („Uni · 3 offen“).

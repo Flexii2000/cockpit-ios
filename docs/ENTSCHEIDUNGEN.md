@@ -3,6 +3,18 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-26 — Healthy: fester Kalibrierfaktor 0,96 für Felix
+Eine Auswertung über sechs Wochen (Aufnahme gegen Gewichtstrend, 16.09.–25.10.) ergab einen
+Bedarf von ≈ 3.000 kcal und Apple × 0,96. Der rollende 28-Tage-Faktor schwankte allein durch
+Wasser nach großen Essenstagen zwischen 0,79 und 1,06; bis 22.10. drückten ihn zudem
+fehlerhafte Apple-Tage (20.–24.09.) auf ~0,8. Felix wählte **„Fest 0,96“**: gilt an jedem
+Tag, auch rückwirkend, nur für ihn (`PUT /api/energy/settings`, Status `FIXED`, Vertrag §1.5);
+die Kachel „Kalibrierung“ zeigt „fest“ statt „N Tage“. Verworfen: die automatische Rechnung
+robuster machen (56 Tage, Ausreißer der Uhr raus, Wassereffekt herausgerechnet) - bliebe
+adaptiv, schwankte aber weiter um ±0,05 und hätte auch Torben betroffen. Die fehlerhaften
+Apple-Tage stehen im Dienst seitdem als Schätzwerte (Felix' Wahl gegen „echte Werte aus Health
+abwarten“).
+
 ## 2026-10-26 — Fokus: „Heute" im To-Do-Tab
 Felix: „ich habe immer eine ganze Menge in der Todo-App stehen“ - er will einzelne Aufgaben
 per Klick in „Heute“ holen, dort ordnen, was zuerst drankommt, und Aufgaben ohne Liste
