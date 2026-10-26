@@ -14,6 +14,10 @@
 >   Dienst hell und dunkel; UI-Test `testPickIntoTodayOrderAndTakeOut` (Sonne, Umschalter,
 >   Ordnen am Griff, „Raus“ per Wischen, Aufgabe ohne Bereich).
 > - **Debug:** `COCKPIT_TODO_MODE=today|lists`.
+> - **Noch nicht auf dem iPhone** (26.10. 13:25: `install-device.sh Fokus` fand das iPhone nicht -
+>   Mac nicht im Heimnetz, VPN). Nachholen: `tools/install-device.sh Fokus` im Heimnetz.
+> - **Auf dem Gerät prüfen:** „Ordnen“ und am Griff ziehen; ob langes Drücken und Ziehen auch
+>   ohne „Ordnen“ geht (XCUITest bewegt in dieser Liste nichts); Sonne in den Bereichen.
 
 > **Healthy: Uhr-Komplikation mit dem Rest (23.10. 18:00, Felix):** in der Mitte steht, was
 > übrig ist (`750`, drüber `+120`), statt des Gegessenen; der Bogen füllt sich weiter mit dem
