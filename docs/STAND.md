@@ -9,8 +9,7 @@
 >   erst auf „Busy, preflight checks“); neu `testCheckedStaysInPlace`, `testACheckedSubtaskStaysInPlace`;
 >   im Dienst `TodoTodayTest`. Kein Simulator-Bild: die Zeilen sehen aus wie vorher, nur die Stelle ändert sich.
 > - **Ausgerollt:** Dienst und Web, To-Do `8b85c48` (27.10. 10:24).
-> - **Noch nicht auf dem iPhone** (27.10.: iPhone „unavailable“, Mac nicht im Heimnetz) - zusammen mit
->   „Heute“ vom 26.10. per `tools/install-device.sh Fokus` im Heimnetz nachholen.
+> - **Auf dem iPhone seit 27.10. 13:11** (`install-device.sh Fokus`, Kabel, `412c3cf`) - samt „Heute“ vom 26.10.
 
 > **Healthy: fester Kalibrierfaktor (26.10., Felix):** Weight Tracker `be25633` live seit
 > 26.10. 17:39, Felix' Faktor ist fest 0,96 (`FIXED`, Vertrag §1.5). In der App nur die Notiz
@@ -34,8 +33,7 @@
 >   Dienst hell und dunkel; UI-Test `testPickIntoTodayOrderAndTakeOut` (Sonne, Umschalter,
 >   Ordnen am Griff, „Raus“ per Wischen, Aufgabe ohne Bereich).
 > - **Debug:** `COCKPIT_TODO_MODE=today|lists`.
-> - **Noch nicht auf dem iPhone** (26.10. 13:25: `install-device.sh Fokus` fand das iPhone nicht -
->   Mac nicht im Heimnetz, VPN). Nachholen: `tools/install-device.sh Fokus` im Heimnetz.
+> - **Auf dem iPhone seit 27.10. 13:11** (mit `412c3cf`, siehe oben).
 > - **Auf dem Gerät prüfen:** „Ordnen“ und am Griff ziehen; ob langes Drücken und Ziehen auch
 >   ohne „Ordnen“ geht (XCUITest bewegt in dieser Liste nichts); Sonne in den Bereichen.
 
