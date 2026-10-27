@@ -123,7 +123,7 @@ final class TodoStore {
     /// Nach dem Ziehen in „Heute": die offenen in ihrer neuen Reihenfolge.
     /// Erledigtes steht ohnehin darunter und zieht nicht mit.
     func moveToday(from source: IndexSet, to destination: Int) {
-        var ids = today.items.filter { !$0.todo.isDone }.map(\.id)
+        var ids = today.items.map(\.id)
         ids.move(fromOffsets: source, toOffset: destination)
         queue.enqueue(.todo(.orderToday(ids: ids)), label: "Heute")
     }

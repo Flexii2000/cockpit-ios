@@ -1,5 +1,17 @@
 # Stand
 
+> **Fokus/To-Do: Abgehaktes bleibt in „Heute“ stehen (27.10., Felix):** statt ans Ende zu
+> rutschen, steht heute Erledigtes durchgestrichen an seinem Platz - im Dienst, im Web und
+> offline in Fokus (`TodoOverlay.todayView`); Unteraufgaben einer geholten Aufgabe ebenso.
+> „Ordnen“ zieht Erledigtes mit (alle Zeilen haben Griffe, `moveToday` schickt alle
+> Kennungen). In den Bereichen unverändert. Begründung in `ENTSCHEIDUNGEN.md`.
+> - **Geprüft:** `tools/verify.sh` (coHabit, Sport, SportWatch einzeln nachgeholt - coHabit stieß
+>   erst auf „Busy, preflight checks“); neu `testCheckedStaysInPlace`, `testACheckedSubtaskStaysInPlace`;
+>   im Dienst `TodoTodayTest`. Kein Simulator-Bild: die Zeilen sehen aus wie vorher, nur die Stelle ändert sich.
+> - **Ausgerollt:** Dienst und Web, To-Do `8b85c48` (27.10. 10:24).
+> - **Noch nicht auf dem iPhone** (27.10.: iPhone „unavailable“, Mac nicht im Heimnetz) - zusammen mit
+>   „Heute“ vom 26.10. per `tools/install-device.sh Fokus` im Heimnetz nachholen.
+
 > **Healthy: fester Kalibrierfaktor (26.10., Felix):** Weight Tracker `be25633` live seit
 > 26.10. 17:39, Felix' Faktor ist fest 0,96 (`FIXED`, Vertrag §1.5). In der App nur die Notiz
 > der Kachel „Kalibrierung“: „fest“ statt „N Tage“ (`EnergyFormat.calibrationNote`, Test in
@@ -13,7 +25,7 @@
 > Heute, orange heißt drin; der Bereichsname steht jetzt über der Liste („Uni · 3 offen“).
 > ⚠️ Wischen auf Zeilen geht in den Bereichen nicht - das Blättern zwischen ihnen nimmt sich
 > die Geste (auch das alte „Löschen“ per Wischen); in „Heute“ geht es.
-> „Heute“: offene in eigener Reihenfolge („Ordnen“ zeigt die Griffe), darunter heute Erledigtes,
+> „Heute“: offene in eigener Reihenfolge („Ordnen“ zeigt die Griffe), heute Erledigtes an seinem Platz (seit 27.10.),
 > unten „Neue Aufgabe“ für Aufgaben ohne Bereich. Wischen nach links: „Raus“ bzw. Löschen.
 > Dienst und Web: To-Do `ec73d69` (ausgerollt 26.10. 12:41, Reiter „Heute“ neben „To-Do“).
 > Regeln und Verworfenes in `ENTSCHEIDUNGEN.md`, API in `BACKENDS.md`.

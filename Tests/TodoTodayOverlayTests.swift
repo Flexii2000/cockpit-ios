@@ -59,7 +59,7 @@ final class TodoTodayOverlayTests: XCTestCase {
         XCTAssertEqual(ids(gone), [])
     }
 
-    func testOrderingThenCheckingMovesItBelowTheOpenOnes() {
+    func testCheckedStaysInPlace() {
         let a = item("a", "Aufgabe A", today: true)
         let b = item("b", "Aufgabe B", today: true)
         let c = item("c", "Aufgabe C", today: true)
@@ -69,8 +69,20 @@ final class TodoTodayOverlayTests: XCTestCase {
 
         let checked = TodoOverlay.apply([.orderToday(ids: ["c", "a", "b"]), .setDone(id: "c", done: true, at: now)],
                                         to: base, now: now)
-        XCTAssertEqual(ids(checked), ["a", "b", "c"])
+        XCTAssertEqual(ids(checked), ["c", "a", "b"], "abgehakt bleibt es an seinem Platz")
         XCTAssertEqual(checked.today?.openCount, 2)
+    }
+
+    func testACheckedSubtaskStaysInPlace() {
+        let first = TodoItem(id: "c", title: "Gliederung", link: nil, createdAt: earlier, doneAt: nil,
+                             visibleUntil: nil, dueAt: nil, today: false, reminders: [], children: [])
+        let second = TodoItem(id: "d", title: "Literatur", link: nil, createdAt: earlier.addingTimeInterval(60),
+                              doneAt: nil, visibleUntil: nil, dueAt: nil, today: false, reminders: [], children: [])
+        let parent = item("p", "Hausarbeit", today: true, children: [first, second])
+        let base = board([parent], today: [entry(parent)])
+        let shown = TodoOverlay.apply([.setDone(id: "c", done: true, at: now)], to: base, now: now)
+        XCTAssertEqual(shown.today?.items[0].todo.children.map(\.id), ["c", "d"])
+        XCTAssertEqual(shown.areas[0].todos[0].children.map(\.id), ["d", "c"], "im Bereich rutscht sie nach unten")
     }
 
     func testDoneBeforeMidnightIsNoLongerInToday() {

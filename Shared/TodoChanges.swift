@@ -244,7 +244,8 @@ enum TodoOverlay {
     }
 
     /// „Heute" aus der Reihenfolge und den Bereichen - so, wie der Dienst es liefert:
-    /// offene in der Reihenfolge, darunter heute Erledigtes (zuletzt erledigte oben).
+    /// alles in der Reihenfolge, heute Erledigtes an seinem Platz; Unteraufgaben in
+    /// der Reihenfolge des Anlegens, auch abgehakte.
     private static func todayView(order: [String], areas: [TodoArea], adHoc: TodoArea, includesHidden: Bool,
                                   now: Date) -> TodoToday {
         let startOfDay = Calendar.current.startOfDay(for: now)
@@ -263,21 +264,19 @@ enum TodoOverlay {
         var ids = order
         // Ohne Bereich steht eine Aufgabe immer in „Heute" - fehlt sie in der Reihenfolge, hinten.
         ids += adHoc.todos.map(\.id).filter { !pinned.contains($0) }
-        var open: [TodoTodayItem] = []
-        var done: [TodoTodayItem] = []
+        var items: [TodoTodayItem] = []
         var openCount = 0
         var seen: Set<String> = []
         for id in ids where seen.insert(id).inserted {
             guard case let (area, item, parent)? = found[id], isToday(item) else { continue }
             if let parent, area == nil || pinned.contains(parent.id) { continue }
-            let children = parent == nil ? item.children.filter(isToday) : []
+            let children = parent == nil ? item.children.filter(isToday).sorted { $0.createdAt < $1.createdAt } : []
             openCount += children.filter { !$0.isDone }.count + (item.isDone ? 0 : 1)
             let entry = TodoTodayItem(areaId: area?.id, areaName: area?.name, parentId: parent?.id,
                                       parentTitle: parent?.title, todo: item.with(children: children))
-            if item.isDone { done.append(entry) } else { open.append(entry) }
+            items.append(entry)
         }
-        done.sort { ($0.todo.doneAt ?? .distantPast) > ($1.todo.doneAt ?? .distantPast) }
-        return TodoToday(openCount: openCount, items: open + done)
+        return TodoToday(openCount: openCount, items: items)
     }
 
     private static func update(_ id: String, in areas: inout [MutableArea], _ change: (TodoItem) -> TodoItem) {

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// „Heute": die geholten Aufgaben in Felix' Reihenfolge. Darunter, was heute
-/// erledigt wurde, unten das Feld fuer Aufgaben, die keiner Liste gehoeren.
+/// „Heute": die geholten Aufgaben in Felix' Reihenfolge, heute Erledigtes an
+/// seinem Platz. Unten das Feld fuer Aufgaben, die keiner Liste gehoeren.
 ///
 /// Geordnet wird ueber „Ordnen" mit den Griffen von iOS - die gehen auf dem
 /// iPhone immer. Lange druecken und ziehen ohne Bearbeiten-Modus haengt davon
@@ -18,9 +18,6 @@ struct TodayPage: View {
     @State private var editMode: EditMode = .inactive
     @FocusState private var typing: Bool
 
-    private var open: [TodoTodayItem] { store.today.items.filter { !$0.todo.isDone } }
-    private var done: [TodoTodayItem] { store.today.items.filter(\.todo.isDone) }
-
     var body: some View {
         List {
             if let message = store.errorMessage {
@@ -29,13 +26,12 @@ struct TodayPage: View {
                     .listRowBackground(Color.clear)
             }
             Section {
-                ForEach(open) { item in
+                // Erledigtes zieht mit: es steht zwischen den offenen, und eine
+                // Reihenfolge ohne es schoebe es beim Dienst ans Ende.
+                ForEach(store.today.items) { item in
                     TodayRow(item: item, store: store) { detail = item }
                 }
                 .onMove { store.moveToday(from: $0, to: $1) }
-                ForEach(done) { item in
-                    TodayRow(item: item, store: store) { detail = item }
-                }
                 if store.today.items.isEmpty {
                     Text("Nichts offen.").foregroundStyle(.secondary)
                 }
@@ -46,7 +42,7 @@ struct TodayPage: View {
                                             .locale(Locale(identifier: "de_DE"))) + " · "
                          + (store.today.openCount == 1 ? "1 offen" : "\(store.today.openCount) offen"))
                     Spacer()
-                    if open.count > 1 || editMode.isEditing {
+                    if store.today.items.count > 1 || editMode.isEditing {
                         Button(editMode.isEditing ? "Fertig" : "Ordnen") {
                             withAnimation { editMode = editMode.isEditing ? .inactive : .active }
                         }

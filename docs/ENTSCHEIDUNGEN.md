@@ -3,6 +3,16 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-27 — Fokus/To-Do: Abgehaktes bleibt in „Heute" an seinem Platz
+Felix: „Wenn man im Heute-Tab bei Todo ein Todo abhakt, sollte es bitte nicht ans Ende der
+Liste rutschen.“ Heute Erledigtes steht jetzt durchgestrichen dort, wo es stand, bis
+Mitternacht wie bisher; ein Haken zurück ändert nichts an der Stelle. Dasselbe für die
+Unteraufgaben einer geholten Aufgabe (Reihenfolge des Anlegens). Weil Erledigtes zwischen
+den offenen steht, zieht es beim Ordnen mit (Griff auch an erledigten, die Reihenfolge an
+`PUT /api/today` enthält alle) - sonst schöbe der Dienst es beim nächsten Ordnen doch ans
+Ende. Verworfen: die Regel vom 26.10. („Erledigtes bis Mitternacht unten, zuletzt erledigte
+oben“). In den Bereichen bleibt es dabei: Erledigtes rutscht dort weiter nach unten.
+
 ## 2026-10-26 — Healthy: fester Kalibrierfaktor 0,96 für Felix
 Eine Auswertung über sechs Wochen (Aufnahme gegen Gewichtstrend, 16.09.–25.10.) ergab einen
 Bedarf von ≈ 3.000 kcal und Apple × 0,96. Der rollende 28-Tage-Faktor schwankte allein durch
@@ -22,7 +32,8 @@ anlegen. In iOS eine Unterseite von To-Do, im Web ein Reiter direkt neben „To-
 Entschieden in der Fragerunde:
 - **Kein Tagesreset:** was geholt ist, bleibt, bis es erledigt oder rausgenommen ist.
   Verworfen: jeden Morgen leer (Offenes fällt in seine Liste zurück) und „leer, aber Gestern
-  zum Übernehmen anbieten“. Erledigtes steht bis Mitternacht durchgestrichen unten.
+  zum Übernehmen anbieten“. Erledigtes steht bis Mitternacht durchgestrichen unten (seit
+  27.10. an seinem Platz, siehe oben).
 - **Unteraufgaben auch einzeln:** eine geholte Aufgabe bringt ihre Unteraufgaben mit,
   eine Unteraufgabe lässt sich aber auch allein holen (dann „Uni › Hausarbeit“ darunter).
   Verworfen: nur Hauptaufgaben; jede Zeile für sich ohne Unteraufgaben.

@@ -1166,11 +1166,14 @@ TodayView openCount, items[] {areaId | null, areaName | null, parentId | null, p
 
 ⚠️ **„Heute"** (seit 2026-10-26, To-Do `ec73d69`): eine Reihenfolge von
 Kennungen beim Dienst, kein Tagesreset — was geholt ist, bleibt bis zum Haken
-oder Rausnehmen. `today.items` kommt fertig sortiert: offene in Felix'
-Reihenfolge, dann **heute** Erledigtes (zuletzt erledigte oben); Erledigtes von
-gestern fehlt dort, steht aber im Bereich weiter drei Tage. Eine geholte
-Hauptaufgabe bringt ihre Unteraufgaben mit (`todo.children`, Erledigtes nur von
-heute); eine einzeln geholte Unteraufgabe trägt `parentTitle`. `TodoView.today`
+oder Rausnehmen. `today.items` kommt fertig sortiert: alles in Felix'
+Reihenfolge, **heute** Erledigtes an seinem Platz (seit 27.10., vorher unten) -
+`PUT /api/today` bekommt deshalb auch die erledigten Kennungen, sonst rutschen
+sie ans Ende. Erledigtes von gestern fehlt dort, steht aber im Bereich weiter
+drei Tage. Eine geholte Hauptaufgabe bringt ihre Unteraufgaben mit
+(`todo.children`, Erledigtes nur von heute, in der Reihenfolge des Anlegens -
+anders als im Bereich, wo Erledigtes nach unten rutscht); eine einzeln geholte
+Unteraufgabe trägt `parentTitle`. `TodoView.today`
 heißt *selbst geholt* — eine Unteraufgabe unter einer geholten Aufgabe hat
 `false` und lässt sich nicht einzeln holen. Aufgaben **ohne Bereich**
 (`areaId: null`) stehen nur in `today`, nie in `areas`. Die App dekodiert
