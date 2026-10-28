@@ -1339,9 +1339,9 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
   - Dieselbe Kennung zweimal ist ein Ergebnis (die Uhr schickt direkt und übers iPhone).
   - Ein Tie-Break, den die Uhr mitschickt, bleibt unbeachtet.
   - Der Dienst sucht die Buchung, die zur selben Zeit lief (Beginn bis drei Stunden vor dem
-    Start auf der Uhr), und trägt ein, sobald Playtomic es zulässt: gleich beim Eingang, dann
-    alle zwei Minuten, auch noch während der Platzmiete, bis sechs Stunden nach dem Ende (seit
-    28.10., `padel` `044629a`; bis dahin erst nach der Platzmiete). Am 27.10. gab Playtomic erst
+    Start auf der Uhr), und trägt ein, sobald Playtomic es zulässt. Gefragt wird erst nach dem
+    Ende der Platzmiete, dann eine halbe Stunde alle 8 Sekunden, danach alle zwei Minuten, bis
+    sechs Stunden nach dem Ende (seit 28.10.; vorher alle zwei Minuten). Am 27.10. gab Playtomic
     einige Minuten nach dem Ende frei, und Felix trug selbst ein, 43 s vor dem nächsten Abfragen. Ein schon eingetragenes Ergebnis überschreibt er nie. Was daraus wurde, steht in `Overview.results` - nur in Felix' Ansicht, die letzten 14
     Tage (`ResultView.status`: `WAITING`, `SUBMITTED`, `ALREADY_ENTERED`, `NO_BOOKING`,
     `NOT_POSSIBLE`, `FAILED`; `statusText` zum Anzeigen).
