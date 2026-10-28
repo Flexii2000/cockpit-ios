@@ -154,6 +154,21 @@ struct PadelCosts: Decodable, Equatable, Sendable {
     let forecast: Double
     /// Die Vormonate, neueste zuerst.
     let months: [PadelMonthCost]
+    /// Die Prognose fuer den Folgemonat (28.10.); fehlt bei einem aelteren Dienst.
+    let next: PadelForecast?
+}
+
+/// Die Prognose fuer einen kommenden Monat: dort Gebuchtes plus je geplantem Tag ein Match zum
+/// ueblichen Anteil - auch Serientage, fuer die es noch keine Termine gibt.
+struct PadelForecast: Decodable, Equatable, Sendable {
+    let month: String
+    /// „November 2026“
+    let label: String
+    let booked: Double
+    let bookedMatches: Int
+    let planned: Double
+    let plannedDays: Int
+    let forecast: Double
 }
 
 struct PadelMonthCost: Decodable, Equatable, Identifiable, Sendable {

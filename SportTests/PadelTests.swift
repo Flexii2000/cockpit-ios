@@ -49,6 +49,12 @@ final class PadelTests: XCTestCase {
         XCTAssertEqual(PadelFormat.forecastDetail(costs), "gebucht 15,00 € (1 Match)")
         XCTAssertEqual(PadelFormat.forecastDetail(PadelDemo.costs()),
                        "gebucht 15,00 € (1 Match) · geplant 33,00 € (2 Tage)")
+        // Ein Dienst von vor dem Folgemonat schickt `next` nicht.
+        XCTAssertNil(costs.next)
+        let next = try XCTUnwrap(PadelDemo.costs().next)
+        XCTAssertEqual(next.label, "November 2026")
+        XCTAssertEqual(PadelFormat.euro(next.forecast), "255,49 €")
+        XCTAssertEqual(PadelFormat.forecastDetail(next), "gebucht 84,02 € (5 Matches) · geplant 171,47 € (11 Tage)")
     }
 
     func testFieldsAddedLaterMayBeMissing() throws {

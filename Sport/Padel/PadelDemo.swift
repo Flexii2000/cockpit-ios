@@ -19,7 +19,9 @@ enum PadelDemo {
          "planned":33.00,"plannedDays":2,"forecast":128.38,"months":[
           {"month":"2026-09","label":"September 2026","amount":210.01,"matches":13},
           {"month":"2026-08","label":"August 2026","amount":226.38,"matches":17},
-          {"month":"2026-07","label":"Juli 2026","amount":197.97,"matches":17}]}
+          {"month":"2026-07","label":"Juli 2026","amount":197.97,"matches":17}],
+         "next":{"month":"2026-11","label":"November 2026","booked":84.02,"bookedMatches":5,"planned":171.47,
+                 "plannedDays":11,"forecast":255.49}}
         """)
     }
 

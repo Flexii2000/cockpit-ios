@@ -185,13 +185,25 @@ enum PadelFormat {
     /// Woraus die Prognose ueber das Bisherige hinaus besteht: „gebucht 15,00 € (1 Match) ·
     /// geplant 33,00 € (2 Tage)“; `nil`, wenn nichts dazukommt.
     static func forecastDetail(_ costs: PadelCosts) -> String? {
+        forecastDetail(booked: costs.booked, bookedMatches: costs.bookedMatches, planned: costs.planned,
+                       plannedDays: costs.plannedDays)
+    }
+
+    /// Dasselbe fuer den Folgemonat.
+    static func forecastDetail(_ forecast: PadelForecast) -> String? {
+        forecastDetail(booked: forecast.booked, bookedMatches: forecast.bookedMatches, planned: forecast.planned,
+                       plannedDays: forecast.plannedDays)
+    }
+
+    private static func forecastDetail(booked: Double, bookedMatches: Int, planned: Double,
+                                       plannedDays: Int) -> String? {
         var parts: [String] = []
-        if costs.bookedMatches > 0 {
-            parts.append("gebucht \(euro(costs.booked)) (\(matches(costs.bookedMatches)))")
+        if bookedMatches > 0 {
+            parts.append("gebucht \(euro(booked)) (\(matches(bookedMatches)))")
         }
-        if costs.plannedDays > 0 {
-            let days = costs.plannedDays == 1 ? "1 Tag" : "\(costs.plannedDays) Tage"
-            parts.append("geplant \(euro(costs.planned)) (\(days))")
+        if plannedDays > 0 {
+            let days = plannedDays == 1 ? "1 Tag" : "\(plannedDays) Tage"
+            parts.append("geplant \(euro(planned)) (\(days))")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

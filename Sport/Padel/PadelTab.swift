@@ -134,12 +134,17 @@ struct PadelTab: View {
         .listStyle(.insetGrouped)
     }
 
-    /// Dieser Monat, die Prognose und die Vormonate (28.10.) - wie die Karte „Kosten“ der Seite.
+    /// Dieser Monat, seine Prognose, die des Folgemonats und die Vormonate (28.10.) - wie die Karte
+    /// „Kosten“ der Seite.
     @ViewBuilder
     private func costRows() -> some View {
         if let costs = store.costs {
             PadelCostRow(title: costs.label, detail: PadelFormat.matches(costs.matches), amount: costs.spent)
             PadelCostRow(title: "Prognose", detail: PadelFormat.forecastDetail(costs), amount: costs.forecast)
+            if let next = costs.next {
+                PadelCostRow(title: "Prognose \(next.label)", detail: PadelFormat.forecastDetail(next),
+                             amount: next.forecast)
+            }
             ForEach(costs.months) {
                 PadelCostRow(title: $0.label, detail: PadelFormat.matches($0.matches), amount: $0.amount, past: true)
             }
