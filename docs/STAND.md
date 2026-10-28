@@ -3,14 +3,17 @@
 > **Sport/Padel: Kosten des Monats mit Prognose (28.10., Felix):** Abschnitt „Kosten“ direkt nach
 > „Nächster Termin“, nur Felix. Er zeigt den Monat bisher (Summe, Matches) und die Prognose (bisher +
 > gebucht + je geplantem Tag ohne Buchung ein Match zum üblichen Anteil), dazu die Prognose des
-> Folgemonats (`padel` `23ff9b3`, App `4c5aba9`; am 28.10. für November 255,49 €), darunter die Vormonate. Gerechnet
+> Folgemonats (`padel` `23ff9b3`, App `4c5aba9`; am 28.10. für November 255,49 €), darunter die Vormonate.
+> Reihenfolge seit 28.10. 11:03 auf Felix' Wunsch: Prognose Folgemonat, Prognose dieser Monat, dieser Monat
+> (laufend), Vormonate (App `38e7657`, Seite `170ed4c`). Aleks und Torben sehen die Karte auf ihrer Seite für
+> ihre Matches mit Felix (`2b83ee6`). Gerechnet
 > wird im Dienst: `GET /padel/api/costs`, `padel` `57538f6`, live seit 28.10. 10:04. Die Seite hat
 > dieselbe Karte. Begründung in `ENTSCHEIDUNGEN.md`.
 > - **Echte Zahlen am 28.10.:** Oktober 6 Matches 80,38 €, Prognose 95,38 € (1 gebucht, keine
 >   geplanten Tage mehr im Oktober), Vormonate bis Mai 2026.
 > - **Geprüft:** `tools/verify.sh Sport` (59 Unit-Tests, neu `testCostsReadLikeTheService`); Simulator mit
 >   echten Daten hell und dunkel; Seite in Chrome.
-> - **Auf dem iPhone seit 28.10. 10:48** (`install-device.sh Sport`, Kabel). Die Uhr war im Firmennetz nicht
+> - **Auf dem iPhone seit 28.10. 11:03** (`install-device.sh Sport`, Kabel, `38e7657`). Die Uhr war im Firmennetz nicht
 >   erreichbar. An der Uhr-App hat sich nichts geändert, sie bleibt auf dem Stand vom 23.10.
 > - **Ergebnisse von der Uhr:** Seit 28.10. fragt der Dienst nach dem Ende der Platzmiete eine halbe
 >   Stunde lang alle 8 Sekunden, dann alle 2 Minuten (vorher alle 2 Minuten). Am 27.10. (Platz bis

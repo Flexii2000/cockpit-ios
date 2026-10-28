@@ -1358,7 +1358,8 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
   - `next` (seit 28.10.): der Folgemonat, `{"month", "label", "booked", "bookedMatches", "planned",
     "plannedDays", "forecast"}`. Hinter dem Horizont der Serien (28 Tage) zählen deren
     Wochentage, auch wenn es noch keine Termine gibt. Fehlt bei einem älteren Dienst.
-  - Ein Mitspieler bekommt 403; die App fragt trotzdem mit und zeigt den Abschnitt nur Felix.
+  - Seit 28.10. mittags bekommen Aleks und Torben dieselbe Ansicht für alle Matches, in denen sie mit
+    Felix stehen, mit dem, was sie selbst bezahlt haben (`padel` `2b83ee6`). Die App kennt nur Felix.
 
 ## Finance Cockpit — kein API
 
