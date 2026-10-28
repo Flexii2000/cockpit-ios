@@ -11,6 +11,9 @@ final class PadelStore {
     private(set) var bookings: [PadelBooking]?
     /// Playtomic kann fuer sich scheitern - dann nur dort die Meldung.
     private(set) var bookingsError: String?
+    /// Was Padel Felix kostet (28.10.), live aus Playtomic; `nil`, solange nichts da ist.
+    private(set) var costs: PadelCosts?
+    private(set) var costsError: String?
     private(set) var isLoading = false
     private(set) var error: String?
     private(set) var accessProblem = false
@@ -30,10 +33,11 @@ final class PadelStore {
 
     #if DEBUG
     /// Fuer Unit-Tests: ein Stand nur im Speicher - nichts geht an den Dienst.
-    init(memory overview: PadelOverview, bookings: [PadelBooking]) {
+    init(memory overview: PadelOverview, bookings: [PadelBooking], costs: PadelCosts? = nil) {
         isDemo = true
         self.overview = overview
         self.bookings = bookings
+        self.costs = costs
     }
     #endif
 
@@ -47,6 +51,7 @@ final class PadelStore {
             if overview == nil {
                 overview = PadelDemo.overview()
                 bookings = PadelDemo.bookings()
+                costs = PadelDemo.costs()
             }
             return
         }
@@ -55,6 +60,7 @@ final class PadelStore {
         defer { isLoading = false }
         async let fresh = api.overview()
         async let live = api.bookings()
+        async let money = api.costs()
         do {
             overview = try await fresh
             clearError()
@@ -66,6 +72,13 @@ final class PadelStore {
             bookingsError = nil
         } catch {
             bookingsError = "Playtomic: " + error.localizedDescription
+        }
+        // Nur Felix bekommt die Kosten; ein Mitspieler sieht den Abschnitt ohnehin nicht.
+        do {
+            costs = try await money
+            costsError = nil
+        } catch {
+            costsError = "Playtomic: " + error.localizedDescription
         }
     }
 
@@ -159,8 +172,9 @@ final class PadelStore {
         do {
             bookings = try await operation(api)
             clearError()
-            // Stornieren und Zusammenfuehren aendern auch die Termine des Dienstes.
+            // Stornieren und Zusammenfuehren aendern auch die Termine des Dienstes und die Kosten.
             if let fresh = try? await api.overview() { overview = fresh }
+            if let fresh = try? await api.costs() { costs = fresh }
         } catch {
             report(error)
         }

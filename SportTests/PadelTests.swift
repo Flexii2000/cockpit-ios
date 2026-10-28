@@ -33,6 +33,22 @@ final class PadelTests: XCTestCase {
         XCTAssertEqual(overview.results?.first?.summary, "6:0 6:2")
         XCTAssertEqual(overview.series?.first?.firstDate?.count, 10)
         XCTAssertEqual(PadelDemo.bookings(now: now).count, 2)
+        XCTAssertEqual(PadelDemo.costs().months.first?.label, "September 2026")
+    }
+
+    func testCostsReadLikeTheService() throws {
+        // So schickt der Dienst es am 28.10. (Views.CostView): Betraege als Zahlen.
+        let json = """
+        {"month":"2026-10","label":"Oktober 2026","spent":80.38,"matches":6,"booked":15.00,"bookedMatches":1,
+         "planned":0.00,"plannedDays":0,"forecast":95.38,
+         "months":[{"month":"2026-09","label":"September 2026","amount":210.01,"matches":13}]}
+        """
+        let costs = try APIClient.decoder().decode(PadelCosts.self, from: Data(json.utf8))
+        XCTAssertEqual(PadelFormat.euro(costs.spent), "80,38 €")
+        XCTAssertEqual(PadelFormat.euro(costs.months[0].amount), "210,01 €")
+        XCTAssertEqual(PadelFormat.forecastDetail(costs), "gebucht 15,00 € (1 Match)")
+        XCTAssertEqual(PadelFormat.forecastDetail(PadelDemo.costs()),
+                       "gebucht 15,00 € (1 Match) · geplant 33,00 € (2 Tage)")
     }
 
     func testFieldsAddedLaterMayBeMissing() throws {
@@ -109,6 +125,10 @@ final class PadelTests: XCTestCase {
         XCTAssertEqual(PadelFormat.price("16.88 EUR", split: true), "16,88 € p. P.")
         XCTAssertEqual(PadelFormat.price("60 EUR", split: false), "60 €")
         XCTAssertNil(PadelFormat.price(nil, split: true))
+        XCTAssertEqual(PadelFormat.euro(1234.5), "1.234,50 €")
+        XCTAssertEqual(PadelFormat.euro(0), "0,00 €")
+        XCTAssertEqual(PadelFormat.matches(1), "1 Match")
+        XCTAssertEqual(PadelFormat.matches(13), "13 Matches")
     }
 
     func testASeriesTitleShowsItsRange() throws {

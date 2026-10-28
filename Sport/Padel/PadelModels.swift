@@ -135,6 +135,36 @@ struct PadelResult: Decodable, Equatable, Identifiable, Sendable {
     let partnerColor: String?
 }
 
+/// Was Padel Felix kostet (28.10., `GET /api/costs`, nur Felix): dieser Monat mit Prognose,
+/// darunter die Vormonate. Betraege in Euro - was Felix bezahlt hat, stornierte zaehlen nicht.
+struct PadelCosts: Decodable, Equatable, Sendable {
+    let month: String
+    /// „Oktober 2026“
+    let label: String
+    /// Bisher in diesem Monat.
+    let spent: Double
+    let matches: Int
+    /// Gebucht bis Monatsende.
+    let booked: Double
+    let bookedMatches: Int
+    /// Je geplantem Tag ohne Buchung ein Match zum ueblichen Anteil beim Club.
+    let planned: Double
+    let plannedDays: Int
+    /// Bisher + gebucht + geplant.
+    let forecast: Double
+    /// Die Vormonate, neueste zuerst.
+    let months: [PadelMonthCost]
+}
+
+struct PadelMonthCost: Decodable, Equatable, Identifiable, Sendable {
+    let month: String
+    let label: String
+    let amount: Double
+    let matches: Int
+
+    var id: String { month }
+}
+
 /// Eine Buchung, live aus Playtomic.
 struct PadelBooking: Decodable, Equatable, Identifiable, Sendable {
     let matchId: String

@@ -1308,6 +1308,7 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
 | POST | `/api/bookings/{matchId}/merge` | `[BookingView]` | Felix |
 | GET | `/api/bookings/{matchId}/invite` | `{"url"}` | alle |
 | POST | `/api/results` (`ResultRequest`) | `ResultView` | Felix (die Uhr) |
+| GET | `/api/costs` | `CostView` - live aus Playtomic (Historie 6 h, Letzte und Kommende 2 min zwischengespeichert) | Felix (seit 28.10.) |
 | GET | `/api/status`, `/api/admin/**` | - | Felix; die App ruft sie nicht |
 
 - **Jede Änderung antwortet mit dem neuen Stand** (`Overview` bzw. den Buchungen); die App zeigt
@@ -1338,11 +1339,23 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
   - Dieselbe Kennung zweimal ist ein Ergebnis (die Uhr schickt direkt und übers iPhone).
   - Ein Tie-Break, den die Uhr mitschickt, bleibt unbeachtet.
   - Der Dienst sucht die Buchung, die zur selben Zeit lief (Beginn bis drei Stunden vor dem
-    Start auf der Uhr), und trägt nach der Platzmiete ein, sobald Playtomic es zulässt (alle zwei
-    Minuten, bis sechs Stunden nach dem Ende). Ein schon eingetragenes Ergebnis überschreibt er
-    nie. Was daraus wurde, steht in `Overview.results` - nur in Felix' Ansicht, die letzten 14
+    Start auf der Uhr), und trägt ein, sobald Playtomic es zulässt: gleich beim Eingang, dann
+    alle zwei Minuten, auch noch während der Platzmiete, bis sechs Stunden nach dem Ende (seit
+    28.10., `padel` `044629a`; bis dahin erst nach der Platzmiete - am 27.10. war so jemand
+    anderes schneller). Ein schon eingetragenes Ergebnis überschreibt er nie. Was daraus wurde, steht in `Overview.results` - nur in Felix' Ansicht, die letzten 14
     Tage (`ResultView.status`: `WAITING`, `SUBMITTED`, `ALREADY_ENTERED`, `NO_BOOKING`,
     `NOT_POSSIBLE`, `FAILED`; `statusText` zum Anzeigen).
+- **`GET /api/costs`** (seit 28.10., `costs/CostService`) - was Padel Felix kostet:
+  `{"month": "2026-10", "label": "Oktober 2026", "spent": 80.38, "matches": 6, "booked": 15.00,
+  "bookedMatches": 1, "planned": 0.00, "plannedDays": 0, "forecast": 95.38, "months": [{"month",
+  "label", "amount", "matches"}, …]}`. Beträge als Zahl in Euro.
+  - Je Match zählt, was Felix bezahlt hat (seine Anmeldungen bei Playtomic samt Gebühr), nicht
+    der Platzpreis; hat jemand anderes für ihn bezahlt, 0 €. Stornierte zählen nicht. Ein Match
+    gehört zum Monat seines Beginns.
+  - `forecast` = `spent` + `booked` (bis Monatsende gebucht) + `planned` (je geplantem Tag ohne
+    Buchung ein Match zum üblichen Anteil beim Club: Median der letzten 10 dort).
+  - `months`: die Vormonate mit Matches, neueste zuerst, so weit Playtomic zurückreicht.
+  - Ein Mitspieler bekommt 403; die App fragt trotzdem mit und zeigt den Abschnitt nur Felix.
 
 ## Finance Cockpit — kein API
 

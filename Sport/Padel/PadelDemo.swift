@@ -13,6 +13,16 @@ enum PadelDemo {
         decode(bookingsJSON(now))
     }
 
+    static func costs() -> PadelCosts {
+        decode("""
+        {"month":"2026-10","label":"Oktober 2026","spent":80.38,"matches":6,"booked":15.00,"bookedMatches":1,
+         "planned":33.00,"plannedDays":2,"forecast":128.38,"months":[
+          {"month":"2026-09","label":"September 2026","amount":210.01,"matches":13},
+          {"month":"2026-08","label":"August 2026","amount":226.38,"matches":17},
+          {"month":"2026-07","label":"Juli 2026","amount":197.97,"matches":17}]}
+        """)
+    }
+
     private static func decode<T: Decodable>(_ json: String) -> T {
         // Die Vorfuehrdaten sind fest geschrieben - scheitert das, ist der Text falsch.
         // swiftlint:disable:next force_try

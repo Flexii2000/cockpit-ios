@@ -172,6 +172,30 @@ enum PadelFormat {
         return days > 0 ? "in \(days) T \(hms)" : "in \(hms)"
     }
 
+    /// 80.375 → „80,38 €“ - immer mit Cent, wie die Karte „Kosten“ der Seite.
+    static func euro(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(2)).locale(Locale(identifier: "de_DE"))) + " €"
+    }
+
+    /// „1 Match“, „6 Matches“.
+    static func matches(_ count: Int) -> String {
+        count == 1 ? "1 Match" : "\(count) Matches"
+    }
+
+    /// Woraus die Prognose ueber das Bisherige hinaus besteht: „gebucht 15,00 € (1 Match) ·
+    /// geplant 33,00 € (2 Tage)“; `nil`, wenn nichts dazukommt.
+    static func forecastDetail(_ costs: PadelCosts) -> String? {
+        var parts: [String] = []
+        if costs.bookedMatches > 0 {
+            parts.append("gebucht \(euro(costs.booked)) (\(matches(costs.bookedMatches)))")
+        }
+        if costs.plannedDays > 0 {
+            let days = costs.plannedDays == 1 ? "1 Tag" : "\(costs.plannedDays) Tage"
+            parts.append("geplant \(euro(costs.planned)) (\(days))")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
     /// „16.88 EUR“ → „16,88 € p. P.“ (bei geteilter Zahlung der Anteil je Spieler).
     static func price(_ raw: String?, split: Bool) -> String? {
         guard let raw else { return nil }

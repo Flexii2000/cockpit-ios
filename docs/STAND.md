@@ -1,5 +1,20 @@
 # Stand
 
+> **Sport/Padel: Kosten des Monats mit Prognose (28.10., Felix):** Abschnitt „Kosten“ direkt nach
+> „Nächster Termin“, nur Felix. Er zeigt den Monat bisher (Summe, Matches) und die Prognose (bisher +
+> gebucht + je geplantem Tag ohne Buchung ein Match zum üblichen Anteil), darunter die Vormonate. Gerechnet
+> wird im Dienst: `GET /padel/api/costs`, `padel` `57538f6`, live seit 28.10. 10:04. Die Seite hat
+> dieselbe Karte. Begründung in `ENTSCHEIDUNGEN.md`.
+> - **Echte Zahlen am 28.10.:** Oktober 6 Matches 80,38 €, Prognose 95,38 € (1 gebucht, keine
+>   geplanten Tage mehr im Oktober), Vormonate bis Mai 2026.
+> - **Geprüft:** `tools/verify.sh Sport` (59 Unit-Tests, neu `testCostsReadLikeTheService`); Simulator mit
+>   echten Daten hell und dunkel; Seite in Chrome.
+> - **Noch nicht auf dem iPhone:** Der Mac war im Firmennetz (iPhone `unavailable`). Zu Hause oder per Kabel:
+>   `tools/install-device.sh Sport`.
+> - **Ergebnisse von der Uhr** trägt der Dienst seit 28.10. (`044629a`) ein, sobald Playtomic es zulässt,
+>   auch während der Platzmiete. Am 27.10. wartete er bis 22:30, und jemand anderes war schneller
+>   („stand schon bei Playtomic“). Das nächste Match ist der Test.
+
 > **coHabit: Minuten pro Woche mit Timer (28.10., Felix):** „Klavier spielen“, 140 Min. pro Woche,
 > in der Liste starten und stoppen. Dienst `../habits` `3dd6e8c` (Vertrag §2.4b, §5.2d), Web `48f49f1`,
 > beides live seit 28.10. vormittags; Felix' Habit ist angelegt, 40 Min. von heute eingetragen.
@@ -134,8 +149,8 @@
 >   `testPadelDemoShowsEverySection` hell und dunkel). Uhr im Simulator (Series 12, 42 mm):
 >   Spielstand, Werte, Training, Geräteliste, Start - alles mit Vorführdaten.
 > - **Nicht geprüft:** echte Trainings und Puls (der Simulator misst nichts), das Spiegeln
->   des Krafttrainings mit der neuen Uhr-App, die Zustellung eines Ergebnisses an den Dienst
->   und das Eintragen bei Playtomic (das erste echte Match ist der erste Lauf).
+>   des Krafttrainings mit der neuen Uhr-App und das Eintragen bei Playtomic. Die Zustellung an
+>   den Dienst klappte am 27.10. (3:6 6:4, 21:59), eingetragen hatte da schon jemand anderes.
 > - **Installiert** auf Felix' iPhone und Uhr am 23.10. um 14:25 (Sport samt `SportWatch`,
 >   danach Healthy samt Uhr ohne Gym). Xcode hatte kein Konto mehr angemeldet („No Accounts“) -
 >   die Profile der neuen Bundle-IDs mit HealthKit hat `install-device.sh` über den

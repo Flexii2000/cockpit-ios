@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Padel - die Autobuchung bei Playtomic (fherrmann.com/padel), nativ (Felix, 23.10.): was die
-/// Seite zeigt, in derselben Reihenfolge - der naechste Termin, Gebucht, Ergebnisse von der Uhr,
+/// Seite zeigt, in derselben Reihenfolge - der naechste Termin, Kosten, Gebucht, Ergebnisse von der Uhr,
 /// Geplant (ein Eintrag je Tag und Mitspieler), Serien, Plaetze und Stand. Eintraege sind in
 /// der Farbe des Mitspielers hinterlegt, wo der Dienst eine mitschickt.
 struct PadelTab: View {
@@ -83,6 +83,9 @@ struct PadelTab: View {
                         .padelTint(overview.viewer.owner ? next.partnerColor : nil)
                 }
             }
+            if overview.viewer.owner {
+                Section("Kosten") { costRows() }
+            }
             Section("Gebucht") {
                 if let message = store.bookingsError, store.bookings == nil {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
@@ -129,6 +132,22 @@ struct PadelTab: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    /// Dieser Monat, die Prognose und die Vormonate (28.10.) - wie die Karte „Kosten“ der Seite.
+    @ViewBuilder
+    private func costRows() -> some View {
+        if let costs = store.costs {
+            PadelCostRow(title: costs.label, detail: PadelFormat.matches(costs.matches), amount: costs.spent)
+            PadelCostRow(title: "Prognose", detail: PadelFormat.forecastDetail(costs), amount: costs.forecast)
+            ForEach(costs.months) {
+                PadelCostRow(title: $0.label, detail: PadelFormat.matches($0.matches), amount: $0.amount, past: true)
+            }
+        } else if let message = store.costsError {
+            Text(message).font(.footnote).foregroundStyle(.secondary)
+        } else {
+            ProgressView()
+        }
     }
 
     /// „Playtomic ✓ · iCloud ✓ · To-Do ✓ · Fenster 336 h · 86 Wecker“

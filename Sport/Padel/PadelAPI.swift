@@ -17,6 +17,11 @@ struct PadelAPI: Sendable {
         try await client.get("/api/bookings")
     }
 
+    /// Was Padel Felix kostet - live aus Playtomic, nur Felix.
+    func costs() async throws -> PadelCosts {
+        try await client.get("/api/costs")
+    }
+
     // MARK: - Termine
 
     func skip(_ id: String, day: Bool) async throws -> PadelOverview {

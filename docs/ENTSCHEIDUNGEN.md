@@ -3,6 +3,19 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-28 — Sport/Padel: Kosten des Monats mit Prognose
+Felix: „eine Kostensumme des Monats sowie eine Kostenprognose … für Padel-Matches … auch im Web“.
+Auf Rückfrage gewählt: Je Match zählt, **was er bezahlt hat** (bei geteilter Zahlung sein Anteil,
+hat er den Platz bezahlt der ganze Platz). Verworfen: immer ein Viertel des Platzes. Die
+**Prognose** ist bisher + gebucht bis Monatsende + je geplantem Tag ohne Buchung ein Match zum
+üblichen Anteil beim Club. Verworfen: nur bisher + gebucht (ohne Schätzung) und eine Hochrechnung
+aus dem bisherigen Tempo. Der Abschnitt **„Kosten“ steht oben**, direkt nach „Nächster Termin“.
+Verworfen: unter „Gebucht“ und ganz unten. **Vormonate als Liste** darunter. Verworfen: nur der
+laufende Monat. Gerechnet wird im Dienst (`GET /api/costs`), App und Seite zeigen nur. Entschieden
+beim Bauen: Der übliche Anteil ist der Median der letzten 10 bezahlten Matches beim Club, bei
+mehreren Clubs am Tag der Mittelwert. Geplant zählen alle offenen Tage wie unter „Geplant“, auch
+einmalige, je Mitspieler. Ein Tag fällt weg, sobald mit diesem Mitspieler etwas gebucht ist.
+
 ## 2026-10-28 — coHabit: Minuten pro Woche mit Timer
 Felix: „Klavier spielen“ soll man in der Liste starten und stoppen, Wochenziel 140 Minuten. Er hat
 gewählt: Serie in Wochen (statt nur eines Wochenbalkens), **Startzeit beim Dienst** (statt nur im

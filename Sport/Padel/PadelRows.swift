@@ -215,6 +215,34 @@ struct PadelResultRow: View {
     }
 }
 
+// MARK: - Kosten
+
+/// Ein Monat oder die Prognose: links was, rechts der Betrag. Vormonate stehen leiser.
+struct PadelCostRow: View {
+    let title: String
+    let detail: String?
+    let amount: Double
+    var past = false
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(past ? .body : .headline)
+                    .foregroundStyle(past ? .secondary : .primary)
+                if let detail {
+                    Text(detail).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            Text(PadelFormat.euro(amount))
+                .font((past ? Font.body : .headline).monospacedDigit())
+                .foregroundStyle(past ? .secondary : .primary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 // MARK: - Geplant
 
 struct PadelDayRow: View {
