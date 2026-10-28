@@ -9,8 +9,8 @@
 >   geplanten Tage mehr im Oktober), Vormonate bis Mai 2026.
 > - **Geprüft:** `tools/verify.sh Sport` (59 Unit-Tests, neu `testCostsReadLikeTheService`); Simulator mit
 >   echten Daten hell und dunkel; Seite in Chrome.
-> - **Noch nicht auf dem iPhone:** Der Mac war im Firmennetz (iPhone `unavailable`). Zu Hause oder per Kabel:
->   `tools/install-device.sh Sport`.
+> - **Auf dem iPhone seit 28.10. 10:48** (`install-device.sh Sport`, Kabel). Die Uhr war im Firmennetz nicht
+>   erreichbar. An der Uhr-App hat sich nichts geändert, sie bleibt auf dem Stand vom 23.10.
 > - **Ergebnisse von der Uhr:** Seit 28.10. fragt der Dienst nach dem Ende der Platzmiete eine halbe
 >   Stunde lang alle 8 Sekunden, dann alle 2 Minuten (vorher alle 2 Minuten). Am 27.10. (Platz bis
 >   22:00) ließ Playtomic um etwa 22:02 und 22:04 noch nichts zu. Felix trug um 22:05:04 selbst ein, und
