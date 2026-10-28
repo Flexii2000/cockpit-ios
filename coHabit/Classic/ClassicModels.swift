@@ -266,7 +266,11 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
 
     /// Langdruck: fruehere Tage nachtragen. Nur, was man selbst abhakt, und
     /// nicht mit Foto-Pflicht - zu jedem Tag gehoerte dann ein Foto.
-    var canBackfill: Bool { kind.takesMarks && !needsPhoto }
+    var canBackfill: Bool { kind.takesMarks && !needsPhoto && !countsMinutes }
+
+    /// Minuten pro Woche (Vertrag §2.4b): ein Haken ohne Minuten nimmt der Dienst
+    /// nicht - eingetragen wird wie in der neuen Liste, mit Timer oder Wert.
+    var countsMinutes: Bool { kind == .build && summary?.valueUnit == "MINUTES" }
 
     /// Tipp auf den Namen: der alte Editor nur als Admin und nur fuer die
     /// fuenf alten Arten - sonst die Detailseite.
@@ -274,6 +278,7 @@ struct ClassicHabit: Identifiable, Sendable, Equatable {
 
     var action: Action {
         switch kind {
+        case .build where countsMinutes: summary?.canCheckIn == true ? .checkIn : .none
         case .build: needsPhoto && !doneToday ? .proofPhoto : .mark
         case .quit: .mark
         case .goal, .challenge: summary?.canCheckIn == true ? .checkIn : .none

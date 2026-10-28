@@ -29,6 +29,8 @@ extension CohabitSummary {
         case .goal, .challenge:
             return .bar(progress.fraction)
         case .streak:
+            // Minuten pro Woche: Minuten gegen das Wochenziel - als Punkte waeren es 140.
+            if valueUnit == "MINUTES", progress.goal > 7 { return .bar(progress.fraction) }
             guard progress.goal >= 1, progress.goal <= 7 else { return .none }
             return .weekDots(done: Int(progress.done), goal: Int(progress.goal))
         case .abstinence:

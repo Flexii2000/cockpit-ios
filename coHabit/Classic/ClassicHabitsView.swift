@@ -98,11 +98,16 @@ struct ClassicHabitsView: View {
                 .scaleEffect(pressedHabitID == habit.id ? 1.03 : 1)
                 .animation(.easeOut(duration: 0.18), value: pressedHabitID)
                 .onLongPressGesture(minimumDuration: 0.45, maximumDistance: 12) {
-                    guard habit.canBackfill else { return }
+                    guard habit.canBackfill || habit.countsMinutes else { return }
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    historyHabitID = habit.id
+                    // Minuten pro Woche: gleich das Minuten-Blatt (mit „Anderer Tag“).
+                    if habit.countsMinutes {
+                        store.startCheckIn(habit)
+                    } else {
+                        historyHabitID = habit.id
+                    }
                 } onPressingChanged: { pressing in
-                    guard habit.canBackfill else { return }
+                    guard habit.canBackfill || habit.countsMinutes else { return }
                     pressedHabitID = pressing ? habit.id : nil
                 }
                 // An der Zeile, nicht an der Liste: unter iOS 26 ist die
@@ -287,6 +292,8 @@ struct ClassicHabitRow: View {
     @ViewBuilder
     private var trailingByKind: some View {
         switch habit.kind {
+        case .build where habit.summary?.timer != nil:
+            timerTrailing(habit.summary!)
         case .build:
             HStack(spacing: 10) {
                 // Je Woche oder Monat: der Stand des Zeitraums neben dem
@@ -357,6 +364,42 @@ struct ClassicHabitRow: View {
             summaryTrailing
         case .unknown:
             EmptyView()
+        }
+    }
+
+    /// Minuten pro Woche mit Timer (Vertrag §5.2d): die Minuten der Woche bzw. die
+    /// laufende Zeit, daneben Start oder Stopp statt des Hakens.
+    @ViewBuilder
+    private func timerTrailing(_ summary: CohabitSummary) -> some View {
+        let controller = TimerController.shared
+        let started = summary.timerStartedAt
+        HStack(spacing: 10) {
+            if let started {
+                TimerElapsedText(startedAt: started)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .accessibilityIdentifier("elapsed-\(habit.id)")
+            } else if let progress = habit.progress {
+                Text("\(progress.value)/\(progress.goal)")
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(progress.value >= progress.goal ? Color.green : Color.primary)
+                    .accessibilityIdentifier("period-\(habit.id)")
+            }
+            Button {
+                let target = TimerTarget(summary: summary)
+                started == nil ? controller.start(target) : controller.stop(target)
+            } label: {
+                Image(systemName: controller.isWaiting(habit.id) ? "clock"
+                      : started == nil ? "play.circle" : "stop.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(started == nil ? Color.secondary : Color.orange)
+                    .opacity(controller.busy.contains(habit.id) ? 0 : 1)
+                    .overlay { if controller.busy.contains(habit.id) { ProgressView() } }
+            }
+            .buttonStyle(.plain)
+            .disabled(summary.archived)
+            .accessibilityLabel(started == nil ? "Timer starten" : "Timer stoppen")
+            .accessibilityIdentifier("toggle-\(habit.id)")
         }
     }
 

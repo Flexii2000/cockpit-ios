@@ -55,6 +55,7 @@ final class ClassicStore {
         defer { isLoading = false }
         do {
             habits = try await api.list().classicOrder
+            TimerController.shared.syncActivities(habits.compactMap(\.summary))
             errorMessage = nil
             publish(.loaded)
         } catch {

@@ -47,7 +47,7 @@ struct CohabitSettingsForm: View {
 
     private enum RhythmChoice: String, CaseIterable {
         case daily = "DAILY", weekdays = "WEEKDAYS", week = "TIMES_PER_WEEK", month = "TIMES_PER_MONTH",
-             interval = "INTERVAL", auto = "AUTO"
+             interval = "INTERVAL", minutes = "MINUTES_PER_WEEK", auto = "AUTO"
 
         var title: String {
             switch self {
@@ -56,6 +56,7 @@ struct CohabitSettingsForm: View {
             case .week: "pro Woche"
             case .month: "pro Monat"
             case .interval: "Intervall"
+            case .minutes: "Minuten pro Woche"
             case .auto: "Automatisch"
             }
         }
@@ -88,6 +89,8 @@ struct CohabitSettingsForm: View {
                 StepperCapsule(text: "alle \(days) Tage", canDecrease: days > 2, canIncrease: days < 30,
                                decrease: { config.streak?.rhythm.days = days - 1 },
                                increase: { config.streak?.rhythm.days = days + 1 })
+            case .minutes:
+                minutesFields
             case .auto:
                 autoPicker
             case .daily:
@@ -95,6 +98,30 @@ struct CohabitSettingsForm: View {
             }
         }
         .card(padding: 16)
+    }
+
+    /// Minuten pro Woche (Vertrag §2.4b): das Wochenziel und ob es einen Timer gibt.
+    private var minutesFields: some View {
+        let minutes = config.streak?.rhythm.minutes ?? 60
+        let step = minutes < 60 ? 5 : 10
+        return VStack(alignment: .leading, spacing: 10) {
+            StepperCapsule(text: "\(minutes.formatted(.number.locale(Locale(identifier: "de_DE")))) Min. pro Woche",
+                           canDecrease: minutes - step >= 5, canIncrease: minutes + step <= 10_080,
+                           decrease: { config.streak?.rhythm.minutes = minutes - step },
+                           increase: { config.streak?.rhythm.minutes = minutes + step })
+            Toggle(isOn: Binding(
+                get: { config.tracking.isTimer },
+                set: { on in
+                    config.tracking = .init(mode: "VALUE", unit: "MINUTES", timer: on)
+                    if on { config.photoRequired = false }
+                })) {
+                Text("Timer")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(Ink.ink)
+            }
+            .tint(Ink.accent)
+            .accessibilityIdentifier("minutesTimer")
+        }
     }
 
     private func select(_ choice: RhythmChoice) {
@@ -111,9 +138,19 @@ struct CohabitSettingsForm: View {
             case .week: rhythm.times = min(7, config.streak?.rhythm.times ?? 3)
             case .month: rhythm.times = config.streak?.rhythm.times ?? 2
             case .interval: rhythm.days = config.streak?.rhythm.days ?? 2
+            case .minutes: rhythm.minutes = config.streak?.rhythm.minutes ?? 60
             default: break
             }
             config.streak?.rhythm = rhythm
+            if choice == .minutes {
+                // Gezaehlt werden Minuten - mit Timer (Vorgabe), ohne Health und Beweisfoto.
+                config.tracking = .init(mode: "VALUE", unit: "MINUTES", timer: config.tracking.timer ?? true)
+                config.health = nil
+                if config.tracking.isTimer { config.photoRequired = false }
+            } else if config.tracking.timer != nil {
+                // Einen Timer gibt es nur bei Minuten pro Woche - der Dienst lehnte ihn sonst ab.
+                config.tracking = .check
+            }
         }
     }
 
@@ -484,12 +521,14 @@ struct CohabitSettingsForm: View {
 
     @ViewBuilder
     private var generalSettings: some View {
-        if config.auto == nil {
+        // Mit Timer wird in der Liste gestoppt, ohne Blatt - also ohne Beweisfoto.
+        if config.auto == nil && !config.tracking.isTimer {
             ToggleRow(title: "Beweisfoto-Pflicht", isOn: $config.photoRequired, identifier: "photoRequired")
             FormDivider()
         }
-        // Gym aus Healthy ist ein Haken ohne Wert - der Schalter haette nichts zu sagen.
-        if config.type == .streak && config.auto == nil && config.health?.metric != "GYM" {
+        // Gym aus Healthy ist ein Haken ohne Wert - der Schalter haette nichts zu sagen; Minuten
+        // pro Woche zaehlt immer Minuten.
+        if config.type == .streak && config.auto == nil && config.health?.metric != "GYM" && !config.isMinutesPerWeek {
             ToggleRow(title: "Mit Wert erfassen", isOn: Binding(
                 get: { config.tracking.isValue },
                 set: { config.tracking = $0 ? .init(mode: "VALUE", unit: config.tracking.unit ?? "COUNT") : .check }))
@@ -498,8 +537,9 @@ struct CohabitSettingsForm: View {
             }
             FormDivider()
         }
-        // Laufpunkte traegt man von Hand ein (der Dienst lehnt Health ab).
-        if config.type != .abstinence && config.auto == nil && config.challenge?.isRunPoints != true {
+        // Laufpunkte und Minuten pro Woche traegt man von Hand ein (der Dienst lehnt Health ab).
+        if config.type != .abstinence && config.auto == nil && config.challenge?.isRunPoints != true
+            && !config.isMinutesPerWeek {
             HStack {
                 Text("Health")
                     .font(.system(size: 17, weight: .bold))

@@ -474,6 +474,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Der laufende Timer bei Minuten pro Woche (coHabitWidget, Vertrag §5.2d).
+        NSSupportsLiveActivities: true
         CFBundleURLTypes:
           - CFBundleURLName: com.fherrmann.cohabit
             CFBundleURLSchemes: [cohabit]

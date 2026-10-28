@@ -250,6 +250,8 @@ final class CohabitSync {
     /// Wartende Zahlen beim Tageslimit, je Co-Habit und Tag die neueste - die
     /// Karte zeigt sie vorlaeufig, mit Uhr.
     private(set) var pendingLimits: [LimitKey: Double] = [:]
+    /// Je Co-Habit der juengste wartende Start bzw. Stopp des Timers.
+    private(set) var pendingTimers: [String: PendingTimer] = [:]
     /// Was der Dienst beim Nachsenden abgelehnt hat.
     private(set) var lastError: String?
     /// Zaehlt hoch, wenn der Postausgang leer geworden ist - die Bildschirme
@@ -273,7 +275,9 @@ final class CohabitSync {
         var messages: [String: [MessageRequest]] = [:]
         var classic: Set<String> = []
         var limits: [LimitKey: Double] = [:]
+        var timers: [String: PendingTimer] = [:]
         for entry in entries {
+            if let pending = entry.operation.pendingTimer { timers[pending.cohabitId] = pending.timer }
             switch entry.operation {
             case .checkin(let cohabitId, _): checkins.insert(cohabitId)
             case .message(let cohabitId, let request): messages[cohabitId, default: []].append(request)
@@ -281,8 +285,10 @@ final class CohabitSync {
             case .classicMark(let habitId, _), .classicUnmark(let habitId, _): classic.insert(habitId)
             case .limitCount(let cohabitId, let date, let count):
                 limits[LimitKey(cohabitId: cohabitId, date: date)] = count
+            case .timerStart, .timerStop, .timerDiscard: break
             }
         }
+        pendingTimers = timers
         pendingCheckins = checkins
         pendingMessages = messages
         pendingClassic = classic
@@ -302,6 +308,7 @@ final class CohabitSync {
         pendingMessages = [:]
         pendingClassic = []
         pendingLimits = [:]
+        pendingTimers = [:]
         lastError = nil
     }
 }

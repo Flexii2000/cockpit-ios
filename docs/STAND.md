@@ -1,5 +1,20 @@
 # Stand
 
+> **coHabit: Minuten pro Woche mit Timer (28.10., Felix):** „Klavier spielen“, 140 Min. pro Woche,
+> in der Liste starten und stoppen. Dienst `../habits` `3dd6e8c` (Vertrag §2.4b, §5.2d), Web `48f49f1`,
+> beides live seit 28.10. vormittags; Felix' Habit ist angelegt, 40 Min. von heute eingetragen.
+> In „Heute“ (Karte und Zeile) ersetzt ▶/■ den Haken, die laufende Zeit steht statt der Zeile, Langdruck:
+> „Minuten eintragen“ und „Timer verwerfen“; Detail: „Start“/„Stopp · 12:34“ neben „Minuten eintragen“;
+> klassische Liste: „40/140“ bzw. die Zeit und ▶/■, Langdruck öffnet das Minuten-Blatt. Anlegen:
+> Rhythmus „Minuten pro Woche“ mit Minuten und Schalter „Timer“. Live-Aktivität mit Stopp-Knopf
+> (`CohabitTimerAttributes`, `StopCohabitTimerIntent` als `LiveActivityIntent`). Ohne Netz warten Start
+> und Stopp mit ihrer Tippzeit im Postausgang (`timerStart`/`timerStop`/`timerDiscard`).
+> - **Geprüft:** `tools/verify.sh` (alle grün, coHabit 189 Unit-Tests, neu `TimerTests`); im Simulator
+>   gegen einen lokalen Dienst Dashboard und Liste hell/dunkel, klassische Liste, Detail mit laufendem Timer.
+> - **Nicht im Simulator prüfbar:** Live-Aktivität samt Stopp auf dem Sperrbildschirm, Langdruck-Menüs.
+> - **Offen:** aufs iPhone (im Firmennetz nicht erreichbar - Kabel oder zu Hause `install-device.sh coHabit`).
+>   Android (`cohabit-android`) läuft parallel.
+
 > **Fokus/To-Do: Abgehaktes bleibt in „Heute“ stehen (27.10., Felix):** statt ans Ende zu
 > rutschen, steht heute Erledigtes durchgestrichen an seinem Platz - im Dienst, im Web und
 > offline in Fokus (`TodoOverlay.todayView`); Unteraufgaben einer geholten Aufgabe ebenso.

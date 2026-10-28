@@ -195,7 +195,11 @@ struct DashboardCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("card-\(summary.id)")
-            if let limit = summary.limit {
+            if summary.timer != nil, !summary.archived {
+                // Minuten pro Woche mit Timer: starten und stoppen statt abhaken.
+                TimerButton(summary: summary)
+                    .padding(16)
+            } else if let limit = summary.limit {
                 if limit.canCount {
                     LimitPlusButton(cohabitId: summary.id, limit: limit)
                         .padding(16)
@@ -209,6 +213,7 @@ struct DashboardCard: View {
                     .accessibilityLabel("Heute erledigt")
             }
         }
+        .timerMenu(summary)
     }
 
     /// „Gewohnheit A · Streak“ - beim Tageslimit „· Limit“ wie im Typtext des Dienstes.
@@ -231,11 +236,18 @@ struct DashboardCard: View {
             HStack(alignment: .center) {
                 AvatarStack(people: summary.members, total: summary.memberCount, size: 34)
                 Spacer(minLength: 8)
-                Text(summary.status == .unavailable ? (summary.unavailableText ?? "") : (liveLimitText ?? summary.subline ?? ""))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Ink.ink)
-                    .multilineTextAlignment(.trailing)
-                    .lineLimit(2)
+                if let started = summary.timerStartedAt {
+                    TimerElapsedText(startedAt: started)
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(Ink.ink)
+                        .accessibilityIdentifier("elapsed-\(summary.id)")
+                } else {
+                    Text(summary.status == .unavailable ? (summary.unavailableText ?? "") : (liveLimitText ?? summary.subline ?? ""))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Ink.ink)
+                        .multilineTextAlignment(.trailing)
+                        .lineLimit(2)
+                }
             }
         }
         .card(colors.surface, circle: colors.accent.opacity(0.55), circleSize: 150, padding: 18)
@@ -362,7 +374,10 @@ struct TodayRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("row-\(summary.id)")
-            if let limit = summary.limit, limit.canCount {
+            if summary.timer != nil, !summary.archived {
+                TimerButton(summary: summary, size: 48, style: .outlined)
+                    .padding(.trailing, 12)
+            } else if let limit = summary.limit, limit.canCount {
                 LimitPlusButton(cohabitId: summary.id, limit: limit, size: 48, style: .outlined)
                     .padding(.trailing, 12)
             } else if summary.showsCheckButton {
@@ -384,6 +399,23 @@ struct TodayRow: View {
                     .allowsHitTesting(false)
             }
         }
+        .timerMenu(summary)
+    }
+
+    /// Laeuft der Timer, steht statt der Zeile die Zeit.
+    @ViewBuilder
+    private var lineView: some View {
+        if let started = summary.timerStartedAt {
+            TimerElapsedText(startedAt: started)
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(Ink.ink)
+                .accessibilityIdentifier("elapsed-\(summary.id)")
+        } else if !lineText.isEmpty {
+            Text(lineText)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Ink.ink)
+                .lineLimit(2)
+        }
     }
 
     private var lineText: String {
@@ -403,12 +435,7 @@ struct TodayRow: View {
         switch summary.gauge {
         case .bar(let fraction):
             VStack(alignment: .leading, spacing: 6) {
-                if !lineText.isEmpty {
-                    Text(lineText)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Ink.ink)
-                        .lineLimit(2)
-                }
+                lineView
                 ProgressTrack(fraction: fraction, fill: Ink.ink, track: Ink.surface, height: 8)
                     .frame(maxWidth: 220)
             }
@@ -421,10 +448,7 @@ struct TodayRow: View {
                     .lineLimit(2)
             }
         case .none:
-            Text(lineText)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Ink.ink)
-                .lineLimit(2)
+            lineView
         }
     }
 }

@@ -280,9 +280,18 @@ struct CohabitSummary: Codable, Hashable, Sendable, Identifiable {
     /// Abstinenz mit Tageslimit aus dem Logbook (Vertrag §2.5a, seit 12.10.):
     /// gezaehlt statt abgehakt. Fehlt bei allen anderen und bei einem aelteren Dienst.
     var limit: LimitView? = nil
+    /// Minuten pro Woche mit Timer (Vertrag §2.4b, seit 28.10.): der eigene Timer.
+    /// Fehlt bei allen anderen und bei einem aelteren Dienst.
+    var timer: TimerView? = nil
 
     var id: String { ref.id }
     var isRunEntry: Bool { runEntry == true }
+}
+
+/// Der eigene Timer eines Co-Habits: `startedAt` gesetzt, solange er laeuft.
+/// Hochzaehlen tut die App selbst - es ist nur die Uhr.
+struct TimerView: Codable, Hashable, Sendable {
+    let startedAt: Date?
 }
 
 /// Heute beim Tageslimit: die Zahl aus dem Logbook gegen das Limit (Vertrag §3.4).

@@ -14,31 +14,41 @@ struct CohabitConfig: Codable, Hashable, Sendable {
         var mode: String
         /// `COUNT`, `MINUTES`, `KM`, `STEPS`, `KCAL` - nur bei `VALUE`.
         var unit: String?
+        /// Nur bei Minuten pro Woche (Vertrag §2.4b): Start und Stopp in der Liste.
+        /// Fehlt er beim Bearbeiten, laesst der Dienst ihn, wie er war.
+        var timer: Bool? = nil
 
         static let check = Tracking(mode: "CHECK", unit: nil)
         var isValue: Bool { mode == "VALUE" }
+        var isTimer: Bool { timer == true }
 
         func encode(to encoder: Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(mode, forKey: .mode)
             if let unit { try c.encode(unit, forKey: .unit) }
+            if let timer { try c.encode(timer, forKey: .timer) }
         }
     }
 
     struct Rhythm: Codable, Hashable, Sendable {
-        /// `DAILY`, `WEEKDAYS`, `TIMES_PER_WEEK`, `TIMES_PER_MONTH`, `INTERVAL`.
+        /// `DAILY`, `WEEKDAYS`, `TIMES_PER_WEEK`, `TIMES_PER_MONTH`, `INTERVAL`,
+        /// `MINUTES_PER_WEEK` (seit 28.10., Vertrag §2.4b).
         var kind: String
         var weekdays: [Int]?
         var times: Int?
         var days: Int?
+        /// Minuten pro Woche: das Wochenziel.
+        var minutes: Int?
 
         static let daily = Rhythm(kind: "DAILY")
+        static let minutesPerWeek = "MINUTES_PER_WEEK"
 
-        init(kind: String, weekdays: [Int]? = nil, times: Int? = nil, days: Int? = nil) {
+        init(kind: String, weekdays: [Int]? = nil, times: Int? = nil, days: Int? = nil, minutes: Int? = nil) {
             self.kind = kind
             self.weekdays = weekdays
             self.times = times
             self.days = days
+            self.minutes = minutes
         }
 
         /// Nur die Felder, die zur Art gehoeren - ein `times` neben `DAILY`
@@ -50,6 +60,7 @@ struct CohabitConfig: Codable, Hashable, Sendable {
             case "WEEKDAYS": try c.encode(weekdays ?? [], forKey: .weekdays)
             case "TIMES_PER_WEEK", "TIMES_PER_MONTH": try c.encode(times ?? 1, forKey: .times)
             case "INTERVAL": try c.encode(days ?? 2, forKey: .days)
+            case Self.minutesPerWeek: try c.encode(minutes ?? 60, forKey: .minutes)
             default: break
             }
         }
@@ -78,6 +89,9 @@ struct CohabitConfig: Codable, Hashable, Sendable {
 
     /// Ob dieses Co-Habit aus dem Logbook zaehlt.
     var isLimit: Bool { abstinence?.limit != nil }
+
+    /// Minuten pro Woche (Vertrag §2.4b): die Woche zaehlt die Summe der Minuten.
+    var isMinutesPerWeek: Bool { auto == nil && streak?.rhythm.kind == Rhythm.minutesPerWeek }
 
     struct Goal: Codable, Hashable, Sendable {
         var target: Double
@@ -554,4 +568,27 @@ struct WidgetData: Codable, Hashable, Sendable {
         if copy.openStreak?.ref.id == cohabitId { copy.openStreak = nil }
         return copy
     }
+}
+
+/// `POST /cohabits/{id}/timer` (Vertrag §2.4b): der Start mit seiner Tippzeit -
+/// geht er erst spaeter raus, laeuft der Timer trotzdem ab dem Tipp.
+struct TimerStartRequest: Codable, Hashable, Sendable {
+    let startedAt: Date
+}
+
+/// `POST /cohabits/{id}/timer/stop`: die Kennung des Eintrags vergibt die App,
+/// ein Nachsenden traegt also nichts doppelt ein.
+struct TimerStopRequest: Codable, Hashable, Sendable {
+    let id: String
+    let stoppedAt: Date
+
+    init(id: String = UUID().uuidString.lowercased(), stoppedAt: Date) {
+        self.id = id
+        self.stoppedAt = stoppedAt
+    }
+}
+
+/// Die Antwort auf einen Stopp - ohne Eintrag bei unter einer halben Minute.
+struct TimerStopResult: Decodable, Sendable {
+    let checkin: Checkin?
 }

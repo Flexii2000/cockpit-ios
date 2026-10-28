@@ -673,6 +673,9 @@ mit dem Status.
 | PUT | `/cohabits/{id}/health/{date}` | `{"value"}` — ein Tageswert aus Health; nicht bei `KCAL` (400 „Die kcal kommen aus Healthy.“) und `GYM` (400 „Die Trainings kommen aus Healthy.“) |
 | PUT | `/cohabits/{id}/count/{date}` | `{"count"}` → `CohabitDetail` — nur beim Tageslimit (seit 12.10., Vertrag §2.5a): die Zahl des Tages, absolut; der Dienst schreibt sie ins Logbook. 400 Frist/Zahl/Grund des Logbooks, 409 archiviert, 503 Logbook nicht erreichbar (die App wartet dann im Postausgang, `limitCount`) |
 | GET | `/logbook/behaviors` | die eigenen Verhaltensweisen mit Menge - zur Wahl für ein Tageslimit (die App fragt es noch nicht ab) |
+| POST | `/cohabits/{id}/timer` | `{"startedAt"}` (Tippzeit) → `CohabitDetail` — nur Minuten pro Woche mit Timer (seit 28.10., Vertrag §2.4b). Läuft er schon, bleibt der erste Start. 400 ohne Timer / Start über 24 h zurück, 409 archiviert |
+| POST | `/cohabits/{id}/timer/stop` | `{"id","stoppedAt"}` → 201 `{"checkin","cohabit"}` mit den gerundeten Minuten am Tag des Starts; 200 mit `checkin: null` unter 30 s oder mit dem Eintrag bei bekannter `id`. 400 „Der Timer lief länger als 24 Stunden.“ (er läuft weiter), 409 „Der Timer läuft nicht.“ (der Postausgang nimmt das als erledigt) |
+| DELETE | `/cohabits/{id}/timer` | → `CohabitDetail` — verwirft ohne Eintrag, idempotent |
 | GET/POST/DELETE | `/cohabits/{id}/messages[/{id}]` · `/report` · `/read` | Chat; Nachricht mit `gif` (KLIPY) oder eigenem GIF (`photoAnimated`), siehe unten |
 | POST · DELETE | `/reactions` · `/reactions?target=…&reaction=…` | `{"target":"event:…\|message:…","reaction":"🔥"}` setzt die **eigene** (eine je Person), DELETE nimmt sie zurück → `{"reactions":[ReactionView]}` (seit 2026-10-05, siehe unten) |
 | GET | `/gifs/config` | → `{"enabled":true,"apiKey","customerId","locale","contentFilter"}` bzw. `{"enabled":false}` - Zugang zur GIF-Suche bei KLIPY (seit 2026-10-05) |
@@ -694,6 +697,14 @@ vergibt der **Dienst** die Kennung (Antwort von `POST /photos`), wiederholbar
 macht das Hochladen der `Idempotency-Key` - er gilt je Person. Darauf baut der
 Postausgang (`CohabitOutbox`): nichts entsteht doppelt, auch nicht nach einem
 Neustart mitten im Nachsenden.
+
+⚠️ **Minuten pro Woche mit Timer (seit 2026-10-28, `../habits` Commit `3dd6e8c`):**
+Rhythmus `{"kind":"MINUTES_PER_WEEK","minutes":140}`, `tracking {"mode":"VALUE","unit":"MINUTES","timer":true}`;
+`CohabitSummary.timer = {"startedAt": …|null}`, `null` ohne Timer. Beliebig viele Einträge am Tag,
+`canCheckIn` bleibt true, `progress` sind Minuten (die App zeigt einen Balken, keine Punkte).
+Die Startzeit liegt beim Dienst; die App zählt selbst hoch (`TimerController`, `TimerElapsedText`)
+und hält eine Live-Aktivität (`CohabitTimerAttributes`, Stopp per `StopCohabitTimerIntent`).
+Klassische Liste: `BUILD` mit `summary` (samt `timer`), `period` null.
 
 ⚠️ **Tageslimit aus dem Logbook (seit 2026-10-12, `../habits` Commit `da0dd31`):**
 eine Abstinenz mit `config.abstinence.limit` (`behaviorId`, `perDay`, `behaviorName`,

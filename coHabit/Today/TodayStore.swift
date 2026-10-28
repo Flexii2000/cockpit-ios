@@ -21,6 +21,7 @@ final class TodayStore {
         defer { isLoading = false }
         do {
             today = try await Session.shared.api().get("/today")
+            TimerController.shared.syncActivities(today?.cohabits ?? [])
             errorMessage = nil
             hiddenNudges = []
             WidgetSync.refreshSoon()

@@ -3,6 +3,19 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-10-28 — coHabit: Minuten pro Woche mit Timer
+Felix: „Klavier spielen“ soll man in der Liste starten und stoppen, Wochenziel 140 Minuten. Er hat
+gewählt: Serie in Wochen (statt nur eines Wochenbalkens), **Startzeit beim Dienst** (statt nur im
+iPhone - so läuft der Timer nach einem Neustart und im Web weiter), dazu Live-Aktivität, Minuten von
+Hand, „Minuten pro Woche“ samt Timer im Anlegen, Web und Android. Entschieden beim Bauen: Der Stopp
+trägt die Minuten am Tag des **Starts** ein (eine Sitzung über Mitternacht gehört zu dem Tag, an dem sie
+begann). Mit Timer keine Beweisfoto-Pflicht - gestoppt wird ohne Blatt. In „Heute“ ersetzt Start/Stopp
+den Haken; Langdruck öffnet „Minuten eintragen“ und „Timer verwerfen“. In der klassischen Liste öffnet
+der Langdruck gleich das Minuten-Blatt (statt der Tage zum Abhaken - ein Haken ohne Minuten nimmt der
+Dienst nicht); verworfen wird dort über die Detailseite. Status wie bei „pro Woche“: nach einem Eintrag
+heute ist die Karte für heute erledigt, die Woche zeigt der Balken. Verworfen: Timer nur auf dem Gerät
+(ginge ohne Dienst, aber im Web und nach einem Absturz wäre er weg).
+
 ## 2026-10-27 — Fokus/To-Do: Abgehaktes bleibt in „Heute" an seinem Platz
 Felix: „Wenn man im Heute-Tab bei Todo ein Todo abhakt, sollte es bitte nicht ans Ende der
 Liste rutschen.“ Heute Erledigtes steht jetzt durchgestrichen dort, wo es stand, bis

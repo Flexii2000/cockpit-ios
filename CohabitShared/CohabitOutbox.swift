@@ -29,6 +29,12 @@ actor CohabitOutbox {
             /// Die Zahl eines Tages beim Tageslimit (Vertrag §2.5a) - absolut, ein
             /// Nachsenden zaehlt nichts doppelt.
             case limitCount(cohabitId: String, date: CalendarDate, count: Double)
+            /// Start und Stopp des Timers (Vertrag §2.4b) - mit der Tippzeit, gelten
+            /// also spaeter genauso; der Stopp traegt die Kennung seines Eintrags.
+            case timerStart(cohabitId: String, request: TimerStartRequest)
+            case timerStop(cohabitId: String, request: TimerStopRequest)
+            /// Den laufenden Timer verwerfen - ein zweites Mal aendert nichts.
+            case timerDiscard(cohabitId: String)
         }
 
         let id: UUID
@@ -98,6 +104,18 @@ actor CohabitOutbox {
         }
         save(entries)
         await append(.limitCount(cohabitId: cohabitId, date: date, count: count), photos: [])
+    }
+
+    func enqueueTimerStart(cohabitId: String, request: TimerStartRequest) async {
+        await append(.timerStart(cohabitId: cohabitId, request: request), photos: [])
+    }
+
+    func enqueueTimerStop(cohabitId: String, request: TimerStopRequest) async {
+        await append(.timerStop(cohabitId: cohabitId, request: request), photos: [])
+    }
+
+    func enqueueTimerDiscard(cohabitId: String) async {
+        await append(.timerDiscard(cohabitId: cohabitId), photos: [])
     }
 
     /// Eine Reaktion (Vertrag §2.7a: je Person eine je Ziel). Zaehlt nur die
@@ -228,6 +246,12 @@ actor CohabitOutbox {
         case .limitCount(let cohabitId, let date, let count):
             try await api.sendIgnoringResponse("PUT", LimitCountRequest.path(cohabitId: cohabitId, date: date),
                                                body: LimitCountRequest(count: count))
+        case .timerStart(let cohabitId, let request):
+            try await api.sendIgnoringResponse("POST", "/cohabits/\(cohabitId)/timer", body: request)
+        case .timerStop(let cohabitId, let request):
+            try await api.sendIgnoringResponse("POST", "/cohabits/\(cohabitId)/timer/stop", body: request)
+        case .timerDiscard(let cohabitId):
+            try await api.sendIgnoringResponse("DELETE", "/cohabits/\(cohabitId)/timer")
         }
     }
 
@@ -306,7 +330,7 @@ extension CohabitOutbox.Entry.Operation {
         case .message(let cohabitId, var request):
             request.photoId = photoId
             return .message(cohabitId: cohabitId, request: request)
-        case .reaction, .classicMark, .classicUnmark, .limitCount:
+        case .reaction, .classicMark, .classicUnmark, .limitCount, .timerStart, .timerStop, .timerDiscard:
             return self
         }
     }
@@ -334,11 +358,21 @@ extension CohabitOutbox.Entry.Operation {
     }
 
     /// Ein Eintrag fuer einen Tag - ein 409 darauf heisst „steht schon", also
-    /// genau das, was er bewirken sollte.
+    /// genau das, was er bewirken sollte. Beim Stopp heisst er „laeuft nicht
+    /// mehr" (etwa im Web gestoppt) - auch das ist das Ziel.
     var isEntry: Bool {
         switch self {
-        case .checkin, .classicMark: true
-        case .message, .reaction, .classicUnmark, .limitCount: false
+        case .checkin, .classicMark, .timerStop: true
+        case .message, .reaction, .classicUnmark, .limitCount, .timerStart, .timerDiscard: false
+        }
+    }
+
+    /// Was ein wartender Timer-Auftrag fuer die Anzeige heisst.
+    var pendingTimer: (cohabitId: String, timer: PendingTimer)? {
+        switch self {
+        case .timerStart(let cohabitId, let request): (cohabitId, .running(since: request.startedAt))
+        case .timerStop(let cohabitId, _), .timerDiscard(let cohabitId): (cohabitId, .stopped)
+        default: nil
         }
     }
 }
@@ -356,4 +390,11 @@ struct LimitCountRequest: Codable, Hashable, Sendable {
     static func path(cohabitId: String, date: CalendarDate) -> String {
         "/cohabits/\(cohabitId)/count/\(date.iso)"
     }
+}
+
+/// Ein Timer, dessen Start oder Stopp noch im Postausgang liegt - die App zeigt
+/// ihn so, als waere er schon angekommen.
+enum PendingTimer: Hashable, Sendable {
+    case running(since: Date)
+    case stopped
 }

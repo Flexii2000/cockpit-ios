@@ -11,6 +11,7 @@ struct CohabitWidgetBundle: WidgetBundle {
         TodayCohabitWidget()
         BoardCohabitWidget()
         ChallengeCohabitWidget()
+        CohabitTimerLiveActivity()
     }
 }
 

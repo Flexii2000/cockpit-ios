@@ -208,6 +208,11 @@ struct CohabitDetailView: View {
             if !detail.myCheckins.isEmpty {
                 Button("Meine Einträge", systemImage: "list.bullet") { sheet = .entries }
             }
+            if detail.summary.timerStartedAt != nil, !detail.summary.archived {
+                Button("Timer verwerfen", systemImage: "xmark") {
+                    TimerController.shared.discard(TimerTarget(summary: detail.summary))
+                }
+            }
             Divider()
             if detail.isAdmin {
                 Button(detail.summary.archived ? "Wiederherstellen" : "Archivieren",
@@ -266,6 +271,16 @@ struct CohabitDetailView: View {
                             .ignoresSafeArea()
                     )
             }
+        } else if detail.summary.timer != nil, !detail.summary.archived {
+            timerAction(detail)
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+                .background(
+                    LinearGradient(colors: [Ink.background.opacity(0), Ink.background], startPoint: .top,
+                                   endPoint: .center)
+                        .ignoresSafeArea()
+                )
         } else if !detail.summary.archived, detail.config.auto == nil {
             let target = CheckInTarget(detail: detail, meId: meId)
             let checkIns = CheckInController.shared
@@ -305,6 +320,60 @@ struct CohabitDetailView: View {
                 LinearGradient(colors: [Ink.background.opacity(0), Ink.background], startPoint: .top, endPoint: .center)
                     .ignoresSafeArea()
             )
+        }
+    }
+}
+
+extension CohabitDetailView {
+    /// Minuten pro Woche mit Timer (Vertrag §5.2d): „Start“ bzw. „Stopp · 12:34“,
+    /// daneben die Minuten von Hand; verwerfen per Langdruck oder im Menue.
+    @ViewBuilder
+    func timerAction(_ detail: CohabitDetail) -> some View {
+        let controller = TimerController.shared
+        let timer = TimerTarget(summary: detail.summary)
+        let started = detail.summary.timerStartedAt
+        let target = CheckInTarget(detail: detail, meId: meId)
+        HStack(spacing: 10) {
+            Button {
+                started == nil ? controller.start(timer) : controller.stop(timer)
+            } label: {
+                HStack(spacing: 8) {
+                    if controller.busy.contains(detail.id) {
+                        ProgressView().tint(Ink.onInk)
+                    } else {
+                        Image(systemName: controller.isWaiting(detail.id) ? "clock"
+                              : started == nil ? "play.fill" : "stop.fill")
+                    }
+                    if let started {
+                        Text("Stopp ·")
+                        TimerElapsedText(startedAt: started)
+                    } else {
+                        Text("Start")
+                    }
+                }
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .contextMenu {
+                if started != nil {
+                    Button("Timer verwerfen", systemImage: "xmark", role: .destructive) { controller.discard(timer) }
+                }
+            }
+            .accessibilityIdentifier("detailTimer")
+            Button { CheckInController.shared.start(target) } label: {
+                Text(detail.summary.checkInLabel ?? "Minuten eintragen")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .buttonStyle(OutlineButtonStyle())
+            .disabled(!detail.summary.canCheckIn)
+            .contextMenu {
+                if detail.backfillFrom != nil, detail.backfillFrom != target.today {
+                    Button("Für einen anderen Tag …", systemImage: "calendar") {
+                        CheckInController.shared.startBackfill(target)
+                    }
+                }
+            }
+            .accessibilityIdentifier("detailCheckIn")
         }
     }
 }
