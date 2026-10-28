@@ -15,6 +15,10 @@ laufende Monat. Gerechnet wird im Dienst (`GET /api/costs`), App und Seite zeige
 beim Bauen: Der übliche Anteil ist der Median der letzten 10 bezahlten Matches beim Club, bei
 mehreren Clubs am Tag der Mittelwert. Geplant zählen alle offenen Tage wie unter „Geplant“, auch
 einmalige, je Mitspieler. Ein Tag fällt weg, sobald mit diesem Mitspieler etwas gebucht ist.
+Später am selben Tag kam dazu, auf Felix' Wunsch („Prognostiziere auch immer den Folgemonat“), die
+Zeile „Prognose <Monat>“ für den Folgemonat. Entschieden beim Bauen: Serien legen Termine nur 28 Tage
+voraus an. Dahinter zählen die Wochentage aktiver Serien selbst, sonst fehlte dem Folgemonat (und am
+Monatsanfang auch dem laufenden) die zweite Hälfte. Innerhalb des Horizonts wird nichts dazugeraten.
 
 ## 2026-10-28 — coHabit: Minuten pro Woche mit Timer
 Felix: „Klavier spielen“ soll man in der Liste starten und stoppen, Wochenziel 140 Minuten. Er hat

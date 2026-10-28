@@ -2,7 +2,8 @@
 
 > **Sport/Padel: Kosten des Monats mit Prognose (28.10., Felix):** Abschnitt „Kosten“ direkt nach
 > „Nächster Termin“, nur Felix. Er zeigt den Monat bisher (Summe, Matches) und die Prognose (bisher +
-> gebucht + je geplantem Tag ohne Buchung ein Match zum üblichen Anteil), darunter die Vormonate. Gerechnet
+> gebucht + je geplantem Tag ohne Buchung ein Match zum üblichen Anteil), dazu die Prognose des
+> Folgemonats (`padel` `23ff9b3`, App `4c5aba9`; am 28.10. für November 255,49 €), darunter die Vormonate. Gerechnet
 > wird im Dienst: `GET /padel/api/costs`, `padel` `57538f6`, live seit 28.10. 10:04. Die Seite hat
 > dieselbe Karte. Begründung in `ENTSCHEIDUNGEN.md`.
 > - **Echte Zahlen am 28.10.:** Oktober 6 Matches 80,38 €, Prognose 95,38 € (1 gebucht, keine
