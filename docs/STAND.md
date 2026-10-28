@@ -12,8 +12,8 @@
 > - **Geprüft:** `tools/verify.sh` (alle grün, coHabit 189 Unit-Tests, neu `TimerTests`); im Simulator
 >   gegen einen lokalen Dienst Dashboard und Liste hell/dunkel, klassische Liste, Detail mit laufendem Timer.
 > - **Nicht im Simulator prüfbar:** Live-Aktivität samt Stopp auf dem Sperrbildschirm, Langdruck-Menüs.
-> - **Offen:** aufs iPhone (im Firmennetz nicht erreichbar - Kabel oder zu Hause `install-device.sh coHabit`).
->   Android (`cohabit-android`) läuft parallel.
+> - **Auf dem iPhone seit 28.10. vormittags** (`install-device.sh coHabit`, Kabel, `dd49498`).
+> - **Auf dem Gerät prüfen:** Live-Aktivität (Sperrbildschirm, Dynamic Island, Stopp ohne App), Langdruck-Menüs.
 
 > **Fokus/To-Do: Abgehaktes bleibt in „Heute“ stehen (27.10., Felix):** statt ans Ende zu
 > rutschen, steht heute Erledigtes durchgestrichen an seinem Platz - im Dienst, im Web und
