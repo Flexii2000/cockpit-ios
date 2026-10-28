@@ -12,9 +12,9 @@
 > - **Noch nicht auf dem iPhone:** Der Mac war im Firmennetz (iPhone `unavailable`). Zu Hause oder per Kabel:
 >   `tools/install-device.sh Sport`.
 > - **Ergebnisse von der Uhr** trägt der Dienst seit 28.10. (`044629a`) ein, sobald Playtomic es zulässt,
->   auch während der Platzmiete. Am 27.10. kam das Ergebnis um 21:59, der Platz (60 min) ging bis
->   22:00, und beim ersten Abfragen danach hatte schon jemand anderes eingetragen („stand schon bei
->   Playtomic“). Ob Playtomic vor dem Ende etwas zulässt, ist offen. Das nächste Match ist der Test.
+>   auch während der Platzmiete. Am 27.10. (Platz bis 22:00) ließ Playtomic um etwa 22:02 und 22:04
+>   noch nichts zu. Felix trug das Ergebnis um 22:05:04 selbst ein, und um 22:05:47 sah der Dienst es
+>   bestätigt („stand schon bei Playtomic“). Das nächste Match zeigt im Journal, wann Playtomic freigibt.
 
 > **coHabit: Minuten pro Woche mit Timer (28.10., Felix):** „Klavier spielen“, 140 Min. pro Woche,
 > in der Liste starten und stoppen. Dienst `../habits` `3dd6e8c` (Vertrag §2.4b, §5.2d), Web `48f49f1`,
