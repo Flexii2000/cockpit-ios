@@ -290,6 +290,10 @@ sag das dann auch so.
   Tracker. Auch coHabit-Habits erscheinen dort mit Namen. In Code, Tests,
   Demo-Daten, Doku, Screenshots und Commit-Nachrichten nur Platzhalter
   („Verhalten A", „Gewohnheit A").
+- **`Private/` gehört nicht ins Repo** (`.gitignore`): ein Verweis auf Code
+  anderswo, aus dem Fokus optional einen Tab baut (`Fokus/App/PrivateTab.swift`,
+  Debug `COCKPIT_TAB=private`) - nie einchecken, auch nicht mit `git add -f`;
+  ohne den Ordner baut alles wie immer.
 - **Keine Tokens im Repo.** Die Zugangstokens liegen im Keychain des Geräts
   und werden einmal über den Einrichtungs-Bildschirm eingegeben. Kein
   Default-Token im Code, auch kein "changeme".

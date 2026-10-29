@@ -28,6 +28,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = notifications
+        // Ein Tab aus `Private/` kann beim Start etwas aufnehmen muessen - auch
+        // wenn iOS die App nur im Hintergrund weckt.
+        PrivateTab.provider?.didFinishLaunching()
         return true
     }
 

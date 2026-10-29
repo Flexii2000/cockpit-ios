@@ -3,7 +3,8 @@ import SwiftUI
 /// To-Do, Wald, Einkauf und Evaluation. Einkauf und Evaluation wohnen hier
 /// seit 14.10. - Healthy brauchte den Platz in der Leiste fuer den Gym-Tab.
 enum TabSelection: Hashable {
-    case todo, forest, shopping, evaluation
+    /// `privateTab`: der Tab aus `Private/`, falls es ihn gibt (`PrivateTab`).
+    case todo, forest, shopping, evaluation, privateTab
     #if DEBUG
     case widget
 
@@ -19,6 +20,7 @@ enum TabSelection: Hashable {
         case "forest":     return .forest
         case "shopping":   return .shopping
         case "evaluation": return .evaluation
+        case "private":    return .privateTab
         default:           break
         }
         #endif
@@ -38,7 +40,14 @@ final class Router {
     var pendingLink: URL?
     private init() {}
     func show(_ tab: TabSelection) { selection = tab }
-    func open(_ link: URL) { pendingLink = link }
+    /// Gehoert der Link zum privaten Tab, oeffnet sich dieser statt Safari.
+    func open(_ link: URL) {
+        if let provider = PrivateTab.provider, provider.handles(link) {
+            show(.privateTab)
+        } else {
+            pendingLink = link
+        }
+    }
 }
 
 struct RootView: View {
@@ -74,6 +83,11 @@ struct RootView: View {
             }
             Tab("Evaluation", systemImage: "heart.text.square", value: TabSelection.evaluation) {
                 EvaluationTab(lock: evaluationLock)
+            }
+            if let provider = PrivateTab.provider {
+                Tab(provider.title, systemImage: provider.systemImage, value: TabSelection.privateTab) {
+                    provider.makeView()
+                }
             }
             #if DEBUG
             if TabSelection.showsWidgetPreview {

@@ -35,3 +35,7 @@ HealthyWatchWidget/Info.plist
 
 # Arbeitsbaeume der Agenten - eingebettete Repos, nie mit einchecken.
 .claude/worktrees/
+
+# Privat, nie einchecken (auch nicht mit -f): ein Verweis auf Code ausserhalb
+# dieses Repos, aus dem Fokus optional einen Tab baut (siehe CLAUDE.md).
+/Private

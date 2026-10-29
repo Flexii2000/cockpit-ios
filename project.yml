@@ -288,6 +288,10 @@ targets:
       - path: FocusShared
       # Der Einkaufs-Tab - seit 14.10. hier statt in Healthy.
       - path: Shopping
+      # Ein Tab, der nicht in diesem Repo liegt (siehe CLAUDE.md und
+      # Fokus/App/PrivateTab.swift). Fehlt der Ordner, baut Fokus ohne ihn.
+      - path: Private/Fokus
+        optional: true
     dependencies:
       - target: FokusWidget
         embed: true
@@ -343,6 +347,9 @@ targets:
         # beendet iOS die App beim ersten Abfragen - oder faellt still auf den
         # Code zurueck; in Healthy fehlte er die ganze Zeit.
         INFOPLIST_KEY_NSFaceIDUsageDescription: Damit deine Evaluation nicht offen daliegt.
+        # Fuer den Tab aus Private/ - ohne ihn fragt Fokus nie nach dem Standort.
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Damit Fokus weiß, ob du am Arbeitsplatz bist.
+        INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: Damit Fokus weiß, ob du am Arbeitsplatz bist – auch wenn die App nicht offen ist.
 
   FokusWidget:
     type: app-extension
@@ -640,6 +647,8 @@ targets:
     platform: iOS
     sources:
       - path: FokusTests
+      - path: Private/FokusTests
+        optional: true
     dependencies:
       - target: Fokus
 
@@ -695,6 +704,8 @@ targets:
     sources:
       - path: UITests/Harness.swift
       - path: UITests/FokusUITests.swift
+      - path: Private/UITests
+        optional: true
     dependencies:
       - target: Fokus
     settings:
