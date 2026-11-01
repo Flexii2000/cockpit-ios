@@ -33,6 +33,8 @@ danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
             gemeinsam mit Freunden verfolgt (eigene Anmeldung je Person, Web daneben)
 2026-10   + Sport als sechste App: Padel nativ (bis dahin nur die Seite des Dienstes) und
             das Gym aus Healthy, eigene Uhr-App für Krafttraining und Padel-Matches
+2026-11   + AWS-Kosten: Tab in Vault und eine Mac-App für die Menüleiste (AWSUsageBar),
+            beide auf dem Dienst aws-usage, geteilter Code in AWSUsageShared/
 ```
 
 ### Aufbau eines nativen Tabs
@@ -65,8 +67,14 @@ Healthy/            App: Dashboard, Essen, Gewicht, Health-Abgleich, Diagramm-Ba
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync),
                     Schritte für die Sperrbildschirm-Kacheln (StepsWidgetBridge)
   Food/ Weight/
-Vault/              App: Noten, Finanzen - eine Sperre vor allem
+Vault/              App: Noten, Finanzen, AWS - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
+  AWS/              AWS-Kosten (01.11.): AWSStore (Stand, Offline, Budget), AWSPush (Kennung an
+                    den Dienst), AWSTab
+AWSUsageShared/     was Vault UND AWSUsageBar teilen: Modelle, Client mit Bearer, Formate, Balken -
+                    nur Foundation und SwiftUI (iOS und macOS)
+AWSUsageBar/        Mac-App (macOS 15): AWS-Kosten in der Menüleiste - MenuBarExtra im Fensterstil,
+                    Zeile als Vorlagenbild (MenuBarLabel), Token aus dem Schlüsselbund (TokenStore)
 Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre), Einkauf, Evaluation
   App/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit, Tagesziel aus coHabit)
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist -
@@ -116,9 +124,10 @@ Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
 FokusTests/         Unit-Tests der Evaluation samt Übernahme aus Healthy (Wirt: Fokus)
 CohabitTests/       Unit-Tests von coHabit (Wirt: coHabit - CohabitShared liegt nur dort)
 SportTests/         Unit-Tests von Gym, Padel-Tab und dem Zählen beim Padel (Wirt: Sport)
+VaultTests/         Unit-Tests des AWS-Tabs und von AWSUsageShared (Wirt: Vault)
 UITests/            Harness.swift (gemeinsam) + je App eine Datei, sechs Bundles
 project.yml         Quelle des Xcode-Projekts - sechs App-Targets, YAML-Anker für Gemeinsames
-tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · make-icon
+tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · install-mac · make-icon
 docs/               diese Doku
 ```
 
@@ -168,6 +177,16 @@ ist für sie kein Fehler, sondern ein Arbeitsschritt.
 nach `/shopping-list/setup?token=…`. Healthy zeigt den Tab nur, wenn der
 Token da ist; Einkaufsliste besteht aus nichts anderem. So sieht Joana
 mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
+
+**Der AWS-Tab spricht Bearer, nicht Cookie.** Der Dienst `aws-usage` nimmt
+`fh_private` als Cookie **oder** als `Authorization: Bearer`. Vault und die
+Mac-App teilen sich den Client in `AWSUsageShared/` - und auf dem Mac gibt es
+kein `Access`, das Cookies legt, und keinen `APIClient`. Den Offline-Stand legt
+`AWSStore` deshalb selbst in den `OfflineCache` und meldet ihn `OfflineStatus`
+(`Backend.aws`), die Leiste über dem Tab ist dieselbe wie überall. Die Mac-App
+liest den Token aus dem Schlüsselbund des Macs (zuerst ihr eigener Eintrag, sonst
+`fh_private`/`cockpit-ios` wie `run-simulator.sh`), fragt alle 5 Minuten und beim
+Aufklappen und hält nichts offline vor.
 
 ## coHabit: eine App mit Personen
 

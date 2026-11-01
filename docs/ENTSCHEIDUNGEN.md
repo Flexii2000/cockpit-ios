@@ -3,6 +3,33 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-01 — AWS-Kosten: Tab in Vault und Mac-App AWSUsageBar
+Felix: eine „AWSUsageBar“ wie die Claude Usage Bar, in der Menüleiste des Macs und als eigenes
+Abteil in Vault, unterteilt in LLM, Hytale, Hosting und Sonstiges, Prozent an einem einstellbaren
+Budget. Auf Rückfrage gewählt: **Dollar** (verworfen: Euro zum Tageskurs). Das Budget **ist das
+AWS-Budget** („30€ pro Monat“, 50 $) - Menüleiste und Vault ändern es über den Dienst, AWS liefert
+die Prognose dazu (verworfen: ein eigener Wert im Dienst). **Prozent = bisher im Monat**, die
+Prognose steht daneben (verworfen: Prognose als Prozent). **Steuer anteilig** in den Kategorien
+(verworfen: eigene Zeile). **Laufende Instanzen live hochgerechnet**, solange Cost Explorer sie
+nicht führt, schraffiert im Balken (verworfen: nur Cost Explorer, bis zu einen Tag alt). **Push
+nur aufs iPhone** über Vault bei 50/75/90/100 % (verworfen: Mac-Mitteilung, beides, keine).
+Menüleiste **„☁ 38 % · 19,01 $“** (verworfen: nur Prozent, nur Betrag). Vault zeigt dazu
+**Vormonate** und **Posten je Kategorie** (verworfen: Tagesdiagramm). Gerechnet wird im Dienst
+`../aws-usage`, die Clients zeigen nur.
+Entschieden beim Bauen: Die Mac-App liegt **hier** als Target (macOS 15) statt in einem eigenen
+Repo - Modelle, Client, Formate und Balken teilt sie mit Vault (`AWSUsageShared/`). Verworfen:
+eigenes Repo mit kopierten Modellen. Der Client spricht **Bearer** statt Cookie, weil es auf dem
+Mac kein `Access` gibt; Vault legt den Offline-Stand deshalb selbst in den `OfflineCache`. Die
+Menüleisten-Zeile ist ein **gezeichnetes Vorlagenbild** - `MenuBarExtra` zeigt von einem Label aus
+Symbol und Text je nach Fassung nur das Symbol. Die Mac-App liest **zuerst ihren eigenen
+Schlüsselbund-Eintrag** (den legt nur das Eingabefeld an, also eine ausdrückliche Wahl), sonst
+`fh_private`/`cockpit-ios`; signiert fest mit dem Apple-Development-Zertifikat, damit „Immer
+erlauben“ ein Update überlebt (verworfen: automatisch - ohne Xcode-Konto kein Mac-Profil; ad hoc -
+neue Signatur bei jedem Bau). Die Push-Erlaubnis fragt Vault, wenn der AWS-Tab zum ersten Mal Zahlen
+hat (vorher fragte Vault nie selbst). Die Nutzlast des Dienstes trägt `tab` statt `kind`;
+`NotificationDelegate` nimmt `tab`, wenn `kind` fehlt. Das Ausklappfenster auf dem Mac zeigt keine
+Vormonate und keine Posten - die stehen in Vault (Felix nannte sie dort).
+
 ## 2026-10-28 — Sport/Padel: Kosten des Monats mit Prognose
 Felix: „eine Kostensumme des Monats sowie eine Kostenprognose … für Padel-Matches … auch im Web“.
 Auf Rückfrage gewählt: Je Match zählt, **was er bezahlt hat** (bei geteilter Zahlung sein Anteil,

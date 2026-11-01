@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Noten und Finanzen - das, was man nachliest und das niemand mitlesen soll.
+/// Noten, Finanzen und AWS-Kosten - das, was man nachliest und das niemand mitlesen soll.
 /// Die ganze App steht hinter Face ID.
 @main
 struct VaultApp: App {
 
     @State private var access = Access()
-    @State private var lock = BiometricLock(reason: "Damit Noten und Finanzen nicht offen daliegen.")
+    @State private var lock = BiometricLock(reason: "Damit Noten, Finanzen und AWS-Kosten nicht offen daliegen.")
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

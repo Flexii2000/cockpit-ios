@@ -1,13 +1,16 @@
 import UIKit
 import UserNotifications
 
-/// Push-Kennung entgegennehmen und einen Tipp auf „Neue Note …" zu den Noten
-/// fuehren.
+/// Push-Kennung entgegennehmen und einen Tipp auf „Neue Note …" zu den Noten,
+/// einen auf eine Budget-Meldung (`"tab": "aws"`) zu den AWS-Kosten fuehren.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private let notifications = NotificationDelegate(onOpen: { kind in
-        guard kind == "grade" else { return }
-        Task { @MainActor in Router.shared.show(.grades) }
+        switch kind {
+        case "grade": Task { @MainActor in Router.shared.show(.grades) }
+        case "aws": Task { @MainActor in Router.shared.show(.aws) }
+        default: break
+        }
     })
 
     func application(
@@ -22,7 +25,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         // Nur merken: angemeldet wird die Kennung beim Notendienst erst, wenn
         // eine Sitzung steht - der Endpunkt liegt hinter der Anmeldung.
-        Notifications.store(deviceToken: deviceToken.map { String(format: "%02x", $0) }.joined())
+        let token = deviceToken.map { String(format: "%02x", $0) }.joined()
+        Notifications.store(deviceToken: token)
+        // Der AWS-Dienst braucht keine Sitzung - die Kennung kann gleich hin. Nach
+        // der ersten Erlaubnis kommt sie erst, wenn der Tab laengst geladen hat.
+        Task { await AWSPush.registerIfNeeded(privateToken: Keychain.read(Keychain.privateTokenKey)) }
     }
 
     func application(_ application: UIApplication,

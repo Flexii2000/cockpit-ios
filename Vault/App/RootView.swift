@@ -1,11 +1,15 @@
 import SwiftUI
 
 enum TabSelection: Hashable {
-    case grades, finance
+    case grades, finance, aws
 
     static var initial: TabSelection {
         #if DEBUG
-        if ProcessInfo.processInfo.environment["COCKPIT_TAB"] == "finance" { return .finance }
+        switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
+        case "finance": return .finance
+        case "aws": return .aws
+        default: break
+        }
         #endif
         return .grades
     }
@@ -50,6 +54,10 @@ struct RootView: View {
                         value: TabSelection.finance) {
                         FinanceTab(lock: lock)
                     }
+                    Tab(Backend.aws.title, systemImage: Backend.aws.systemImage,
+                        value: TabSelection.aws) {
+                        AWSTab(lock: lock)
+                    }
                 }
             } else {
                 LockScreen(title: "Vault ist gesperrt", failure: lock.lastFailure) {
@@ -62,7 +70,9 @@ struct RootView: View {
             if !access.isGradesConfigured { setup.isPresented = true }
         }
         .sheet(isPresented: $setup.isPresented) {
-            SetupView(sections: [.grades])
+            // fh_private fuer den AWS-Tab - meist schon da, weil die Token in der
+            // geteilten Keychain-Gruppe liegen und Healthy ihn eingetragen hat.
+            SetupView(sections: [.grades, .privateToken])
         }
         // Sichtschutz fuer den App-Umschalter: iOS macht die Vorschau in dem
         // Moment, in dem die App inaktiv wird.

@@ -1,5 +1,24 @@
 # Stand
 
+> **AWS-Kosten: Tab in Vault und Mac-App AWSUsageBar (01.11., Felix):** Was der Monat bei AWS
+> kostet, in Prozent des AWS-Budgets, aufgeteilt in LLM, Hytale, Hosting, Sonstiges (Steuer anteilig),
+> laufende Instanzen live hochgerechnet. Dienst `../aws-usage` (Vertrag `docs/API.md`), parallel
+> gebaut. **Vault**: Tab „AWS“ (`Vault/AWS/`) mit Betrag, Prozent, Balken, Abgerechnet/Live/Prognose,
+> Budget ändern (Dialog → `PUT /api/budget`), Kategorien mit aufklappbaren Posten, „Läuft“ (Typ,
+> Spot/On-Demand, $/h, seit), Vormonate, Stand. Push bei 50/75/90/100 %: Vault meldet die Kennung beim
+> Dienst an (`AWSPush`), Tipp öffnet den Tab. **Mac**: `AWSUsageBar/`, Menüleiste „☁ 38 % · 19,01 $“,
+> Ausklappfenster im Stil der Claude Usage Bar, Budget ändern, Beim Anmelden starten, keine
+> Mitteilungen. Geteilt: `AWSUsageShared/`. Entscheidungen in `ENTSCHEIDUNGEN.md`.
+> - **Geprüft:** `tools/verify.sh` (alle, neu VaultTests mit 17 Tests und AWSUsageBar); Vault im
+>   Simulator gegen den lokal laufenden Dienst mit echten AWS-Daten hell und dunkel
+>   (`uitest.sh Vault testAWSTabFromTopToBottom`), Budget-Dialog gegen einen Schein-Server
+>   (`COCKPIT_AWS_STUB=1 … testChangingTheAWSBudget`); Mac-Ausklappfenster und Menüleisten-Zeile per
+>   `COCKPIT_AWS_SNAPSHOT` gegen beide.
+> - **Nicht geprüft:** die Mac-App in der echten Menüleiste (Klick, Fenster, Schlüsselbund-Abfrage,
+>   Beim Anmelden starten), Push auf dem Gerät, Face ID vor dem Tab.
+> - **Nächster Schritt:** nach dem Deploy des Dienstes `tools/install-mac.sh AWSUsageBar` und
+>   `tools/install-device.sh Vault`; auf dem Gerät Push-Erlaubnis in Vault erteilen.
+
 > **Sport/Padel: Kosten des Monats mit Prognose (28.10., Felix):** Abschnitt „Kosten“ direkt nach
 > „Nächster Termin“, nur Felix. Er zeigt den Monat bisher (Summe, Matches) und die Prognose (bisher +
 > gebucht + je geplantem Tag ohne Buchung ein Match zum üblichen Anteil), dazu die Prognose des

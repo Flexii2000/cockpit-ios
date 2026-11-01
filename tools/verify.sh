@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Baut alle sechs Apps fuer den Simulator und laesst die Unit-Tests laufen -
-# dazu die Uhr-Apps von Healthy (HealthyWatch, seit 14.10.) und Sport (SportWatch, seit 23.10.).
+# dazu die Uhr-Apps von Healthy (HealthyWatch, seit 14.10.) und Sport (SportWatch, seit 23.10.)
+# und die Mac-App AWSUsageBar (seit 01.11.).
 # Das ist der einzige gueltige Beleg dafuer, dass etwas funktioniert -
 # "sieht richtig aus" zaehlt nicht (siehe CLAUDE.md).
 #
@@ -25,7 +26,7 @@ echo "Simulator: $SIM"
 DEST="platform=iOS Simulator,name=$SIM"
 pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-APPS="${1:-Healthy HealthyWatch Vault Fokus Einkaufsliste coHabit Sport SportWatch}"
+APPS="${1:-Healthy HealthyWatch Vault Fokus Einkaufsliste coHabit Sport SportWatch AWSUsageBar}"
 for APP in $APPS; do
     echo "== $APP =="
     if [ "$APP" = "Healthy" ]; then
@@ -39,6 +40,14 @@ for APP in $APPS; do
         # xcodebuild -downloadPlatform watchOS
         xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
             -destination 'generic/platform=watchOS Simulator' | pretty
+    elif [ "$APP" = "AWSUsageBar" ]; then
+        # Die Menueleisten-App fuer den Mac - kein Simulator, der Mac selbst.
+        xcodebuild build -project Cockpit.xcodeproj -scheme AWSUsageBar \
+            -destination 'platform=macOS' | pretty
+    elif [ "$APP" = "Vault" ]; then
+        # Der AWS-Tab und AWSUsageShared (01.11.) haben Unit-Tests mit Vault als Wirt.
+        xcodebuild test -project Cockpit.xcodeproj -scheme Vault \
+            -only-testing:VaultTests -destination "$DEST" | pretty
     elif [ "$APP" = "Fokus" ]; then
         # Die Evaluation (seit 14.10. in Fokus) hat eigene Unit-Tests mit Fokus
         # als Wirt, samt der Uebernahme aus Healthy.

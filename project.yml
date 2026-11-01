@@ -3,13 +3,16 @@
 #
 # Sechs Apps aus einem Repo (docs/PLAN-AUFTEILUNG.md):
 #   Healthy  - Dashboard, Essen, Gewicht     com.fherrmann.cockpit (die alte ID, bleibt)
-#   Vault    - Noten, Finanzen           com.fherrmann.vault
+#   Vault    - Noten, Finanzen, AWS      com.fherrmann.vault
 #   Fokus    - To-Do, Wald, Einkauf, Evaluation  com.fherrmann.fokus
 #   Einkaufsliste - nur die Liste       com.fherrmann.einkauf (fuer ein zweites Handy)
 #   coHabit  - Habits mit Freunden       com.fherrmann.cohabit (eigene Anmeldung je Person),
 #              dazu Kachel (.widget) und Bild in Benachrichtigungen (.notifications)
 #   Sport    - Padel, Gym                com.fherrmann.sport (seit 23.10.), dazu die Uhr-App
 #              (.watchkitapp) fuer Krafttraining und Padel-Matches
+#
+# Dazu eine Mac-App (seit 01.11.):
+#   AWSUsageBar - AWS-Kosten in der Menueleiste  com.fherrmann.awsusagebar (macOS 15)
 #
 # Neue Swift-Datei hinzufuegen: Datei in den passenden Ordner legen und
 # tools/bootstrap.sh laufen lassen. Ganze Ordner sind eingebunden, keine
@@ -21,6 +24,8 @@
 #              (bis 14.10. in Healthy statt Fokus)
 #   FocusShared/ was Fokus UND die Erweiterung FokusMonitor teilen (Session, Whitelist, Schild)
 #   CohabitShared/ was coHabit UND coHabitWidget teilen (API, Modelle, Postausgang, Kachel-Ansichten)
+#   AWSUsageShared/ was Vault UND die Mac-App AWSUsageBar teilen (Modelle, Client, Formate,
+#              Balken) - nur Foundation und SwiftUI, baut auf iOS und macOS
 #   <App>/     nur diese App
 name: Cockpit
 
@@ -261,6 +266,8 @@ targets:
       - path: Vault
       - path: Core
       - path: Shared
+      # Der AWS-Tab (01.11.) - dieselben Modelle und Balken wie die Mac-App.
+      - path: AWSUsageShared
     entitlements:
       path: Vault/Vault.entitlements
       properties:
@@ -275,7 +282,34 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Vault
         # Ohne diesen Schluessel beendet iOS die App, sobald sie Face ID
         # anfordert - nicht mit einer Fehlermeldung, sondern hart.
-        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit Noten und Finanzen nicht offen daliegen, wenn jemand anders das Handy in der Hand hat.
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit Noten, Finanzen und AWS-Kosten nicht offen daliegen, wenn jemand anders das Handy in der Hand hat.
+
+  # ------------------------------------------------------------ AWSUsageBar
+  # Die AWS-Kosten in der Menueleiste des Macs (01.11.) - derselbe Dienst wie der
+  # AWS-Tab in Vault. Kein Core/, kein Shared/: die sind iOS (UIKit, WebKit-Cookies).
+  AWSUsageBar:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: AWSUsageBar
+      - path: AWSUsageShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.awsusagebar
+        INFOPLIST_KEY_CFBundleDisplayName: AWSUsageBar
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        # Nur in der Menueleiste - kein Dock-Symbol, kein Fenster beim Start.
+        INFOPLIST_KEY_LSUIElement: YES
+        # Ohne Asset-Katalog - die App zeigt sich nur als Wolke in der Leiste.
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        # Fest mit dem Apple-Development-Zertifikat statt automatisch: ohne
+        # Xcode-Konto gibt es kein Mac-Profil, und eine Ad-hoc-Signatur aendert
+        # sich mit jedem Bau - dann fragte macOS nach jedem Update wieder nach
+        # dem Schluesselbund-Eintrag („Immer erlauben" haengt an der Signatur).
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: Apple Development
+        PROVISIONING_PROFILE_SPECIFIER: ""
 
   # ------------------------------------------------------------------ Fokus
   Fokus:
@@ -662,6 +696,16 @@ targets:
     dependencies:
       - target: coHabit
 
+  # Der AWS-Tab und AWSUsageShared (01.11.): Vault ist der Wirt - die Mac-App
+  # hat keine eigenen Tests, sie zeigt dieselben Modelle und Formate.
+  VaultTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: VaultTests
+    dependencies:
+      - target: Vault
+
   # Gym (seit 23.10. hier), Padel und das Zaehlen auf der Uhr: Sport ist der Wirt.
   SportTests:
     type: bundle.unit-test
@@ -784,7 +828,14 @@ schemes:
         Vault: all
     test:
       targets:
+        - VaultTests
         - VaultUITests
+    run:
+      config: Debug
+  AWSUsageBar:
+    build:
+      targets:
+        AWSUsageBar: all
     run:
       config: Debug
   Fokus:

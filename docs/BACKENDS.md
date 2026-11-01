@@ -19,6 +19,7 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | Wald-Sessions | `https://fherrmann.com/habits/api/focus` | Cookie `fh_private` | **nativ** (Fokus, Wald) |
 | To-Do | `https://fherrmann.com/todo` | Cookie `fh_private` | **nativ** (Fokus) — daneben eine Weboberfläche |
 | Padel | `https://fherrmann.com/padel` | Cookie `fh_private` (Felix); Mitspieler mit eigener Seite: Cookie `padel_token` | **nativ** (Sport, seit 23.10.) — daneben die Seite des Dienstes |
+| AWS-Kosten | `https://fherrmann.com/aws-usage` | `Authorization: Bearer <fh_private>` (oder Cookie `fh_private`) | **nativ** (Vault, seit 01.11.) und die Mac-App AWSUsageBar — keine Weboberfläche |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
 also keine ATS-Ausnahme nötig). Kein VPN, kein Heimnetz-Zwang.
@@ -1360,6 +1361,42 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
     Wochentage, auch wenn es noch keine Termine gibt. Fehlt bei einem älteren Dienst.
   - Seit 28.10. mittags bekommen Aleks und Torben dieselbe Ansicht für alle Matches, in denen sie mit
     Felix stehen, mit dem, was sie selbst bezahlt haben (`padel` `2b83ee6`). Die App kennt nur Felix.
+
+## AWS-Kosten — `/aws-usage/api` (seit 2026-11-01)
+
+Der Dienst `../aws-usage` (Spring Boot, `127.0.0.1:48280`, ohne nginx-Gate). Vertrag:
+`../aws-usage/docs/API.md` — beim Schreiben dieses Abschnitts lag der Dienst nur lokal
+vor, gegen ihn geprüft (`AWSUsageTests` liest das Beispiel des Vertrags). Steht im Code
+des Dienstes etwas anderes, gilt der.
+
+| Methode | Pfad | Antwort |
+|---|---|---|
+| GET | `/api/usage` | `AWSUsage` (unten) — aus dem Zwischenstand des Dienstes, kostet nichts |
+| PUT | `/api/budget` mit `{"limit": 60}` | `AWSUsage` — ändert das **AWS-Budget** selbst (Budgets-API); `400` bei > 10.000 oder ≤ 0, `502`, wenn AWS ablehnt |
+| POST | `/api/devices` mit `{"token": "<hex>"}` | `204` — Vault meldet sich für Pushes an (Topic `com.fherrmann.vault`) |
+
+Zugang: nur Felix, `Authorization: Bearer <fh_private>` oder Cookie `fh_private`. Ohne
+`401` mit `{"error": "…"}` (hier also ein **sauberes** 401, anders als bei food). `503`,
+solange seit dem Start noch kein Abruf bei AWS gelungen ist.
+
+`AWSUsage`: `currency` (`USD`), `month` (`YYYY-MM`, UTC), `budget {name, limit}`,
+`spent` (= `billed + live`), `billed` (Cost Explorer, hinkt bis 24 h), `live`
+(Hochrechnung laufender Instanzen), `percent` (`spent / limit × 100`, kann > 100, kann
+`null`), `forecast` (kann `null`), `categories` (immer `llm`, `hytale`, `hosting`,
+`other` in dieser Reihenfolge; `amount` enthält `live`; `items` mit `label`, `amount`,
+`live`), `running` (`id`, `name`, `category`, `region`, `type`, `lifecycle`
+`spot|on-demand`, `pricePerHour` **ohne** Steuer, bis vier Nachkommastellen, kann `null`;
+`launchedAt`, `estimate` mit Steuer), `months` (bis 12 Vormonate, neuester zuerst,
+`categories` als Objekt mit allen vier Schlüsseln), `billedAt`, `liveAt`, `problem`
+(`null` oder ein Satz — die Zahlen sind dann der letzte gute Stand). Alle Beträge in
+Dollar **mit** Steuer (anteilig auf die Kategorien verteilt).
+
+**Push:** bei 50, 75, 90 und 100 % je Schwelle einmal im Monat; die Nutzlast trägt
+`"tab": "aws"` statt `kind` — `NotificationDelegate` reicht ersatzweise `tab` weiter.
+
+⚠️ **Ein lokal gestarteter Dienst spricht mit dem echten AWS.** Ein `PUT /api/budget`
+dagegen ändert das echte Budget — der UI-Test dafür läuft nur mit `COCKPIT_AWS_STUB=1`
+gegen einen Schein-Server.
 
 ## Finance Cockpit — kein API
 
