@@ -16,8 +16,11 @@
 >   `COCKPIT_AWS_SNAPSHOT` gegen beide.
 > - **Nicht geprüft:** die Mac-App in der echten Menüleiste (Klick, Fenster, Schlüsselbund-Abfrage,
 >   Beim Anmelden starten), Push auf dem Gerät, Face ID vor dem Tab.
-> - **Nächster Schritt:** nach dem Deploy des Dienstes `tools/install-mac.sh AWSUsageBar` und
->   `tools/install-device.sh Vault`; auf dem Gerät Push-Erlaubnis in Vault erteilen.
+> - **Dienst live seit 01.11. 16:56** (`fherrmann.com/aws-usage`, von Felix eingerichtet).
+> - **Installiert 01.11. 16:58:** Mac-App nach `/Applications` (`install-mac.sh AWSUsageBar`, läuft,
+>   Team ZWFV263P59) und Vault aufs iPhone (`install-device.sh Vault --launch`, `5f8ceb9`).
+> - **Auf dem Gerät prüfen:** Schlüsselbund-Abfrage der Mac-App („Immer erlauben“), Klick in der
+>   Menüleiste, „Beim Anmelden starten“; in Vault AWS-Tab öffnen, Push-Erlaubnis erteilen, Face ID.
 
 > **Sport/Padel: Kosten des Monats mit Prognose (28.10., Felix):** Abschnitt „Kosten“ direkt nach
 > „Nächster Termin“, nur Felix. Er zeigt den Monat bisher (Summe, Matches) und die Prognose (bisher +
