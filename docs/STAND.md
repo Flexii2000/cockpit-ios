@@ -1,5 +1,33 @@
 # Stand
 
+> **CloudUsageBar: Verda neben AWS, Vault-Tab „Cloud“ (02.11., Felix) - gebaut, NICHT installiert:**
+> Der Dienst heißt `cloud-usage` (`fherrmann.com/cloud-usage`, Repo `../cloud-usage`, parallel
+> umgebaut; Vertrag `docs/API.md` mit `verda`, `PUT api/verda/budget`, Push-`tab` `cloud`). Clients:
+> Mac-App **CloudUsageBar** (`CloudUsageBar/`, `com.fherrmann.cloudusagebar`, vorher AWSUsageBar),
+> geteilter Code `CloudUsageShared/` (neu `VerdaModels.swift`, Verda-Balken, `LifecycleBadge`), Vault
+> `Vault/Cloud/` (Tab „Cloud“, Symbol Wolke). Menüleiste „38 % · 19,01 $ · 3,20 €“ (ohne Verda wie
+> bisher). Verda-Abschnitt in beiden: Monat mit Balken/Prozent, Budget in Euro (änderbar), Guthaben,
+> Aufladungen, was läuft (On-Demand als orange Marke), vergessene Volumes (nur wenn welche, orange),
+> Buckets, Vormonate, Stand. Auf dem Mac scrollen die Abschnitte, wenn sie höher als der Bildschirm
+> sind (mit Verda gut 1.000 pt), Fuß bleibt stehen. Schlüsselbund: eigener Eintrag, sonst der der
+> AWSUsageBar (wird übernommen), sonst `fh_private`. Entscheidungen in `ENTSCHEIDUNGEN.md`.
+> - **Geprüft:** `tools/verify.sh` (alle grün - `Backend` in `Shared/` übersetzen alle Apps; CloudUsageBar
+>   gebaut, Vault 37 Unit-Tests, neu `VerdaUsageTests` mit 14: Beispiel aus API.md wörtlich mit jedem Verda-Feld, `verda: null`,
+>   älterer Dienst, kaputter Verda-Block blendet nur Verda aus, ohne Budget/fremde Instanz,
+>   Menüleiste mit und ohne Verda, Euro- und GB-Schreibweise, Budget-Eingabe in Euro, `PUT
+>   api/verda/budget`, `409`; dazu in `CloudUsageTests` beide Adressen auf `/cloud-usage`).
+>   Mac-Ausklappfenster per `COCKPIT_CLOUD_SNAPSHOT` gegen einen Schein-Server (Beispiel aus API.md und
+>   eine Fassung mit On-Demand, zwei Volumes, ohne Budget, mit `problem`) hell/dunkel;
+>   `uitest.sh Vault testCloudTabFromTopToBottom` gegen denselben Schein-Server hell/dunkel.
+> - **Nicht geprüft:** echte Verda-Zahlen (Dienst noch nicht umgestellt); das Scrollen in der echten
+>   Menüleiste (`ImageRenderer` zeichnet keine ScrollView, das Bild zeigt die volle Höhe); die
+>   Übernahme des Schlüsselbund-Eintrags der AWSUsageBar (macOS fragt einmal, die Bundle-ID ist neu);
+>   Push mit `"tab": "cloud"` auf dem Gerät.
+> - **Nächster Schritt, sobald `cloud-usage` live ist:** `tools/install-mac.sh CloudUsageBar` (beendet
+>   und entfernt die AWSUsageBar, startet die neue; „Immer erlauben“ für den Token, „Beim Anmelden
+>   starten“ neu setzen) und `tools/install-device.sh Vault --launch`. Bis dahin laufen die
+>   installierte AWSUsageBar und Vault über die Weiterleitung von `/aws-usage`.
+
 > **AWSUsageBar: Spot-Verfügbarkeit fürs LLM (02.11., Felix):** neuer Abschnitt „Spot · London“ im
 > Ausklappfenster: je Typ die geschätzte Zahl freier Spot-Instanzen („≈ 4 frei“, aus dem Spot
 > Placement Score für 1/2/4/8 Instanzen, Schwelle 7), Score je Zone („2a 9/10 · 2c 7/10“), Spot-Preis,

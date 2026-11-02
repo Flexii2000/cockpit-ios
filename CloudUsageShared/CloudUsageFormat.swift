@@ -1,12 +1,13 @@
 import Foundation
 
-/// Deutsche Schreibweise für die AWS-Zahlen - „19,01 $“, „38 %“, „0,2394 $/h“.
+/// Deutsche Schreibweise für die Cloud-Zahlen - „19,01 $“, „3,20 €“, „38 %“, „0,2394 $/h“.
+/// AWS in Dollar, Verda in Euro, je wie abgerechnet (Felix, 02.11.).
 ///
 /// Fest auf `de_DE` statt der Geräte-Einstellung: Vault und die Menüleiste
 /// sollen dieselbe Zahl gleich schreiben, und die Tests brauchen eine feste
 /// Schreibweise. Zwischen Zahl und Einheit ein geschütztes Leerzeichen, damit
-/// „$“ nie allein in die nächste Zeile rutscht.
-enum AWSUsageFormat {
+/// „$“ und „€“ nie allein in die nächste Zeile rutschen.
+enum CloudUsageFormat {
 
     static let locale = Locale(identifier: "de_DE")
     private static let nbsp = "\u{00A0}"
@@ -16,18 +17,38 @@ enum AWSUsageFormat {
         number(value, min: 2, max: 2) + nbsp + "$"
     }
 
+    /// „3,20 €“ - Verda, immer zwei Nachkommastellen.
+    static func euros(_ value: Double) -> String {
+        number(value, min: 2, max: 2) + nbsp + "€"
+    }
+
     /// Das Budget: „50 $“, mit Nachkommastellen nur, wenn es welche hat („62,50 $“).
-    static func limit(_ value: Double) -> String {
+    static func limit(_ value: Double, unit: String = "$") -> String {
         let cents = (value * 100).rounded()
         let whole = cents.truncatingRemainder(dividingBy: 100) == 0
-        return number(value, min: whole ? 0 : 2, max: whole ? 0 : 2) + nbsp + "$"
+        return number(value, min: whole ? 0 : 2, max: whole ? 0 : 2) + nbsp + unit
+    }
+
+    /// Das Verda-Budget: „50 €“, „62,50 €“.
+    static func euroLimit(_ value: Double) -> String {
+        limit(value, unit: "€")
     }
 
     /// „1,86 $/h“, „0,2394 $/h“ - zwei bis vier Nachkommastellen, wie der Dienst sie
     /// liefert; ohne Preis „– $/h“, damit man in der Zeile noch sieht, was fehlt.
-    static func perHour(_ value: Double?) -> String {
-        guard let value else { return "–" + nbsp + "$/h" }
-        return number(value, min: 2, max: 4) + nbsp + "$/h"
+    static func perHour(_ value: Double?, unit: String = "$") -> String {
+        guard let value else { return "–" + nbsp + unit + "/h" }
+        return number(value, min: 2, max: 4) + nbsp + unit + "/h"
+    }
+
+    /// „9,87 €/h“ - Verda.
+    static func euroPerHour(_ value: Double?) -> String {
+        perHour(value, unit: "€")
+    }
+
+    /// „510,3 GB“, „900 GB“ - Volumes und Buckets bei Verda.
+    static func gigabytes(_ value: Double) -> String {
+        number(value, min: 0, max: 1) + nbsp + "GB"
     }
 
     /// „38 %“ - ganze Prozent wie in der Claude Usage Bar; ohne Wert „–“.
@@ -36,11 +57,14 @@ enum AWSUsageFormat {
         return number(value, min: 0, max: 0) + nbsp + "%"
     }
 
-    /// Was in der Menüleiste steht: „38 % · 19,01 $“, ohne Daten „–“.
+    /// Was in der Menüleiste steht: „38 % · 19,01 $ · 3,20 €“ - AWS wie bisher,
+    /// dahinter Verda im Monat (Felix, 02.11.). Ohne Verda-Stand nur AWS, ohne Daten „–“.
     static func menuBarTitle(_ usage: AWSUsage?) -> String {
         guard let usage else { return "–" }
-        guard let percent = usage.percent else { return dollars(usage.spent) }
-        return "\(Self.percent(percent)) · \(dollars(usage.spent))"
+        var title = dollars(usage.spent)
+        if let percent = usage.percent { title = "\(Self.percent(percent)) · " + title }
+        if let verda = usage.verda { title += " · \(euros(verda.spent))" }
+        return title
     }
 
     /// „November 2026“ aus „2026-11“; was nicht passt, bleibt, wie es kam.
@@ -78,7 +102,11 @@ enum AWSUsageFormat {
 
     /// „Spot“ / „On-Demand“.
     static func lifecycle(_ instance: AWSInstance) -> String {
-        instance.isSpot ? "Spot" : "On-Demand"
+        lifecycle(isSpot: instance.isSpot)
+    }
+
+    static func lifecycle(isSpot: Bool) -> String {
+        isSpot ? "Spot" : "On-Demand"
     }
 
     // MARK: - Spot
@@ -110,10 +138,12 @@ enum AWSUsageFormat {
         }
     }
 
-    /// Liest eine Eingabe fürs Budget: „60“, „60,5“, „60.50“, „60 $“. `nil`, wenn
-    /// sie nicht zwischen 0 (ausschließlich) und 10.000 liegt - so prüft auch der Dienst.
+    /// Liest eine Eingabe fürs Budget: „60“, „60,5“, „60.50“, „60 $“, „60 €“ - AWS
+    /// in Dollar, Verda in Euro, dieselbe Regel. `nil`, wenn sie nicht zwischen 0
+    /// (ausschließlich) und 10.000 liegt - so prüft auch der Dienst, bei beiden.
     static func parseLimit(_ text: String) -> Double? {
         var cleaned = text.replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: "€", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: " ", with: "")
             .replacingOccurrences(of: nbsp, with: "")
@@ -126,7 +156,7 @@ enum AWSUsageFormat {
         return (value * 100).rounded() / 100
     }
 
-    /// Das Budget fürs Eingabefeld: „50“ oder „62,5“ - ohne „$“, damit man gleich tippen kann.
+    /// Das Budget fürs Eingabefeld: „50“ oder „62,5“ - ohne „$“/„€“, damit man gleich tippen kann.
     static func limitInput(_ value: Double) -> String {
         // Ohne Tausenderpunkt: „1.250“ läse `parseLimit` sonst als 1,25.
         value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never).locale(locale))

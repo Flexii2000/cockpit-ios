@@ -37,6 +37,8 @@ danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
             beide auf dem Dienst aws-usage, geteilter Code in AWSUsageShared/
           + Claude-Nutzung in der Menüleiste (ClaudeUsageBar): eigene Anmeldung bei
             claude.ai im App-Fenster statt eines kopierten Cookies
+          + Verda dazu: Dienst aws-usage → cloud-usage, Mac-App AWSUsageBar → CloudUsageBar,
+            Vault-Tab „AWS“ → „Cloud“, geteilter Code in CloudUsageShared/
 ```
 
 ### Aufbau eines nativen Tabs
@@ -69,14 +71,15 @@ Healthy/            App: Dashboard, Essen, Gewicht, Health-Abgleich, Diagramm-Ba
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync),
                     Schritte für die Sperrbildschirm-Kacheln (StepsWidgetBridge)
   Food/ Weight/
-Vault/              App: Noten, Finanzen, AWS - eine Sperre vor allem
+Vault/              App: Noten, Finanzen, Cloud - eine Sperre vor allem
   App/ Grades/ Finance/ Web/
-  AWS/              AWS-Kosten (01.11.): AWSStore (Stand, Offline, Budget), AWSPush (Kennung an
-                    den Dienst), AWSTab
-AWSUsageShared/     was Vault UND AWSUsageBar teilen: Modelle, Client mit Bearer, Formate, Balken -
-                    nur Foundation und SwiftUI (iOS und macOS)
-AWSUsageBar/        Mac-App (macOS 15): AWS-Kosten in der Menüleiste - MenuBarExtra im Fensterstil,
-                    Zeile als Vorlagenbild (MenuBarLabel), Token aus dem Schlüsselbund (TokenStore)
+  Cloud/            Cloud-Kosten (seit 01.11., bis 02.11. AWS/): CloudStore (Stand, Offline, beide
+                    Budgets), CloudPush (Kennung an den Dienst), CloudTab (AWS, darunter Verda)
+CloudUsageShared/   was Vault UND CloudUsageBar teilen: Modelle (AWSUsage …, VerdaUsage …), Client
+                    mit Bearer, Formate ($ und €), Balken - nur Foundation und SwiftUI (iOS und macOS)
+CloudUsageBar/      Mac-App (macOS 15): Cloud-Kosten in der Menüleiste - MenuBarExtra im Fensterstil,
+                    Zeile als Vorlagenbild (MenuBarLabel), Token aus dem Schlüsselbund (TokenStore),
+                    Verda-Abschnitt (VerdaSection); bis 02.11. AWSUsageBar
 ClaudeUsageBar/     Mac-App (macOS 26, Sandbox): Claude-Wochenlimit in der Menüleiste - Anmeldung
                     im Fenster (LoginView), Abfragen aus einer unsichtbaren WebView (ClaudeWeb),
                     Sitzung nur im Schlüsselbund (SessionKeychain), Karten in Liquid Glass
@@ -129,7 +132,7 @@ Tests/              Unit-Tests, ein Bundle (Wirt: Healthy)
 FokusTests/         Unit-Tests der Evaluation samt Übernahme aus Healthy (Wirt: Fokus)
 CohabitTests/       Unit-Tests von coHabit (Wirt: coHabit - CohabitShared liegt nur dort)
 SportTests/         Unit-Tests von Gym, Padel-Tab und dem Zählen beim Padel (Wirt: Sport)
-VaultTests/         Unit-Tests des AWS-Tabs und von AWSUsageShared (Wirt: Vault)
+VaultTests/         Unit-Tests des Cloud-Tabs und von CloudUsageShared, AWS und Verda (Wirt: Vault)
 ClaudeUsageBarTests/ Unit-Tests der ClaudeUsageBar ohne Wirt: Antwort von claude.ai, Schwellen, Formate
 UITests/            Harness.swift (gemeinsam) + je App eine Datei, sechs Bundles
 project.yml         Quelle des Xcode-Projekts - sechs App-Targets, YAML-Anker für Gemeinsames
@@ -184,17 +187,25 @@ nach `/shopping-list/setup?token=…`. Healthy zeigt den Tab nur, wenn der
 Token da ist; Einkaufsliste besteht aus nichts anderem. So sieht Joana
 mit ihrem Token genau eine Liste und sonst nichts von diesem Server.
 
-**Der AWS-Tab spricht Bearer, nicht Cookie.** Der Dienst `aws-usage` nimmt
-`fh_private` als Cookie **oder** als `Authorization: Bearer`. Vault und die
-Mac-App teilen sich den Client in `AWSUsageShared/` - und auf dem Mac gibt es
+**Der Cloud-Tab spricht Bearer, nicht Cookie.** Der Dienst `cloud-usage` (bis 02.11.
+`aws-usage`) nimmt `fh_private` als Cookie **oder** als `Authorization: Bearer`. Vault und die
+Mac-App teilen sich den Client in `CloudUsageShared/` - und auf dem Mac gibt es
 kein `Access`, das Cookies legt, und keinen `APIClient`. Den Offline-Stand legt
-`AWSStore` deshalb selbst in den `OfflineCache` und meldet ihn `OfflineStatus`
-(`Backend.aws`), die Leiste über dem Tab ist dieselbe wie überall. Die Mac-App
-liest den Token aus dem Schlüsselbund des Macs (zuerst ihr eigener Eintrag, sonst
-`fh_private`/`cockpit-ios` wie `run-simulator.sh`), fragt jede Minute (so oft prüft
+`CloudStore` deshalb selbst in den `OfflineCache` und meldet ihn `OfflineStatus`
+(`Backend.cloud`), die Leiste über dem Tab ist dieselbe wie überall. Die Mac-App
+liest den Token aus dem Schlüsselbund des Macs (zuerst ihr eigener Eintrag
+`com.fherrmann.cloudusagebar`, dann der der AWSUsageBar - beim ersten Lesen übernommen -,
+sonst `fh_private`/`cockpit-ios` wie `run-simulator.sh`), fragt jede Minute (so oft prüft
 der Dienst die Spot-Lage, seit 02.11.) und beim Aufklappen und hält nichts offline vor.
 Ihre einzige Mitteilung („LLM: Spot frei“) entscheidet `AWSSpotAlert` in
-`AWSUsageShared/` - dort, damit `VaultTests` es prüfen kann; Vault selbst zeigt Spot nicht.
+`CloudUsageShared/` - dort, damit `VaultTests` es prüfen kann; Vault selbst zeigt Spot nicht.
+
+**Verda steckt im selben Stand.** `GET /api/usage` liefert AWS oben und Verda im Feld `verda`;
+`AWSUsage` behält seinen Namen (es sind die AWS-Felder), `VerdaUsage` hängt daran. `verda` wird
+für sich gelesen: passt es nicht, ist es `nil` und AWS bleibt lesbar - eine neue Quelle soll
+die alte nicht mitnehmen. Ausklappfenster und Tab zeigen beide Teile untereinander, ohne
+gemeinsame Summe (Dollar und Euro). Auf dem Mac scrollen die Abschnitte, sobald sie höher als
+der Bildschirm sind; Schalter, Stand und Knöpfe bleiben darunter stehen.
 
 **Die ClaudeUsageBar fragt claude.ai aus einer WebView, nicht mit `URLSession`.**
 claude.ai steht hinter Cloudflare; ein nachgebauter Request mit kopierten Cookies

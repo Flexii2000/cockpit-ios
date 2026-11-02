@@ -6,7 +6,7 @@
 #
 # Tabs: Healthy dashboard|food|weight|widget|recovery|logbook|effects, Sport padel|gym
 # (recovery = Dashboard samt dieser Seite; logbook, effects = Dashboard an dieser
-# Stelle), Vault grades|finance|aws,
+# Stelle), Vault grades|finance|cloud,
 # Fokus todo|forest|shopping|evaluation|widget, Einkaufsliste (hat nur die eine Seite),
 # coHabit today|timeline|stats|profile|new|widget;
 # `setup` oeffnet in den ersten vier Apps das Zugang-Blatt.
@@ -104,14 +104,14 @@
 # COCKPIT_FOREST_RANGE=month stellt den Wald auf einen Ausschnitt (today, week, month, year).
 # COCKPIT_FOREST_HOUR=19.5 stellt die Uhr der Insel (Stunde in UTC) - Daemmerung, Nacht.
 #
-# Den AWS-Tab (Vault) gegen einen Schein-Server oder den lokal gestarteten Dienst
-# ../aws-usage (Bearer = COCKPIT_FH_PRIVATE_TOKEN). Die Noten-Variablen nur, damit
+# Den Cloud-Tab (Vault: AWS und Verda) gegen einen Schein-Server oder den lokal
+# gestarteten Dienst ../cloud-usage (Bearer = COCKPIT_FH_PRIVATE_TOKEN). Die Noten-Variablen nur, damit
 # das Zugang-Blatt nicht ueber dem Tab aufgeht:
 #
-#   COCKPIT_URL_AWS=http://127.0.0.1:48280/aws-usage COCKPIT_FH_PRIVATE_TOKEN=local-private \
+#   COCKPIT_URL_CLOUD=http://127.0.0.1:48280/cloud-usage COCKPIT_FH_PRIVATE_TOKEN=local-private \
 #   COCKPIT_WEIGHT_TOKEN=local-weight COCKPIT_GRADES_TOKEN=x COCKPIT_GRADES_USER=x \
 #   COCKPIT_GRADES_PASSWORD=x COCKPIT_NO_LOCK=1 COCKPIT_NO_PUSH=1 \
-#   tools/run-simulator.sh Vault aws bild.png
+#   tools/run-simulator.sh Vault cloud bild.png
 #
 # COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
 # fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
@@ -189,7 +189,7 @@ SIMCTL_CHILD_COCKPIT_GYM_DEMO="${COCKPIT_GYM_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_GYM_WORKOUT="${COCKPIT_GYM_WORKOUT:-}" \
 SIMCTL_CHILD_COCKPIT_PADEL_DEMO="${COCKPIT_PADEL_DEMO:-}" \
 SIMCTL_CHILD_COCKPIT_URL_PADEL="${COCKPIT_URL_PADEL:-}" \
-SIMCTL_CHILD_COCKPIT_URL_AWS="${COCKPIT_URL_AWS:-}" \
+SIMCTL_CHILD_COCKPIT_URL_CLOUD="${COCKPIT_URL_CLOUD:-}" \
 SIMCTL_CHILD_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}" \
 SIMCTL_CHILD_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}" \
 SIMCTL_CHILD_COCKPIT_SELECT="${COCKPIT_SELECT:-}" \

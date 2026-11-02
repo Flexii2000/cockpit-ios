@@ -1,6 +1,7 @@
 import Foundation
 
-/// Der Stand von `GET /aws-usage/api/usage` - Vertrag: `../aws-usage/docs/API.md`.
+/// Der Stand von `GET /cloud-usage/api/usage` - Vertrag: `../cloud-usage/docs/API.md`.
+/// Die AWS-Felder liegen oben, Verda im Feld `verda` (seit 02.11.).
 ///
 /// Gerechnet wird im Dienst: Steuer auf die Kategorien verteilt, Live-Hochrechnung,
 /// Prozent am Budget. Die Clients (Vault und die Menüleisten-App) zeigen nur.
@@ -28,6 +29,37 @@ struct AWSUsage: Codable, Sendable, Equatable {
     let problem: String?
     /// Spot-Lage fürs LLM (seit 02.11.); fehlt bei einem älteren Dienst.
     let spot: AWSSpot?
+    /// Verda (seit 02.11.), in Euro; `nil` ohne Verda-Zugang beim Dienst, vor der
+    /// ersten gelungenen Abfrage und bei einem älteren Dienst.
+    let verda: VerdaUsage?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        currency = try container.decode(String.self, forKey: .currency)
+        month = try container.decode(String.self, forKey: .month)
+        budget = try container.decodeIfPresent(AWSBudget.self, forKey: .budget)
+        spent = try container.decode(Double.self, forKey: .spent)
+        billed = try container.decode(Double.self, forKey: .billed)
+        live = try container.decode(Double.self, forKey: .live)
+        percent = try container.decodeIfPresent(Double.self, forKey: .percent)
+        forecast = try container.decodeIfPresent(Double.self, forKey: .forecast)
+        categories = try container.decode([AWSCategory].self, forKey: .categories)
+        running = try container.decode([AWSInstance].self, forKey: .running)
+        months = try container.decode([AWSMonth].self, forKey: .months)
+        billedAt = try container.decodeIfPresent(Date.self, forKey: .billedAt)
+        liveAt = try container.decodeIfPresent(Date.self, forKey: .liveAt)
+        problem = try container.decodeIfPresent(String.self, forKey: .problem)
+        spot = try container.decodeIfPresent(AWSSpot.self, forKey: .spot)
+        // Verda ist neu und kommt aus einer zweiten Quelle: ein Feld, das anders
+        // aussieht als erwartet, soll nur Verda ausblenden - nicht AWS unlesbar
+        // machen, auf dem Mac wie in Vault.
+        do {
+            verda = try container.decodeIfPresent(VerdaUsage.self, forKey: .verda)
+        } catch {
+            print("Verda nicht zu lesen: \(error)")
+            verda = nil
+        }
+    }
 }
 
 struct AWSBudget: Codable, Sendable, Equatable {
@@ -190,7 +222,7 @@ struct AWSBarSegment: Sendable, Equatable, Identifiable {
     var id: String { "\(key)-\(live)" }
 }
 
-enum AWSUsageCoding {
+enum CloudUsageCoding {
 
     /// Spring schreibt `Instant` mit bis zu neun Nachkommastellen, mehr als
     /// `ISO8601DateFormatter` verkraftet - der Bruchteil wird vorher abgeschnitten

@@ -5,7 +5,7 @@ enum ClaudeUsageFormat {
 
     static let locale = Locale(identifier: "de_DE")
 
-    /// Ganze Prozent, mit schmalem Abstand wie in der AWSUsageBar („45 %“).
+    /// Ganze Prozent, mit schmalem Abstand wie in der CloudUsageBar („45 %“).
     static func percent(_ value: Double?) -> String {
         guard let value else { return "–" }
         return "\(Int(value.rounded())) %"

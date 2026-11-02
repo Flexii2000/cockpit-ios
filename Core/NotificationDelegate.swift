@@ -12,7 +12,7 @@ import UserNotifications
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
 
     /// Bekommt `kind` aus der Nutzlast (`"grade"` beim Notendienst), ersatzweise
-    /// `tab` (`"aws"` beim AWS-Dienst), sonst nil - und entscheidet, welcher Tab
+    /// `tab` (`"cloud"` beim Cloud-Dienst, bis 02.11. `"aws"`), sonst nil - und entscheidet, welcher Tab
     /// sich oeffnet.
     private let onOpen: @Sendable (String?) -> Void
     /// Bekommt `link` aus der Nutzlast, wenn eine dabei ist - bisher nur bei
@@ -56,8 +56,8 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         // Nur die Art (und den Link) hinueberreichen: die Meldung selbst ist
         // nicht versendbar, eine Zeichenkette schon.
         let userInfo = response.notification.request.content.userInfo
-        // `kind` bei Notendienst und Kalorienzaehler, `tab` beim AWS-Dienst
-        // (Vault, 01.11.) - beides sagt, wohin der Tipp fuehrt.
+        // `kind` bei Notendienst und Kalorienzaehler, `tab` beim Cloud-Dienst
+        // (Vault, seit 01.11.) - beides sagt, wohin der Tipp fuehrt.
         onOpen(userInfo["kind"] as? String ?? userInfo["tab"] as? String)
         if let onLink, let link = Self.link(in: userInfo) {
             onLink(link)

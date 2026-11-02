@@ -2,13 +2,15 @@ import UIKit
 import UserNotifications
 
 /// Push-Kennung entgegennehmen und einen Tipp auf „Neue Note …" zu den Noten,
-/// einen auf eine Budget-Meldung (`"tab": "aws"`) zu den AWS-Kosten fuehren.
+/// einen auf eine Budget-Meldung (`"tab": "cloud"`) zu den Cloud-Kosten fuehren.
 final class AppDelegate: NSObject, UIApplicationDelegate {
 
     private let notifications = NotificationDelegate(onOpen: { kind in
         switch kind {
         case "grade": Task { @MainActor in Router.shared.show(.grades) }
-        case "aws": Task { @MainActor in Router.shared.show(.aws) }
+        // Bis 02.11. schickte der Dienst `"aws"` - Meldungen von davor liegen
+        // womoeglich noch in der Mitteilungszentrale.
+        case "cloud", "aws": Task { @MainActor in Router.shared.show(.cloud) }
         default: break
         }
     })
@@ -27,9 +29,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         // eine Sitzung steht - der Endpunkt liegt hinter der Anmeldung.
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
         Notifications.store(deviceToken: token)
-        // Der AWS-Dienst braucht keine Sitzung - die Kennung kann gleich hin. Nach
+        // Der Cloud-Dienst braucht keine Sitzung - die Kennung kann gleich hin. Nach
         // der ersten Erlaubnis kommt sie erst, wenn der Tab laengst geladen hat.
-        Task { await AWSPush.registerIfNeeded(privateToken: Keychain.read(Keychain.privateTokenKey)) }
+        Task { await CloudPush.registerIfNeeded(privateToken: Keychain.read(Keychain.privateTokenKey)) }
     }
 
     func application(_ application: UIApplication,

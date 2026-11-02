@@ -1,14 +1,16 @@
 import Foundation
 
-/// Hält, was der AWS-Tab zeigt. Gerechnet wird im Dienst `aws-usage`; hier wird
-/// nur geholt, für den Weg ohne Netz abgelegt und das Budget weitergereicht.
+/// Hält, was der Cloud-Tab zeigt (AWS und Verda). Gerechnet wird im Dienst
+/// `cloud-usage`; hier wird nur geholt, für den Weg ohne Netz abgelegt und die
+/// Budgets werden weitergereicht.
 @MainActor
 @Observable
-final class AWSStore {
+final class CloudStore {
 
     private(set) var usage: AWSUsage?
     private(set) var isLoading = false
     private(set) var isSaving = false
+    private(set) var isSavingVerda = false
     private(set) var error: String?
     private(set) var isAccessProblem = false
 
@@ -23,7 +25,7 @@ final class AWSStore {
             error = nil
             return
         }
-        let client = AWSUsageClient(baseURL: Backend.aws.url, token: token)
+        let client = CloudUsageClient(baseURL: Backend.cloud.url, token: token)
         if usage == nil { isLoading = true }
         defer { isLoading = false }
         do {
@@ -32,33 +34,49 @@ final class AWSStore {
             error = nil
             isAccessProblem = false
             OfflineCache.store(data, for: client.usageURL)
-            OfflineStatus.shared.online(.aws)
+            OfflineStatus.shared.online(.cloud)
             await askForPushOnce()
-            await AWSPush.registerIfNeeded(privateToken: token)
-        } catch AWSUsageError.offline {
+            await CloudPush.registerIfNeeded(privateToken: token)
+        } catch CloudUsageError.offline {
             // Ohne Netz der letzte Stand, mit Datum in der Leiste - wie die übrigen Tabs.
             if let cached = OfflineCache.load(for: client.usageURL),
-               let stored = try? AWSUsageCoding.decoder().decode(AWSUsage.self, from: cached.data) {
+               let stored = try? CloudUsageCoding.decoder().decode(AWSUsage.self, from: cached.data) {
                 usage = stored
                 error = nil
-                OfflineStatus.shared.servedFromCache(.aws, fetchedAt: cached.fetchedAt)
+                OfflineStatus.shared.servedFromCache(.cloud, fetchedAt: cached.fetchedAt)
             } else {
-                report(AWSUsageError.offline)
+                report(CloudUsageError.offline)
             }
         } catch {
             report(error)
         }
     }
 
-    /// - Returns: ob AWS das neue Budget angenommen hat.
+    /// - Returns: ob AWS das neue Budget (Dollar) angenommen hat.
     @discardableResult
     func setBudget(_ limit: Double, access: Access) async -> Bool {
         guard let token = access.privateToken else { return false }
-        let client = AWSUsageClient(baseURL: Backend.aws.url, token: token)
         isSaving = true
         defer { isSaving = false }
+        return await apply(token) { try await $0.setBudget(limit: limit) }
+    }
+
+    /// - Returns: ob der Dienst das neue Verda-Budget (Euro) angenommen hat.
+    @discardableResult
+    func setVerdaBudget(_ limit: Double, access: Access) async -> Bool {
+        guard let token = access.privateToken else { return false }
+        isSavingVerda = true
+        defer { isSavingVerda = false }
+        return await apply(token) { try await $0.setVerdaBudget(limit: limit) }
+    }
+
+    /// Beide Budgets antworten mit dem ganzen neuen Stand - der ersetzt den alten,
+    /// auch offline.
+    private func apply(_ token: String,
+                       _ put: (CloudUsageClient) async throws -> (usage: AWSUsage, data: Data)) async -> Bool {
+        let client = CloudUsageClient(baseURL: Backend.cloud.url, token: token)
         do {
-            let (fresh, data) = try await client.setBudget(limit: limit)
+            let (fresh, data) = try await put(client)
             usage = fresh
             error = nil
             OfflineCache.store(data, for: client.usageURL)
@@ -70,7 +88,7 @@ final class AWSStore {
     }
 
     private func report(_ error: Error) {
-        isAccessProblem = (error as? AWSUsageError) == .notAuthorised
+        isAccessProblem = (error as? CloudUsageError) == .notAuthorised
         self.error = error.localizedDescription
     }
 
@@ -86,9 +104,12 @@ final class AWSStore {
 /// Zwei Wege führen hierher: der Tab nach dem Laden und der AppDelegate, wenn
 /// Apple eine (neue) Kennung vergibt - die kommt nach der Erlaubnis erst, wenn
 /// der Tab längst fertig geladen hat.
-enum AWSPush {
+enum CloudPush {
 
-    private static let registeredKey = "aws.registeredDeviceToken"
+    /// Bis 02.11. `aws.registeredDeviceToken` (unter `/aws-usage`). Der neue
+    /// Schlüssel meldet die Kennung nach dem Umzug einmal beim Dienst unter neuem
+    /// Namen an - die Anmeldung ist idempotent, ein zweites Mal schadet nicht.
+    private static let registeredKey = "cloud.registeredDeviceToken"
 
     static func registerIfNeeded(privateToken: String?) async {
         #if DEBUG
@@ -100,13 +121,13 @@ enum AWSPush {
         let defaults = UserDefaults.standard
         guard defaults.string(forKey: registeredKey) != device else { return }
         do {
-            try await AWSUsageClient(baseURL: Backend.aws.url, token: privateToken)
+            try await CloudUsageClient(baseURL: Backend.cloud.url, token: privateToken)
                 .registerDevice(token: device)
             defaults.set(device, forKey: registeredKey)
         } catch {
             // Beim nächsten Laden des Tabs noch einmal - kein Grund, die Zahlen
             // deshalb nicht zu zeigen.
-            print("AWS-Push nicht angemeldet: \(error.localizedDescription)")
+            print("Cloud-Push nicht angemeldet: \(error.localizedDescription)")
         }
     }
 }

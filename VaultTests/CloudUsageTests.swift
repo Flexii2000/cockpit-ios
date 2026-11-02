@@ -1,15 +1,16 @@
 import XCTest
 @testable import Vault
 
-/// Der AWS-Tab und die Menüleisten-App lesen denselben Stand (`AWSUsageShared`):
-/// Vertrag `../aws-usage/docs/API.md`. Kein Netz - der Client läuft gegen einen
-/// Stub-`URLProtocol`.
-final class AWSUsageTests: XCTestCase {
+/// Der Cloud-Tab und die Menüleisten-App lesen denselben Stand (`CloudUsageShared`):
+/// Vertrag `../cloud-usage/docs/API.md`. Hier die AWS-Felder und der Client, Verda in
+/// `VerdaUsageTests`. Kein Netz - der Client läuft gegen einen Stub-`URLProtocol`.
+final class CloudUsageTests: XCTestCase {
 
     private let nbsp = "\u{00A0}"
 
-    /// Das Beispiel aus API.md, dazu eine zweite Instanz ohne Preis (Vertrag vom
-    /// 01.11.: `pricePerHour` kann `null` sein) und Nanosekunden am Zeitpunkt.
+    /// Das Beispiel aus API.md vom 01.11. (ohne `spot` und `verda`, wie ein älterer
+    /// Dienst), dazu eine zweite Instanz ohne Preis (`pricePerHour` kann `null` sein)
+    /// und Nanosekunden am Zeitpunkt.
     static let example = Data("""
     {
       "currency": "USD",
@@ -49,7 +50,7 @@ final class AWSUsageTests: XCTestCase {
     """.utf8)
 
     private func usage() throws -> AWSUsage {
-        try AWSUsageCoding.decoder().decode(AWSUsage.self, from: Self.example)
+        try CloudUsageCoding.decoder().decode(AWSUsage.self, from: Self.example)
     }
 
     // MARK: - Lesen
@@ -73,82 +74,82 @@ final class AWSUsageTests: XCTestCase {
         var json = String(decoding: Self.example, as: UTF8.self)
         json = json.replacingOccurrences(of: "\"percent\": 38.0", with: "\"percent\": null")
             .replacingOccurrences(of: "\"forecast\": 37.31", with: "\"forecast\": null")
-        let usage = try AWSUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
+        let usage = try CloudUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
         XCTAssertNil(usage.percent)
         XCTAssertNil(usage.forecast)
-        XCTAssertEqual(AWSUsageFormat.menuBarTitle(usage), "19,01\(nbsp)$", "ohne Prozent nur der Betrag")
+        XCTAssertEqual(CloudUsageFormat.menuBarTitle(usage), "19,01\(nbsp)$", "ohne Prozent nur der Betrag")
     }
 
     // MARK: - Schreibweise
 
     func testDollars() {
-        XCTAssertEqual(AWSUsageFormat.dollars(19.01), "19,01\(nbsp)$")
-        XCTAssertEqual(AWSUsageFormat.dollars(1234.5), "1.234,50\(nbsp)$")
-        XCTAssertEqual(AWSUsageFormat.dollars(0), "0,00\(nbsp)$")
-        XCTAssertEqual(AWSUsageFormat.limit(50), "50\(nbsp)$")
-        XCTAssertEqual(AWSUsageFormat.limit(62.5), "62,50\(nbsp)$")
+        XCTAssertEqual(CloudUsageFormat.dollars(19.01), "19,01\(nbsp)$")
+        XCTAssertEqual(CloudUsageFormat.dollars(1234.5), "1.234,50\(nbsp)$")
+        XCTAssertEqual(CloudUsageFormat.dollars(0), "0,00\(nbsp)$")
+        XCTAssertEqual(CloudUsageFormat.limit(50), "50\(nbsp)$")
+        XCTAssertEqual(CloudUsageFormat.limit(62.5), "62,50\(nbsp)$")
     }
 
     func testPricePerHourKeepsUpToFourDecimals() {
-        XCTAssertEqual(AWSUsageFormat.perHour(0.2394), "0,2394\(nbsp)$/h")
-        XCTAssertEqual(AWSUsageFormat.perHour(1.86), "1,86\(nbsp)$/h")
-        XCTAssertEqual(AWSUsageFormat.perHour(5.8), "5,80\(nbsp)$/h")
-        XCTAssertEqual(AWSUsageFormat.perHour(nil), "–\(nbsp)$/h")
+        XCTAssertEqual(CloudUsageFormat.perHour(0.2394), "0,2394\(nbsp)$/h")
+        XCTAssertEqual(CloudUsageFormat.perHour(1.86), "1,86\(nbsp)$/h")
+        XCTAssertEqual(CloudUsageFormat.perHour(5.8), "5,80\(nbsp)$/h")
+        XCTAssertEqual(CloudUsageFormat.perHour(nil), "–\(nbsp)$/h")
     }
 
     func testPercentIsWhole() {
-        XCTAssertEqual(AWSUsageFormat.percent(38), "38\(nbsp)%")
-        XCTAssertEqual(AWSUsageFormat.percent(37.6), "38\(nbsp)%")
-        XCTAssertEqual(AWSUsageFormat.percent(112.4), "112\(nbsp)%")
-        XCTAssertEqual(AWSUsageFormat.percent(nil), "–")
+        XCTAssertEqual(CloudUsageFormat.percent(38), "38\(nbsp)%")
+        XCTAssertEqual(CloudUsageFormat.percent(37.6), "38\(nbsp)%")
+        XCTAssertEqual(CloudUsageFormat.percent(112.4), "112\(nbsp)%")
+        XCTAssertEqual(CloudUsageFormat.percent(nil), "–")
     }
 
     func testMenuBarTitle() throws {
-        XCTAssertEqual(AWSUsageFormat.menuBarTitle(try usage()), "38\(nbsp)% · 19,01\(nbsp)$")
-        XCTAssertEqual(AWSUsageFormat.menuBarTitle(nil), "–")
+        XCTAssertEqual(CloudUsageFormat.menuBarTitle(try usage()), "38\(nbsp)% · 19,01\(nbsp)$")
+        XCTAssertEqual(CloudUsageFormat.menuBarTitle(nil), "–")
     }
 
     func testMonthTitle() {
-        XCTAssertEqual(AWSUsageFormat.monthTitle("2026-11"), "November 2026")
-        XCTAssertEqual(AWSUsageFormat.monthTitle("2026-03"), "März 2026")
-        XCTAssertEqual(AWSUsageFormat.monthTitle("kaputt"), "kaputt")
+        XCTAssertEqual(CloudUsageFormat.monthTitle("2026-11"), "November 2026")
+        XCTAssertEqual(CloudUsageFormat.monthTitle("2026-03"), "März 2026")
+        XCTAssertEqual(CloudUsageFormat.monthTitle("kaputt"), "kaputt")
     }
 
     func testTimeSaysTodayYesterdayOrDate() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Berlin"))
-        let now = try XCTUnwrap(AWSUsageCoding.parseInstant("2026-11-01T16:00:00Z"))
-        let today = try XCTUnwrap(AWSUsageCoding.parseInstant("2026-11-01T14:00:00Z"))
-        let yesterday = try XCTUnwrap(AWSUsageCoding.parseInstant("2026-10-31T14:00:00Z"))
-        let earlier = try XCTUnwrap(AWSUsageCoding.parseInstant("2026-10-29T14:00:00Z"))
+        let now = try XCTUnwrap(CloudUsageCoding.parseInstant("2026-11-01T16:00:00Z"))
+        let today = try XCTUnwrap(CloudUsageCoding.parseInstant("2026-11-01T14:00:00Z"))
+        let yesterday = try XCTUnwrap(CloudUsageCoding.parseInstant("2026-10-31T14:00:00Z"))
+        let earlier = try XCTUnwrap(CloudUsageCoding.parseInstant("2026-10-29T14:00:00Z"))
         // Die Uhrzeit selbst schreibt Foundation in der Zone des Geräts - geprüft
         // wird nur, was davor steht.
-        XCTAssertFalse(AWSUsageFormat.time(today, now: now, calendar: calendar).contains("gestern"))
-        XCTAssertTrue(AWSUsageFormat.time(yesterday, now: now, calendar: calendar).hasPrefix("gestern "))
-        XCTAssertTrue(AWSUsageFormat.time(earlier, now: now, calendar: calendar).hasPrefix("29.10. "))
+        XCTAssertFalse(CloudUsageFormat.time(today, now: now, calendar: calendar).contains("gestern"))
+        XCTAssertTrue(CloudUsageFormat.time(yesterday, now: now, calendar: calendar).hasPrefix("gestern "))
+        XCTAssertTrue(CloudUsageFormat.time(earlier, now: now, calendar: calendar).hasPrefix("29.10. "))
     }
 
     func testRuntime() {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
-        XCTAssertEqual(AWSUsageFormat.runtime(from: start, to: start.addingTimeInterval(35 * 60)), "35\(nbsp)min")
-        XCTAssertEqual(AWSUsageFormat.runtime(from: start, to: start.addingTimeInterval(123 * 60)), "2:03\(nbsp)h")
-        XCTAssertEqual(AWSUsageFormat.runtime(from: start, to: start.addingTimeInterval(76 * 3600)),
+        XCTAssertEqual(CloudUsageFormat.runtime(from: start, to: start.addingTimeInterval(35 * 60)), "35\(nbsp)min")
+        XCTAssertEqual(CloudUsageFormat.runtime(from: start, to: start.addingTimeInterval(123 * 60)), "2:03\(nbsp)h")
+        XCTAssertEqual(CloudUsageFormat.runtime(from: start, to: start.addingTimeInterval(76 * 3600)),
                        "3\(nbsp)T 4\(nbsp)h")
     }
 
     func testBudgetInput() {
-        XCTAssertEqual(AWSUsageFormat.parseLimit("60"), 60)
-        XCTAssertEqual(AWSUsageFormat.parseLimit("60,5"), 60.5)
-        XCTAssertEqual(AWSUsageFormat.parseLimit("60.50"), 60.5)
-        XCTAssertEqual(AWSUsageFormat.parseLimit(" 75 $ "), 75)
-        XCTAssertEqual(AWSUsageFormat.parseLimit("1.250,50"), 1250.5)
-        XCTAssertNil(AWSUsageFormat.parseLimit("0"))
-        XCTAssertNil(AWSUsageFormat.parseLimit("-5"))
-        XCTAssertNil(AWSUsageFormat.parseLimit("20000"), "mehr als 10.000 nimmt der Dienst nicht")
-        XCTAssertNil(AWSUsageFormat.parseLimit("viel"))
-        XCTAssertEqual(AWSUsageFormat.limitInput(1250), "1250", "ohne Tausenderpunkt, sonst läse es 1,25")
-        XCTAssertEqual(AWSUsageFormat.limitInput(62.5), "62,5")
-        XCTAssertEqual(AWSUsageFormat.parseLimit(AWSUsageFormat.limitInput(62.5)), 62.5)
+        XCTAssertEqual(CloudUsageFormat.parseLimit("60"), 60)
+        XCTAssertEqual(CloudUsageFormat.parseLimit("60,5"), 60.5)
+        XCTAssertEqual(CloudUsageFormat.parseLimit("60.50"), 60.5)
+        XCTAssertEqual(CloudUsageFormat.parseLimit(" 75 $ "), 75)
+        XCTAssertEqual(CloudUsageFormat.parseLimit("1.250,50"), 1250.5)
+        XCTAssertNil(CloudUsageFormat.parseLimit("0"))
+        XCTAssertNil(CloudUsageFormat.parseLimit("-5"))
+        XCTAssertNil(CloudUsageFormat.parseLimit("20000"), "mehr als 10.000 nimmt der Dienst nicht")
+        XCTAssertNil(CloudUsageFormat.parseLimit("viel"))
+        XCTAssertEqual(CloudUsageFormat.limitInput(1250), "1250", "ohne Tausenderpunkt, sonst läse es 1,25")
+        XCTAssertEqual(CloudUsageFormat.limitInput(62.5), "62,5")
+        XCTAssertEqual(CloudUsageFormat.parseLimit(CloudUsageFormat.limitInput(62.5)), 62.5)
     }
 
     // MARK: - Balken
@@ -166,7 +167,7 @@ final class AWSUsageTests: XCTestCase {
     func testOverBudgetFillsTheBarAndNoMore() throws {
         let json = String(decoding: Self.example, as: UTF8.self)
             .replacingOccurrences(of: "\"limit\": 50.0", with: "\"limit\": 10.0")
-        let usage = try AWSUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
+        let usage = try CloudUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
         let segments = usage.barSegments()
         XCTAssertEqual(segments.map(\.fraction).reduce(0, +), 1, accuracy: 0.000_1)
         XCTAssertEqual(segments.first?.key, "llm", "von hinten gekappt - die Reihenfolge bleibt")
@@ -206,10 +207,10 @@ final class AWSUsageTests: XCTestCase {
           }
         }
         """)
-        return try AWSUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
+        return try CloudUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
     }
 
-    private let afterCheck = AWSUsageCoding.parseInstant("2026-11-02T14:33:00Z")!
+    private let afterCheck = CloudUsageCoding.parseInstant("2026-11-02T14:33:00Z")!
 
     func testWithoutSpotTheUsageStillReads() throws {
         XCTAssertNil(try usage().spot, "ein älterer Dienst kennt das Feld nicht")
@@ -226,13 +227,13 @@ final class AWSUsageTests: XCTestCase {
     }
 
     func testSpotCountAndZones() throws {
-        XCTAssertEqual(AWSUsageFormat.spotCount(0, max: 8), "0\(nbsp)frei")
-        XCTAssertEqual(AWSUsageFormat.spotCount(4, max: 8), "≈\(nbsp)4\(nbsp)frei")
-        XCTAssertEqual(AWSUsageFormat.spotCount(8, max: 8), "8+\(nbsp)frei")
+        XCTAssertEqual(CloudUsageFormat.spotCount(0, max: 8), "0\(nbsp)frei")
+        XCTAssertEqual(CloudUsageFormat.spotCount(4, max: 8), "≈\(nbsp)4\(nbsp)frei")
+        XCTAssertEqual(CloudUsageFormat.spotCount(8, max: 8), "8+\(nbsp)frei")
         let zones = try XCTUnwrap(try usageWithSpot().spot).types[0].zones
-        XCTAssertEqual(AWSUsageFormat.spotZones(zones), "2a\(nbsp)9/10 · 2c\(nbsp)7/10")
-        XCTAssertEqual(AWSUsageFormat.spotZones([]), "–")
-        XCTAssertEqual(AWSUsageFormat.regionName("eu-west-2"), "London")
+        XCTAssertEqual(CloudUsageFormat.spotZones(zones), "2a\(nbsp)9/10 · 2c\(nbsp)7/10")
+        XCTAssertEqual(CloudUsageFormat.spotZones([]), "–")
+        XCTAssertEqual(CloudUsageFormat.regionName("eu-west-2"), "London")
     }
 
     func testSpotAlertWhileTheLlmRunsOnDemand() throws {
@@ -262,7 +263,7 @@ final class AWSUsageTests: XCTestCase {
         XCTAssertEqual(usage.spent, 19.01)
         let request = try XCTUnwrap(StubProtocol.lastRequest)
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer geheim")
-        XCTAssertEqual(request.url?.absoluteString, "https://example.invalid/aws-usage/api/usage")
+        XCTAssertEqual(request.url?.absoluteString, "https://example.invalid/cloud-usage/api/usage")
     }
 
     func testNoAccessIsAnAccessProblem() async {
@@ -271,7 +272,7 @@ final class AWSUsageTests: XCTestCase {
             _ = try await client().usage()
             XCTFail("401 darf nicht als Stand durchgehen")
         } catch {
-            XCTAssertEqual(error as? AWSUsageError, .notAuthorised)
+            XCTAssertEqual(error as? CloudUsageError, .notAuthorised)
         }
     }
 
@@ -281,8 +282,17 @@ final class AWSUsageTests: XCTestCase {
             _ = try await client().usage()
             XCTFail("503 ist kein Stand")
         } catch {
-            XCTAssertEqual(error as? AWSUsageError, .unavailable("Noch kein Abruf bei AWS."))
+            XCTAssertEqual(error as? CloudUsageError, .unavailable("Noch kein Abruf bei AWS."))
         }
+    }
+
+    /// Beide Kopien der Adresse (Vault: `Backend.cloud`, Mac: `CloudUsageEndpoint`)
+    /// zeigen auf den umbenannten Dienst (02.11.).
+    func testBothAddressesPointToCloudUsage() {
+        XCTAssertEqual(CloudUsageEndpoint.url.absoluteString, "https://fherrmann.com/cloud-usage")
+        XCTAssertEqual(Backend.cloud.url, CloudUsageEndpoint.url)
+        XCTAssertEqual(Backend.cloud.title, "Cloud")
+        XCTAssertEqual(Backend.cloud.systemImage, "cloud")
     }
 
     func testBudgetIsAPutWithTheLimit() async throws {
@@ -290,62 +300,17 @@ final class AWSUsageTests: XCTestCase {
         _ = try await client().setBudget(limit: 60)
         let request = try XCTUnwrap(StubProtocol.lastRequest)
         XCTAssertEqual(request.httpMethod, "PUT")
-        XCTAssertEqual(request.url?.path(), "/aws-usage/api/budget")
+        XCTAssertEqual(request.url?.path(), "/cloud-usage/api/budget")
         let body = try XCTUnwrap(StubProtocol.lastBody)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Double])
         XCTAssertEqual(object["limit"], 60)
     }
 
-    private func client() -> AWSUsageClient {
+    private func client() -> CloudUsageClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubProtocol.self]
-        return AWSUsageClient(baseURL: URL(string: "https://example.invalid/aws-usage")!,
+        return CloudUsageClient(baseURL: URL(string: "https://example.invalid/cloud-usage")!,
                               token: "geheim",
                               session: URLSession(configuration: configuration))
     }
-}
-
-/// Antwortet ohne Netz und merkt sich die Anfrage.
-private final class StubProtocol: URLProtocol, @unchecked Sendable {
-
-    nonisolated(unsafe) static var status = 200
-    nonisolated(unsafe) static var body = Data()
-    nonisolated(unsafe) static var lastRequest: URLRequest?
-    nonisolated(unsafe) static var lastBody: Data?
-
-    static func respond(status: Int, body: Data) {
-        self.status = status
-        self.body = body
-        lastRequest = nil
-        lastBody = nil
-    }
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        Self.lastRequest = request
-        // URLSession reicht den Rumpf als Stream weiter, nicht als `httpBody`.
-        if let stream = request.httpBodyStream {
-            stream.open()
-            var data = Data()
-            var buffer = [UInt8](repeating: 0, count: 4096)
-            while stream.hasBytesAvailable {
-                let count = stream.read(&buffer, maxLength: buffer.count)
-                if count <= 0 { break }
-                data.append(buffer, count: count)
-            }
-            stream.close()
-            Self.lastBody = data
-        } else {
-            Self.lastBody = request.httpBody
-        }
-        let response = HTTPURLResponse(url: request.url!, statusCode: Self.status,
-                                       httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Self.body)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
 }

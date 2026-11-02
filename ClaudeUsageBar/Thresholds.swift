@@ -2,7 +2,7 @@ import Foundation
 
 /// Wann eine Mitteilung fällig ist: bei 50, 75, 90 und 100 % des Wochenlimits,
 /// je Woche jede Stufe einmal (Felix, 02.11.). Springt der Wert über mehrere
-/// Stufen auf einmal (Mac war zu), kommt nur die höchste - wie bei der AWSUsageBar.
+/// Stufen auf einmal (Mac war zu), kommt nur die höchste - wie bei der CloudUsageBar.
 struct Thresholds: Equatable, Codable, Sendable {
 
     static let steps = [50, 75, 90, 100]

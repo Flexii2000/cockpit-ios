@@ -78,10 +78,11 @@ export TEST_RUNNER_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}"
 export TEST_RUNNER_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}"
 # Sport gegen einen lokal gestarteten Padel-Dienst.
 export TEST_RUNNER_COCKPIT_URL_PADEL="${COCKPIT_URL_PADEL:-}"
-# Vault: der AWS-Tab gegen einen lokalen Dienst oder Schein-Server. Der Budget-Test
-# nur mit COCKPIT_AWS_STUB=1 gegen den Schein-Server - er aendert das Budget.
-export TEST_RUNNER_COCKPIT_URL_AWS="${COCKPIT_URL_AWS:-}"
-export TEST_RUNNER_COCKPIT_AWS_STUB="${COCKPIT_AWS_STUB:-}"
+# Vault: der Cloud-Tab (AWS + Verda) gegen einen lokalen Dienst oder Schein-Server.
+# Der Budget-Test nur mit COCKPIT_CLOUD_STUB=1 gegen den Schein-Server - er aendert
+# das Budget.
+export TEST_RUNNER_COCKPIT_URL_CLOUD="${COCKPIT_URL_CLOUD:-}"
+export TEST_RUNNER_COCKPIT_CLOUD_STUB="${COCKPIT_CLOUD_STUB:-}"
 # coHabit: Adresse des lokalen Dienstes, der Token der Person, als die die
 # App laeuft, und der einer zweiten, die im Einladungs-Test einlaedt.
 export TEST_RUNNER_COCKPIT_URL_COHABIT="${COCKPIT_URL_COHABIT:-}"

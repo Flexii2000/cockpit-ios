@@ -6,14 +6,14 @@ bedienen:
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
 | **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker); Uhr-App mit kcal-Komplikation | `com.fherrmann.cockpit` | – |
-| **Vault** | Noten, Finanzen, AWS | `com.fherrmann.vault` | ganze App, Face ID |
+| **Vault** | Noten, Finanzen, Cloud (AWS, Verda) | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | To-Do, Wald, Einkaufsliste, Evaluation | `com.fherrmann.fokus` | Evaluation, Face ID |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
 | **coHabit** | Habits gemeinsam mit Freunden: Heute, Timeline, Statistik, Profil | `com.fherrmann.cohabit` | – |
 | **Sport** | Padel (Autobuchung bei Playtomic), Gym (Weight Tracker); Uhr-App mit Krafttraining und Padel-Matches | `com.fherrmann.sport` | – |
 
-Dazu zwei Mac-Apps für die Menüleiste: **AWSUsageBar** (`com.fherrmann.awsusagebar`) zeigt die
-AWS-Kosten des Monats — dieselben Zahlen wie der AWS-Tab in Vault; **ClaudeUsageBar**
+Dazu zwei Mac-Apps für die Menüleiste: **CloudUsageBar** (`com.fherrmann.cloudusagebar`, bis 02.11.
+AWSUsageBar) zeigt die Cloud-Kosten des Monats — dieselben Zahlen wie der Cloud-Tab in Vault; **ClaudeUsageBar**
 (`com.fherrmann.claudeusagebar`) das Wochenlimit von Claude, mit eigener Anmeldung bei claude.ai.
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
@@ -61,13 +61,16 @@ Gewicht und Schritte kommen **automatisch aus Apple Health**.
 hinter Face ID: beim Verlassen sperrt sie zu, beim Zurückkommen fragt sie
 gleich wieder, und im App-Umschalter liegt eine Decke darüber.
 
-**AWS** — in Vault und in der Menüleiste des Macs („☁ 38 % · 19,01 $“): was
+**Cloud** — in Vault und in der Menüleiste des Macs („☁ 38 % · 19,01 $ · 3,20 €“): was
 der Monat bei AWS bisher kostet, in Prozent des AWS-Budgets, aufgeteilt in LLM,
 Hytale, Hosting und Sonstiges (Steuer anteilig drin). Laufende Instanzen sind live
 hochgerechnet, solange Cost Explorer sie noch nicht führt. Dazu die Prognose, je
 Kategorie die Posten, die Vormonate, und das Budget lässt sich ändern — es ist
-das AWS-Budget selbst. Bei 50, 75, 90 und 100 % meldet sich Vault per Push.
-Gerechnet wird im Dienst `aws-usage` (`../aws-usage`).
+das AWS-Budget selbst. Darunter **Verda** (seit 02.11.) in Euro: Ausgaben im Monat
+am eigenen Verda-Budget des Dienstes, Guthaben, Aufladungen, was läuft (On-Demand
+hervorgehoben), vergessene Volumes, Buckets, Vormonate. Keine Summe über beide — die
+Währungen bleiben getrennt. Bei 50, 75, 90 und 100 % eines der beiden Budgets meldet sich
+Vault per Push. Gerechnet wird im Dienst `cloud-usage` (`../cloud-usage`, bis 02.11. `aws-usage`).
 
 **Noten** — die Abschlussnote nach PO-I23, ECTS-gewichtet mit dreifacher
 Thesis, dazu best/average/worst case, alle Module mit ihren Noten und der
@@ -143,7 +146,7 @@ Challenge-Platz.
 tools/bootstrap.sh                        # erzeugt Cockpit.xcodeproj aus project.yml
 tools/verify.sh                           # alle sechs bauen + Unit-Tests; tools/verify.sh Vault für eine
 tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle sechs
-tools/install-mac.sh AWSUsageBar          # die Menüleisten-App nach /Applications
+tools/install-mac.sh CloudUsageBar        # die Menüleisten-App nach /Applications
 tools/install-mac.sh ClaudeUsageBar       # dito für Claude (eine fremde gleichnamige App nur mit --replace-foreign)
 ```
 

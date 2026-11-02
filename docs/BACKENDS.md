@@ -19,7 +19,7 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | Wald-Sessions | `https://fherrmann.com/habits/api/focus` | Cookie `fh_private` | **nativ** (Fokus, Wald) |
 | To-Do | `https://fherrmann.com/todo` | Cookie `fh_private` | **nativ** (Fokus) — daneben eine Weboberfläche |
 | Padel | `https://fherrmann.com/padel` | Cookie `fh_private` (Felix); Mitspieler mit eigener Seite: Cookie `padel_token` | **nativ** (Sport, seit 23.10.) — daneben die Seite des Dienstes |
-| AWS-Kosten | `https://fherrmann.com/aws-usage` | `Authorization: Bearer <fh_private>` (oder Cookie `fh_private`) | **nativ** (Vault, seit 01.11.) und die Mac-App AWSUsageBar — keine Weboberfläche |
+| Cloud-Kosten (AWS, Verda) | `https://fherrmann.com/cloud-usage` (bis 02.11. `/aws-usage`, leitet noch weiter) | `Authorization: Bearer <fh_private>` (oder Cookie `fh_private`) | **nativ** (Vault, seit 01.11.) und die Mac-App CloudUsageBar — keine Weboberfläche |
 | Claude-Nutzung | `https://claude.ai/api` (fremd, intern) | Sitzung von claude.ai, im Anmeldefenster der App erworben | nur die Mac-App ClaudeUsageBar (seit 02.11.) |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
@@ -1363,18 +1363,20 @@ die Seite des Dienstes mit ihrem eigenen Cookie.
   - Seit 28.10. mittags bekommen Aleks und Torben dieselbe Ansicht für alle Matches, in denen sie mit
     Felix stehen, mit dem, was sie selbst bezahlt haben (`padel` `2b83ee6`). Die App kennt nur Felix.
 
-## AWS-Kosten — `/aws-usage/api` (seit 2026-11-01)
+## Cloud-Kosten — `/cloud-usage/api` (seit 2026-11-01, bis 02.11. `/aws-usage/api`)
 
-Der Dienst `../aws-usage` (Spring Boot, `127.0.0.1:48280`, ohne nginx-Gate). Vertrag:
-`../aws-usage/docs/API.md` — beim Schreiben dieses Abschnitts lag der Dienst nur lokal
-vor, gegen ihn geprüft (`AWSUsageTests` liest das Beispiel des Vertrags). Steht im Code
-des Dienstes etwas anderes, gilt der.
+Der Dienst `../cloud-usage` (Spring Boot, `127.0.0.1:48280`, ohne nginx-Gate; bis 02.11.
+`aws-usage`, nginx leitet `/aws-usage/…` für alte Apps noch weiter). Vertrag:
+`../cloud-usage/docs/API.md` — der Verda-Teil entstand parallel zu den Clients, geprüft
+gegen das Beispiel des Vertrags (`CloudUsageTests` ohne, `VerdaUsageTests` mit `verda`).
+Steht im Code des Dienstes etwas anderes, gilt der.
 
 | Methode | Pfad | Antwort |
 |---|---|---|
-| GET | `/api/usage` | `AWSUsage` (unten) — aus dem Zwischenstand des Dienstes, kostet nichts |
-| PUT | `/api/budget` mit `{"limit": 60}` | `AWSUsage` — ändert das **AWS-Budget** selbst (Budgets-API); `400` bei > 10.000 oder ≤ 0, `502`, wenn AWS ablehnt |
-| POST | `/api/devices` mit `{"token": "<hex>"}` | `204` — Vault meldet sich für Pushes an (Topic `com.fherrmann.vault`) |
+| GET | `/api/usage` | `AWSUsage` (unten) samt `verda` — aus dem Zwischenstand des Dienstes, kostet nichts |
+| PUT | `/api/budget` mit `{"limit": 60}` | `AWSUsage` — ändert das **AWS-Budget** selbst (Dollar, Budgets-API); `400` bei > 10.000 oder ≤ 0, `502`, wenn AWS ablehnt |
+| PUT | `/api/verda/budget` mit `{"limit": 60}` | `AWSUsage` — setzt das **Verda-Budget des Dienstes** (Euro; Verda selbst hat keins); `400` bei > 10.000 oder ≤ 0, `409`, solange der Dienst keinen Verda-Zugang hat |
+| POST | `/api/devices` mit `{"token": "<hex>"}` | `204` — Vault meldet sich für Pushes an (Topic `com.fherrmann.vault`), AWS und Verda |
 
 Zugang: nur Felix, `Authorization: Bearer <fh_private>` oder Cookie `fh_private`. Ohne
 `401` mit `{"error": "…"}` (hier also ein **sauberes** 401, anders als bei food). `503`,
@@ -1402,12 +1404,29 @@ letzten Stufe heißt „und mehr“), `pricePerHour` (Spot, **ohne** Steuer), `z
 Anzahl freier Instanzen - `estimate` ist eine Schätzung aus dem Spot Placement Score. Der
 Dienst rechnet jede Minute neu, darum fragt die Mac-App jede Minute.
 
-**Push:** bei 50, 75, 90 und 100 % je Schwelle einmal im Monat; die Nutzlast trägt
-`"tab": "aws"` statt `kind` — `NotificationDelegate` reicht ersatzweise `tab` weiter.
+`verda` (seit 02.11.; `VerdaUsage`, `null` ohne Verda-Zugang beim Dienst und vor der ersten
+gelungenen Abfrage): alle Beträge in **Euro** (wie Verda abrechnet, keine Umrechnung, keine
+Summe mit AWS). `currency` (`EUR`), `month`, `balance` (Guthaben jetzt), `spent` (Ausgaben im
+Monat = Summe der Abnahmen des Guthabens; steht in der Menüleiste), `topUps` (Aufladungen im
+Monat), `budget {limit}` (kann `null`), `percent` (`spent / limit × 100`, kann > 100, `null` ohne
+Budget), `running[]` (`id`, `name`, `role`/`phase` aus den Tags von verda-llm, `null` bei fremden
+Instanzen; `type`, `location`, `lifecycle` `spot|on-demand`, `pricePerHour` in Euro, `launchedAt`,
+`estimate` = bisher, je angefangene 10 min), `volumes[]` (`id`, `name`, `sizeGb`, `status` - nur
+Volumes an keiner laufenden Instanz, leer ist der Normalfall), `buckets[]` (`name`, `sizeGb`),
+`months[]` (`month`, `spent`; seit Messbeginn, neuester zuerst), `trackingSince` (Ausgaben davor
+kennt der Dienst nicht), `checkedAt`, `problem`. Verda hat keine Abrechnungs-API - der Dienst
+liest jede Minute das Guthaben. Die Clients lesen `verda` **für sich**: passt ein Feld nicht,
+fällt nur Verda weg, AWS bleibt lesbar (`AWSUsage.init(from:)`). Optional gelesen, obwohl der
+Vertrag es nicht ausdrücklich sagt: `pricePerHour`, `launchedAt`, `trackingSince`, `checkedAt`.
+
+**Push:** bei 50, 75, 90 und 100 % je Budget (AWS und Verda) je Schwelle einmal im Monat; die
+Nutzlast trägt `"tab": "cloud"` (bis 02.11. `"aws"` - Vault nimmt beides) statt `kind` —
+`NotificationDelegate` reicht ersatzweise `tab` weiter. Verda-Titel „Verda: 50 % vom Budget“.
 
 ⚠️ **Ein lokal gestarteter Dienst spricht mit dem echten AWS.** Ein `PUT /api/budget`
-dagegen ändert das echte Budget — der UI-Test dafür läuft nur mit `COCKPIT_AWS_STUB=1`
-gegen einen Schein-Server.
+dagegen ändert das echte Budget — der UI-Test dafür läuft nur mit `COCKPIT_CLOUD_STUB=1`
+gegen einen Schein-Server. Ein `PUT /api/verda/budget` gegen den echten Dienst setzt Felix'
+echtes Verda-Budget (und damit die Push-Schwellen).
 
 ## Claude-Nutzung — `claude.ai/api` (seit 2026-11-02, nur ClaudeUsageBar)
 

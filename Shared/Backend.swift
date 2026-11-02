@@ -17,10 +17,11 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
     case cohabit
     /// Die Padel-Autobuchung (Sport, 23.10.) - Felix mit dem Privat-Cookie.
     case padel
-    /// AWS-Kosten (Vault, 01.11.) - Felix mit dem Privat-Token als Bearer. Die
-    /// Menueleisten-App kennt `Backend` nicht und haelt dieselbe Adresse in
-    /// `AWSUsageEndpoint`.
-    case aws
+    /// Cloud-Kosten, AWS und Verda (Vault, seit 01.11.; bis 02.11. `aws` unter
+    /// `/aws-usage`) - Felix mit dem Privat-Token als Bearer. Die Menueleisten-App
+    /// kennt `Backend` nicht und haelt dieselbe Adresse in `CloudUsageEndpoint`.
+    /// Umbiegen per `COCKPIT_URL_CLOUD`.
+    case cloud
 
     var id: String { rawValue }
 
@@ -53,7 +54,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         // (fherrmann.com/cohabit/); die Pfade der App beginnen danach.
         case .cohabit: URL(string: "https://fherrmann.com/cohabit/api")!
         case .padel:   URL(string: "https://fherrmann.com/padel")!
-        case .aws:     URL(string: "https://fherrmann.com/aws-usage")!
+        case .cloud:   URL(string: "https://fherrmann.com/cloud-usage")!
         }
     }
 
@@ -68,7 +69,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .shopping: "Einkaufsliste"
         case .cohabit: "coHabit"
         case .padel:   "Padel"
-        case .aws:     "AWS"
+        case .cloud:   "Cloud"
         }
     }
 
@@ -83,7 +84,7 @@ enum Backend: String, CaseIterable, Identifiable, Sendable {
         case .shopping: "cart"
         case .cohabit: "person.2"
         case .padel:   "figure.tennis"
-        case .aws:     "cloud"
+        case .cloud:   "cloud"
         }
     }
 }

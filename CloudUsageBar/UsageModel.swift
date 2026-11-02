@@ -16,6 +16,7 @@ final class UsageModel {
     private(set) var isAccessProblem = false
     private(set) var isLoading = false
     private(set) var isSaving = false
+    private(set) var isSavingVerda = false
     /// `nil`, solange der Schlüsselbund noch nicht gelesen ist.
     private(set) var hasToken: Bool?
     private(set) var lastFetch: Date?
@@ -59,7 +60,7 @@ final class UsageModel {
             lastFetch = Date()
             notifySpotIfDue(fresh)
         } catch {
-            isAccessProblem = (error as? AWSUsageError) == .notAuthorised
+            isAccessProblem = (error as? CloudUsageError) == .notAuthorised
             self.error = error.localizedDescription
         }
     }
@@ -73,14 +74,27 @@ final class UsageModel {
         await refresh()
     }
 
-    /// - Returns: ob AWS das neue Budget angenommen hat.
+    /// - Returns: ob AWS das neue Budget (Dollar) angenommen hat.
     @discardableResult
     func setBudget(_ limit: Double) async -> Bool {
         guard let token else { return false }
         isSaving = true
         defer { isSaving = false }
+        return await apply { try await self.client(token).setBudget(limit: limit) }
+    }
+
+    /// - Returns: ob der Dienst das neue Verda-Budget (Euro) angenommen hat.
+    @discardableResult
+    func setVerdaBudget(_ limit: Double) async -> Bool {
+        guard let token else { return false }
+        isSavingVerda = true
+        defer { isSavingVerda = false }
+        return await apply { try await self.client(token).setVerdaBudget(limit: limit) }
+    }
+
+    private func apply(_ put: () async throws -> (usage: AWSUsage, data: Data)) async -> Bool {
         do {
-            let (fresh, _) = try await client(token).setBudget(limit: limit)
+            let (fresh, _) = try await put()
             usage = fresh
             error = nil
             lastFetch = Date()
@@ -91,8 +105,8 @@ final class UsageModel {
         }
     }
 
-    private func client(_ token: String) -> AWSUsageClient {
-        AWSUsageClient(baseURL: AWSUsageEndpoint.url, token: token)
+    private func client(_ token: String) -> CloudUsageClient {
+        CloudUsageClient(baseURL: CloudUsageEndpoint.url, token: token)
     }
 
     // MARK: - Spot frei
@@ -102,7 +116,7 @@ final class UsageModel {
     /// Einmal je On-Demand-Instanz (Felix, 02.11.); gemerkt über einen Neustart hinweg.
     private func notifySpotIfDue(_ usage: AWSUsage) {
         #if DEBUG
-        if ProcessInfo.processInfo.environment["COCKPIT_AWS_SNAPSHOT"] != nil { return }
+        if ProcessInfo.processInfo.environment["COCKPIT_CLOUD_SNAPSHOT"] != nil { return }
         #endif
         let defaults = UserDefaults.standard
         let sent = defaults.stringArray(forKey: Self.spotSentKey) ?? []

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Baut alle sechs Apps fuer den Simulator und laesst die Unit-Tests laufen -
 # dazu die Uhr-Apps von Healthy (HealthyWatch, seit 14.10.) und Sport (SportWatch, seit 23.10.)
-# und die Mac-Apps AWSUsageBar (seit 01.11.) und ClaudeUsageBar (seit 02.11., mit Unit-Tests).
+# und die Mac-Apps CloudUsageBar (seit 01.11., bis 02.11. AWSUsageBar) und ClaudeUsageBar
+# (seit 02.11., mit Unit-Tests).
 # Das ist der einzige gueltige Beleg dafuer, dass etwas funktioniert -
 # "sieht richtig aus" zaehlt nicht (siehe CLAUDE.md).
 #
@@ -26,7 +27,7 @@ echo "Simulator: $SIM"
 DEST="platform=iOS Simulator,name=$SIM"
 pretty() { command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat; }
 
-APPS="${1:-Healthy HealthyWatch Vault Fokus Einkaufsliste coHabit Sport SportWatch AWSUsageBar ClaudeUsageBar}"
+APPS="${1:-Healthy HealthyWatch Vault Fokus Einkaufsliste coHabit Sport SportWatch CloudUsageBar ClaudeUsageBar}"
 for APP in $APPS; do
     echo "== $APP =="
     if [ "$APP" = "Healthy" ]; then
@@ -40,9 +41,10 @@ for APP in $APPS; do
         # xcodebuild -downloadPlatform watchOS
         xcodebuild build -project Cockpit.xcodeproj -scheme "$APP" \
             -destination 'generic/platform=watchOS Simulator' | pretty
-    elif [ "$APP" = "AWSUsageBar" ]; then
-        # Die Menueleisten-App fuer den Mac - kein Simulator, der Mac selbst.
-        xcodebuild build -project Cockpit.xcodeproj -scheme AWSUsageBar \
+    elif [ "$APP" = "CloudUsageBar" ]; then
+        # Die Menueleisten-App fuer den Mac - kein Simulator, der Mac selbst. Ihre
+        # Modelle und Formate pruefen die VaultTests (CloudUsageShared).
+        xcodebuild build -project Cockpit.xcodeproj -scheme CloudUsageBar \
             -destination 'platform=macOS' | pretty
     elif [ "$APP" = "ClaudeUsageBar" ]; then
         # Mac-App mit eigenen Unit-Tests (ohne Wirt: Antwort von claude.ai,
@@ -50,7 +52,7 @@ for APP in $APPS; do
         xcodebuild test -project Cockpit.xcodeproj -scheme ClaudeUsageBar \
             -destination 'platform=macOS' | pretty
     elif [ "$APP" = "Vault" ]; then
-        # Der AWS-Tab und AWSUsageShared (01.11.) haben Unit-Tests mit Vault als Wirt.
+        # Der Cloud-Tab und CloudUsageShared (seit 01.11.) haben Unit-Tests mit Vault als Wirt.
         xcodebuild test -project Cockpit.xcodeproj -scheme Vault \
             -only-testing:VaultTests -destination "$DEST" | pretty
     elif [ "$APP" = "Fokus" ]; then

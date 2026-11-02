@@ -3,15 +3,58 @@ import SwiftUI
 
 /// Das Ausklappfenster unter der Wolke - aufgebaut wie die Claude Usage Bar:
 /// oben die Prozentzahl mit Balken, darunter die Teile, unten Stand und Knöpfe.
+/// Zwei Abschnitte untereinander: AWS (Dollar), darunter Verda (Euro, seit 02.11.) -
+/// ohne gemeinsame Summe, die Währungen bleiben getrennt (Felix).
 struct PopoverView: View {
 
     let model: UsageModel
+    /// `false` nur fuer `Snapshot`: `ImageRenderer` zeichnet keine ScrollView (AppKit).
+    var scrolls = true
 
-    @State private var editingBudget = false
-    @State private var budgetText = ""
     @State private var tokenText = ""
+    /// Hoehe der Abschnitte ueber dem Fuss, gemessen - danach richtet sich die ScrollView.
+    @State private var sectionsHeight: CGFloat = 0
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if scrolls {
+                // Mit Verda ist das Fenster hoeher als ein Laptop-Bildschirm (02.11.:
+                // gut 1.000 pt) - ohne Scrollen laegen Fuss und Verda-Budget unter
+                // der Bildschirmkante. Passt alles, scrollt nichts.
+                ScrollView(.vertical) {
+                    sections
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { sectionsHeight = $0 }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(height: sectionsHeight > 0 ? min(sectionsHeight, maxSectionsHeight) : nil)
+            } else {
+                sections
+            }
+            Toggle("Beim Anmelden starten", isOn: Binding(
+                get: { model.launchesAtLogin },
+                set: { model.setLaunchesAtLogin($0) }))
+                .toggleStyle(.checkbox)
+                .font(.callout)
+            Divider()
+            footer
+        }
+        .padding(14)
+        .frame(width: 340)
+        .onAppear {
+            model.readLaunchAtLogin()
+            Task { await model.refresh(ifOlderThan: 30) }
+        }
+    }
+
+    /// Bildschirm unter der Menueleiste, abzueglich Fuss (Schalter, Stand, Knoepfe)
+    /// und Rand - so bleiben die Knoepfe immer erreichbar.
+    private var maxSectionsHeight: CGFloat {
+        let screen = NSScreen.main?.visibleFrame.height ?? 800
+        return max(320, screen - 220)
+    }
+
+    /// Alles ueber dem Fuss: AWS, darunter Verda.
+    private var sections: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
             if model.hasToken == false || model.isAccessProblem {
@@ -30,11 +73,18 @@ struct PopoverView: View {
                     spotSection(spot)
                 }
                 Divider()
-                budgetRow(usage)
+                BudgetRow(value: usage.budget?.limit, unit: "$", placeholder: "Dollar",
+                          isSaving: model.isSaving) { limit in
+                    Task { await model.setBudget(limit) }
+                }
                 if let problem = usage.problem {
                     Label(problem, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(.orange)
+                }
+                if let verda = usage.verda {
+                    Divider()
+                    VerdaSection(verda: verda, model: model)
                 }
             } else if model.isLoading {
                 ProgressView()
@@ -46,19 +96,6 @@ struct PopoverView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
-            Toggle("Beim Anmelden starten", isOn: Binding(
-                get: { model.launchesAtLogin },
-                set: { model.setLaunchesAtLogin($0) }))
-                .toggleStyle(.checkbox)
-                .font(.callout)
-            Divider()
-            footer
-        }
-        .padding(14)
-        .frame(width: 340)
-        .onAppear {
-            model.readLaunchAtLogin()
-            Task { await model.refresh(ifOlderThan: 30) }
         }
     }
 
@@ -70,7 +107,7 @@ struct PopoverView: View {
                 .font(.headline)
             Spacer()
             if let month = model.usage?.month {
-                Text(AWSUsageFormat.monthTitle(month))
+                Text(CloudUsageFormat.monthTitle(month))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -103,16 +140,16 @@ struct PopoverView: View {
     private func budget(_ usage: AWSUsage) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text(AWSUsageFormat.percent(usage.percent))
+                Text(CloudUsageFormat.percent(usage.percent))
                     .font(.system(size: 30, weight: .bold))
                     .monospacedDigit()
-                    .foregroundStyle(AWSUsagePalette.percentColor(usage.percent))
+                    .foregroundStyle(CloudUsagePalette.percentColor(usage.percent))
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(spentLine(usage))
                         .font(.callout.weight(.medium))
                         .monospacedDigit()
-                    Text("Prognose \(usage.forecast.map(AWSUsageFormat.dollars) ?? "–")")
+                    Text("Prognose \(usage.forecast.map(CloudUsageFormat.dollars) ?? "–")")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
@@ -120,9 +157,9 @@ struct PopoverView: View {
             }
             AWSBudgetBar(usage: usage, height: 10)
             HStack {
-                Text("Abgerechnet \(AWSUsageFormat.dollars(usage.billed))")
+                Text("Abgerechnet \(CloudUsageFormat.dollars(usage.billed))")
                 Spacer()
-                Text("Live \(AWSUsageFormat.dollars(usage.live))")
+                Text("Live \(CloudUsageFormat.dollars(usage.live))")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -131,8 +168,8 @@ struct PopoverView: View {
     }
 
     private func spentLine(_ usage: AWSUsage) -> String {
-        guard let limit = usage.budget?.limit else { return AWSUsageFormat.dollars(usage.spent) }
-        return "\(AWSUsageFormat.dollars(usage.spent)) von \(AWSUsageFormat.limit(limit))"
+        guard let limit = usage.budget?.limit else { return CloudUsageFormat.dollars(usage.spent) }
+        return "\(CloudUsageFormat.dollars(usage.spent)) von \(CloudUsageFormat.limit(limit))"
     }
 
     // MARK: - Kategorien
@@ -147,11 +184,11 @@ struct PopoverView: View {
                             .font(.callout)
                         Spacer()
                         if category.live > 0 {
-                            Text("+\(AWSUsageFormat.dollars(category.live)) live")
+                            Text("+\(CloudUsageFormat.dollars(category.live)) live")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        Text(AWSUsageFormat.dollars(category.amount))
+                        Text(CloudUsageFormat.dollars(category.amount))
                             .font(.callout)
                     }
                     .monospacedDigit()
@@ -177,18 +214,18 @@ struct PopoverView: View {
                         HStack(spacing: 3) {
                             Text(instance.type)
                             Text("·")
-                            Text(AWSUsageFormat.lifecycle(instance))
+                            Text(CloudUsageFormat.lifecycle(instance))
                                 .foregroundStyle(instance.isSpot ? Color.secondary : Color.orange)
                             Text("·")
-                            Text(AWSUsageFormat.perHour(instance.pricePerHour))
+                            Text(CloudUsageFormat.perHour(instance.pricePerHour))
                             Text("·")
-                            Text(AWSUsageFormat.runtime(from: instance.launchedAt))
+                            Text(CloudUsageFormat.runtime(from: instance.launchedAt))
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Text("≈ \(AWSUsageFormat.dollars(instance.estimate))")
+                    Text("≈ \(CloudUsageFormat.dollars(instance.estimate))")
                         .font(.callout)
                 }
                 .monospacedDigit()
@@ -203,7 +240,7 @@ struct PopoverView: View {
     private func spotSection(_ spot: AWSSpot) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text("Spot · \(AWSUsageFormat.regionName(spot.region))")
+                Text("Spot · \(CloudUsageFormat.regionName(spot.region))")
                 Spacer()
                 if let quota = spot.quotaVcpus {
                     Text("Quota \(quota) vCPU")
@@ -223,14 +260,14 @@ struct PopoverView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text(AWSUsageFormat.spotCount(type.estimate, max: spot.maxCount))
+                        Text(CloudUsageFormat.spotCount(type.estimate, max: spot.maxCount))
                             .font(.callout.weight(.medium))
                             .foregroundStyle(type.estimate > 0 && type.isLaunchable ? Color.green : Color.secondary)
                     }
                     HStack {
-                        Text(AWSUsageFormat.spotZones(type.zones))
+                        Text(CloudUsageFormat.spotZones(type.zones))
                         Spacer()
-                        Text(AWSUsageFormat.perHour(type.pricePerHour))
+                        Text(CloudUsageFormat.perHour(type.pricePerHour))
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -244,54 +281,6 @@ struct PopoverView: View {
                     .foregroundStyle(.orange)
             }
         }
-    }
-
-    // MARK: - Budget ändern
-
-    @ViewBuilder
-    private func budgetRow(_ usage: AWSUsage) -> some View {
-        if editingBudget {
-            HStack(spacing: 6) {
-                Text("Budget")
-                    .font(.callout)
-                TextField("Dollar", text: $budgetText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 80)
-                    .onSubmit(saveBudget)
-                Text("$")
-                Spacer()
-                Button("Abbrechen") { editingBudget = false }
-                Button("Speichern", action: saveBudget)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(AWSUsageFormat.parseLimit(budgetText) == nil || model.isSaving)
-            }
-        } else {
-            HStack(spacing: 6) {
-                Text("Budget")
-                    .font(.callout)
-                Spacer()
-                if model.isSaving {
-                    ProgressView().controlSize(.small)
-                }
-                Text(usage.budget.map { AWSUsageFormat.limit($0.limit) } ?? "–")
-                    .font(.callout)
-                    .monospacedDigit()
-                Button {
-                    budgetText = usage.budget.map { AWSUsageFormat.limitInput($0.limit) } ?? ""
-                    editingBudget = true
-                } label: {
-                    Image(systemName: "pencil")
-                }
-                .buttonStyle(.borderless)
-                .help("Budget ändern")
-            }
-        }
-    }
-
-    private func saveBudget() {
-        guard let limit = AWSUsageFormat.parseLimit(budgetText) else { return }
-        editingBudget = false
-        Task { await model.setBudget(limit) }
     }
 
     // MARK: - Fuß
@@ -316,10 +305,75 @@ struct PopoverView: View {
     }
 
     private func statusLine(_ usage: AWSUsage) -> String {
-        let billed = usage.billedAt.map { AWSUsageFormat.time($0) } ?? "–"
-        let live = usage.liveAt.map { AWSUsageFormat.time($0) } ?? "–"
-        let line = "Cost Explorer \(billed) · Instanzen \(live)"
-        guard let spot = usage.spot else { return line }
-        return line + " · Spot \(spot.checkedAt.map { AWSUsageFormat.time($0) } ?? "–")"
+        let billed = usage.billedAt.map { CloudUsageFormat.time($0) } ?? "–"
+        let live = usage.liveAt.map { CloudUsageFormat.time($0) } ?? "–"
+        var line = "Cost Explorer \(billed) · Instanzen \(live)"
+        if let spot = usage.spot {
+            line += " · Spot \(spot.checkedAt.map { CloudUsageFormat.time($0) } ?? "–")"
+        }
+        if let verda = usage.verda {
+            line += " · Verda \(verda.checkedAt.map { CloudUsageFormat.time($0) } ?? "–")"
+        }
+        return line
+    }
+}
+
+/// Budget ansehen und ändern - für AWS in Dollar (`PUT api/budget`, das echte
+/// AWS-Budget), für Verda in Euro (`PUT api/verda/budget`, das des Dienstes).
+struct BudgetRow: View {
+
+    /// `nil`, wenn keins gesetzt ist.
+    let value: Double?
+    let unit: String
+    let placeholder: String
+    let isSaving: Bool
+    let save: (Double) -> Void
+
+    @State private var editing = false
+    @State private var text = ""
+
+    var body: some View {
+        if editing {
+            HStack(spacing: 6) {
+                Text("Budget")
+                    .font(.callout)
+                TextField(placeholder, text: $text)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 80)
+                    .onSubmit(commit)
+                Text(unit)
+                Spacer()
+                Button("Abbrechen") { editing = false }
+                Button("Speichern", action: commit)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(CloudUsageFormat.parseLimit(text) == nil || isSaving)
+            }
+        } else {
+            HStack(spacing: 6) {
+                Text("Budget")
+                    .font(.callout)
+                Spacer()
+                if isSaving {
+                    ProgressView().controlSize(.small)
+                }
+                Text(value.map { CloudUsageFormat.limit($0, unit: unit) } ?? "–")
+                    .font(.callout)
+                    .monospacedDigit()
+                Button {
+                    text = value.map(CloudUsageFormat.limitInput) ?? ""
+                    editing = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                .buttonStyle(.borderless)
+                .help("Budget ändern")
+            }
+        }
+    }
+
+    private func commit() {
+        guard let limit = CloudUsageFormat.parseLimit(text) else { return }
+        editing = false
+        save(limit)
     }
 }

@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Die Zeile in der Menüleiste als Bild: Strahlen-Zeichen und „45 %“.
 ///
-/// Als Bild statt als HStack, aus demselben Grund wie in der AWSUsageBar:
+/// Als Bild statt als HStack, aus demselben Grund wie in der CloudUsageBar:
 /// `MenuBarExtra` zeigt von einem zusammengesetzten Label je nach macOS-Fassung
 /// nur das Symbol. Ein Vorlagenbild (`isTemplate`) färbt macOS selbst.
 @MainActor

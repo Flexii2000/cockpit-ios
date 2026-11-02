@@ -114,27 +114,32 @@ final class VaultUITests: XCTestCase {
         shoot(app, "push-getippt")
     }
 
-    /// Der AWS-Tab von oben bis unten, hell und dunkel, samt aufgeklappter Posten.
+    /// Der Cloud-Tab von oben bis unten, hell und dunkel, samt aufgeklappter Posten -
+    /// erst AWS, darunter Verda, wenn der Dienst es liefert.
     ///
-    /// Nur lesend - gegen den lokal gestarteten Dienst `../aws-usage` oder einen
-    /// Schein-Server (`COCKPIT_URL_AWS`); ohne die Variable ueberspringt er sich.
-    func testAWSTabFromTopToBottom() throws {
-        let app = try startAWS()
+    /// Nur lesend - gegen den lokal gestarteten Dienst `../cloud-usage` oder einen
+    /// Schein-Server (`COCKPIT_URL_CLOUD`); ohne die Variable ueberspringt er sich.
+    func testCloudTabFromTopToBottom() throws {
+        let app = try startCloud()
         for appearance in [XCUIDevice.Appearance.light, .dark] {
             XCUIDevice.shared.appearance = appearance
             let suffix = appearance == .dark ? "dunkel" : "hell"
             sleep(1)
-            shoot(app, "aws-oben-\(suffix)")
+            shoot(app, "cloud-oben-\(suffix)")
             // Eine Kategorie aufklappen - ihre Posten.
             let llm = app.buttons.containing(NSPredicate(format: "label BEGINSWITH 'LLM'")).firstMatch
             if llm.exists, !app.staticTexts["EC2-Rechenzeit"].exists { llm.tap() }
             scrollDown(app, times: 2)
-            shoot(app, "aws-posten-\(suffix)")
+            shoot(app, "cloud-posten-\(suffix)")
             scrollDown(app, times: 3)
-            shoot(app, "aws-laeuft-\(suffix)")
+            shoot(app, "cloud-laeuft-\(suffix)")
             scrollDown(app, times: 4)
-            shoot(app, "aws-vormonate-\(suffix)")
-            scrollUp(app, times: 9)
+            shoot(app, "cloud-vormonate-\(suffix)")
+            scrollDown(app, times: 4)
+            shoot(app, "cloud-verda-\(suffix)")
+            scrollDown(app, times: 4)
+            shoot(app, "cloud-verda-unten-\(suffix)")
+            scrollUp(app, times: 17)
         }
         XCUIDevice.shared.appearance = .light
         XCTAssertTrue(app.staticTexts["Vormonate"].exists || app.staticTexts["Kategorien"].exists,
@@ -144,12 +149,13 @@ final class VaultUITests: XCTestCase {
     /// Budget aendern: Dialog, Betrag, neuer Stand vom Dienst.
     ///
     /// ⚠️ Schickt `PUT /api/budget` - beim echten Dienst aendert das das AWS-Budget.
-    /// Deshalb nur mit `COCKPIT_AWS_STUB=1` gegen den Schein-Server (Budget 50 $,
+    /// Deshalb nur mit `COCKPIT_CLOUD_STUB=1` gegen den Schein-Server (Budget 50 $,
     /// ausgegeben 41,37 $; nach 60 $ stehen dort 69 %).
     func testChangingTheAWSBudget() throws {
-        try XCTSkipIf(ProcessInfo.processInfo.environment["COCKPIT_AWS_STUB"] != "1",
-                      "Nur gegen den Schein-Server (COCKPIT_AWS_STUB=1)")
-        let app = try startAWS()
+        try XCTSkipIf(ProcessInfo.processInfo.environment["COCKPIT_CLOUD_STUB"] != "1",
+                      "Nur gegen den Schein-Server (COCKPIT_CLOUD_STUB=1)")
+        let app = try startCloud()
+        // Der erste Budget-Knopf ist der von AWS - der von Verda steht weiter unten.
         let budget = app.buttons.containing(NSPredicate(format: "label BEGINSWITH 'Budget'")).firstMatch
         XCTAssertTrue(budget.waitForExistence(timeout: 5), "Kein Budget-Knopf")
         budget.tap()
@@ -157,22 +163,22 @@ final class VaultUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5), "Kein Budget-Dialog")
         field.tap()
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) + "60")
-        shoot(app, "aws-budget-dialog")
+        shoot(app, "cloud-budget-dialog")
         app.alerts.buttons["Speichern"].tap()
         let percent = app.staticTexts["69\u{00A0}%"]
         let arrived = percent.waitForExistence(timeout: 10)
-        shoot(app, "aws-budget-60")
+        shoot(app, "cloud-budget-60")
         XCTAssertTrue(arrived, "Neuer Stand nach dem Budget kam nicht")
     }
 
-    /// Startet Vault im AWS-Tab gegen `COCKPIT_URL_AWS` - nie gegen den Server.
-    private func startAWS() throws -> XCUIApplication {
-        let url = ProcessInfo.processInfo.environment["COCKPIT_URL_AWS"] ?? ""
+    /// Startet Vault im Cloud-Tab gegen `COCKPIT_URL_CLOUD` - nie gegen den Server.
+    private func startCloud() throws -> XCUIApplication {
+        let url = ProcessInfo.processInfo.environment["COCKPIT_URL_CLOUD"] ?? ""
         try XCTSkipIf(url.isEmpty || url.contains("fherrmann.com"),
                       "Nur gegen einen lokalen Dienst - siehe tools/run-simulator.sh")
         // Die Noten-Variablen nur, damit das Zugang-Blatt nicht ueber dem Tab aufgeht.
-        let app = start(tab: "aws", extra: [
-            "COCKPIT_URL_AWS": url,
+        let app = start(tab: "cloud", extra: [
+            "COCKPIT_URL_CLOUD": url,
             "COCKPIT_GRADES_TOKEN": "x", "COCKPIT_GRADES_USER": "x", "COCKPIT_GRADES_PASSWORD": "x",
         ])
         XCTAssertTrue(app.staticTexts["Kategorien"].waitForExistence(timeout: 20), "Kein Stand")

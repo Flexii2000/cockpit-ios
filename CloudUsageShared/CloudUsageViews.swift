@@ -3,7 +3,10 @@ import SwiftUI
 /// Farben und Balken, die Vault und die Menüleiste teilen - damit eine Kategorie
 /// auf dem Mac dieselbe Farbe hat wie auf dem iPhone. Nur SwiftUI-Systemfarben:
 /// sie gibt es auf beiden Plattformen und in hell wie dunkel.
-enum AWSUsagePalette {
+enum CloudUsagePalette {
+
+    /// Verda hat keine Kategorien - eine Farbe, die keine der vier AWS-Farben ist.
+    static let verda = Color.teal
 
     static func color(for key: String) -> Color {
         switch AWSCategoryKey(rawValue: key) {
@@ -15,7 +18,7 @@ enum AWSUsagePalette {
     }
 
     /// Die Prozentzahl färbt sich ab 75 % orange, ab 90 % rot - dieselben Stufen,
-    /// bei denen der Dienst Pushes schickt (dazu 50 und 100).
+    /// bei denen der Dienst Pushes schickt (dazu 50 und 100), bei AWS wie bei Verda.
     static func percentColor(_ percent: Double?) -> Color {
         guard let percent else { return .secondary }
         if percent >= 90 { return .red }
@@ -70,18 +73,18 @@ struct AWSBudgetBar: View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
                 ForEach(segments) { segment in
-                    AWSBarPiece(color: AWSUsagePalette.color(for: segment.key), live: segment.live)
+                    AWSBarPiece(color: CloudUsagePalette.color(for: segment.key), live: segment.live)
                         .frame(width: max(0, geometry.size.width * segment.fraction))
                 }
                 Spacer(minLength: 0)
             }
         }
         .frame(height: height)
-        .background(AWSUsagePalette.track)
+        .background(CloudUsagePalette.track)
         .clipShape(Capsule())
         .accessibilityElement()
         .accessibilityLabel("Budget")
-        .accessibilityValue(AWSUsageFormat.percent(usage.percent))
+        .accessibilityValue(CloudUsageFormat.percent(usage.percent))
     }
 }
 
@@ -95,7 +98,7 @@ struct AWSCategoryBar: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let color = AWSUsagePalette.color(for: category.key)
+            let color = CloudUsagePalette.color(for: category.key)
             let whole = scale > 0 ? scale : 1
             let billed = min(category.billed / whole, 1)
             let live = min(category.live / whole, max(0, 1 - billed))
@@ -110,7 +113,7 @@ struct AWSCategoryBar: View {
             }
         }
         .frame(height: height)
-        .background(AWSUsagePalette.track)
+        .background(CloudUsagePalette.track)
         .clipShape(Capsule())
         .accessibilityHidden(true)
     }
@@ -123,7 +126,7 @@ struct AWSCategoryDot: View {
 
     var body: some View {
         Circle()
-            .fill(AWSUsagePalette.color(for: key))
+            .fill(CloudUsagePalette.color(for: key))
             .frame(width: size, height: size)
     }
 }
@@ -142,7 +145,7 @@ struct AWSMonthBar: View {
                 ForEach(month.parts, id: \.key) { part in
                     if part.amount > 0 {
                         Rectangle()
-                            .fill(AWSUsagePalette.color(for: part.key))
+                            .fill(CloudUsagePalette.color(for: part.key))
                             .frame(width: geometry.size.width * min(part.amount / max(scale, 0.000_001), 1))
                     }
                 }
@@ -150,7 +153,7 @@ struct AWSMonthBar: View {
             }
         }
         .frame(height: height)
-        .background(AWSUsagePalette.track)
+        .background(CloudUsagePalette.track)
         .clipShape(Capsule())
         .accessibilityHidden(true)
     }
@@ -167,5 +170,75 @@ extension AWSUsage {
     /// Maßstab der Vormonate: das größere von Budget und teuerstem Monat.
     var monthScale: Double {
         max(budget?.limit ?? 0, months.map(\.total).max() ?? 0, 0.01)
+    }
+}
+
+// MARK: - Verda
+
+/// Der Verda-Balken: Ausgaben im Monat am eigenen Budget, eine Farbe - Verda
+/// kennt keine Kategorien. Ohne Budget leer.
+struct VerdaBudgetBar: View {
+    let verda: VerdaUsage
+    var height: CGFloat = 12
+
+    var body: some View {
+        GeometryReader { geometry in
+            HStack(spacing: 0) {
+                Rectangle()
+                    .fill(CloudUsagePalette.verda)
+                    .frame(width: geometry.size.width * verda.budgetFraction)
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: height)
+        .background(CloudUsagePalette.track)
+        .clipShape(Capsule())
+        .accessibilityElement()
+        .accessibilityLabel("Verda-Budget")
+        .accessibilityValue(CloudUsageFormat.percent(verda.percent))
+    }
+}
+
+/// Ein Verda-Vormonat als dünner Balken.
+struct VerdaMonthBar: View {
+    let month: VerdaMonth
+    /// Was ein voller Balken bedeutet - `VerdaUsage.monthScale`.
+    let scale: Double
+    var height: CGFloat = 5
+
+    var body: some View {
+        GeometryReader { geometry in
+            HStack(spacing: 0) {
+                Rectangle()
+                    .fill(CloudUsagePalette.verda)
+                    .frame(width: geometry.size.width * min(max(month.spent, 0) / max(scale, 0.000_001), 1))
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(height: height)
+        .background(CloudUsagePalette.track)
+        .clipShape(Capsule())
+        .accessibilityHidden(true)
+    }
+}
+
+/// „Spot“ schlicht, „On-Demand“ als orange Marke - bei Verda kostet On-Demand ein
+/// Vielfaches, das soll man in der Zeile nicht überlesen (Felix, 02.11.).
+struct LifecycleBadge: View {
+    let isSpot: Bool
+
+    var body: some View {
+        if isSpot {
+            Text(CloudUsageFormat.lifecycle(isSpot: true))
+        } else {
+            Text(CloudUsageFormat.lifecycle(isSpot: false))
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(Color.orange, in: Capsule())
+                .lineLimit(1)
+                .fixedSize()
+        }
     }
 }

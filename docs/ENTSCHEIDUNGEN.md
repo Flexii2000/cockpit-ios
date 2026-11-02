@@ -3,6 +3,47 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-02 — CloudUsageBar: Verda neben AWS, alles heißt „Cloud“
+Felix nutzt fürs LLM jetzt auch Verda (GPU-Cloud, Helsinki, Prepaid in Euro) und will es neben AWS
+sehen. Der Dienst heißt seitdem `cloud-usage` (vorher `aws-usage`, nginx leitet weiter), die
+Mac-App **CloudUsageBar** (`com.fherrmann.cloudusagebar`), der Vault-Tab **„Cloud“** (Symbol
+weiter die Wolke). Felix' Entscheidungen:
+- **Menüleiste** wie bisher, dahinter Verda im Monat: „38 % · 19,01 $ · 3,20 €“; ohne Verda-Stand
+  genau wie vorher.
+- **Euro, wie abgerechnet** - keine Umrechnung, **keine Summe** über AWS und Verda.
+- **Eigenes Verda-Budget** im Dienst (Verda hat keins), in beiden Apps änderbar wie das von AWS,
+  in Euro (`PUT api/verda/budget`). Die Pushes bei 50/75/90/100 % schickt der Dienst; die Apps
+  zeigen nur Prozent und Balken. **Keine neue Mac-Mitteilung.**
+- **Verda-Abschnitt** in Ausklappfenster und Tab: Monat (Balken, Prozent), Budget, Guthaben,
+  Aufladungen, laufende Instanzen (Typ, Ort, Spot/On-Demand - On-Demand deutlich markiert -, €/h,
+  bisher, Phase), vergessene Volumes (nur wenn es welche gibt, als Warnung), Buckets, Vormonate.
+  Ohne Erklärtexte, alle Zahlen. Die AWS-Abschnitte bleiben, wie sie sind.
+- **Schlüsselbund**: eigener Eintrag der neuen App, aber der der AWSUsageBar und `fh_private`
+  bleiben Rückfall - kein neues Eintippen.
+Entschieden beim Bauen:
+- `AWSUsage` behält seinen Namen (es sind die AWS-Felder), Verda hängt als `verda` daran und wird
+  **für sich gelesen**: passt ein Verda-Feld nicht, fällt nur Verda weg. Verworfen: streng lesen -
+  ein geändertes Feld der neuen Quelle hätte die AWS-Zahlen in beiden Apps mit ausgeblendet.
+  Umbenannt, was beide Clouds betrifft (`CloudUsageClient`, `…Endpoint`, `…Format`, `…Palette`,
+  `CloudUsageShared/`, `Backend.cloud`, `CloudStore`/`CloudTab`/`CloudPush`), Debug-Schalter
+  `COCKPIT_URL_CLOUD`, `COCKPIT_CLOUD_SNAPSHOT`, `COCKPIT_CLOUD_STUB`; `COCKPIT_TAB=aws` geht weiter.
+- Mit Verda ist das Ausklappfenster gut 1.000 pt hoch - höher als ein Laptop-Bildschirm. Die
+  Abschnitte **scrollen**, sobald sie nicht passen; Schalter, Stand und Knöpfe bleiben darunter
+  stehen. Verworfen: Umschalter AWS/Verda (Felix wollte Abschnitte untereinander) und Verda auf
+  dem Mac kürzen (Felix will alle Zahlen).
+- **On-Demand** bei Verda als orange Marke (AWS behält seine orange Schrift); der Preis steht deshalb
+  in der zweiten Zeile, sonst kürzte die Zeile die Marke.
+- Der Token aus dem Eintrag der AWSUsageBar wird beim ersten Lesen in den eigenen **übernommen**
+  (verworfen: jedes Mal fremd lesen - hinge für immer am alten Eintrag). `install-mac.sh
+  CloudUsageBar` beendet und entfernt die AWSUsageBar, wenn sie Felix' Bundle-ID hat (verworfen:
+  stehen lassen - zwei Wolken mit denselben Zahlen); ihren Schlüsselbund-Eintrag lässt es stehen.
+- Vault meldet seine Push-Kennung nach dem Update **einmal neu** an (neuer Merk-Schlüssel), damit
+  der umbenannte Dienst sie sicher hat - die Anmeldung ist idempotent. Pushes mit `"tab": "aws"`
+  öffnen weiter den Tab.
+- „Messung seit“ (`trackingSince`) steht auf dem Mac nur im ersten Monat - davor kennt der Dienst
+  keine Ausgaben, danach ist es ohne Belang; in Vault immer unter „Stand“. Verda-Farbe Türkis
+  (`.teal`), keine der vier AWS-Farben.
+
 ## 2026-11-02 — AWSUsageBar: Spot-Verfügbarkeit fürs LLM
 Felix will sehen, ob das LLM von On-Demand (5,85 $/h) zurück auf Spot (~1,88 $/h) wechseln kann:
 „Count of available spot instances“, jede Minute. AWS gibt keine Anzahl freier Spot-Instanzen

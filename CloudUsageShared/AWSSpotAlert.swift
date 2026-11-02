@@ -1,6 +1,6 @@
 import Foundation
 
-/// Wann die AWSUsageBar „Spot frei“ meldet (Felix, 02.11.): das LLM läuft auf
+/// Wann die CloudUsageBar „Spot frei“ meldet (Felix, 02.11.): das LLM läuft auf
 /// On-Demand, und für denselben Typ ist Spot wieder zu haben - einmal je Instanz.
 /// Hier statt in der Mac-App, damit die Tests (VaultTests) es prüfen können.
 enum AWSSpotAlert {
@@ -21,11 +21,11 @@ enum AWSSpotAlert {
         where instance.category == AWSCategoryKey.llm.rawValue && !instance.isSpot && !sent.contains(instance.id) {
             guard let type = spot.types.first(where: { $0.type == instance.type }),
                   type.estimate > 0, type.isLaunchable else { continue }
-            var body = "\(type.type) · \(AWSUsageFormat.spotCount(type.estimate, max: spot.maxCount))"
+            var body = "\(type.type) · \(CloudUsageFormat.spotCount(type.estimate, max: spot.maxCount))"
             if let price = type.pricePerHour {
-                body += " · \(AWSUsageFormat.perHour(price))"
+                body += " · \(CloudUsageFormat.perHour(price))"
                 if let onDemand = instance.pricePerHour {
-                    body += " statt \(AWSUsageFormat.perHour(onDemand))"
+                    body += " statt \(CloudUsageFormat.perHour(onDemand))"
                 }
             }
             return Alert(instanceID: instance.id, title: "LLM: Spot frei", body: body)

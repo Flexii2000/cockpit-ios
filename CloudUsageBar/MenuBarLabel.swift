@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Die Zeile in der Menüleiste als Bild: Wolke und „38 % · 19,01 $“.
+/// Die Zeile in der Menüleiste als Bild: Wolke und „38 % · 19,01 $ · 3,20 €“.
 ///
 /// Als Bild statt als HStack aus Image und Text: `MenuBarExtra` zeigt von einem
 /// zusammengesetzten Label je nach macOS-Fassung nur das Symbol. Ein
@@ -26,7 +26,7 @@ enum MenuBarLabel {
                             size: NSSize(width: CGFloat(cgImage.width) / scale,
                                          height: CGFloat(cgImage.height) / scale))
         image.isTemplate = true
-        image.accessibilityDescription = "AWS \(title)"
+        image.accessibilityDescription = "Cloud \(title)"
         return image
     }
 }

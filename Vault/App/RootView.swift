@@ -1,13 +1,14 @@
 import SwiftUI
 
 enum TabSelection: Hashable {
-    case grades, finance, aws
+    case grades, finance, cloud
 
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "finance": return .finance
-        case "aws": return .aws
+        // `aws` hiess der Tab bis 02.11. - alte Aufrufe von run-simulator.sh laufen weiter.
+        case "cloud", "aws": return .cloud
         default: break
         }
         #endif
@@ -54,9 +55,9 @@ struct RootView: View {
                         value: TabSelection.finance) {
                         FinanceTab(lock: lock)
                     }
-                    Tab(Backend.aws.title, systemImage: Backend.aws.systemImage,
-                        value: TabSelection.aws) {
-                        AWSTab(lock: lock)
+                    Tab(Backend.cloud.title, systemImage: Backend.cloud.systemImage,
+                        value: TabSelection.cloud) {
+                        CloudTab(lock: lock)
                     }
                 }
             } else {
@@ -70,7 +71,7 @@ struct RootView: View {
             if !access.isGradesConfigured { setup.isPresented = true }
         }
         .sheet(isPresented: $setup.isPresented) {
-            // fh_private fuer den AWS-Tab - meist schon da, weil die Token in der
+            // fh_private fuer den Cloud-Tab - meist schon da, weil die Token in der
             // geteilten Keychain-Gruppe liegen und Healthy ihn eingetragen hat.
             SetupView(sections: [.grades, .privateToken])
         }

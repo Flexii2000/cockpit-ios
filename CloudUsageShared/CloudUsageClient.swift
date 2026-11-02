@@ -1,12 +1,12 @@
 import Foundation
 
-/// Spricht den Dienst `aws-usage` (`fherrmann.com/aws-usage`) - in Vault und in
-/// der Menüleisten-App derselbe Client.
+/// Spricht den Dienst `cloud-usage` (`fherrmann.com/cloud-usage`, bis 02.11.
+/// `aws-usage`) - in Vault und in der Menüleisten-App derselbe Client.
 ///
 /// Mit Bearer statt Cookie: die Mac-App hat keinen `Access`, der Cookies legt,
 /// und der Dienst nimmt beides. Kein `APIClient` aus `Shared/` - den gibt es auf
 /// dem Mac nicht; Offline-Stand und Leiste macht Vault in seinem Store selbst.
-struct AWSUsageClient: Sendable {
+struct CloudUsageClient: Sendable {
 
     let baseURL: URL
     let token: String
@@ -19,13 +19,15 @@ struct AWSUsageClient: Sendable {
         return (try decode(data), data)
     }
 
-    /// Ändert das AWS-Budget; der Dienst antwortet mit dem neuen Stand.
+    /// Ändert das AWS-Budget (Dollar); der Dienst antwortet mit dem neuen Stand.
     func setBudget(limit: Double) async throws -> (usage: AWSUsage, data: Data) {
-        var req = request("PUT", "api/budget")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONEncoder().encode(["limit": limit])
-        let data = try await perform(req)
-        return (try decode(data), data)
+        try await putLimit(limit, to: "api/budget")
+    }
+
+    /// Setzt das Verda-Monatsbudget des Dienstes (Euro); Antwort wie `usage()`.
+    /// `409`, solange der Dienst keinen Verda-Zugang hat.
+    func setVerdaBudget(limit: Double) async throws -> (usage: AWSUsage, data: Data) {
+        try await putLimit(limit, to: "api/verda/budget")
     }
 
     /// Meldet Vault für die Budget-Pushes an (Topic `com.fherrmann.vault`).
@@ -40,6 +42,14 @@ struct AWSUsageClient: Sendable {
     var usageURL: URL { baseURL.appending(path: "api/usage") }
 
     // MARK: - Innereien
+
+    private func putLimit(_ limit: Double, to path: String) async throws -> (usage: AWSUsage, data: Data) {
+        var req = request("PUT", path)
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(["limit": limit])
+        let data = try await perform(req)
+        return (try decode(data), data)
+    }
 
     private func request(_ method: String, _ path: String) -> URLRequest {
         var req = URLRequest(url: baseURL.appending(path: path))
@@ -59,7 +69,7 @@ struct AWSUsageClient: Sendable {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            if AWSUsageError.isOffline(error) { throw AWSUsageError.offline }
+            if CloudUsageError.isOffline(error) { throw CloudUsageError.offline }
             throw error
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -67,19 +77,19 @@ struct AWSUsageClient: Sendable {
         case 200..<300:
             return data
         case 302, 401, 403:
-            throw AWSUsageError.notAuthorised
+            throw CloudUsageError.notAuthorised
         case 503:
-            throw AWSUsageError.unavailable(Self.message(in: data))
+            throw CloudUsageError.unavailable(Self.message(in: data))
         default:
-            throw AWSUsageError.http(status, Self.message(in: data))
+            throw CloudUsageError.http(status, Self.message(in: data))
         }
     }
 
     private func decode(_ data: Data) throws -> AWSUsage {
         do {
-            return try AWSUsageCoding.decoder().decode(AWSUsage.self, from: data)
+            return try CloudUsageCoding.decoder().decode(AWSUsage.self, from: data)
         } catch {
-            throw AWSUsageError.decoding
+            throw CloudUsageError.decoding
         }
     }
 
@@ -97,7 +107,7 @@ struct AWSUsageClient: Sendable {
     }
 }
 
-enum AWSUsageError: LocalizedError, Equatable {
+enum CloudUsageError: LocalizedError, Equatable {
     case notAuthorised
     /// 503: seit dem Start des Dienstes ist noch kein Abruf bei AWS gelungen.
     case unavailable(String?)
@@ -125,17 +135,17 @@ enum AWSUsageError: LocalizedError, Equatable {
 }
 
 /// Wo der Dienst liegt.
-enum AWSUsageEndpoint {
+enum CloudUsageEndpoint {
 
     static var url: URL {
         #if DEBUG
-        // Wie `Backend.url` in den iPhone-Apps: COCKPIT_URL_AWS biegt auf einen
+        // Wie `Backend.url` in den iPhone-Apps: COCKPIT_URL_CLOUD biegt auf einen
         // lokal laufenden Dienst oder Schein-Server um.
-        if let override = ProcessInfo.processInfo.environment["COCKPIT_URL_AWS"],
+        if let override = ProcessInfo.processInfo.environment["COCKPIT_URL_CLOUD"],
            !override.isEmpty, let url = URL(string: override) {
             return url
         }
         #endif
-        return URL(string: "https://fherrmann.com/aws-usage")!
+        return URL(string: "https://fherrmann.com/cloud-usage")!
     }
 }
