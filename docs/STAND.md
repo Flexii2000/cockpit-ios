@@ -15,8 +15,12 @@
 >   signiert mit Sandbox + Netz; Bilder per `CLAUDE_USAGE_SNAPSHOT` hell/dunkel, angemeldet/abgemeldet
 >   (Glas dort flach); `CLAUDE_USAGE_PROBE=1` gegen das echte claude.ai ohne Sitzung → `signedOut` nach
 >   2–3 s (WebKit kommt an Cloudflare vorbei), Schlüsselbund aus der Sandbox schreiben/lesen/löschen.
-> - **Nicht geprüft:** Anmeldung (braucht Felix), Abfrage mit Sitzung, Schlüsselbund-Eintrag,
->   Mitteilungen, `/logout`, Liquid Glass in der echten Menüleiste.
+> - **Installiert 02.11.** (`install-mac.sh ClaudeUsageBar --replace-foreign`, Felix' Freigabe): die
+>   alte Claude Usage Bar (Linkko) beendet und ersetzt; ihren Klartext-Cookie
+>   (`claude_session_cookie` in `~/Library/Preferences/com.claude.usagebar.plist`) gelöscht.
+> - **Nicht geprüft / auf dem Mac prüfen:** Anmeldung (E-Mail + Code; Google im eingebetteten Fenster
+>   vermutlich gesperrt), Abfrage mit Sitzung, Mitteilungs-Erlaubnis, `/logout`, Liquid Glass in der
+>   echten Menüleiste, „Beim Anmelden starten“.
 
 > **AWS-Kosten: Tab in Vault und Mac-App AWSUsageBar (01.11., Felix):** Was der Monat bei AWS
 > kostet, in Prozent des AWS-Budgets, aufgeteilt in LLM, Hytale, Hosting, Sonstiges (Steuer anteilig),
