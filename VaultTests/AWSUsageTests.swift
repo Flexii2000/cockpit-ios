@@ -178,6 +178,82 @@ final class AWSUsageTests: XCTestCase {
         XCTAssertEqual(month.parts[1].amount, 22.79)
     }
 
+    // MARK: - Spot
+
+    /// Das `spot`-Feld aus API.md (seit 02.11.), angehängt ans Beispiel - mit der
+    /// LLM-Instanz auf On-Demand, wie nach einer Rückholung.
+    private func usageWithSpot(estimate: Int = 4, launchable: Bool = true, checkedAt: String = "2026-11-02T14:32:00Z",
+                               lifecycle: String = "on-demand") throws -> AWSUsage {
+        var json = String(decoding: Self.example, as: UTF8.self)
+        json = json.replacingOccurrences(of: "\"lifecycle\": \"spot\"", with: "\"lifecycle\": \"\(lifecycle)\"")
+            .replacingOccurrences(of: "\"pricePerHour\": 1.86,", with: "\"pricePerHour\": 5.85,")
+        json = json.replacingOccurrences(of: "\"problem\": null\n}", with: """
+        "problem": null,
+          "spot": {
+            "region": "eu-west-2", "threshold": 7, "counts": [1, 2, 4, 8], "quotaVcpus": 8,
+            "types": [
+              { "type": "g7e.2xlarge", "vcpus": 8, "launchable": \(launchable), "estimate": \(estimate),
+                "pricePerHour": 1.883,
+                "zones": [
+                  { "zone": "eu-west-2a", "score": 9, "estimate": \(estimate), "pricePerHour": 1.8849 },
+                  { "zone": "eu-west-2c", "score": 7, "estimate": 1, "pricePerHour": 1.883 }
+                ] },
+              { "type": "g7e.12xlarge", "vcpus": 48, "launchable": false, "estimate": 0,
+                "pricePerHour": 4.2069, "zones": [] }
+            ],
+            "checkedAt": "\(checkedAt)",
+            "problem": null
+          }
+        }
+        """)
+        return try AWSUsageCoding.decoder().decode(AWSUsage.self, from: Data(json.utf8))
+    }
+
+    private let afterCheck = AWSUsageCoding.parseInstant("2026-11-02T14:33:00Z")!
+
+    func testWithoutSpotTheUsageStillReads() throws {
+        XCTAssertNil(try usage().spot, "ein älterer Dienst kennt das Feld nicht")
+    }
+
+    func testSpotReads() throws {
+        let spot = try XCTUnwrap(try usageWithSpot().spot)
+        XCTAssertEqual(spot.maxCount, 8)
+        XCTAssertEqual(spot.quotaVcpus, 8)
+        XCTAssertEqual(spot.types.map(\.type), ["g7e.2xlarge", "g7e.12xlarge"])
+        XCTAssertTrue(spot.types[0].isLaunchable)
+        XCTAssertFalse(spot.types[1].isLaunchable)
+        XCTAssertEqual(spot.types[0].zones.map(\.score), [9, 7])
+    }
+
+    func testSpotCountAndZones() throws {
+        XCTAssertEqual(AWSUsageFormat.spotCount(0, max: 8), "0\(nbsp)frei")
+        XCTAssertEqual(AWSUsageFormat.spotCount(4, max: 8), "≈\(nbsp)4\(nbsp)frei")
+        XCTAssertEqual(AWSUsageFormat.spotCount(8, max: 8), "8+\(nbsp)frei")
+        let zones = try XCTUnwrap(try usageWithSpot().spot).types[0].zones
+        XCTAssertEqual(AWSUsageFormat.spotZones(zones), "2a\(nbsp)9/10 · 2c\(nbsp)7/10")
+        XCTAssertEqual(AWSUsageFormat.spotZones([]), "–")
+        XCTAssertEqual(AWSUsageFormat.regionName("eu-west-2"), "London")
+    }
+
+    func testSpotAlertWhileTheLlmRunsOnDemand() throws {
+        let alert = try XCTUnwrap(AWSSpotAlert.due(try usageWithSpot(), sent: [], now: afterCheck))
+        XCTAssertEqual(alert.instanceID, "i-0562fb060733c92b9")
+        XCTAssertEqual(alert.title, "LLM: Spot frei")
+        XCTAssertEqual(alert.body, "g7e.2xlarge · ≈\(nbsp)4\(nbsp)frei · 1,883\(nbsp)$/h statt 5,85\(nbsp)$/h")
+    }
+
+    func testSpotAlertOnlyOnceAndOnlyWhenItHelps() throws {
+        XCTAssertNil(AWSSpotAlert.due(try usageWithSpot(), sent: ["i-0562fb060733c92b9"], now: afterCheck),
+                     "einmal je Instanz")
+        XCTAssertNil(AWSSpotAlert.due(try usageWithSpot(estimate: 0), sent: [], now: afterCheck), "nichts frei")
+        XCTAssertNil(AWSSpotAlert.due(try usageWithSpot(launchable: false), sent: [], now: afterCheck),
+                     "Quota reicht nicht")
+        XCTAssertNil(AWSSpotAlert.due(try usageWithSpot(lifecycle: "spot"), sent: [], now: afterCheck),
+                     "läuft schon auf Spot")
+        XCTAssertNil(AWSSpotAlert.due(try usageWithSpot(checkedAt: "2026-11-02T14:00:00Z"), sent: [], now: afterCheck),
+                     "alte Spot-Zahlen")
+    }
+
     // MARK: - Client
 
     func testTheClientSendsTheTokenAsBearer() async throws {

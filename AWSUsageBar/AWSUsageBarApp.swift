@@ -2,7 +2,8 @@ import SwiftUI
 
 /// Die AWS-Kosten in der Menüleiste - „☁ 38 % · 19,01 $“, darunter das
 /// Ausklappfenster. Dieselben Zahlen wie der AWS-Tab in Vault (Dienst `aws-usage`).
-/// Keine Mitteilungen: die Budget-Pushes gehen nur aufs iPhone (Felix, 01.11.).
+/// Die Budget-Pushes gehen nur aufs iPhone (Felix, 01.11.); die einzige
+/// Mac-Mitteilung ist „Spot frei“, während das LLM auf On-Demand läuft (02.11.).
 @main
 struct AWSUsageBarApp: App {
 

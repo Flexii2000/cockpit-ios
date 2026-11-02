@@ -3,6 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-02 — AWSUsageBar: Spot-Verfügbarkeit fürs LLM
+Felix will sehen, ob das LLM von On-Demand (5,85 $/h) zurück auf Spot (~1,88 $/h) wechseln kann:
+„Count of available spot instances“, jede Minute. AWS gibt keine Anzahl freier Spot-Instanzen
+heraus, nur den Spot Placement Score (1–10) für eine gewünschte Menge.
+- **Geschätzte Anzahl** (Felix): je Typ 1, 2, 4, 8 Instanzen in einer Zone abfragen, die größte
+  Stufe mit Score ≥ 7 ist „≈ 4 frei“, oben „8+ frei“; dazu der Score je Zone. Verworfen: „frei in
+  1 von 2 Zonen“ (Zahl der Zonen mit gutem Score) und nur der Score ohne Zahl.
+- **Typen** (Felix): `g7e.2xlarge`, dazu `g7e.4xlarge` und `g7e.12xlarge` **grau** mit dem nötigen
+  vCPU-Bedarf, solange die Spot-Quota (8 vCPU) nicht reicht. Grau richtet sich nach der echten Quota
+  (Service Quotas, stündlich), nicht nach einer festen Zahl - kommt die größere Quota, werden sie von
+  selbst normal. Verworfen: nur `g7e.2xlarge`.
+- **Mitteilung** (Felix): Mac-Mitteilung „LLM: Spot frei“, wenn das LLM auf On-Demand läuft und Spot
+  für denselben Typ zu haben ist, einmal je Instanz. Verworfen: Push an Fokus (wie der LLM-Wächter)
+  und gar keine. Damit ist das die erste Mitteilung der AWSUsageBar - die Budget-Pushes bleiben nur
+  auf dem iPhone.
+- **Nur Mac-App** (Felix), nicht im Vault-Tab. Gerechnet wird im Dienst (`spot` in `/api/usage`), die
+  App fragt dafür jede Minute statt alle 5 min.
+
 ## 2026-11-02 — ClaudeUsageBar: eigene Mac-App statt der Claude Usage Bar
 Felix mag weder das Aussehen der Claude Usage Bar (claudeusagebar.com) noch, dass er ihr den
 Sitzungs-Cookie von claude.ai geben muss (aus den Entwicklerwerkzeugen kopiert, dann eingefügt).

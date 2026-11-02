@@ -26,6 +26,8 @@ struct AWSUsage: Codable, Sendable, Equatable {
     let billedAt: Date?
     let liveAt: Date?
     let problem: String?
+    /// Spot-Lage fürs LLM (seit 02.11.); fehlt bei einem älteren Dienst.
+    let spot: AWSSpot?
 }
 
 struct AWSBudget: Codable, Sendable, Equatable {
@@ -70,6 +72,51 @@ struct AWSInstance: Codable, Sendable, Equatable, Identifiable {
     let estimate: Double
 
     var isSpot: Bool { lifecycle == "spot" }
+}
+
+/// Wie viele Spot-Instanzen fürs LLM gerade zu haben wären. AWS nennt keine
+/// Anzahl, nur einen Score (1–10) für eine gewünschte Menge; der Dienst fragt
+/// jede Minute 1, 2, 4, 8 Instanzen ab, die größte Stufe ab `threshold` ist die
+/// Schätzung.
+struct AWSSpot: Codable, Sendable, Equatable {
+    let region: String
+    let threshold: Int
+    /// Die Stufen der Abfrage, aufsteigend - die letzte heißt „und mehr“.
+    let counts: [Int]
+    /// Spot-Quota für G- und VT-Instanzen; `nil`, wenn der Dienst sie nicht lesen konnte.
+    let quotaVcpus: Int?
+    let types: [AWSSpotType]
+    /// Letzte gelungene Runde; `nil`, solange es keine gab.
+    let checkedAt: Date?
+    let problem: String?
+
+    /// Die höchste Stufe - „8+ frei“.
+    var maxCount: Int { counts.max() ?? 0 }
+}
+
+struct AWSSpotType: Codable, Sendable, Equatable, Identifiable {
+    let type: String
+    let vcpus: Int?
+    /// `false`, wenn die Quota für eine Instanz nicht reicht; `nil`, wenn unbekannt.
+    let launchable: Bool?
+    /// Geschätzte Anzahl in der besten Zone, 0 = keine.
+    let estimate: Int
+    /// Ohne Steuer, in der Zone mit der besten Schätzung.
+    let pricePerHour: Double?
+    let zones: [AWSSpotZone]
+
+    var id: String { type }
+    var isLaunchable: Bool { launchable != false }
+}
+
+struct AWSSpotZone: Codable, Sendable, Equatable, Identifiable {
+    let zone: String
+    /// Score für eine Instanz.
+    let score: Int
+    let estimate: Int
+    let pricePerHour: Double?
+
+    var id: String { zone }
 }
 
 struct AWSMonth: Codable, Sendable, Equatable, Identifiable {

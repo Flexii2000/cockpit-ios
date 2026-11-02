@@ -25,6 +25,10 @@ struct PopoverView: View {
                     Divider()
                     running(usage)
                 }
+                if let spot = usage.spot, !spot.types.isEmpty || spot.problem != nil {
+                    Divider()
+                    spotSection(spot)
+                }
                 Divider()
                 budgetRow(usage)
                 if let problem = usage.problem {
@@ -192,6 +196,56 @@ struct PopoverView: View {
         }
     }
 
+    // MARK: - Spot
+
+    /// Wie viele Spot-Instanzen fürs LLM zu haben wären. Typen, für die die
+    /// Spot-Quota nicht reicht, grau - mit dem vCPU-Bedarf daneben (Felix, 02.11.).
+    private func spotSection(_ spot: AWSSpot) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Spot · \(AWSUsageFormat.regionName(spot.region))")
+                Spacer()
+                if let quota = spot.quotaVcpus {
+                    Text("Quota \(quota) vCPU")
+                        .monospacedDigit()
+                }
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            ForEach(spot.types) { type in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(type.type)
+                            .font(.callout)
+                        if let vcpus = type.vcpus {
+                            Text("\(vcpus) vCPU")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text(AWSUsageFormat.spotCount(type.estimate, max: spot.maxCount))
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(type.estimate > 0 && type.isLaunchable ? Color.green : Color.secondary)
+                    }
+                    HStack {
+                        Text(AWSUsageFormat.spotZones(type.zones))
+                        Spacer()
+                        Text(AWSUsageFormat.perHour(type.pricePerHour))
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .monospacedDigit()
+                .opacity(type.isLaunchable ? 1 : 0.4)
+            }
+            if let problem = spot.problem {
+                Label(problem, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
     // MARK: - Budget ändern
 
     @ViewBuilder
@@ -264,6 +318,8 @@ struct PopoverView: View {
     private func statusLine(_ usage: AWSUsage) -> String {
         let billed = usage.billedAt.map { AWSUsageFormat.time($0) } ?? "–"
         let live = usage.liveAt.map { AWSUsageFormat.time($0) } ?? "–"
-        return "Cost Explorer \(billed) · Instanzen \(live)"
+        let line = "Cost Explorer \(billed) · Instanzen \(live)"
+        guard let spot = usage.spot else { return line }
+        return line + " · Spot \(spot.checkedAt.map { AWSUsageFormat.time($0) } ?? "–")"
     }
 }

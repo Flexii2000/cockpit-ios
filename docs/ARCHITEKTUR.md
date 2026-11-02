@@ -191,8 +191,10 @@ kein `Access`, das Cookies legt, und keinen `APIClient`. Den Offline-Stand legt
 `AWSStore` deshalb selbst in den `OfflineCache` und meldet ihn `OfflineStatus`
 (`Backend.aws`), die Leiste über dem Tab ist dieselbe wie überall. Die Mac-App
 liest den Token aus dem Schlüsselbund des Macs (zuerst ihr eigener Eintrag, sonst
-`fh_private`/`cockpit-ios` wie `run-simulator.sh`), fragt alle 5 Minuten und beim
-Aufklappen und hält nichts offline vor.
+`fh_private`/`cockpit-ios` wie `run-simulator.sh`), fragt jede Minute (so oft prüft
+der Dienst die Spot-Lage, seit 02.11.) und beim Aufklappen und hält nichts offline vor.
+Ihre einzige Mitteilung („LLM: Spot frei“) entscheidet `AWSSpotAlert` in
+`AWSUsageShared/` - dort, damit `VaultTests` es prüfen kann; Vault selbst zeigt Spot nicht.
 
 **Die ClaudeUsageBar fragt claude.ai aus einer WebView, nicht mit `URLSession`.**
 claude.ai steht hinter Cloudflare; ein nachgebauter Request mit kopierten Cookies

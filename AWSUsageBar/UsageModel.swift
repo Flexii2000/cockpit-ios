@@ -1,10 +1,12 @@
 import Foundation
 import ServiceManagement
+import UserNotifications
 
 /// Hält den Stand für Menüleiste und Ausklappfenster.
 ///
-/// Fragt alle 5 Minuten und beim Öffnen. Das kostet nichts: der Dienst antwortet
-/// aus seinem Zwischenstand, Cost Explorer fragt nur er selbst (alle 6 h).
+/// Fragt jede Minute und beim Öffnen - so oft prüft der Dienst die Spot-Lage.
+/// Das kostet nichts: der Dienst antwortet aus seinem Zwischenstand, Cost
+/// Explorer fragt nur er selbst (alle 6 h).
 @MainActor
 @Observable
 final class UsageModel {
@@ -20,11 +22,15 @@ final class UsageModel {
 
     private var token: String?
     private var loop: Task<Void, Never>?
+    private let notifications = NotificationRelay()
 
-    static let interval: Duration = .seconds(300)
+    static let interval: Duration = .seconds(60)
 
     func start() {
         guard loop == nil else { return }
+        // Die einzige Mac-Mitteilung: „Spot frei“, während das LLM auf On-Demand läuft.
+        UNUserNotificationCenter.current().delegate = notifications
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         loop = Task { [weak self] in
             while !Task.isCancelled {
                 await self?.refresh()
@@ -51,6 +57,7 @@ final class UsageModel {
             error = nil
             isAccessProblem = false
             lastFetch = Date()
+            notifySpotIfDue(fresh)
         } catch {
             isAccessProblem = (error as? AWSUsageError) == .notAuthorised
             self.error = error.localizedDescription
@@ -88,6 +95,27 @@ final class UsageModel {
         AWSUsageClient(baseURL: AWSUsageEndpoint.url, token: token)
     }
 
+    // MARK: - Spot frei
+
+    private static let spotSentKey = "spotAlertSent"
+
+    /// Einmal je On-Demand-Instanz (Felix, 02.11.); gemerkt über einen Neustart hinweg.
+    private func notifySpotIfDue(_ usage: AWSUsage) {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["COCKPIT_AWS_SNAPSHOT"] != nil { return }
+        #endif
+        let defaults = UserDefaults.standard
+        let sent = defaults.stringArray(forKey: Self.spotSentKey) ?? []
+        guard let alert = AWSSpotAlert.due(usage, sent: Set(sent)) else { return }
+        let content = UNMutableNotificationContent()
+        content.title = alert.title
+        content.body = alert.body
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(
+            identifier: "spot-\(alert.instanceID)", content: content, trigger: nil))
+        defaults.set(Array((sent + [alert.instanceID]).suffix(20)), forKey: Self.spotSentKey)
+    }
+
     // MARK: - Beim Anmelden starten
 
     /// Gemerkt statt jedes Mal gefragt: `SMAppService` meldet keine Änderung, und
@@ -111,5 +139,15 @@ final class UsageModel {
             self.error = "Beim Anmelden starten: \(error.localizedDescription)"
         }
         readLaunchAtLogin()
+    }
+}
+
+/// Zeigt die Mitteilung auch, während das Ausklappfenster offen ist.
+final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Sendable {
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound])
     }
 }

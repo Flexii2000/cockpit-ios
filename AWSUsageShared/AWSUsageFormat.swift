@@ -81,6 +81,35 @@ enum AWSUsageFormat {
         instance.isSpot ? "Spot" : "On-Demand"
     }
 
+    // MARK: - Spot
+
+    /// Die Schätzung: „0 frei“, „≈ 4 frei“, an der obersten Stufe „8+ frei“.
+    static func spotCount(_ estimate: Int, max: Int) -> String {
+        if estimate <= 0 { return "0" + nbsp + "frei" }
+        if estimate >= max { return "\(estimate)+" + nbsp + "frei" }
+        return "≈" + nbsp + "\(estimate)" + nbsp + "frei"
+    }
+
+    /// „2a 9/10 · 2c 7/10“ - die Zonen kurz, die Region steht im Kopf; ohne Zonen „–“.
+    static func spotZones(_ zones: [AWSSpotZone]) -> String {
+        guard !zones.isEmpty else { return "–" }
+        return zones.map { "\(zoneShort($0.zone))\(nbsp)\($0.score)/10" }.joined(separator: " · ")
+    }
+
+    /// „2a“ aus „eu-west-2a“.
+    static func zoneShort(_ zone: String) -> String {
+        zone.split(separator: "-").last.map(String.init) ?? zone
+    }
+
+    /// „London“ statt „eu-west-2“ für die Regionen, in denen etwas läuft.
+    static func regionName(_ region: String) -> String {
+        switch region {
+        case "eu-west-2": "London"
+        case "eu-central-1": "Frankfurt"
+        default: region
+        }
+    }
+
     /// Liest eine Eingabe fürs Budget: „60“, „60,5“, „60.50“, „60 $“. `nil`, wenn
     /// sie nicht zwischen 0 (ausschließlich) und 10.000 liegt - so prüft auch der Dienst.
     static func parseLimit(_ text: String) -> Double? {

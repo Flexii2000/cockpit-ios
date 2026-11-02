@@ -1392,6 +1392,16 @@ solange seit dem Start noch kein Abruf bei AWS gelungen ist.
 (`null` oder ein Satz — die Zahlen sind dann der letzte gute Stand). Alle Beträge in
 Dollar **mit** Steuer (anteilig auf die Kategorien verteilt).
 
+`spot` (seit 02.11., nur die Mac-App zeigt es; `AWSSpot`, optional gelesen - ein älterer
+Dienst kennt es nicht, und bis zur ersten Runde nach dem Start ist es `null`): Spot-Lage fürs
+LLM in London. `region`, `threshold` (7), `counts` (`[1, 2, 4, 8]`), `quotaVcpus` (Spot-Quota
+G/VT, kann `null`), `types[]` mit `type`, `vcpus`, `launchable` (`vcpus ≤ quotaVcpus`, kann
+`null`), `estimate` (größte Stufe mit Score ≥ `threshold` in einer Zone, 0 = keine; gleich der
+letzten Stufe heißt „und mehr“), `pricePerHour` (Spot, **ohne** Steuer), `zones[]` (`zone`,
+`score` für eine Instanz, `estimate`, `pricePerHour`); `checkedAt`, `problem`. AWS nennt keine
+Anzahl freier Instanzen - `estimate` ist eine Schätzung aus dem Spot Placement Score. Der
+Dienst rechnet jede Minute neu, darum fragt die Mac-App jede Minute.
+
 **Push:** bei 50, 75, 90 und 100 % je Schwelle einmal im Monat; die Nutzlast trägt
 `"tab": "aws"` statt `kind` — `NotificationDelegate` reicht ersatzweise `tab` weiter.
 

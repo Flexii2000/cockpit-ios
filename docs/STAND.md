@@ -1,5 +1,20 @@
 # Stand
 
+> **AWSUsageBar: Spot-Verfügbarkeit fürs LLM (02.11., Felix):** neuer Abschnitt „Spot · London“ im
+> Ausklappfenster: je Typ die geschätzte Zahl freier Spot-Instanzen („≈ 4 frei“, aus dem Spot
+> Placement Score für 1/2/4/8 Instanzen, Schwelle 7), Score je Zone („2a 9/10 · 2c 7/10“), Spot-Preis,
+> vCPU; `g7e.4xlarge`/`g7e.12xlarge` grau, solange die Spot-Quota (oben rechts) nicht reicht. Der
+> Dienst `../aws-usage` fragt jede Minute (`spot` in `/api/usage`), die App deshalb auch. Mac-Mitteilung
+> „LLM: Spot frei“, wenn das LLM auf On-Demand läuft und Spot für denselben Typ zu haben ist, einmal je
+> Instanz (`AWSSpotAlert`). Entscheidungen in `ENTSCHEIDUNGEN.md`.
+> - **Geprüft:** `tools/verify.sh AWSUsageBar` und `Vault` (5 neue Tests in `AWSUsageTests`: Lesen mit
+>   und ohne `spot`, Schreibweise, wann die Mitteilung kommt und wann nicht); Bild per
+>   `COCKPIT_AWS_SNAPSHOT` gegen einen Schein-Server hell/dunkel; Dienst: 36 Tests, Score/Quota/Preise
+>   vorher per CLI gegen AWS angesehen (02.11. 14:20: alles 1/10, nur `g7e.12xlarge` in 2c 3/10).
+> - **Nicht geprüft:** die Mitteilung auf dem Mac (Erlaubnis-Dialog beim ersten Start), echte Zahlen
+>   vom Dienst, solange der IAM-User die neuen Leserechte nicht hat (`deploy/create-iam-user.sh`
+>   in `../aws-usage`, braucht Felix).
+
 > **ClaudeUsageBar: eigene Mac-App für die Claude-Nutzung (02.11., Felix):** Ersatz für die Claude
 > Usage Bar (claudeusagebar.com), die den kopierten claude.ai-Cookie braucht. `ClaudeUsageBar/`
 > (macOS 26, Sandbox, `com.fherrmann.claudeusagebar`): Menüleiste „✳ 45 %“ = Wochenlimit über alle
