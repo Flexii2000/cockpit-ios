@@ -1,5 +1,23 @@
 # Stand
 
+> **ClaudeUsageBar: eigene Mac-App für die Claude-Nutzung (02.11., Felix):** Ersatz für die Claude
+> Usage Bar (claudeusagebar.com), die den kopierten claude.ai-Cookie braucht. `ClaudeUsageBar/`
+> (macOS 26, Sandbox, `com.fherrmann.claudeusagebar`): Menüleiste „✳ 45 %“ = Wochenlimit über alle
+> Modelle; Ausklappfenster in Liquid Glass mit Ring (Prozent, Zeitmarke der Woche), Reset und
+> Restzeit, „Tag n von 7“, Limits je Modell (Fable), Verteilung Claude Code/Chats/Cowork/Sonstige,
+> Zusatznutzung (nur wenn an), Stand, Aktualisieren, Menü (Beim Anmelden starten, Nutzung auf
+> claude.ai, Abmelden, Beenden). **Anmeldung im eigenen Fenster** (echte claude.ai-Seite, E-Mail +
+> Code), Sitzung nur im Schlüsselbund, Abfragen aus einer unsichtbaren WebView (`ClaudeWeb`);
+> Mitteilungen auf dem Mac bei 50/75/90/100 % je Woche. Schnittstelle in `BACKENDS.md`,
+> Entscheidungen in `ENTSCHEIDUNGEN.md`.
+> - **Geprüft:** `tools/verify.sh` (alle, neu `ClaudeUsageBarTests` mit 10 Tests: Antwort in der Form
+>   vom 02.11., Rückfall auf `seven_day`, HTML ≠ Nutzung, Organisation, Schwellen, Formate); Release-Bau
+>   signiert mit Sandbox + Netz; Bilder per `CLAUDE_USAGE_SNAPSHOT` hell/dunkel, angemeldet/abgemeldet
+>   (Glas dort flach); `CLAUDE_USAGE_PROBE=1` gegen das echte claude.ai ohne Sitzung → `signedOut` nach
+>   2–3 s (WebKit kommt an Cloudflare vorbei), Schlüsselbund aus der Sandbox schreiben/lesen/löschen.
+> - **Nicht geprüft:** Anmeldung (braucht Felix), Abfrage mit Sitzung, Schlüsselbund-Eintrag,
+>   Mitteilungen, `/logout`, Liquid Glass in der echten Menüleiste.
+
 > **AWS-Kosten: Tab in Vault und Mac-App AWSUsageBar (01.11., Felix):** Was der Monat bei AWS
 > kostet, in Prozent des AWS-Budgets, aufgeteilt in LLM, Hytale, Hosting, Sonstiges (Steuer anteilig),
 > laufende Instanzen live hochgerechnet. Dienst `../aws-usage` (Vertrag `docs/API.md`), parallel

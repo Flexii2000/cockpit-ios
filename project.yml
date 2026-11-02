@@ -311,6 +311,54 @@ targets:
         CODE_SIGN_IDENTITY: Apple Development
         PROVISIONING_PROFILE_SPECIFIER: ""
 
+  # Die Claude-Nutzung in der Menueleiste (02.11.): Ersatz fuer die Claude Usage
+  # Bar. Anmeldung im eigenen Fenster bei claude.ai statt eines kopierten
+  # Cookies; die Sitzung liegt nur im Schluesselbund. Sandbox, weil die App eine
+  # fremde Seite laedt: sie darf ins Netz und sonst nichts.
+  ClaudeUsageBar:
+    type: application
+    platform: macOS
+    # Liquid Glass (glassEffect, .glass-Knoepfe) gibt es erst ab macOS 26.
+    deploymentTarget: "26.0"
+    sources:
+      - path: ClaudeUsageBar
+    entitlements:
+      path: ClaudeUsageBar/ClaudeUsageBar.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.claudeusagebar
+        INFOPLIST_KEY_CFBundleDisplayName: ClaudeUsageBar
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+        INFOPLIST_KEY_LSUIElement: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        # Fest signiert wie AWSUsageBar: der Schluesselbund-Eintrag der Sitzung
+        # ist an die Signatur gebunden - eine wechselnde Ad-hoc-Signatur
+        # verloere ihn bei jedem Update.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: Apple Development
+        PROVISIONING_PROFILE_SPECIFIER: ""
+
+  # Nur was ohne claude.ai und ohne Schluesselbund pruefbar ist: Lesen der
+  # Antwort, Schwellen der Mitteilungen, Formate. Ohne Wirt - die App startete
+  # sonst ihre WebView.
+  ClaudeUsageBarTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: ClaudeUsageBarTests
+      - path: ClaudeUsageBar/ClaudeUsage.swift
+      - path: ClaudeUsageBar/ClaudeUsageFormat.swift
+      - path: ClaudeUsageBar/Thresholds.swift
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        PROVISIONING_PROFILE_SPECIFIER: ""
+
   # ------------------------------------------------------------------ Fokus
   Fokus:
     type: application
@@ -836,6 +884,15 @@ schemes:
     build:
       targets:
         AWSUsageBar: all
+    run:
+      config: Debug
+  ClaudeUsageBar:
+    build:
+      targets:
+        ClaudeUsageBar: all
+    test:
+      targets:
+        - ClaudeUsageBarTests
     run:
       config: Debug
   Fokus:

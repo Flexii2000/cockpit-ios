@@ -14,7 +14,9 @@ Habits-Dienst; eigener Token je Person, eigene Kacheln) und **Sport** (seit
 bis dahin in Healthy; dazu die Uhr-App mit Krafttraining und Padel-Matches).
 Seit 01.11. hat Vault einen Tab **AWS** (Dienst `fherrmann.com/aws-usage`, Repo
 `../aws-usage`), und dieselben Zahlen zeigt eine **Mac-App, AWSUsageBar**, in
-der Menüleiste.
+der Menüleiste. Seit 02.11. zeigt eine zweite Mac-App, **ClaudeUsageBar**, das
+Wochenlimit von Claude - sie spricht direkt mit claude.ai, nicht mit einem Dienst
+von Felix.
 
 Dieses Repo enthält **nur die Clients**. Änderungen an den Diensten gehören in
 deren eigene Repos (`../food`, `../weight-app`, `../finance-cockpit`,
@@ -40,10 +42,11 @@ Tagessummen); die Apps zeigen.
 | `coHabitNotifications/` | nur die Notification Service Extension von coHabit | eine Datei; dazu einzeln (project.yml) `CohabitShared/NotificationImage.swift`, `ImageFormat.swift`, `CohabitToken.swift` und `Shared/Keychain.swift`, `Backend.swift` - **diese drei aus `CohabitShared/` duerfen nichts aus dem Rest von `CohabitShared/` benutzen**, sonst baut die Erweiterung nicht |
 | `AWSUsageShared/` | Vault **und** die Mac-App `AWSUsageBar` | Modelle, Client (Bearer `fh_private`), Formate („19,01 $“) und Balken der AWS-Kosten — nur Foundation und SwiftUI, nichts aus `Shared/`/`Core/` (die gibt es auf dem Mac nicht) |
 | `AWSUsageBar/` | nur die Mac-App (macOS 15, Menüleiste) | Ausklappfenster, Token aus dem Schlüsselbund, Beim-Anmelden-starten |
+| `ClaudeUsageBar/` | nur die Mac-App ClaudeUsageBar (macOS 26, Sandbox) | alles; `ClaudeUsage.swift`, `ClaudeUsageFormat.swift`, `Thresholds.swift` übersetzt zusätzlich `ClaudeUsageBarTests` - die drei bleiben ohne AppKit/WebKit. **Die claude.ai-Sitzung nie loggen, nie in eine Datei, nie in Tests** - sie liegt nur im Schlüsselbund |
 | `FokusMonitor/` | nur die DeviceActivity-Erweiterung von Fokus | eine Datei plus `FocusShared/`, kein `Shared/`: legt beim Intervallstart den Schild (neu), nimmt ihn am Ende weg und ersetzt die Ende-Meldung durch „Apps wieder frei", sonst nichts |
 
 Ein Verstoß fällt erst beim Bauen einer **anderen** App auf — deshalb baut
-`tools/verify.sh` immer alle sechs - und beide Uhren und die Mac-App. `TabSelection` und `Router` gibt es je App;
+`tools/verify.sh` immer alle sechs - und beide Uhren und beide Mac-Apps. `TabSelection` und `Router` gibt es je App;
 sie werden nicht geteilt.
 
 ## Vor dem ersten Handgriff
@@ -80,18 +83,19 @@ Routen wirklich aufmachen.
 
 ```bash
 tools/bootstrap.sh                 # einmalig + nach Änderungen an project.yml
-tools/verify.sh                    # baut alle sechs + beide Uhren fuer den Simulator und die Mac-App, Unit-Tests in Healthy, Vault, Fokus, coHabit, Sport
+tools/verify.sh                    # baut alle sechs + beide Uhren fuer den Simulator und beide Mac-Apps, Unit-Tests in Healthy, Vault, Fokus, coHabit, Sport, ClaudeUsageBar
 tools/verify.sh Vault              # nur eine
 tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang, als Bild
 tools/install-device.sh all --launch             # alle sechs aufs iPhone (oder eine), Healthy und Sport samt Uhr
 tools/testflight.sh Einkaufsliste                # archivieren + zu TestFlight hochladen (API-Schluessel mit Rolle Admin)
 tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen (signiert wie der Upload)
 tools/install-mac.sh AWSUsageBar                 # Mac-App als Release nach /Applications und starten
+tools/install-mac.sh ClaudeUsageBar              # dito; eine fremde App gleichen Namens nur mit --replace-foreign
 ```
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
-`Fokus`, `Einkaufsliste`, `coHabit`, `Sport`; `verify.sh` kennt dazu `HealthyWatch`, `SportWatch`
-und `AWSUsageBar`). Tabs: Healthy `dashboard|food|weight|widget|recovery|logbook|effects`
+`Fokus`, `Einkaufsliste`, `coHabit`, `Sport`; `verify.sh` kennt dazu `HealthyWatch`, `SportWatch`,
+`AWSUsageBar` und `ClaudeUsageBar`). Tabs: Healthy `dashboard|food|weight|widget|recovery|logbook|effects`
 (`recovery` ist das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle), Vault
 `grades|finance|aws`, Fokus `todo|forest|shopping|evaluation|widget`, Einkaufsliste hat nur die eine Seite,
 coHabit `today|timeline|stats|profile|new|widget`, Sport `padel|gym`;
@@ -232,6 +236,8 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_URL_GRADES=http://127.0.0.1:48230/grades` | biegt einen Dienst auf eine andere Adresse um (`COCKPIT_URL_<DIENST>`, auch `_PADEL`, `_HABITS`, `_COHABIT` = `http://127.0.0.1:48792/cohabit/api`, `_WEIGHT`, `_FOOD`) - gegen einen lokal gestarteten Dienst; der Privat-Token (beim Weight Tracker dessen eigener) wird dann auch fuer diesen Rechner als Cookie gesetzt |
 | `COCKPIT_URL_AWS=http://127.0.0.1:48280/aws-usage` | AWS-Tab (Vault) und Mac-App gegen den lokal gestarteten Dienst `../aws-usage` oder einen Schein-Server; der Token geht als Bearer (`COCKPIT_FH_PRIVATE_TOKEN`). ⚠️ Der lokale Dienst spricht mit dem **echten** AWS - `PUT /api/budget` ändert dann das echte Budget. `uitest.sh Vault testAWSTabFromTopToBottom` liest nur; `testChangingTheAWSBudget` läuft nur mit `COCKPIT_AWS_STUB=1` gegen einen Schein-Server |
 | `COCKPIT_AWS_SNAPSHOT=<Ordner>` | **Mac-App** (Debug, Programm direkt starten, nicht per `open`): legt Ausklappfenster hell/dunkel und die Menüleisten-Zeile als PNG ab und beendet sich - ein Fenster der Menüleiste lässt sich aus dem Terminal nicht öffnen. `ImageRenderer` zeichnet Schalter und Rahmen-Knöpfe nicht (gelbe Platzhalter) |
+| `CLAUDE_USAGE_SNAPSHOT=<Ordner>` | **ClaudeUsageBar** (Debug, Programm direkt starten): Ausklappfenster angemeldet/abgemeldet, hell/dunkel, und die Menüleisten-Zeile als PNG, mit erfundenen Zahlen - ohne claude.ai, ohne Schlüsselbund. Die App ist in der Sandbox: die Bilder landen in `~/Library/Containers/com.fherrmann.claudeusagebar/Data/tmp/snapshot/` (Pfade in der Ausgabe). Liquid Glass zeichnet `ImageRenderer` nicht - die Karten stehen flach da (`flatGlass`) |
+| `CLAUDE_USAGE_PROBE=1` | **ClaudeUsageBar** (Debug): fragt einmal **ohne** Sitzung bei claude.ai und gibt das Ergebnis aus - `signedOut` heißt, WebKit und Cloudflare lassen durch; `challenged` heißt, Cloudflare prüft |
 | `COCKPIT_URL_KLIPY=http://127.0.0.1:48793/api/v1` | GIF-Suche in coHabit gegen `tools/klipy-stub.py` statt KLIPY - ohne echten Schluessel (nur auf dem Server) antwortet KLIPY nicht. `uitest.sh` reicht es an `testSendAGifFromTheSearch` weiter |
 | `COCKPIT_COHABIT_TOKEN=…` | legt in coHabit den Token einer Person ab, als waere ihr Link eingefuegt worden; `none` nimmt ihn weg (Start ohne Zugang - der Schluesselbund ueberlebt jede Neuinstallation) |
 | `COCKPIT_LINK=cohabit://cohabit/<id>/chat` | oeffnet in coHabit beim Start einen Deep Link - `simctl openurl` zeigt bei eigenem Schema einen Dialog, den simctl nicht bestaetigen kann. Wirkt auch ohne Zugang: ein Setup-Link (`cohabit://setup?token=…`) meldet dann an, ein Einladungslink oeffnet die Registrierung |

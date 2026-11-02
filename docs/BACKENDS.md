@@ -20,6 +20,7 @@ Stand: 2026-09-02, gelesen aus den Controllern, Records und Routen.
 | To-Do | `https://fherrmann.com/todo` | Cookie `fh_private` | **nativ** (Fokus) — daneben eine Weboberfläche |
 | Padel | `https://fherrmann.com/padel` | Cookie `fh_private` (Felix); Mitspieler mit eigener Seite: Cookie `padel_token` | **nativ** (Sport, seit 23.10.) — daneben die Seite des Dienstes |
 | AWS-Kosten | `https://fherrmann.com/aws-usage` | `Authorization: Bearer <fh_private>` (oder Cookie `fh_private`) | **nativ** (Vault, seit 01.11.) und die Mac-App AWSUsageBar — keine Weboberfläche |
+| Claude-Nutzung | `https://claude.ai/api` (fremd, intern) | Sitzung von claude.ai, im Anmeldefenster der App erworben | nur die Mac-App ClaudeUsageBar (seit 02.11.) |
 
 Alle sind aus dem Internet über HTTPS erreichbar (Let's-Encrypt-Zertifikate,
 also keine ATS-Ausnahme nötig). Kein VPN, kein Heimnetz-Zwang.
@@ -1397,6 +1398,29 @@ Dollar **mit** Steuer (anteilig auf die Kategorien verteilt).
 ⚠️ **Ein lokal gestarteter Dienst spricht mit dem echten AWS.** Ein `PUT /api/budget`
 dagegen ändert das echte Budget — der UI-Test dafür läuft nur mit `COCKPIT_AWS_STUB=1`
 gegen einen Schein-Server.
+
+## Claude-Nutzung — `claude.ai/api` (seit 2026-11-02, nur ClaudeUsageBar)
+
+Kein Dienst von Felix, sondern die **interne** Schnittstelle von claude.ai, aus der die
+Seite „Einstellungen > Nutzung“ liest - ohne Vertrag, sie kann sich jederzeit ändern.
+Deshalb liest `ClaudeUsage.parse` jedes Feld einzeln und überliest, was nicht passt
+(`ClaudeUsageBarTests` hält die Form vom 02.11. fest, mit erfundenen Zahlen).
+
+| Methode | Pfad | Antwort |
+|---|---|---|
+| GET | `/api/organizations` | Liste; die Abo-Organisation hat `capabilities` mit `chat` (daneben ggf. eine API-Organisation ohne). Cookie `lastActiveOrg` = zuletzt benutzte |
+| GET | `/api/organizations/{uuid}/usage` | `limits[]` (`kind` `weekly_all` = Woche über alle Modelle, `weekly_scoped` mit `scope.model.display_name`, z. B. Fable; je `percent`, `resets_at`), `seven_day`/`five_hour` (`utilization`, `resets_at`; bei Felix' Abo ist `five_hour` `null`), `seven_day_breakdown` (`window_started_at`, `rows[]` mit `key` `claude_code`/`chat`/`cowork`/`other` und `percent` = Anteil an der Woche), `spend` (Zusatznutzung, `enabled`, Beträge als `amount_minor`/`exponent`) |
+| GET | `/logout` | Seite der Web-App: beendet die Sitzung und leitet auf `/login` |
+
+**Auth:** Cookie `sessionKey…` (HttpOnly) samt Begleit-Cookies von Cloudflare. Ohne
+gültige Sitzung kommt **401/403 als JSON**; eine Cloudflare-Prüfung kommt als **HTML**
+(403/503) - daran unterscheidet `ClaudeWeb` „abgemeldet“ von „Prüfung“.
+`resets_at` hat Mikrosekunden und wackelt je Abfrage um Millisekunden
+(„10:59:59.926“, „11:00:00.147“) - für „dieselbe Woche“ auf die Stunde runden.
+
+⚠️ Anthropic untersagt **fremden** Apps, claude.ai-Sitzungen einzusammeln (Doku von
+Claude Code, „Legal and compliance“). Die App ist Felix' eigene, er hat sich am 02.11.
+bewusst für diesen Weg entschieden; Alternativen in `ENTSCHEIDUNGEN.md`.
 
 ## Finance Cockpit — kein API
 

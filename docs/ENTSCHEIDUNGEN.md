@@ -3,6 +3,35 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-02 — ClaudeUsageBar: eigene Mac-App statt der Claude Usage Bar
+Felix mag weder das Aussehen der Claude Usage Bar (claudeusagebar.com) noch, dass er ihr den
+Sitzungs-Cookie von claude.ai geben muss (aus den Entwicklerwerkzeugen kopiert, dann eingefügt).
+Gewünscht: eine eigene App, sicherer angemeldet, näher an Apples Gestaltung (Liquid Glass) wie die
+AWSUsageBar. Auf Rückfrage gewählt: **Anmeldung im App-Fenster** - die echte Anmeldeseite von
+claude.ai in einer WebView, die Sitzung danach nur im Schlüsselbund. Verworfen: die
+**Statuszeile von Claude Code** (liefert offiziell 5-h- und Wochenfenster an ein Skript, ganz ohne
+Token - aber nur diese zwei Fenster, und frisch nur, solange Claude Code auf dem Mac antwortet);
+das **OAuth-Token von Claude Code** aus dem Schlüsselbund mitbenutzen (Anthropic erlaubt
+OAuth-Token nur in Claude Code und eigenen Apps, und ein Erneuern hier könnte Claude Code abmelden).
+Felix wusste, dass auch der gewählte Weg in Anthropics Regeln eine Grauzone ist.
+**Menüleiste nur die Woche** („✳ 45 %“, Felix: „ich habe ja ein Ultra-Abo, also nur die
+Wochensitzung“ - claude.ai meldet dort kein 5-Stunden-Fenster). **Mitteilungen auf dem Mac bei
+50/75/90/100 %** des Wochenlimits, je Woche jede Stufe einmal, bei einem Sprung nur die höchste
+(verworfen: 75/90, keine).
+Entschieden beim Bauen: Gefragt wird **aus einer unsichtbaren WebView** (`fetch` aus einer
+claude.ai-Seite) statt mit `URLSession` - claude.ai steht hinter Cloudflare, und eine echte
+Browser-Engine mit denselben Cookies besteht dessen Prüfungen; bleibt sie doch an einer hängen,
+zeigt das Anmeldefenster sie. Die WebView hält Cookies **nur im Speicher** (`nonPersistent`), der
+Schlüsselbund ist die einzige Ablage (verworfen: persistenter WebKit-Speicher - eine Cookie-Datei
+im Container). Die App läuft in der **Sandbox** (nur Netz), weil sie eine fremde Seite lädt.
+„Abmelden“ ruft `/logout` von claude.ai auf, damit die Sitzung auch dort endet. Liegt hier als
+Target neben AWSUsageBar (gleiche Signatur, gleiches `install-mac.sh`), teilt aber keinen Code mit ihr;
+macOS 26 als Mindestfassung für Liquid Glass. Name **ClaudeUsageBar** wie die alte App -
+`install-mac.sh` ersetzt eine fremde App gleichen Namens nur mit `--replace-foreign`.
+Neben der Woche zeigt das Ausklappfenster, was claude.ai sonst liefert: Limits einzelner Modelle
+(Fable), die Verteilung auf Claude Code/Chats/Cowork und eine Zeitmarke am Ring (wie weit die
+Woche ist) - ohne Erklärtext.
+
 ## 2026-11-01 — AWS-Kosten: Tab in Vault und Mac-App AWSUsageBar
 Felix: eine „AWSUsageBar“ wie die Claude Usage Bar, in der Menüleiste des Macs und als eigenes
 Abteil in Vault, unterteilt in LLM, Hytale, Hosting und Sonstiges, Prozent an einem einstellbaren

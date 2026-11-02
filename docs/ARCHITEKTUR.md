@@ -35,6 +35,8 @@ danach    + Noten (nativ, hinter Face ID, mit Push bei neuer Note)
             das Gym aus Healthy, eigene Uhr-App für Krafttraining und Padel-Matches
 2026-11   + AWS-Kosten: Tab in Vault und eine Mac-App für die Menüleiste (AWSUsageBar),
             beide auf dem Dienst aws-usage, geteilter Code in AWSUsageShared/
+          + Claude-Nutzung in der Menüleiste (ClaudeUsageBar): eigene Anmeldung bei
+            claude.ai im App-Fenster statt eines kopierten Cookies
 ```
 
 ### Aufbau eines nativen Tabs
@@ -75,6 +77,9 @@ AWSUsageShared/     was Vault UND AWSUsageBar teilen: Modelle, Client mit Bearer
                     nur Foundation und SwiftUI (iOS und macOS)
 AWSUsageBar/        Mac-App (macOS 15): AWS-Kosten in der Menüleiste - MenuBarExtra im Fensterstil,
                     Zeile als Vorlagenbild (MenuBarLabel), Token aus dem Schlüsselbund (TokenStore)
+ClaudeUsageBar/     Mac-App (macOS 26, Sandbox): Claude-Wochenlimit in der Menüleiste - Anmeldung
+                    im Fenster (LoginView), Abfragen aus einer unsichtbaren WebView (ClaudeWeb),
+                    Sitzung nur im Schlüsselbund (SessionKeychain), Karten in Liquid Glass
 Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre), Einkauf, Evaluation
   App/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit, Tagesziel aus coHabit)
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist -
@@ -125,6 +130,7 @@ FokusTests/         Unit-Tests der Evaluation samt Übernahme aus Healthy (Wirt:
 CohabitTests/       Unit-Tests von coHabit (Wirt: coHabit - CohabitShared liegt nur dort)
 SportTests/         Unit-Tests von Gym, Padel-Tab und dem Zählen beim Padel (Wirt: Sport)
 VaultTests/         Unit-Tests des AWS-Tabs und von AWSUsageShared (Wirt: Vault)
+ClaudeUsageBarTests/ Unit-Tests der ClaudeUsageBar ohne Wirt: Antwort von claude.ai, Schwellen, Formate
 UITests/            Harness.swift (gemeinsam) + je App eine Datei, sechs Bundles
 project.yml         Quelle des Xcode-Projekts - sechs App-Targets, YAML-Anker für Gemeinsames
 tools/              bootstrap · verify · run-simulator · uitest · pushtest · install-device · install-mac · make-icon
@@ -187,6 +193,18 @@ kein `Access`, das Cookies legt, und keinen `APIClient`. Den Offline-Stand legt
 liest den Token aus dem Schlüsselbund des Macs (zuerst ihr eigener Eintrag, sonst
 `fh_private`/`cockpit-ios` wie `run-simulator.sh`), fragt alle 5 Minuten und beim
 Aufklappen und hält nichts offline vor.
+
+**Die ClaudeUsageBar fragt claude.ai aus einer WebView, nicht mit `URLSession`.**
+claude.ai steht hinter Cloudflare; ein nachgebauter Request mit kopierten Cookies
+(so macht es die Claude Usage Bar) besteht dessen Prüfungen nicht immer, eine echte
+Browser-Engine mit denselben Cookies und derselben Kennung schon. `ClaudeWeb` lädt
+dazu einmal `claude.ai/api/organizations` als Seite und ruft von dort `fetch` auf.
+Anmeldefenster und unsichtbare WebView teilen **einen** `WKWebsiteDataStore.nonPersistent()`
+- die Anmeldung gilt sofort, und auf der Platte liegt keine Cookie-Datei. Bleibende
+Ablage ist nur der Schlüsselbund (`SessionKeychain`, ein Eintrag mit allen claude.ai-Cookies,
+neu geschrieben, wenn sich Sitzung oder Cloudflare-Cookie ändern). Die Antwort ist
+claude.ais interne Form ohne Vertrag (`docs/BACKENDS.md`), `ClaudeUsage.parse` liest
+deshalb jedes Feld einzeln.
 
 ## coHabit: eine App mit Personen
 

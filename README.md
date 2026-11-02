@@ -12,8 +12,9 @@ bedienen:
 | **coHabit** | Habits gemeinsam mit Freunden: Heute, Timeline, Statistik, Profil | `com.fherrmann.cohabit` | – |
 | **Sport** | Padel (Autobuchung bei Playtomic), Gym (Weight Tracker); Uhr-App mit Krafttraining und Padel-Matches | `com.fherrmann.sport` | – |
 
-Dazu eine Mac-App: **AWSUsageBar** (`com.fherrmann.awsusagebar`) zeigt die AWS-Kosten
-des Monats in der Menüleiste — dieselben Zahlen wie der AWS-Tab in Vault.
+Dazu zwei Mac-Apps für die Menüleiste: **AWSUsageBar** (`com.fherrmann.awsusagebar`) zeigt die
+AWS-Kosten des Monats — dieselben Zahlen wie der AWS-Tab in Vault; **ClaudeUsageBar**
+(`com.fherrmann.claudeusagebar`) das Wochenlimit von Claude, mit eigener Anmeldung bei claude.ai.
 
 Die Backends bleiben unverändert und laufen weiter im Browser — das hier sind
 Clients, kein Ersatz. Die Token werden **einmal** eingegeben und gelten über
@@ -143,6 +144,7 @@ tools/bootstrap.sh                        # erzeugt Cockpit.xcodeproj aus projec
 tools/verify.sh                           # alle sechs bauen + Unit-Tests; tools/verify.sh Vault für eine
 tools/install-device.sh Healthy --launch  # eine App aufs iPhone; `all` für alle sechs
 tools/install-mac.sh AWSUsageBar          # die Menüleisten-App nach /Applications
+tools/install-mac.sh ClaudeUsageBar       # dito für Claude (eine fremde gleichnamige App nur mit --replace-foreign)
 ```
 
 Zum Ansehen im Simulator und zum automatisierten Durchklicken — immer mit der
