@@ -1,5 +1,84 @@
 # Stand
 
+> **Healthy: Morgen-Briefing, Chat, Wochenrückblick, Serien- und Eichungs-Kachel, Freunde-Tab
+> (10.11., Felix) - gebaut, NICHT installiert:** Teil 3 der Runde vom 10.11. (Branch `healthy-plus`;
+> Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §1.6, §8–§10 und §5, der Dienst dazu steht in
+> `../weight-app` auf demselben Branch, noch nicht ausgerollt).
+> - **Dashboard** in der Reihenfolge des Vertrags: Briefing, Recovery, Strain, Energie, Gewicht |
+>   Essen, Serien | Eichung, Logbook, Effekte, Wochenrückblick. `DashboardStore` lädt dazu
+>   `GET /api/features` (`HealthFeatures`), `GET /api/streaks` und `GET /api/review/week` - alle
+>   freiwillig (`take(optional:)`): 403 oder 404 blendet nur die Karte aus.
+> - **Morgen-Briefing:** `BriefingStore` fordert es an (`POST /api/briefing/today`), sobald der
+>   Health-Abgleich dieses Öffnens durch ist (nach `HealthSync.connect()`, nach dem Ziehen, beim
+>   Zurückkommen nach `syncIfDue()`, und wenn der Abgleich etwas hochgeladen hat) - **ohne Sperre
+>   nach Uhrzeit**; bei `RUNNING` alle 5 s nachfragen, höchstens zwei Minuten, nur solange das
+>   Dashboard zu sehen ist. Der Text von heute wird je Person gemerkt. Karte ganz oben, nur Text.
+> - **Chat:** Knopf in der Leiste, wenn `features.chat`; gefüllt bei ungesehener Antwort. Großes
+>   Blatt (`ChatSheet`): Fragen rechts, Antworten links, Rädchen solange eine läuft, Senden dann aus.
+>   `ChatStore` gehört dem Dashboard; nachgefragt wird über `GET /api/chat` (1,5 s / 3 s / 5 Minuten).
+>   Abgelehnte Fragen (409/429/503/400) gehen mit Meldung zurück ins Feld; nicht Angekommenes lässt
+>   sich antippen (dieselbe Kennung), Gescheitertes fragt mit neuer Kennung. „Neuer Chat“ mit
+>   Rückfrage („Chat leeren“). Push `chat-answer` öffnet den Chat - die Bitte zählt der `Router`,
+>   das Dashboard holt sie ab, auch wenn sie vor der Ansicht kam (Kaltstart); steht der Chat offen,
+>   kein Banner (`ChatPresence`, `NotificationDelegate(shouldPresent:)`).
+> - **Wochenrückblick:** `WeekReviewCardModel` (rein) → sechs Felder mit Pfeil in Textfarbe;
+>   ohne einen einzigen Wert fehlt die Karte.
+> - **Kacheln:** „Serien“ (`23 Tage`, darunter `12 Tage · Name`, orange wenn sie zu reißen droht;
+>   Tipp → Freunde) und „Eichung“ (`fest 0,93`/`rollend 0,93`, `gemessen 0,96 ± 0,03` bzw.
+>   `gemessen –`) aus `calibrationMonitor` der Energie-Summary.
+> - **Freunde:** vierter Tab (`FriendsTab`, `FriendsStore`): je Freund eine Karte wie in der
+>   Android-App (drei Punkte für heute, vier Serien mit „Ich“/Anfangsbuchstabe über den Marken,
+>   Schritte der Woche als Balkenpaare, „Vorwoche“), Stupser (409 schaltet ihn still aus), „+“ mit
+>   „Code erstellen“ (Code groß, Teilen; ein offener Code steht wieder da) und „Code eingeben“ (auch
+>   aus eingefügter Nachricht, `FriendCode.parse`), Entfernen über langes Drücken mit Rückfrage; ohne
+>   Freunde nur die beiden Knöpfe. Geschrieben wird direkt, Fehler als Meldung oben.
+> - **Wege:** `HealthyRoute.friends`/`.chat`; Arten `chat-answer`, `friend-nudge`, `streak-warning`
+>   (Vertrag §11.5), Links `healthy://friends`, `healthy://chat`. Führt ein Weg anderswohin als in
+>   den Chat, schließt das Dashboard sein Blatt (Chat, Strain-Fenster) - es läge sonst über dem Ziel.
+>   Mitteilungen werden im Zusammenhang erfragt: erste Frage im Chat, Code erstellen/eingeben.
+> - **Nebenbei:** `APIClient.shortMessage` liest aus dem Fehler-Rumpf des Weight Trackers
+>   (Spring-JSON) den Satz in `message` - bis dahin stand das rohe JSON in der Meldung, in allen Apps.
+> - **Vorführung und Schalter:** `DashboardDemo` für alles Neue (Briefing, Chat mit drei Fragen,
+>   Rückblick, Kacheln, zwei Freundschaften „Person A/B“), `COCKPIT_TAB=friends|chat` (`chat` stellt
+>   die Bitte wie ein Kaltstart über die Meldung). Neu, nur auf Wunsch: `COCKPIT_CHAT_TEST=1` für
+>   `testBriefingChatAndFriendsAgainstLocalServices` (nur gegen eine Schleifenadresse - gegen den
+>   echten Server startete jede Frage eine Claude-Sitzung); `tools/pushtest.sh Healthy <Nutzlast>`
+>   prüft nach `kind`, wohin der Tipp führt, `tools/pushtest.sh Healthy --chat-open` das fehlende Banner.
+> - **Achtung beim Probieren:** Ohne Vorführung fordert die App im Simulator das Briefing an wie auf
+>   dem iPhone (mit echten Token eine Sitzung beim Dienst, höchstens drei am Tag) - nur als Wirt der
+>   Unit-Tests nicht (`BriefingStore.isTestHost`).
+> - **Geprüft:** `tools/verify.sh` auf dem Endstand (alle grün: Healthy 441 Unit-Tests, davon 46 neu -
+>   `ChatTests`, `BriefingTests`, `WeekReviewFormatTests`, `FriendsFormatTests`, `APIErrorMessageTests`,
+>   dazu Monitor, Verträge und Wege in den vorhandenen; Vault 37, Fokus 64, coHabit 189, Sport 59,
+>   ClaudeUsageBar 10; beide Uhren, Einkaufsliste und CloudUsageBar bauen). Im Simulator gesehen
+>   (UI-Tests, iPhone 17, Vorführdaten, hell und dunkel): Dashboard von oben bis unten
+>   (`testDashboardShowsBriefingTilesAndWeekReview`: Briefing, Serien | Eichung, Wochenrückblick), Chat
+>   mit drei Fragen, „Neuer Chat“ mit Rückfrage, leer, eine getippte Frage (`testChatButtonOpensTheChat`),
+>   der Chat über den Weg des Kaltstarts (`testChatRequestBeforeTheDashboardOpensTheChat`), Freunde mit
+>   zwei Karten, Stupser, Code erstellen/eingeben, Entfernen mit Rückfrage, leerer Zustand
+>   (`testStreaksCardOpensFriends`), vier Tabs; die vorhandenen Dashboard-Tests laufen mit den neuen
+>   Karten weiter (Karten führen an ihren Ort, Eiweiß, Strain-Fenster, Logbook, Blätter). **Gegen lokal
+>   gestartete Dienste** (Kalorienzähler und Weight Tracker vom Stand `healthy-plus`, Testpersonen,
+>   Agent-Attrappe; `testBriefingChatAndFriendsAgainstLocalServices`): das Briefing erscheint nach dem
+>   Anfordern, eine Frage wird gestellt und über die Abfrage beantwortet, Kacheln und Rückblick aus
+>   echten Antworten, die Karte einer echten Freundschaft. **Meldungen per `simctl push`**
+>   (`tools/pushtest.sh`): der Tipp auf `chat-answer` öffnet den Chat, der auf `friend-nudge` die
+>   Freunde, ohne Art weiter der Essen-Tab (App jeweils im Hintergrund); bei offenem Chat erscheint
+>   `chat-answer` nicht als Banner, der Stupser danach schon, und sein Tipp schließt den Chat
+>   (`--chat-open`).
+> - **Nicht geprüft:** eine echte Claude-Sitzung (der Agent war eine Attrappe: festes Skript, vier
+>   Sekunden Wartezeit); echte Pushes vom Dienst über APNs und der Tipp bei **beendeter** App (im
+>   Simulator nur mit der App im Hintergrund und über `COCKPIT_TAB=chat`); `streak-warning` (derselbe
+>   Weg wie der Stupser, nur im Unit-Test); der Dialog für Mitteilungen im Zusammenhang; Teilen des
+>   Codes (Share-Sheet); das Briefing nach einem echten Health-Abgleich (im Simulator ohne Health
+>   gleich nach dem Laden); Tastaturverhalten im Chat und das Kontextmenü auf einem echten Gerät; ob
+>   jeder Commit dieses Schritts für sich baut (geprüft ist der Endstand).
+> - **Nächster Schritt:** der Rezepte-Zweig (`healthy-plus-recipes`, eigenes Arbeitsverzeichnis)
+>   kommt auf diesen Stand; danach ausrollen: Dienste, einmaliges Setup auf dem Server, dann
+>   `tools/install-device.sh Healthy --launch` und TestFlight. Auf Felix' iPhone ansehen: Briefing
+>   nach dem ersten Öffnen am Morgen, eine echte Frage im Chat (Antwort nach etwa einer halben
+>   Minute, Push bei geschlossener App), Stupser zwischen zwei Geräten.
+
 > **Healthy: Strain - Puls-Histogramm, Karte im Dashboard, Fenster mit Verlauf und Form-Kurve
 > (10.11., Felix) - gebaut, NICHT installiert:** Teil 2 der Runde vom 10.11. (Branch
 > `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §7 und §5, der Dienst dazu steht

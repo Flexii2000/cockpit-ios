@@ -3,6 +3,77 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-10 — Healthy: Morgen-Briefing, Chat, Wochenrückblick, Serien, Eichung, Freunde-Tab
+Felix will das Dashboard ausbauen und mit Freunden Serien haben. Seine Wahl (10.11.): Morgen-Briefing,
+Wochenrückblick, Eichungs-Monitor und Serien-Kachel im Dashboard (nicht: Zielprognose, Jahres-Kalender);
+ein **Chat mit einer Claude-Instanz auf dem Heimserver**, die alle Healthy-Daten der Person kennt;
+**Freunde eigenständig in Healthy** statt als Fenster auf coHabit, mit Tracking-Serie, drei weiteren
+Serien, Stupser, Wochenvergleich der Schritte und Heute-Status. Gerechnet, gespeichert und gefragt wird
+im Weight Tracker (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §1.6, §8–§10, Anzeige §5).
+
+Entschieden beim Bauen:
+- **Der Chat ist ein Blatt mit einem Knopf in der Leiste des Dashboards**, kein Tab und keine Karte.
+  So stand es im Plan („Knopf oben im Dashboard“); die Leiste unten hat mit den Freunden schon vier
+  Tabs, und eine Karte nähme dem Tag Platz weg. Den Knopf gibt es nur, wenn `GET /api/features`
+  `chat` meldet. Verworfen: fünfter Tab; eine Karte mit den letzten Antworten.
+- **Ein eigener kleiner Chat, nichts aus coHabit.** Der dortige hängt an dessen Farben, Personen,
+  Reaktionen und Abgleich. Hier gibt es zwei Seiten und schlichten Text: Frage rechts, Antwort links,
+  ein Rädchen, solange sie läuft. **Kein Text für den leeren Zustand, keine Vorschläge** - das Feld
+  sagt, was hier geht.
+- **Der Chat gehört dem Dashboard, nicht dem Blatt** (`ChatStore` wie `LogbookStore`). Eine Antwort
+  braucht bis zu zwei Minuten; geht das Blatt zu, läuft sie weiter, und der Knopf ist gefüllt, sobald
+  sie ungesehen dasteht. Gemerkt wird je Person, bis zu welcher Antwort der Chat offen war.
+- **Nachgefragt wird über `GET /api/chat`, nicht über `/messages/{id}`.** Jede GET-Adresse bekommt in
+  `OfflineCache` eine eigene Datei - eine je Frage, die nie mehr gebraucht würde. Die eine Adresse
+  zeigt dafür ohne Netz den letzten Stand des Gesprächs. Der Dienst wertet beide Wege als „abgeholt“
+  (keine Push). Verworfen: ein ungecachtes GET im `APIClient` nur dafür. Takt wie im Vertrag: 1,5 s
+  in den ersten 30 Sekunden, dann 3 s, höchstens fünf Minuten.
+- **Noch einmal fragen: nicht Angekommenes mit derselben Kennung, Gescheitertes mit einer neuen.**
+  Der Dienst gibt für eine bekannte `id` nur den vorhandenen Stand zurück - auch für eine gescheiterte.
+  Eine Frage, die er ablehnt (eine Antwort läuft noch, Tageslimit, Agent nicht erreichbar), geht mit
+  einer kurzen Meldung zurück ins Eingabefeld, statt als Fehler im Gespräch zu stehen.
+- **Kein Banner, solange der Chat offen ist.** `NotificationDelegate` bekommt dafür `shouldPresent`
+  (alle anderen Apps übergeben nichts und zeigen wie bisher alles); `ChatPresence` hält den Zustand
+  hinter einer Sperre, weil der Rückruf auf keinem bestimmten Thread läuft. Der Tipp auf die Meldung
+  öffnet den Chat auch beim Kaltstart: die Bitte zählt der `Router`, das Dashboard holt sie ab
+  (`COCKPIT_TAB=chat` geht denselben Weg, damit er sich im Simulator prüfen lässt).
+- **Ein Weg, der anderswohin führt, schließt Chat und Strain-Fenster.** Ein Blatt liegt über allen
+  Tabs: der Tipp auf einen Stupser wechselte sonst den Tab darunter, und zu sehen wäre weiter der Chat.
+  Der `Router` zählt solche Wege (`dashboardSheetDismissals`), das Dashboard macht seine Blätter zu.
+- **Als Wirt der Unit-Tests fordert die App kein Briefing an.** Healthy startet für `verify.sh` ganz
+  normal; mit Token im Simulator hätte jeder Lauf eine Sitzung beim Dienst gestartet
+  (`BriefingStore.isTestHost`, ein Test hält fest, dass die Erkennung greift). Lesen darf sie weiter.
+- **Das Briefing wird nach dem Health-Abgleich angefordert, ohne Sperre nach Uhrzeit.** Sonst schriebe
+  die Sitzung den Text, bevor die Nacht von heute früh beim Dienst liegt. Eine Uhrzeit-Sperre („erst
+  ab 11 Uhr ohne Nacht“, so stand es in zwei Entwürfen) fiel weg: wer die Uhr nachts nicht trägt,
+  bekäme sein Morgen-Briefing sonst erst mittags; kommt die Nacht später, schreibt der Dienst einmal
+  neu. Der Text von heute wird je Person gemerkt, damit die Karte beim nächsten Start sofort dasteht -
+  gelesen beim ersten Erscheinen, nicht beim Anlegen des Speichers (den durchläuft SwiftUI bei jedem
+  Neuaufbau der Ansicht). Die Karte hat **keine Überschrift** (Vertrag §5).
+- **Freunde als vierter Tab**, so von Felix gewollt. Die Karte folgt Zeile für Zeile der Android-App
+  (drei Punkte für heute, „Ich“ und der Anfangsbuchstabe über den Marken, Stand in Orange, wenn die
+  Serie zu reißen droht, Schritte als Balkenpaare, „Vorwoche“) - beide Handys sollen dasselbe zeigen.
+  Die Balken sind von Hand gezeichnet wie die Woche der Energie-Karte, nicht mit Swift Charts: sieben
+  Paare ohne Achse und ohne Geste.
+- **„Code erstellen“ zeigt einen noch offenen Code wieder**, statt bei jedem Öffnen einen neuen
+  anzulegen (höchstens fünf sind offen). Eine Oberfläche zum Zurückziehen gibt es nicht - ein Code
+  verfällt nach sieben Tagen. Geteilt wird „Mein Code für Healthy: K7Q4-M2XD“; `FriendCode.parse`
+  liest ihn auch aus der eingefügten Nachricht wieder heraus.
+- **Die Erlaubnis für Mitteilungen wird im Zusammenhang erfragt**: bei der ersten Frage im Chat und
+  vor „Code erstellen“/„Code eingeben“ - dort ist klar, wozu sie gut ist (Antwort, Stupser,
+  Serien-Warnung). Wie bei der Schnellerfassung.
+- **Der Wochenrückblick steht ganz unten, die Pfeile werten nicht.** Karten des Tages und Logbook
+  bleiben, wo sie waren. ↑ ↓ → in Textfarbe: ob mehr kcal gut sind, hängt davon ab, was jemand vorhat.
+  Verglichen wird, was dasteht (gerundet gleich ist gleich). Beim Gewicht ist der Wert schon der
+  Vergleich zur Vorwoche; der Pfeil zeigt dessen Richtung.
+- **„Eichung“ ist eine Kachel im Dashboard, nicht im Gewicht-Tab.** Der gemessene Faktor bewegt sich
+  von selbst - so etwas gehört dorthin, wo es neu ist; die Kachel „Kalibrierung“ im Gewicht-Tab zeigt
+  weiter nur „fest“.
+- **Fehler des Weight Trackers als Satz.** Er begründet im Fehler-Rumpf von Spring
+  (`{"status":409,…,"message":"Eine Antwort läuft noch."}`); `APIClient.shortMessage` nimmt daraus
+  jetzt `message`. Bis dahin stand das rohe JSON in der Meldung. Gilt für alle Apps; der Klartext
+  der anderen Dienste bleibt, wie er war.
+
 ## 2026-11-10 — Healthy: Strain aus dem Puls - Histogramm je Tag, Karte, Fenster
 Felix will einen Strain-Wert, der zeigt, wie viel der Tag gekostet hat - gegen ein Ziel für heute -,
 und beim Antippen den Verlauf über Wochen und Monate. Er wählte die **Skala 0–21 mit Zielmarke**

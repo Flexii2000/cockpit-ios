@@ -513,6 +513,106 @@ StrainDay { date, status: OK|CALIBRATING|LOW_COVERAGE|NO_DATA, partial, coverage
 - Die App liest für die Karte `today` und `?from=D−6&to=D`, für das Fenster
   42/90/180/365 Tage bis heute.
 
+### Chat, Morgen-Briefing, Wochenrückblick, Eichungs-Monitor — für Healthy (seit 2026-11-10)
+
+Vertrag: `../weight-app/docs/HEALTHY-CONTRACT.md` §8 (Chat, Briefing), §9 (Rückblick), §1.6
+(Monitor), §5 (Anzeige). Nachgesehen in `../weight-app/src/main/java/…/{features,chat,briefing,
+review}/` und `energy/dto/CalibrationMonitorView`, Branch `healthy-plus`.
+
+⚠️ **Noch nicht ausgerollt.** Ein älterer Dienst antwortet auf alle Pfade hier mit 404 - Knopf und
+Karten fehlen dann, ohne Meldung.
+
+| Methode | Pfad | Rumpf → Antwort |
+|---|---|---|
+| GET | `/api/features` | `{me, chat, briefing, friends}` - `chat`/`briefing`: die Person steht in `HEALTH_CHAT_PEOPLE` **und** der Agent ist vom Dienst aus startbar; `friends` ist immer wahr |
+| GET | `/api/chat` | `{available, exchanges:[Exchange], limits:{perDay, usedToday, maxChars}}` - älteste zuerst, höchstens 100 |
+| POST | `/api/chat/messages` | `{id, text}` → **202** `Exchange` mit `RUNNING` (dieselbe `id` noch einmal: der vorhandene Stand, 202 oder 200) |
+| GET | `/api/chat/messages/{id}` | `Exchange`; 404 unbekannt |
+| DELETE | `/api/chat` | 204 - „Neuer Chat“, eine laufende Antwort wird verworfen |
+| POST | `/api/briefing/today` | 200 `Briefing` oder 202 mit `RUNNING` - idempotent, fordert das Briefing von heute an |
+| GET | `/api/briefing/today` | `Briefing` - löst nie etwas aus (`NONE`, solange es keins gibt) |
+| GET | `/api/review/week[?start=<Montag>]` | `{week: WeekStats, previous: WeekStats, sources:{food}}` - ohne `start` die letzte volle Woche |
+
+```
+Exchange  { id, question, askedAt, status: RUNNING|DONE|FAILED, answer?, answeredAt?, error?, elapsedSeconds }
+Briefing  { date, status: NONE|RUNNING|DONE|FAILED, text?, generatedAt? }
+WeekStats { from, to, kcalAvg?, deficitAvg?, trackedDays, weightAvg?, weightDays, weightDeltaKg?,
+            proteinGreenDays, proteinYellowDays, proteinRedDays, stepsAvg?, stepsDays, strainAvg?, strainDays }
+CalibrationMonitor { status: OK|FOOD_UNAVAILABLE|TOO_FEW_TRACKED_DAYS|TOO_FEW_WEIGHTS|TOO_FEW_WATCH_DAYS|NOT_ESTIMABLE,
+                     factor?, se?, windowFrom, windowTo, weights, trackedDays, imputedIntakeDays, watchDays,
+                     waterKgPer1000Kcal? }      // als calibrationMonitor in GET /api/energy/summary
+```
+
+- **Fehler kommen als Spring-Rumpf**, nicht als Klartext:
+  `{"timestamp":…,"status":409,"error":"Conflict","message":"Eine Antwort läuft noch.","path":…}`.
+  `APIClient.shortMessage` nimmt daraus seit 10.11. nur `message` - bis dahin stand das rohe JSON
+  in der Meldung (betraf jeden Fehler des Weight Trackers, etwa beim Größen-Blatt).
+- **Zeitpunkte tragen Bruchteile von Sekunden** (`2026-11-10T12:39:55.700686Z`) - `APIClient.decoder()`
+  schneidet sie ab; mit `.iso8601` wären sie nicht lesbar.
+- **Chat, `POST`:** `id` muss eine UUID in **Kleinbuchstaben** sein (400), `text` 1–1.000 Zeichen
+  (400), 403 nicht freigeschaltet, **409** solange eine Antwort dieser Person läuft, **429** nach 30
+  Fragen am Tag (auch gescheiterte zählen), **503** Agent nicht erreichbar oder zehn Fragen in der
+  Warteschlange. Eine `id`, die es schon gibt, stellt nichts neu - **auch eine gescheiterte nicht**:
+  wer eine gescheiterte Frage wiederholen will, braucht eine neue `id`.
+- **Abfragen:** die App fragt, solange eine Antwort läuft, **`GET /api/chat`** ab (1,5 s in den
+  ersten 30 Sekunden, dann 3 s, höchstens fünf Minuten) - nicht `/messages/{id}`: jede Adresse bekäme
+  in `OfflineCache` eine eigene Datei. Der Dienst wertet beide Wege als „abgeholt“. Holt die App eine
+  fertige Antwort 8 Sekunden lang nicht ab, schickt er die Push `chat-answer` (über den
+  Kalorienzähler, siehe dort).
+- **Antworten** sind schlichter Text mit Absätzen und „– “-Aufzählungen, höchstens 4.000 Zeichen -
+  kein Markdown. Der Agent hat auf dem Server 120 Sekunden; danach ist die Frage `FAILED` mit einem
+  Satz in `error`.
+- **Briefing:** ein Text je Person und Tag (Europe/Berlin), höchstens 400 Zeichen, höchstens drei
+  Läufe am Tag. **Keine Sperre nach Uhrzeit.** Kommt nach dem Schreiben eine Nacht für heute an,
+  schreibt der nächste `POST` ihn einmal neu (`RUNNING` **mit** dem alten `text`). 503 nur ohne Agent
+  und ohne Text von heute. Die App ruft `POST` erst nach ihrem Health-Abgleich und fragt bei
+  `RUNNING` alle 5 s mit `GET` nach, höchstens zwei Minuten. Keine Push.
+- **Rückblick:** jeder Wert ist `null`, wenn kein Tag zählt - nie 0. kcal, Defizit und Eiweiß-Tage
+  zählen nur getrackte Tage; die Eiweiß-Farben mit den **heutigen** Zielen. `weightDeltaKg` ist das
+  Mittel dieser Woche minus das der Vorwoche (`null` unter drei Messungen in einer der beiden).
+  `start` muss ein Montag sein und darf nicht in der Zukunft liegen (400).
+- **Monitor:** nur Anzeige - der Verbrauch rechnet weiter mit `calibration.factor`. Ohne `OK` sind
+  `factor` und `se` `null`. Fehlt bei einem älteren Dienst ganz; dann fehlt die Kachel „Eichung“.
+
+### Freunde und Serien — für Healthy (seit 2026-11-10)
+
+Vertrag: `../weight-app/docs/HEALTHY-CONTRACT.md` §10 und §5 (Serien-Kachel). Nachgesehen in
+`../weight-app/src/main/java/…/friends/` (`FriendsController`, `dto/`, `service/FriendsService`).
+
+| Methode | Pfad | Rumpf → Antwort |
+|---|---|---|
+| GET | `/api/friends` | `{me:{person, name}, friends:[Friend], invites:[{code, expiresAt}]}` - `friends` nach Namen sortiert |
+| POST | `/api/friends/invites` | → **201** `{code, expiresAt}` - `K7Q4-M2XD`, 7 Tage, einmal einlösbar; **409** bei fünf offenen |
+| DELETE | `/api/friends/invites/{code}` | 204 (die App ruft das nicht) |
+| POST | `/api/friends` | `{code}` → **201** `Friend`; 404 unbekannt/abgelaufen, 400 eigener Code, 409 schon befreundet, 429 nach zehn Fehlversuchen je Stunde |
+| DELETE | `/api/friends/{id}` | 204, für beide Seiten; 404 fremde Freundschaft |
+| POST | `/api/friends/{id}/nudge` | `{delivered}`; **429** zweiter Stupser am selben Tag, **409** drüben ist nichts mehr offen |
+| GET | `/api/streaks` | `{tracking:{current, best, todayDone}, topFriend?:{friendshipId, name, type, current, atRisk}}` - die Serien-Kachel |
+
+```
+Friend { id, person, name, since,
+         today { tracked, recoveryBand?: GREEN|YELLOW|RED, strainBand?: LIGHT|MODERATE|HIGH|ALL_OUT },
+         streaks [{ type: TRACKED|PROTEIN|STEPS|KCAL, current, best, me, friend: DONE|OPEN|FAILED|UNKNOWN, atRisk }],
+         steps { weekStart, days [{ date, me?, friend? }], me, friend, lastWeek { me, friend } },
+         nudge { allowed } }
+```
+
+- **Freunde sehen voneinander genau diese Felder** - ja/nein je Serie, Schritte, Recovery und Strain
+  als Band. Nie kcal, Gewicht oder ein Score; der Dienst prüft das in einem Test.
+- `streaks` enthält immer alle vier Arten in dieser Reihenfolge. Die App zeigt nur Arten, die sie
+  kennt (`FriendsFormat.label`); eine neue fehlt, statt die Karte unlesbar zu machen.
+- `current` zählt die Tage ab `since`, an denen **beide** erfüllt haben, bis gestern - und heute
+  dazu, sobald beide erfüllt haben. Eine neue Freundschaft beginnt bei 0. `atRisk`: Stand bis
+  gestern ≥ 2 und heute ist mindestens eine Seite `OPEN`.
+- `steps.days` reicht von Montag bis heute; `steps.me`/`friend` sind die Summen.
+- `nudge.allowed` sagt vorher, ob ein Stupser geht. Kommt trotzdem 409, schaltet die App den Knopf
+  still aus und lädt neu.
+- **Der Code** darf beim Einlösen groß oder klein, mit Bindestrich, Leerzeichen oder ohne stehen;
+  die App liest ihn auch aus einer eingefügten Nachricht (`FriendCode.parse`).
+- **Pushes** kommen über den Kalorienzähler (Vertrag §11.5), mit `kind` in der Nutzlast:
+  `friend-nudge` und `streak-warning` öffnen den Freunde-Tab, `chat-answer` den Chat
+  (`HealthyRoute.notification`). Dieselben Ziele haben `healthy://friends` und `healthy://chat`.
+
 ## Kalorienzähler — `/api/food`
 
 | Methode | Pfad | Antwort |

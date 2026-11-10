@@ -5,7 +5,7 @@ bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Dashboard (Recovery, Energie, Logbook), Essen (Kalorienzähler), Gewicht (Weight Tracker); Uhr-App mit kcal-Komplikation | `com.fherrmann.cockpit` | – |
+| **Healthy** | Dashboard (Recovery, Strain, Energie, Logbook, Chat), Essen (Kalorienzähler), Gewicht (Weight Tracker), Freunde (Serien); Uhr-App mit kcal-Komplikation | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen, Cloud (AWS, Verda) | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | To-Do, Wald, Einkaufsliste, Evaluation | `com.fherrmann.fokus` | Evaluation, Face ID |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
@@ -43,7 +43,16 @@ Atemfrequenz gegen die eigenen 60 Nächte, mit eigener Seite), die
 **Energiebilanz** (Verbrauch, gegessen, Defizit), Gewicht und was vom kcal-Ziel
 übrig ist, und das **Logbook**: eigene Verhaltensweisen je Tag eintragen und
 sehen, was davon mit der Recovery am nächsten Morgen zusammenhängt. Gerechnet
-wird im Weight Tracker; die App liest Apple Health und zeigt.
+wird im Weight Tracker; die App liest Apple Health und zeigt. Seit 10.11. dazu:
+der **Strain** des Tages gegen ein Ziel, ganz oben ein **Morgen-Briefing** in
+zwei, drei Sätzen, die Kacheln **Serien** und **Eichung**, ganz unten der
+**Wochenrückblick** - und in der Leiste ein **Chat** mit einer Claude-Instanz
+auf dem Heimserver, die die eigenen Healthy-Daten kennt.
+
+**Freunde** — Serien mit anderen Healthy-Personen, verbunden über einen
+Einladungscode: Tracking, Eiweißziel, Schrittziel, Kalorienziel, dazu die
+Schritte der Woche im Vergleich und ein Stupser. Voneinander sieht man nur
+ja/nein je Serie, die Schritte und Recovery und Strain als Farbe.
 
 **Essen** — Tagesansicht nach Mahlzeiten mit Teilsumme gegen das jeweilige
 Mahlzeitenziel, vier Tachos (kcal plus die drei Makros), Gerichte-Merkliste,

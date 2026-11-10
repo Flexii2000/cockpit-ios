@@ -58,10 +58,20 @@ Dreiteilig, und in M2 genauso wie in M1:
 ## Ordner
 
 ```
-Healthy/            App: Dashboard, Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine (Gym seit 23.10. in Sport)
+Healthy/            App: Dashboard, Essen, Gewicht, Freunde (seit 10.11.), Health-Abgleich,
+                    Diagramm-Bausteine (Gym seit 23.10. in Sport)
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
   Dashboard/        der erste Tab: Karten für Recovery, Strain, Energie (EnergyCardModel), Gewicht, Essen,
-                    darunter das Logbook; Vorführdaten - auch für Essen- und Gewicht-Tab
+                    Serien und Eichung, darunter das Logbook; Freischaltungen (HealthFeatures);
+                    Vorführdaten - auch für Essen- und Gewicht-Tab
+  Briefing/         Morgen-Briefing (seit 10.11.): BriefingStore fordert es nach dem Health-Abgleich an
+                    und merkt den Text von heute, BriefingCard ganz oben im Dashboard
+  Chat/             Chat mit der Claude-Instanz auf dem Server (seit 10.11.): ChatStore (gehört dem
+                    Dashboard, fragt nach, solange eine Antwort läuft), ChatTimeline (Blasen, rein),
+                    ChatSheet, ChatPresence (kein Banner, solange der Chat offen ist)
+  Review/           Wochenrückblick (seit 10.11.): WeekReviewCardModel (rein), Karte ganz unten
+  Friends/          Freunde-Tab (seit 10.11.): FriendsStore, FriendCard (Serien, Schritte der Woche),
+                    Code erstellen/eingeben (InviteSheets), Texte und Code-Erkennung (FriendsFormat)
   Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
   Strain/           Strain beim Weight Tracker (seit 10.11.): Karte im Dashboard (StrainCardModel), Fenster
                     mit Verlauf und Form-Kurve (StrainSheet, StrainChartData), Puls-Histogramm als Upload
@@ -368,7 +378,10 @@ höchstens stündlich für Schritte, nur damit die Sperrbildschirm-Kacheln einen
 frischen Health-Stand haben (`StepsMirror`; ohne Upload, gesperrt scheitert das
 Lesen ohnehin) - und seit 10.11. stündlich für den Puls: dann gehen die
 Histogramme von heute und gestern zum Dienst, damit der Strain frisch bleibt
-(nur entsperrt; solange die App läuft, höchstens alle 15 Minuten). Beim Gewicht
+(nur entsperrt; solange die App läuft, höchstens alle 15 Minuten). Das
+Morgen-Briefing hängt am Abgleich im Vordergrund, nicht an diesen Weckrufen:
+`DashboardTab` fordert es an, wenn der Abgleich dieses Öffnens durch ist
+(`BriefingStore.ensure`). Beim Gewicht
 merkt sich ein Anker, was schon geholt wurde, und wird erst **nach**
 erfolgreichem Senden gespeichert — sonst gingen Werte verloren, wenn der
 Server gerade nicht erreichbar war. Beim Schlaf bildet der Weckruf die letzten
@@ -485,7 +498,15 @@ Seit die App im Dashboard aufmacht, muss jeder Weg sagen, wohin er will:
 Mitteilung **ohne** Art oder mit `quick-capture` → Essen (die APNs-Meldung des
 Kalorienzählers hat keine Art), `logbook` → Dashboard, gescrollt zum Logbook auf
 gestern (`Router.logbookRequests`); Link `healthy://food` (Kalorien-Kachel) → Essen
-mit heute, `healthy://dashboard` (Schritte-Kacheln) → Dashboard. `evaluation` führt
+mit heute, `healthy://dashboard` (Schritte-Kacheln) → Dashboard. Seit 10.11. dazu die
+Arten des Weight Trackers (Vertrag §11.5; er schickt sie über den Kalorienzähler):
+`friend-nudge` und `streak-warning` → Freunde-Tab, `chat-answer` → Dashboard samt
+offenem Chat (`Router.chatRequests`, das Dashboard öffnet sein Blatt - auch beim
+Kaltstart, wenn die Bitte vor der Ansicht kommt); ebenso `healthy://friends` und
+`healthy://chat`. Steht der Chat schon offen, erscheint „Deine Antwort ist da.“ nicht
+als Banner (`NotificationDelegate(shouldPresent:)` fragt `ChatPresence`). Führt ein Weg
+anderswohin als in den Chat, schließt das Dashboard sein Blatt (Chat, Strain-Fenster;
+`Router.dashboardSheetDismissals`) - es läge sonst über dem Ziel. `evaluation` führt
 seit 14.10. nirgends mehr hin - die Erinnerung kommt aus Fokus. Das URL-Schema steht in
 einer eigenen `Healthy/Info.plist` (wie bei Fokus und coHabit erzeugt aus
 `project.yml`, die übrigen Schlüssel kommen weiter aus den
