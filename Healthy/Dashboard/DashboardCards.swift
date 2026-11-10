@@ -53,7 +53,7 @@ struct EnergyCard: View {
         VStack(alignment: .leading, spacing: 10) {
             CardTitle(title: "Energie")
             if let headline = model.headline {
-                let color = headline.isSurplus ? Palette.surplus : Palette.deficit
+                let color = headline.isSurplus ? Palette.surplus : Palette.deficitBalance
                 Text("\(headline.word) \(Text(headline.amount).foregroundStyle(color))")
                     .font(.title2.weight(.semibold).monospacedDigit())
                     .lineLimit(1)
@@ -72,8 +72,8 @@ struct EnergyCard: View {
 }
 
 /// Gegessen gegen Verbrauch als ein Balken: gelb bis „gegessen", die Luecke
-/// bis zum Verbrauch in Defizit-Farbe, was darueber hinausgeht, in
-/// Ueberschuss-Farbe, und eine Marke beim Verbrauch.
+/// bis zum Verbrauch gruen (Defizit), was darueber hinausgeht, rot
+/// (Ueberschuss), und eine Marke beim Verbrauch.
 private struct EnergyBalanceBar: View {
 
     let bar: EnergyCardModel.BalanceBar
@@ -90,7 +90,7 @@ private struct EnergyBalanceBar: View {
                 ZStack(alignment: .leading) {
                     HStack(spacing: 0) {
                         Rectangle().fill(Palette.kcal).frame(width: width * bar.eaten)
-                        Rectangle().fill(Palette.deficit).frame(width: width * bar.gap)
+                        Rectangle().fill(Palette.deficitBalance).frame(width: width * bar.gap)
                         Rectangle().fill(Palette.surplus).frame(width: width * bar.overflow)
                     }
                     .frame(height: barHeight)
@@ -165,7 +165,7 @@ private struct EnergyWeek: View {
                     // Im Bild bleiben, auch wenn ein Strich an einem Rand liegt.
                     let top = min(max(bar.isSurplus ? zero : zero - length, 0), size.height - length)
                     RoundedRectangle(cornerRadius: min(2, length / 2))
-                        .fill(bar.isSurplus ? Palette.surplus : Palette.deficit)
+                        .fill(bar.isSurplus ? Palette.surplus : Palette.deficitBalance)
                         .frame(width: barWidth, height: length)
                         .offset(x: column * (CGFloat(index) + 0.5) - barWidth / 2, y: top)
                 }

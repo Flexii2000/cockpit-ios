@@ -28,16 +28,22 @@ enum Palette {
     /// Gelb der kcal und dem Blau des Messwerts bleibt es unterscheidbar, und
     /// die Luecke zwischen ihm und „kcal ⌀" ist das Defizit.
     static let expenditure = Color.adaptive(light: 0x4338CA, dark: 0x6E7BFF)
-    /// Defizit: die Kurve „Defizit ⌀", die Zahl und die Balken der
-    /// Energie-Karte. Orange - weit weg vom Gruen und Blau des Gewichts, neben
-    /// dem die Kurve jetzt vorgewaehlt steht (das fruehere Petrol lag zu nah
-    /// daran), und vom Indigo des Verbrauchs.
+    /// Die Kurven „Defizit ⌀" und „Defizit Tag" samt Nulllinie und Skala.
+    /// Orange - weit weg vom Gruen und Blau des Gewichts, neben dem die Kurve
+    /// vorgewaehlt steht (das fruehere Petrol lag zu nah daran), und vom
+    /// Indigo des Verbrauchs.
     static let deficit = Color.adaptive(light: 0xE8590C, dark: 0xFF922B)
+    /// Defizit als Bilanz - ueberall, wo Defizit gegen Ueberschuss steht: Zahl,
+    /// Bilanzbalken und Wochenbalken der Energie-Karte, die Flaeche zwischen
+    /// „Verbrauch ⌀" und „kcal ⌀" (Felix, 10.11.: gruen = Defizit, rot =
+    /// drueber). Die Kurven bleiben Orange: neben „Gewicht ⌀" stuende sonst ein
+    /// zweites Gruen.
+    static let deficitBalance = Color.adaptive(light: 0x2B8A3E, dark: 0x51CF66)
     /// Ueberschuss - wo mehr gegessen als verbraucht wurde.
     static let surplus = Color.adaptive(light: 0xD33131, dark: 0xEF5350)
     /// Die Flaeche zwischen „Verbrauch ⌀" und „kcal ⌀": hell 16 %, dunkel
     /// 20 % - auf dunklem Grund traegt dieselbe Deckkraft weniger.
-    static let deficitFill = Color.adaptive(light: 0xE8590C, dark: 0xFF922B,
+    static let deficitFill = Color.adaptive(light: 0x2B8A3E, dark: 0x51CF66,
                                             lightOpacity: 0.16, darkOpacity: 0.2)
     static let surplusFill = Color.adaptive(light: 0xD33131, dark: 0xEF5350,
                                             lightOpacity: 0.16, darkOpacity: 0.2)
@@ -45,8 +51,8 @@ enum Palette {
     // MARK: - Strain (Vertrag §5, seit 10.11.)
 
     /// Der Strain: Zahl, Balken und die Linie „Akut“ - zugleich das Band
-    /// `MODERATE`. Blau, weit weg vom Orange des Defizits direkt darunter im
-    /// Dashboard.
+    /// `MODERATE`. Blau, weit weg vom Gruen und Rot der Energie-Karte direkt
+    /// darunter im Dashboard.
     static let strain = Color.adaptive(light: 0x1971C2, dark: 0x4DABF7)
     /// Ueber dem Ziel: der Teil des Balkens hinter der Marke - zugleich das
     /// Band `HIGH`.

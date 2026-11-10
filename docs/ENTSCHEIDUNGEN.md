@@ -3,6 +3,15 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-10 — Defizit als Bilanz grün, Kurven bleiben orange
+Felix: „grün = Defizit, rot = drüber“. Überall, wo Defizit gegen Überschuss steht - Zahl,
+Bilanzbalken und Wochenbalken der Energie-Karte, Fläche zwischen „Verbrauch ⌀“ und „kcal ⌀“ - ist
+ein Defizit jetzt grün (`Palette.deficitBalance`, hell `#2B8A3E`, dunkel `#51CF66`), der Überschuss
+bleibt rot. **Verworfen:** auch die Kurven „Defizit ⌀“/„Defizit Tag“ grün - im Gewicht-Diagramm
+sind „Gewicht ⌀“ (grün) und „Defizit ⌀“ zusammen vorgewählt, genau deshalb wich das Defizit am
+12.10. von Petrol auf Orange; ebenso verworfen, „Gewicht ⌀“ umzufärben. Felix hat die Variante
+„Karte grün, Kurven orange“ gewählt. Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §5.
+
 ## 2026-11-10 — Uhr: Makros als Tachos, nicht als Balken
 Felix nach dem ersten Blick auf die Uhr: „mach in der Watch-App bitte auch Tachos und nicht
 Balken“. Unter dem kcal-Bogen stehen deshalb drei kleine Tachos nebeneinander (`WatchMacroGauge`

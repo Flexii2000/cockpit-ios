@@ -1,13 +1,20 @@
 # Stand
 
+> **Defizit grün, Überschuss rot (10.11., Felix):** Zahl, Bilanzbalken und Wochenbalken der
+> Energie-Karte und die Fläche zwischen „Verbrauch ⌀“ und „kcal ⌀“ zeigen ein Defizit jetzt grün
+> (`Palette.deficitBalance`, hell `#2B8A3E`, dunkel `#51CF66`), einen Überschuss weiter rot. Die
+> Kurven „Defizit ⌀“/„Defizit Tag“ bleiben orange (`Palette.deficit`) - Felix' Wahl gegen „überall
+> grün“, weil neben „Gewicht ⌀“ sonst zwei Grüntöne stünden. Vertrag §5 („Farben“), Android und
+> beide Weboberflächen gleich. Demo-Dashboard hell und dunkel im Simulator angesehen.
+
 > **Runde vom 10.11. ausgerollt (Stand 10.11., 15:30):** die vier Blöcke darunter stehen in `main`
 > (`815f8b4`, `tools/verify.sh` grün auf dem zusammengeführten Stand). Die Dienste laufen seit 15:16
 > mit dem neuen Stand (`../food`, `../weight-app`, `../shopping`), **Healthy mit Uhr-App und Fokus
 > sind seit 15:30 auf Felix' iPhone** (`tools/install-device.sh`), Android 1.12 (72) ist
 > veröffentlicht.
-> - **Offen auf dem Server:** das einmalige Setup mit sudo (Agenten für Chat, Briefing und
->   Rezept-Chat, Zugang für die zweite Person). Bis dahin fehlen Chat-Knopf und Briefing
->   (`/api/features` meldet `chat:false`), und „Kochen“ legt noch kein Gericht in Healthy an.
+> - **Server-Setup:** Zugang der zweiten Person, Chat und Briefing seit 10.11. ~15:40 durch und mit
+>   echten Sitzungen geprüft. Offen ist nur noch der Rezept-Schritt (`setup-recipes.sh`, Felix); bis
+>   dahin legt „Kochen“ noch kein Gericht in Healthy an.
 > - **Offen bei Apple:** TestFlight für Healthy und Einkaufsliste – der Export braucht erst die
 >   neue Lizenzvereinbarung und einen App-Store-Connect-Eintrag für `com.fherrmann.cockpit`.
 > - **Nur auf Geräten zu prüfen:** Puls-Rückholung und Strain mit echten Werten, Pushes (Stupser,
