@@ -34,7 +34,7 @@ Tagessummen); die Apps zeigen.
 | `Shopping/` | Fokus **und** Einkaufsliste (bis 14.10. Healthy statt Fokus) | der Einkaufs-Tab samt Store — Typen mit `Shopping`-Präfix, weil Healthy ein `DishEditSheet` hat |
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/`, `Sport/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
-| `HealthyWatch/`, `HealthyWatchWidget/` | die Uhr-App von Healthy und ihre Komplikation (watchOS) | dazu `Shared/` **ohne** die iPhone-Kacheln (`_watch_excludes` in project.yml: `CaloriesWidgetView`, `Color+Hex`, `Macro`, `GaugeView`, `Focus*`) — was dort neu dazukommt, muss auf watchOS bauen |
+| `HealthyWatch/`, `HealthyWatchWidget/` | die Uhr-App von Healthy und ihre Komplikation (watchOS) | dazu `Shared/` **ohne** die iPhone-Kacheln (`_watch_excludes` in project.yml: `CaloriesWidgetView`, `Color+Hex`, `MacroTone+Gradient`, `GaugeView`, `Focus*`, `Steps*`) — was dort neu dazukommt, muss auf watchOS bauen. `Macro.swift` baut seit 10.11. mit (die Uhr zeigt die Makros) und bleibt deshalb **ohne SwiftUI** |
 | `HealthyWatchShared/` | Healthy, HealthyWatch **und** HealthyWatchWidget | Botschaften zwischen iPhone und Uhr, Komplikations-Stand und -Ansicht — nur Foundation/SwiftUI |
 | `SportWatch/` | die Uhr-App von Sport (watchOS) | Krafttraining und Padel-Match; dazu `Shared/` mit denselben `_watch_excludes` wie HealthyWatch |
 | `SportWatchShared/` | Sport **und** SportWatch | Botschaften des Trainings (`WorkoutMessage`, `WorkoutPlan`), das Zählen beim Padel (`PadelScore`), Ergebnisse auf dem Weg zum Dienst (`PadelReportOutbox`) — nur Foundation, kein HealthKit |
@@ -90,6 +90,7 @@ tools/run-simulator.sh Healthy weight bild.png   # eine App, ein Tab, mit Zugang
 tools/install-device.sh all --launch             # alle sechs aufs iPhone (oder eine), Healthy und Sport samt Uhr
 tools/testflight.sh Einkaufsliste                # archivieren + zu TestFlight hochladen (API-Schluessel mit Rolle Admin)
 tools/testflight.sh Einkaufsliste --export-only  # nur .ipa bauen (signiert wie der Upload)
+tools/testflight.sh Healthy --export-only        # dito fuer Healthy samt Kachel, Uhr-App, Komplikation; zeigt je Bundle aps-environment und Privacy-Manifest
 tools/install-mac.sh CloudUsageBar               # Mac-App als Release nach /Applications und starten (entfernt die alte AWSUsageBar)
 tools/install-mac.sh ClaudeUsageBar              # dito; eine fremde App gleichen Namens nur mit --replace-foreign
 ```
@@ -212,7 +213,9 @@ Debug-Schalter, die nur im Debug-Build wirken:
 |---|---|
 | `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`; Sport `padel`, `gym`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
 | `COCKPIT_GYM_DEMO=1` | füllt den Gym-Tab (Sport, bis 23.10. Healthy) mit zwei erfundenen Tagen („Tag A", „Gerät A", zwei Spannen, Notiz „Sitz 4") und acht Wochen Verlauf - nur im Speicher, nie gesendet; `COCKPIT_GYM_WORKOUT=1` startet dazu gleich das Training samt erfundener Uhr-Werte |
-| `COCKPIT_WATCH_DEMO=kcal` | in der Uhr-App von Healthy (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 - der Uhren-Simulator legt keine Komplikation aufs Zifferblatt |
+| `COCKPIT_WATCH_DEMO=kcal` | in der Uhr-App von Healthy (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 samt Makros (E 96/195 mit Erhalt 140 - also rot -, F 41/70, KH 180/236) - der Uhren-Simulator legt keine Komplikation aufs Zifferblatt und hat keinen Zugang |
+| `COCKPIT_HEALTH_TOKEN=<token>` | Healthy als **eine Person** statt als Felix (seit 10.11.): ihr persönlicher Token (`HEALTH_TOKENS` des Dienstes), als wäre er im Zugang-Blatt eingetragen. `run-simulator.sh` und `uitest.sh` nehmen dann Felix' Token im Simulator weg (`COCKPIT_FH_PRIVATE_TOKEN=none`, `COCKPIT_WEIGHT_TOKEN=none`) und geben ohne die Variable `none` mit - der Schlüsselbund des Simulators überlebt jeden Lauf, und ein liegengebliebener persönlicher Token überstimmte Felix' Cookies. `COCKPIT_HEALTH_NAME=person-a` setzt den Namen fürs Zugang-Blatt („✓ Person-a“). ⚠️ Immer mit `COCKPIT_NO_HEALTH=1`, sonst lädt der Abgleich die Health-Daten des Geräts ins Konto der Person; und nur gegen lokal gestartete Dienste mit einer Testperson |
+| `COCKPIT_FH_PRIVATE_TOKEN=none`, `COCKPIT_WEIGHT_TOKEN=none` | nimmt Felix' Token im Simulator weg - zusammen das Zugang-Blatt eines frischen iPhones (Feld „Token oder Link“, darunter zugeklappt „Besitzer-Token“) |
 | `COCKPIT_WATCH_DEMO=padel\|padel-metrics\|workout\|stations\|home` | in der Uhr-App von Sport (ebenso per `SIMCTL_CHILD_`): ein Padel-Match bei 6:4 3:2 und 40:40 mit Golden Point (`padel-metrics` auf der Seite mit Dauer, Puls und kcal), ein laufendes Krafttraining (`stations` auf der Geräteliste) bzw. der Start ohne Health-Dialog mit einem Ergebnis von heute - der Uhren-Simulator spiegelt kein Training, misst nichts und kann nicht blättern. Werte erfunden, nichts geht an Health oder den Dienst |
 | `COCKPIT_PADEL_DEMO=1` | füllt den Padel-Tab (Sport) mit erfundenen Terminen, Buchungen, Serien und einem Ergebnis, Mitspieler „Person A" (gelb) und „Person B" (türkis) - nur im Speicher, keine Anfrage an den Dienst; Ändern tut nichts |
 | `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Fokus) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
@@ -333,8 +336,17 @@ sag das dann auch so.
   Der Wald nutzt noch den alten **Postausgang**
   (`Outbox`); dorthin dürfen nur Änderungen, die später genauso gelten (mit
   Datum im Rumpf oder Pfad), mit `queueWhenOffline: true`.
-- **Kein Multi-User, keine Registrierung** — außer in coHabit. Healthy,
-  Vault, Fokus und Einkaufsliste bleiben bei einer Person, einem Gerät, einem
-  geteilten Geheimnis. coHabit hat Personen mit eigenem Token (App-Link,
-  Healthy-Link oder beim Annehmen einer Einladung ausgestellt); den
-  Master-Token `fh_private` bekommt es nie.
+- **Kein Multi-User, keine Registrierung** — außer in coHabit und, seit
+  10.11., **eine Person je Gerät in Healthy**: Healthy läuft entweder mit
+  Felix' Token oder mit dem **persönlichen Token genau einer Person**
+  (`health_token`, vom Dienst ausgestellt; `docs/ENTSCHEIDUNGEN.md`,
+  2026-11-10) - weiterhin ohne Registrierung, ohne Konten-Wechsel in der App,
+  und `fh_private` kommt nie auf ein zweites Handy. Vault, Fokus und
+  Einkaufsliste bleiben bei einer Person, einem Gerät, einem geteilten
+  Geheimnis. coHabit hat Personen mit eigenem Token (App-Link, Healthy-Link
+  oder beim Annehmen einer Einladung ausgestellt); den Master-Token
+  `fh_private` bekommt es nie.
+- **In Healthy nie den persönlichen Token einer anderen Person auf Felix'
+  iPhone eintragen**, solange Health an ist: der Abgleich lüde seine Nächte,
+  Schritte und Gewichte in ihr Konto. Zum Ausprobieren eine Testperson gegen
+  lokal gestartete Dienste, mit `COCKPIT_NO_HEALTH=1`.

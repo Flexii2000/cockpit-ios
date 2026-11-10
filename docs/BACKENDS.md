@@ -41,8 +41,13 @@ Zwei verschiedene Token, beide langlebig, beide als Cookie:
   die App setzt es entsprechend eng (`Path=/grades`).
 - **`health_token`** / `Authorization: Bearer` — seit 2026-09 ein
   **persönlicher Token je Person**, derselbe für Kalorienzähler **und** Weight
-  Tracker (siehe „Persönliche Token" unten). Die iPhone-App braucht ihn nicht:
-  `fh_private` und `weight_app_token` meinen weiterhin Felix.
+  Tracker (siehe „Persönliche Token" unten). **Healthy auf dem iPhone kann seit
+  2026-11-10 beides**: Felix' `fh_private` + `weight_app_token` wie bisher, oder
+  den persönlichen Token einer Person als Cookie `health_token` auf
+  `.fherrmann.com` (`Access(usesHealthToken:)`, Feld „Token oder Link“ im
+  Zugang-Blatt, vorher geprüft gegen `/api/food/features` und
+  `/api/weight/summary`). Kacheln und Uhr hängen denselben Cookie selbst an
+  (`HealthCookie`). Die übrigen Apps kennen ihn nicht.
 - **`shopping_token`** — eigenes Token **je Person** nur für
   `/shopping-list`, im Browser über `/shopping-list/setup?token=…`. Der
   Dienst liegt **nicht** hinter dem Privat-Gate und nimmt den Token als
@@ -100,9 +105,11 @@ Was damit dazukam:
 | weight | GET | `/setup?token=` | alter Token → `weight_app_token` wie bisher; persönlicher → `health_token` |
 
 ⚠️ **`WeightSummary` hat `heightCm`** — für Felix `194` als Vorgabe
-(`weight.owner-height-cm`), solange nichts gespeichert ist. Die iOS-App rechnet
-den BMI weiter mit ihrem festen `WeightWidget.heightM`; beides ergibt für Felix
-dieselbe Zahl.
+(`weight.owner-height-cm`), solange nichts gespeichert ist; für jede andere
+Person `null`, bis sie eine Größe einträgt. Die iOS-App rechnet den BMI seit
+2026-11-10 damit (ohne Größe „–“) und setzt sie über „Größe …“ im Gewicht-Tab
+(`PUT /api/weight/height`, `HeightSheet`); das feste `WeightWidget.heightM` gibt
+es nicht mehr.
 
 ⚠️ **Eine neue Person hat kein Vorhaben**, bis sie ein Ziel setzt: dann sind
 `target`, `targetDate`, `goalWeight`, `startWeight`, `recordingStart`, die
@@ -470,12 +477,12 @@ geprüft in `HealthEnergyTests`).
 | POST | `/api/food/entries` | Body `NewEntryRequest` → `DaySummary`; seit 12.10. mit `id` (kleingeschriebene UUID der App): dieselbe noch einmal legt nichts an, sondern liefert den Tag des vorhandenen Eintrags - die App schickt jeden Eintrag so über die Warteschlange (`FoodChange`) |
 | DELETE | `/api/food/entries/{id}` | `DaySummary` |
 | PUT | `/api/food/entries/{id}` | `{grams, meal?, date?}` — Menge, Mahlzeit, Tag berichtigen; das Gericht bleibt. Antwort: der Tag, auf dem der Eintrag danach liegt — bei einem Tagwechsel also **nicht** der angezeigte |
-| GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest` |
-| GET | `/api/food/features` | `{quickCapture: Bool}` |
+| GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest`. Mit der Runde vom 2026-11-10 (Vertrag §11.1, kommt mit dem Dienst dieser Runde) tragen die Ziele `proteinMinG` (Eiweiß Erhalt) und `proteinMinDefault`; `PUT` nimmt `proteinMinG` (fehlend = unverändert, `0` = Vorgabe). Die App färbt Eiweiß damit rot/gelb/grün (`NutritionTone.proteinTone`); ohne das Feld gilt die alte Regel |
+| GET | `/api/food/features` | `{quickCapture: Bool, me: String?}` — `me` nennt die Person des Zugangs; die App zeigt sie im Zugang-Blatt |
 | POST | `/api/food/quick-capture` | Body `{date, text, meal, imageJpegBase64?}` → `QuickCaptureJob`; mit Foto darf `text` leer sein (Kontext) |
 | GET | `/api/food/quick-capture/{id}` | `QuickCaptureJob` |
 | GET | `/api/food/status` | `StatusInfo` (für das Statusboard) |
-| POST | `/api/food/devices` | Body `{token}` → 204. Meldet ein Gerät für Push an |
+| POST | `/api/food/devices` | Body `{token, environment?}` → 204. Meldet ein Gerät für Push an; `environment` siehe unten |
 
 ```
 Nutrients      kcal, proteinG, carbsG, fatG            (alle nicht-optional)
@@ -503,6 +510,12 @@ schickt er eine Push-Benachrichtigung an alle angemeldeten Geräte
 eine ab, fliegt sie raus. **`APNS_HOST` steht auf der Sandbox** — das passt zu
 einer aus Xcode installierten App. Ein TestFlight- oder App-Store-Build
 braucht `https://api.push.apple.com`, sonst kommt nur `BadDeviceToken`.
+**Seit der Runde vom 2026-11-10 meldet Healthy deshalb die Umgebung mit**
+(`{"token","environment":"sandbox"|"production"}`, Vertrag
+`../weight-app/docs/HEALTHY-CONTRACT.md` §11.2; in der App
+`APNsEnvironment`, gelesen aus dem Profil im Bundle). Der Dienst wählt den
+Rechner je Gerät, sobald seine Fassung dieser Runde ausgerollt ist — ein
+älterer Dienst ignoriert das Feld und schickt weiter an die Sandbox.
 Nachfragen tut die App trotzdem weiter, solange sie läuft: die
 Benachrichtigung ist die Zustellung, nicht die Wahrheit.
 

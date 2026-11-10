@@ -67,7 +67,8 @@ Healthy/            App: Dashboard, Essen, Gewicht, Health-Abgleich, Diagramm-Ba
   Logbook/          Logbook und Effekte im Dashboard (LogbookSection, LogbookDays), Verhalten-Blatt,
                     Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
-  Watch/            WatchLink: Token und kcal-Stand an die Uhr (WatchConnectivity)
+  Watch/            WatchLink: Token (Felix' und/oder der persönliche) und Tagesstand samt Makros
+                    an die Uhr (WatchConnectivity)
   Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync),
                     Schritte für die Sperrbildschirm-Kacheln (StepsWidgetBridge)
   Food/ Weight/
@@ -114,11 +115,13 @@ Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
                     Offline-Cache, Postausgang, Modelle und APIs, Kachel-Ansichten
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert), seit 14.10.
                     dazu Schritte (Ring) und „Heute" (kcal + Schritte) auf dem Sperrbildschirm
-HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Tagesstand (das Training
-                    seit 23.10. in SportWatch)
+HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Tagesstand, seit 10.11.
+                    darunter die Makros „E 96/195“ mit Balken, Eiweiß in seiner Farbe; holt den Tag
+                    selbst wie die Komplikation (das Training seit 23.10. in SportWatch)
 HealthyWatchWidget/ kcal-Komplikation der Uhr (Stil der Temperatur-Komplikation)
 HealthyWatchShared/ was iPhone und Uhr teilen: Botschaften (WatchMessages), Komplikations-Stand
-                    und -Ansicht - Healthy, HealthyWatch und HealthyWatchWidget übersetzen es
+                    und -Ansicht, die Farben der Makro-Zeilen der Uhr (MacroTone+WatchColor) -
+                    Healthy, HealthyWatch und HealthyWatchWidget übersetzen es
 SportWatch/         Uhr-App von Sport (watchOS 11, in Sport.app/Watch/): Krafttraining (vom iPhone
                     gestartet und gespiegelt) und Padel-Match (auf der Uhr gestartet), beide in Health
 SportWatchShared/   was Sport und SportWatch teilen: Trainings-Botschaften, das Zählen beim Padel,
@@ -179,6 +182,38 @@ Cookie.
 Anmeldung. Die App hält Benutzer und Passwort im Keychain und meldet sich
 selbst an, wenn die Sitzung abgelaufen ist — sichtbar wird das nie, ein 401
 ist für sie kein Fehler, sondern ein Arbeitsschritt.
+
+**Healthy kennt zwei Arten von Zugang (seit 10.11.).** Felix' Token
+(`fh_private` + `weight_app_token`) wie bisher — oder den **persönlichen Token**
+einer Person (`health_token`, `HEALTH_TOKENS` auf dem Server), damit die App
+auch auf einem zweiten iPhone läuft, ohne dass der Privat-Token dorthin muss.
+Was dafür da ist:
+
+- `Access(usesHealthToken: true)` — nur Healthy. Der Schlüsselbund ist zwischen
+  den Apps geteilt; ohne die Weiche schickte auch Fokus oder Einkaufsliste den
+  Token auf demselben iPhone mit. Der Cookie `health_token` liegt auf
+  `.fherrmann.com`, die Dienste prüfen ihn **vor** Felix' Cookies; ohne Token
+  nimmt `applyCookies()` ein liegengebliebenes Cookie wieder weg.
+- `Core/AccessToken.swift` holt den Token aus einem nackten Token, einem
+  Setup-Link oder einer ganzen kopierten Nachricht (wie Android);
+  `Core/HealthAccessCheck.swift` prüft ihn gegen **beide** Dienste, bevor etwas
+  gespeichert wird — am `APIClient` vorbei, weil dessen Offline-Stand einen
+  neuen Token nicht bestätigen darf.
+- Wechselt die Person, verfallen `OfflineCache`, die Warteschlangen für Essen
+  und Gewicht und der Postausgang dieser Dienste; `RootView` baut die Tabs neu
+  (`healthGeneration`), der Health-Abgleich merkt sich Anker und Cursor je
+  Person (`HealthSyncScope`) und fragt im Vordergrund erst nach Health, wenn es
+  einen Zugang gibt (`HealthSync.hasAccess` - auf einem frischen iPhone läge der
+  Dialog sonst über dem Zugang-Blatt), Kacheln, Uhr und Push-Anmeldung ziehen
+  nach (`HealthyApp.healthAccessChanged`).
+- Außerhalb der App gibt es keinen Cookie-Speicher: Kacheln und Uhr hängen den
+  Cookie selbst an (`Shared/HealthCookie.swift` — persönlicher Token vor
+  Privat-Token). Die Uhr bekommt beide Token, die es gibt, per
+  WatchConnectivity und löscht, was nicht mehr mitkommt
+  (`WatchKeys.accessVersion`).
+- Das Zugang-Blatt (`HealthySetup.sections`): mit persönlichem Token nur dessen
+  Feld; mit Felix' Token das Blatt von vorher; ohne jeden Zugang das Feld
+  „Token oder Link“ und Felix' Token zugeklappt unter „Besitzer-Token“.
 
 **Die Einkaufsliste hat ihren eigenen Token je Person.** Er liegt als
 `shopping_token` im Keychain und wird als Cookie nur für den Pfad
@@ -367,6 +402,20 @@ gesperrt nicht lesbar; die Kachel nimmt das Größere aus diesem Stand und dem
 Schrittzähler des iPhones, `StepsNow`). Die Uhr hat ihren eigenen Schlüsselbund:
 Token und kcal-Stand schickt `WatchLink` per WatchConnectivity, die Komplikation
 fragt danach selbst beim Kalorienzähler (`HealthyWatchWidget/KcalComplication`).
+Seit 10.11. fragt auch die Uhr-App selbst, sobald sie aufgeht (ein Tipp auf die
+Komplikation öffnet sie), und zeigt unter dem kcal-Bogen Eiweiß, Fett und
+Kohlenhydrate; der Stand (`ComplicationSnapshot`) trägt dafür den ganzen Tag
+samt Zielen. `Shared/Macro.swift` baut deshalb auch auf der Uhr - ohne SwiftUI,
+die Verläufe des iPhones stehen in `MacroTone+Gradient.swift`.
+
+**Push-Umgebung (seit 10.11.):** Felix' iPhone bekommt Healthy als
+Entwickler-Install, ein zweites über TestFlight - die Push-Kennungen stammen
+aus verschiedenen Welten (Sandbox und Produktion). Die Entitlements bleiben
+für beide gleich (`aps-environment: development`; der Export für TestFlight
+signiert neu und setzt `production`). Welche Welt gilt, liest die App aus dem
+Profil im Bundle (`Healthy/App/APNsEnvironment.swift`: Simulator = Sandbox,
+Profil mit `development` = Sandbox, kein Profil = Produktion) und nennt es dem
+Kalorienzähler bei der Anmeldung (`environment`, Vertrag §11.2).
 
 **Die Fokus-Sperre.** Während einer Fokus-Session (Wald-Tab in Fokus) liegt
 ein Schild auf allen App-Kategorien außer den erlaubten Apps —

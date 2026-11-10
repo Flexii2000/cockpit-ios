@@ -133,7 +133,7 @@ Challenge-Platz.
 | | |
 |---|---|
 | **Aktueller Stand und was offen ist** | [`docs/STAND.md`](docs/STAND.md) |
-| **Aufs zweite Handy: TestFlight** | `tools/testflight.sh` — Kopf des Skripts: API-Schlüssel, App-Eintrag, Tester |
+| **Aufs zweite Handy: TestFlight** | `tools/testflight.sh` — Kopf des Skripts: API-Schlüssel, App-Eintrag, Tester. Einkaufsliste und seit 10.11. Healthy (samt Kachel, Uhr-App und Komplikation; `--export-only` zeigt je Bundle `aps-environment` und Privacy-Manifest) |
 | **Aufbau** | [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md) |
 | **Was als Nächstes kommt: drei Apps** | [`docs/PLAN-AUFTEILUNG.md`](docs/PLAN-AUFTEILUNG.md) |
 | **APIs der Backends** | [`docs/BACKENDS.md`](docs/BACKENDS.md) |

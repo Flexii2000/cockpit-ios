@@ -1,5 +1,67 @@
 # Stand
 
+> **Healthy für ein zweites iPhone, Eiweiß mit Erhalt, Makros auf der Uhr (10.11., Felix) - gebaut,
+> NICHT installiert, NICHT zu TestFlight hochgeladen:** Teil 1 der Runde vom 10.11. (Branch
+> `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §11, die Dienste dazu entstehen
+> parallel in `../food` und `../weight-app`). Strain, Chat, Briefing, Wochenrückblick, Eichung,
+> Freunde und die Rezepte der Einkaufsliste folgen in eigenen Schritten auf diesem Stand.
+> - **Persönlicher Token in Healthy:** `Access(usesHealthToken: true)` (nur Healthy), Schlüssel
+>   `health_token`/`health_name`, Cookie auf `.fherrmann.com`; Feld „Token oder Link“ im
+>   Zugang-Blatt (`AccessToken`, vorher geprüft gegen beide Dienste: `HealthAccessCheck`);
+>   Blatt je nach Lage (`HealthySetup.sections`: Person / Felix wie bisher / frisches iPhone mit
+>   zugeklapptem „Besitzer-Token“); Wechsel der Person leert Cache, Warteschlangen und Postausgang
+>   und baut die Tabs neu; Health-Abgleich je Person (`HealthSyncScope`), im Vordergrund erst mit
+>   Zugang (`HealthSync.hasAccess`);
+>   Kacheln und Uhr über `HealthCookie`, die Uhr bekommt beide Token samt Marke.
+> - **TestFlight-Vorbereitung:** `APNsEnvironment` (aus dem Profil im Bundle) → `environment` bei
+>   `POST /api/food/devices`; `ITSAppUsesNonExemptEncryption`; `PrivacyInfo.xcprivacy` in Healthy,
+>   HealthyWidget, HealthyWatch, HealthyWatchWidget; Schritte-Dateien aus den Uhr-Zielen;
+>   `tools/testflight.sh` zeigt je Bundle `aps-environment`, Manifest und Bewegungs-Text.
+> - **Größe vom Dienst:** `WeightSummary.heightCm`, BMI daraus (ohne Größe „–“), „Größe …“ im
+>   Gewicht-Menü (`HeightSheet`, `PUT /api/weight/height`).
+> - **Eiweiß:** `Nutrients.proteinMinG`/`proteinMinDefault` an den Zielen,
+>   `NutritionTone.proteinTone` (rot/gelb/grün; ohne Erhalt die alte Regel), Feld „Eiweiß Erhalt
+>   (g)“ im Ziele-Blatt (schickt nur eine Änderung), Zeile „● Eiweiß 96/195 g“ in der Essen-Kachel
+>   des Dashboards.
+> - **Uhr:** `ComplicationSnapshot` trägt den Tag samt Zielen; die Uhr-App holt ihn beim Öffnen
+>   selbst und zeigt unter dem kcal-Bogen „E 96/195“, „F 41/70“, „KH 180/236“ mit schmalem Balken,
+>   Eiweiß in seiner Farbe. `Shared/Macro.swift` baut dafür auf der Uhr mit.
+> - **Geprüft:** `tools/verify.sh` (alle grün; Healthy 346 Unit-Tests, davon 46 neu:
+>   `AccessTokenTests`, `HealthCookieTests`, `HealthAccessCheckTests`, `HealthySetupTests`,
+>   `APNsEnvironmentTests`, `ProteinFloorTests`, `WatchSnapshotTests`, dazu Größe/BMI in
+>   `WeightModelTests` und Ziele/Geräte-Anmeldung/`me` in `HealthyContractTests`). Im Simulator
+>   gesehen: Dashboard und Essen-Tab mit Vorführdaten hell und dunkel (Eiweiß 150/180 bei Erhalt
+>   130 - gelb); hell das Zugang-Blatt als Person, auf einem frischen iPhone (auch aufgeklappt)
+>   und mit Felix' Token (unverändert), das Ziele- und das Größe-Blatt (UI-Tests `testSetup…`,
+>   `testDashboardShowsTodaysProtein`, `testSheetsOfferProteinFloorAndHeight`; dazu liefen die
+>   fünf vorhandenen UI-Tests mit Vorführdaten grün); die Uhr-App mit `COCKPIT_WATCH_DEMO=kcal`
+>   auf 46 und 40 mm (dunkel, wie die Uhr ist). **Gegen lokal gestartete Dienste** (Stand `main` von `../food` und `../weight-app`, eine
+>   frische Testperson): `testEnteringAPersonalTokenOpensTheApp` - falscher Token abgelehnt mit
+>   Meldung, Setup-Link angenommen, Blatt zu, Dashboard/Essen/Gewicht laden als diese Person (alles
+>   leer, kein Absturz), Token und Name nach Neustart da.
+> - **Nicht geprüft:** `proteinMinG` und `environment` gegen einen Dienst, der sie kennt (die
+>   Fassung dieser Runde war noch nicht fertig; gegen `main` gilt die alte Eiweiß-Regel, und das
+>   Feld `environment` wird ignoriert); der Export für TestFlight (siehe unten); alles auf Geräten:
+>   Token-Übergabe an eine echte Uhr in beiden Lagen, die Makro-Ansicht nach Tipp auf die
+>   Komplikation, `APNsEnvironment` in einem echten Entwickler- und TestFlight-Build, Push in
+>   beiden Welten, der Health-Dialog und die erste Rückholung auf einem zweiten iPhone.
+> - **`tools/testflight.sh Healthy --export-only` am 10.11., vor und nach den Änderungen:** das
+>   Archiv baut (erster Release-Bau von Healthy samt Kachel, Uhr-App, Komplikation), signiert mit
+>   dem Entwicklungsprofil (`aps-environment=development`). Nach den Änderungen liegt in allen vier
+>   Bundles das Privacy-Manifest, `ITSAppUsesNonExemptEncryption` steht in der Info.plist, und die
+>   Uhr-Bundles binden CoreMotion nicht mehr ein. Der **Export scheitert am Konto**: „PLA Update
+>   available … must agree to the latest Program License Agreement“ - die neue Lizenzvereinbarung
+>   muss der Kontoinhaber auf developer.apple.com annehmen; danach fehlen folgerichtig die
+>   Verteilungsprofile aller vier Bundles. Ob der Export `production` einsetzt, ist damit noch
+>   **nicht belegt**.
+> - **Nächster Schritt (Felix):** Lizenzvereinbarung annehmen, dann
+>   `tools/testflight.sh Healthy --export-only` (zeigt in der `.ipa` je Bundle `aps-environment` -
+>   erwartet `production` - und das Manifest). App-Eintrag in App Store Connect für
+>   `com.fherrmann.cockpit` (ein Eintrag deckt alle vier Bundles; der Name „Healthy“ ist im Store
+>   vermutlich vergeben), Joana in die interne Testgruppe. Den TestFlight-Build **nicht** auf das
+>   eigene iPhone laden. Auf sein iPhone erst mit dem Rest der Runde:
+>   `tools/install-device.sh Healthy --launch`.
+
 > **CloudUsageBar: Verda neben AWS, Vault-Tab „Cloud“ (02.11., Felix) - gebaut, NICHT installiert:**
 > Der Dienst heißt `cloud-usage` (`fherrmann.com/cloud-usage`, Repo `../cloud-usage`, parallel
 > umgebaut; Vertrag `docs/API.md` mit `verda`, `PUT api/verda/budget`, Push-`tab` `cloud`). Clients:

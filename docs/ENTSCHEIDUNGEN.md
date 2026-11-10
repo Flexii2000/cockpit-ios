@@ -3,6 +3,89 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-10 — Healthy für eine zweite Person: persönlicher Token, TestFlight, Eiweiß mit Erhalt, Makros auf der Uhr
+Felix will, dass Joana Healthy auf ihrem iPhone bekommt - mit eigenem Zugang und allem, was seine
+App kann. Dazu zwei Wünsche für alle: das Eiweiß farbig (rot unter dem **Erhalt**, gelb ab dem
+Erhalt, grün ab dem **Ziel**; feste Gramm je Person beim Kalorienzähler, bei ihm 140 g / 195 g), und
+ein Tipp auf die kcal-Komplikation soll auf der Uhr Eiweiß, Fett und Kohlenhydrate zeigen. Vertrag:
+`../weight-app/docs/HEALTHY-CONTRACT.md` §11. **Damit ändert sich die Regel „Kein Multi-User“ für
+Healthy**: eine Person je Gerät, aber nicht mehr zwingend Felix.
+
+Entschieden beim Bauen:
+- **Persönlicher Token statt `fh_private` auf dem zweiten Handy.** Die Dienste kennen ihn seit
+  September (`HEALTH_TOKENS`, bisher nur von Android genutzt); er öffnet Kalorienzähler und Weight
+  Tracker nur für die Daten dieser Person. Verworfen: Felix' Privat-Token weitergeben - der öffnet
+  alles unter fherrmann.com. Verworfen: eine eigene App „Healthy 2“ - dieselbe Oberfläche zweimal
+  pflegen, zweite Bundle-ID samt Kachel und Uhr.
+- **Als Cookie, nicht als Bearer.** `health_token` auf `.fherrmann.com`, wie ihn
+  `food.fherrmann.com/setup` im Browser ausstellt; die Dienste prüfen ihn vor Felix' Cookies. So
+  bleibt jede bestehende Anfrage, wie sie ist (`APIClient` kennt keine Anmeldung, er verlässt sich
+  auf den Cookie-Speicher). Verworfen: Bearer wie Android - hieße, jeden Aufruf, die Warteschlange
+  und den Postausgang um einen Kopf zu erweitern, den Felix' Weg gar nicht braucht.
+- **Nur Healthy kennt ihn** (`Access(usesHealthToken: true)`). Der Schlüsselbund ist zwischen den
+  Apps geteilt; ohne die Weiche läse ihn auch Fokus oder Einkaufsliste auf demselben iPhone.
+  Kacheln und Uhr von Healthy lesen ihn direkt (`HealthCookie`), sonst niemand.
+- **Erst prüfen, dann speichern** - gegen beide Dienste (`/api/food/features`,
+  `/api/weight/summary`), wie Android. Die Prüfung geht am `APIClient` vorbei: der zeigt ohne Netz
+  den letzten Stand aus dem `OfflineCache`, und der gemeinsame Cookie-Speicher hätte auf Felix'
+  iPhone jeden beliebigen Text mit seinem Privat-Cookie „bestätigt“.
+- **Ein Feld „Token oder Link“.** Felix schickt den Setup-Link; die App holt den Token auch aus
+  einer ganzen kopierten Nachricht (`AccessToken`, dieselben Fälle wie Android). Nach dem Speichern
+  geht das Blatt zu; nach einer Absage leert sich das Feld (es zeigt nur Punkte, ein zweiter Versuch
+  hinge sich sonst an). Verworfen: der Link als `healthy://setup?token=…` - der Setup-Link führt in
+  den Browser, und ein zweites Format müsste der Dienst erst ausstellen.
+- **Das Zugang-Blatt richtet sich nach dem, was da ist** (`HealthySetup.sections`): mit
+  persönlichem Token nur dessen Feld; mit einem von Felix' Token das Blatt von vorher; ohne jeden
+  Zugang das Feld für den persönlichen Token und Felix' Token zugeklappt unter „Besitzer-Token“.
+  Der Hinweis auf den geteilten Schlüsselbund steht nur noch bei Felix' Token.
+- **Wechselt die Person, bleibt nichts von der davor liegen:** `OfflineCache`, die Warteschlangen
+  für Essen und Gewicht und der Postausgang dieser Dienste verfallen (eine wartende Änderung ginge
+  sonst in ein fremdes Tagebuch), die Tabs werden neu gebaut (`healthGeneration`), der
+  Health-Abgleich führt Anker und Cursor je Person (`HealthSyncScope`: Felix' Schlüssel bleiben,
+  eine Person bekommt einen Abdruck ihres Tokens angehängt). ⚠️ Health-Daten gehören dem Gerät:
+  wer auf Felix' iPhone den Token einer anderen Person einträgt, lädt seine Nächte in ihr Konto -
+  das verhindert die App nicht, es steht in `CLAUDE.md`.
+- **Ohne Zugang fragt der Abgleich nicht nach Health** (`HealthSync.hasAccess` in `connect()` und
+  `syncIfDue()`): auf einem frischen iPhone läge der Health-Dialog sonst über dem Zugang-Blatt.
+  Verworfen: die Prüfung in `isAvailable` selbst - daran hängt auch `startObserving()` beim Start,
+  und bei einem Start im Hintergrund vor dem ersten Entsperren ist der Schlüsselbund nicht lesbar;
+  Felix' Weckrufe für Gewicht und Schlaf wären bis zum nächsten Start verloren gewesen.
+- **Uhr:** das iPhone nennt im Kontext beide Token, die es hat, samt Marke
+  (`WatchKeys.accessVersion`); mit Marke löscht die Uhr, was fehlt. Eine ältere Uhr-App findet
+  `fh_private` weiter unter dem alten Schlüssel. Das ersetzt die Notiz vom 14.10. („der
+  Haupt-Token liegt auch auf der Uhr“) für ein Gerät mit persönlichem Token: dort liegt nur der.
+- **Push: `aps-environment` bleibt `development`, die App meldet die Umgebung selbst.** Archiviert
+  wird mit der Entwicklungssignatur (im Archiv steht `development` und `get-task-allow`, am 10.11.
+  nachgesehen); erst der Export signiert neu, mit `production` aus dem Verteilungsprofil. Ein
+  `production` für Release in project.yml scheiterte schon beim Archivieren am Entwicklungsprofil.
+  Welche Welt gilt, liest `APNsEnvironment` aus `embedded.mobileprovision` (Entwickler-Install:
+  Profil mit `development`; TestFlight: kein Profil im Bundle) und schickt es bei der Anmeldung
+  mit (`environment`, Vertrag §11.2). Verworfen: nur `#if DEBUG` - stimmt für beide Wege, aber
+  nicht für einen Release-Bau mit Entwicklungssignatur.
+- **Privacy-Manifest je Bundle** (App, Kachel, Uhr-App, Komplikation - derselbe Inhalt wie bei
+  Einkaufsliste: UserDefaults, Datei-Zeitstempel) und `ITSAppUsesNonExemptEncryption` für Healthy.
+  Die Schritte-Dateien (`StepsNow` bindet CoreMotion ein) sind aus den Uhr-Zielen ausgeschlossen,
+  statt den Uhr-Bundles einen Bewegungs-Text zu geben, den sie nie brauchen.
+- **Körpergröße vom Dienst.** `WeightSummary.heightCm` statt der festen 1,94 m; „Größe …“ im
+  Gewicht-Tab (`PUT /api/weight/height`). Ohne Größe zeigt der BMI „–“ - verworfen: weiter mit
+  Felix' Größe rechnen, das wäre für jede andere Person schlicht falsch.
+- **Der Erhalt hängt an `Nutrients`** (`proteinMinG`, `proteinMinDefault`, nur an Zielen gesetzt) -
+  so kommt er überall an, wo die Ziele schon hinkommen (Tachos, Kachel, Uhr), ohne eigenen Typ und
+  ohne eigenes Lesen. Ohne das Feld (älterer Dienst) gilt die alte Regel, nichts wird rot. Die
+  Farben sind die vorhandenen (`warn` gelb-orange, `bad` rot). Das Ziele-Blatt schickt den Erhalt
+  nur, wenn er geändert wurde - eine Vorgabe des Dienstes bleibt so eine Vorgabe; geleert heißt
+  zurück auf die Vorgabe (`0`).
+- **Die Uhr-App holt den Tag selbst**, wie die Komplikation, und legt ihn samt Makros als
+  gemeinsamen Stand ab. Verworfen: nur zeigen, was das iPhone schickt - dann stünde nach einem
+  Essen ohne iPhone in der Nähe der Stand vom Morgen da. `Shared/Macro.swift` baut dafür auch auf
+  der Uhr (ohne SwiftUI; die Verläufe in `MacroTone+Gradient.swift`), die Uhr färbt mit
+  Systemfarben. Die Balken sind von Hand gezeichnet: der `ProgressView` der Uhr ist so dick, dass
+  die dritte Zeile aus dem Bild rutschte (im Simulator gesehen, 46 und 40 mm).
+- **TestFlight: ein App-Eintrag für alle vier Bundles** (`com.fherrmann.cockpit`; Kachel, Uhr-App
+  und Komplikation hängen daran). `tools/testflight.sh` zeigt je Bundle `aps-environment` und ob
+  das Manifest drin liegt. Der TestFlight-Build gehört **nicht** auf Felix' iPhone: gleiche
+  Bundle-ID, er ersetzte den Entwickler-Install.
+
 ## 2026-11-02 — CloudUsageBar: Verda neben AWS, alles heißt „Cloud“
 Felix nutzt fürs LLM jetzt auch Verda (GPU-Cloud, Helsinki, Prepaid in Euro) und will es neben AWS
 sehen. Der Dienst heißt seitdem `cloud-usage` (vorher `aws-usage`, nginx leitet weiter), die
