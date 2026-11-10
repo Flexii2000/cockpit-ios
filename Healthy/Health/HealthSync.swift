@@ -4,7 +4,7 @@ import HealthKit
 import UIKit
 
 /// Holt Werte aus Apple Health und traegt sie im Weight Tracker ein: Naechte,
-/// Energie, Schritte, Gewicht.
+/// Puls (seit 10.11., fuer den Strain), Energie, Schritte, Gewicht.
 ///
 /// Zwei Wege, die sich ergaenzen:
 ///
@@ -20,9 +20,9 @@ import UIKit
 /// Rueckweg braeuchte einen Filter auf die eigene Quelle, sonst weckt der
 /// eigene Schreibvorgang die App und der Wert liefe im Kreis.
 ///
-/// Gerechnet wird hier nur, was der Vertrag den Apps zuweist (Tage und Naechte
-/// bilden, `HealthEnergy`/`HealthNights`); Verbrauch, Defizit und Recovery
-/// rechnet der Dienst.
+/// Gerechnet wird hier nur, was der Vertrag den Apps zuweist (Tage, Naechte und
+/// das Puls-Histogramm bilden, `HealthEnergy`/`HealthNights`/`HealthHeart`);
+/// Verbrauch, Defizit, Recovery und Strain rechnet der Dienst.
 @MainActor
 @Observable
 final class HealthSync {
@@ -39,6 +39,7 @@ final class HealthSync {
     private let api = WeightAPI()
     private let energyApi = EnergyAPI()
     private let recoveryApi = RecoveryAPI()
+    private let strainApi = StrainAPI()
     /// Haengt an jedem Merk-Schluessel: leer mit Felix' Token, ein Abdruck des
     /// persoenlichen Tokens sonst (`HealthSyncScope`).
     @ObservationIgnored private var keyScope =
@@ -107,6 +108,20 @@ final class HealthSync {
     /// Der Inhalt des zuletzt geschickten Naechte-Fensters. Ein Weckruf, der
     /// nichts Neues bringt (die Uhr schreibt Schlaf in Raten), schickt nichts.
     private var nightsHashKey: String { "health.nights.windowHash" + keyScope }
+
+    /// Puls (Vertrag §7.2): bei jedem Abgleich heute und gestern, das Fenster
+    /// D−13 … D hoechstens alle sechs Stunden oder beim Ziehen, einmalig 425
+    /// Tage in Bloecken zu 7 (`HealthHeart`). Der Cursor der Rueckholung ...
+    private var heartCursorKey: String { "health.heart.backfillCursor" + keyScope }
+    /// ... was je Tag zuletzt hochging (Tag → Fingerabdruck) - nur ein
+    /// geaendertes Histogramm geht noch einmal hinaus ...
+    private var heartSentKey: String { "health.heart.sent" + keyScope }
+    /// ... und wann zuletzt das ganze Fenster gelesen wurde.
+    private var heartWindowKey: String { "health.heart.lastWindow" + keyScope }
+    /// Der Weckruf fuer den Puls kommt, solange die App laeuft, mit jeder
+    /// neuen Messung - gelesen wird dann hoechstens in diesem Abstand.
+    static let heartDeliveryInterval: TimeInterval = 15 * 60
+    @ObservationIgnored private var lastHeartDelivery: Date?
 
     /// Huelle um HealthKits Fertig-Meldung. Sie ist nicht als `Sendable`
     /// deklariert, darf aber laut Vertrag von jedem Thread genau einmal
@@ -215,14 +230,15 @@ final class HealthSync {
         await syncAll(force: false)
     }
 
-    /// Alles in einem Lauf: Naechte → Energie → Schritte → Gewicht.
+    /// Alles in einem Lauf: Naechte → Puls → Energie → Schritte → Gewicht.
     ///
     /// Naechte zuerst: sie sind morgens das Neue, und die Recovery im
-    /// Dashboard wartet darauf. Danach, ohne darauf zu warten, die einmalige
-    /// Rueckholung der Historie.
+    /// Dashboard wartet darauf - und das Strain-Ziel von heute haengt an ihr.
+    /// Danach, ohne darauf zu warten, die einmalige Rueckholung der Historie.
     ///
-    /// - Parameter force: auch ein unveraendertes Naechte-Fenster schicken -
-    ///   wer zieht, will sicher sein, dass der Dienst den Stand hat.
+    /// - Parameter force: auch ein unveraendertes Naechte-Fenster und die
+    ///   Puls-Tage des ganzen Fensters schicken - wer zieht, will sicher sein,
+    ///   dass der Dienst den Stand hat.
     func syncAll(force: Bool) async {
         guard isAvailable else { return }
         if let running {
@@ -245,6 +261,11 @@ final class HealthSync {
                                     skipUnchanged: !force) {
                 uploaded = true
             }
+        } catch {
+            succeeded = false
+        }
+        do {
+            if try await syncHeart(force: force) { uploaded = true }
         } catch {
             succeeded = false
         }
@@ -338,6 +359,94 @@ final class HealthSync {
         return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
+    // MARK: - Puls
+
+    /// Liest den Puls je Minute und schickt die Histogramme der Tage, die sich
+    /// geaendert haben (Vertrag §7.2 Punkt 6).
+    ///
+    /// - Parameters:
+    ///   - force: das ganze Fenster lesen und alle seine Tage schicken, auch
+    ///     unveraenderte.
+    ///   - recentOnly: nur heute und gestern - der Weckruf aus dem Hintergrund.
+    /// - Returns: ob etwas hochging.
+    private func syncHeart(force: Bool, recentOnly: Bool = false) async throws -> Bool {
+        let now = Date()
+        let today = CalendarDate.today()
+        let defaults = UserDefaults.standard
+        // Die Schluessel vor dem ersten Warten festhalten: wechselt die Person
+        // waehrenddessen, gehoeren die Merker noch zur alten.
+        let sentKey = heartSentKey
+        let windowKey = heartWindowKey
+        let lastWindow = defaults.object(forKey: windowKey) as? Date
+        let wide = !recentOnly && (force || lastWindow.map {
+            now.timeIntervalSince($0) >= HealthHeart.windowInterval || $0 > now
+        } ?? true)
+        let window = Self.days(endingAt: today, count: HealthHeart.windowDays)
+        let dates = wide ? window : Array(window.suffix(HealthHeart.recentDays))
+
+        let days = try await readHeart(dates, now: now)
+        var sent = defaults.dictionary(forKey: sentKey) as? [String: String] ?? [:]
+        let changed = force ? days : days.filter { sent[$0.date.iso] != Self.digest($0) }
+        if !changed.isEmpty {
+            do {
+                try await strainApi.send(changed)
+            } catch APIError.http(404, _) {
+                // Ein Weight Tracker von vor dem Strain: nichts zu tun, und kein
+                // Grund, den ganzen Abgleich als gescheitert zu zaehlen.
+                return false
+            }
+            for day in changed { sent[day.date.iso] = Self.digest(day) }
+            // Nur das Fenster merken - aeltere Tage liest hier niemand mehr.
+            let kept = Set(window.map(\.iso))
+            defaults.set(sent.filter { kept.contains($0.key) }, forKey: sentKey)
+        }
+        if wide { defaults.set(now, forKey: windowKey) }
+        return !changed.isEmpty
+    }
+
+    /// Die Histogramme dieser Tage; Tage ohne Abdeckung fehlen. Je hoechstens
+    /// sieben Tage eine Statistik-Abfrage - das sind gut 10.000 Minutenkuebel,
+    /// mehr auf einmal muss Health nicht aufbauen. Scheitert das Lesen, geht
+    /// nichts hinaus - ein halber Tag ersetzte beim Dienst sonst einen ganzen.
+    private func readHeart(_ dates: [CalendarDate], now: Date) async throws -> [HeartDayUpload] {
+        let perMinute = HKUnit.count().unitDivided(by: .minute())
+        let sorted = dates.sorted()
+        var result: [HeartDayUpload] = []
+        var start = sorted.startIndex
+        while start < sorted.endIndex {
+            let end = min(start + HealthHeart.blockDays, sorted.endIndex)
+            let chunk = Array(sorted[start..<end])
+            start = end
+            guard let first = chunk.first, let last = chunk.last else { continue }
+            let from = first.startOfDay()
+            let to = min(now, last.adding(days: 1).startOfDay())
+            guard from < to else { continue }
+            let minutes = try await reader.minuteAverages(heartRate, unit: perMinute, from: from, to: to)
+            result += HealthHeart.days(chunk, minutes: minutes, now: now)
+        }
+        return result
+    }
+
+    /// Der Weckruf fuer den Puls (stuendlich im Hintergrund, mit jeder Messung,
+    /// solange die App laeuft): heute und gestern, damit der Strain frisch
+    /// bleibt. Bei gesperrtem iPhone sind die Daten verschluesselt - dann
+    /// nichts. Laeuft gerade ein Abgleich, liest der ohnehin.
+    private func heartDelivered() async {
+        guard UIApplication.shared.isProtectedDataAvailable, hasAccess, running == nil else { return }
+        let now = Date()
+        if let lastHeartDelivery, now.timeIntervalSince(lastHeartDelivery) < Self.heartDeliveryInterval { return }
+        lastHeartDelivery = now
+        if (try? await syncHeart(force: false, recentOnly: true)) == true { uploads += 1 }
+    }
+
+    /// Ein Fingerabdruck des Tages, so wie er verschickt wuerde.
+    nonisolated static func digest(_ day: HeartDayUpload) -> String {
+        let encoder = APIClient.encoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = (try? encoder.encode(day)) ?? Data()
+        return SHA256.hash(data: data).prefix(8).map { String(format: "%02x", $0) }.joined()
+    }
+
     // MARK: - Energie
 
     /// Die letzten 30 Tage. Wie bei Schritten ohne Anker: Statistiken kennen
@@ -368,8 +477,8 @@ final class HealthSync {
 
     // MARK: - Rueckholung
 
-    /// Die einmalige Rueckholung: 425 Naechte, zehn Jahre Energie, in
-    /// Bloecken mit Cursor. Nur im Vordergrund - im Hintergrund hat die App
+    /// Die einmalige Rueckholung: 425 Naechte, zehn Jahre Energie, 425 Tage
+    /// Puls, in Bloecken mit Cursor. Nur im Vordergrund - im Hintergrund hat die App
     /// Sekunden, und ein abgebrochener Block wird ohnehin wiederholt.
     private func startBackfill() {
         guard backfill == nil, UIApplication.shared.applicationState == .active else { return }
@@ -411,6 +520,25 @@ final class HealthSync {
             do {
                 if try await syncEnergy(from: block.from.startOfDay(),
                                         to: block.to.adding(days: 1).startOfDay()) {
+                    uploaded = true
+                }
+                setCursor(block.from, key)
+            } catch {
+                break
+            }
+        }
+        // Der Puls zuletzt: es sind die meisten Bloecke (gut 60), und sein
+        // Ruhepuls kommt aus den Naechten, die oben schon geholt sind.
+        while UIApplication.shared.applicationState == .active,
+              let block = HealthBackfill.next(after: cursor(heartCursorKey),
+                                              start: today.adding(days: -HealthHeart.windowDays),
+                                              oldest: today.adding(days: -HealthHeart.backfillDays),
+                                              blockDays: HealthHeart.blockDays) {
+            let key = heartCursorKey
+            do {
+                let days = try await readHeart(Self.days(in: block), now: Date())
+                if !days.isEmpty {
+                    try await strainApi.send(days)
                     uploaded = true
                 }
                 setCursor(block.from, key)
@@ -518,7 +646,8 @@ final class HealthSync {
     ///
     /// Gewicht und Schlaf. Schlaf, weil die Uhr die Nacht erst nach dem
     /// Aufwachen schreibt - so steht die Recovery da, bevor jemand die App
-    /// oeffnet.
+    /// oeffnet. Seit 10.11. der Puls, stuendlich: der Strain von heute soll
+    /// nicht erst beim naechsten Oeffnen stimmen (Vertrag §7.2 Punkt 7).
     func startObserving() {
         guard isAvailable, observers.isEmpty else { return }
         observe(bodyMass) { sync in await sync.syncNow() }
@@ -526,6 +655,7 @@ final class HealthSync {
         // Schritte fuer die Sperrbildschirm-Kacheln (14.10.) - hoechstens
         // stuendlich, mehr erlaubt iOS fuer diesen Typ nicht.
         observe(stepCount, frequency: .hourly) { sync in await sync.stepsDelivered() }
+        observe(heartRate, frequency: .hourly) { sync in await sync.heartDelivered() }
     }
 
     /// Health hat neue Schritte: den Stand von heute fuer die Kacheln ablegen.

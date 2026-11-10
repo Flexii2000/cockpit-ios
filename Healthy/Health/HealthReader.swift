@@ -122,6 +122,52 @@ struct HealthReader: Sendable {
         }
     }
 
+    // MARK: - Minutenmittel
+
+    /// Das Mittel je Kalenderminute zwischen zwei Zeitpunkten - nur belegte
+    /// Minuten (Vertrag §7.2 Punkt 1).
+    ///
+    /// Eine Statistik und nicht die Rohwerte: im Training misst die Uhr alle
+    /// paar Sekunden, ein Tag sind dann tausende Proben - und was aelter als
+    /// ein paar Monate ist, hat Health ohnehin schon verdichtet. Die Statistik
+    /// rechnet beides gleich. **Kein Quellen-Praedikat**: Health fuehrt iPhone
+    /// und Uhr selbst zusammen. `.strictStartDate`, damit eine Messung nur in
+    /// die Minute zaehlt, in der sie begann. Der Anker liegt auf dem
+    /// Tagesbeginn - so sind die Kuebel Kalenderminuten.
+    func minuteAverages(_ type: HKQuantityType, unit: HKUnit, from: Date, to: Date) async throws -> [HeartMinute] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let anchor = calendar.startOfDay(for: from)
+        let predicate = HKQuery.predicateForSamples(withStart: from, end: to, options: .strictStartDate)
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsCollectionQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .discreteAverage,
+                anchorDate: anchor,
+                intervalComponents: DateComponents(minute: 1))
+            query.initialResultsHandler = { _, collection, error in
+                if let error {
+                    if let failure = Self.failure(error) {
+                        continuation.resume(throwing: failure)
+                    } else {
+                        continuation.resume(returning: [])
+                    }
+                    return
+                }
+                // `statistics()` liefert nur die belegten Kuebel - ein Tag hat
+                // 1.440 Minuten, die meisten davon ohne Messung.
+                let minutes = (collection?.statistics() ?? []).compactMap { statistics -> HeartMinute? in
+                    guard statistics.startDate >= from, statistics.startDate < to,
+                          let value = statistics.averageQuantity()?.doubleValue(for: unit) else { return nil }
+                    return HeartMinute(start: statistics.startDate, bpm: value)
+                }
+                continuation.resume(returning: minutes)
+            }
+            store.execute(query)
+        }
+    }
+
     // MARK: - Schlaf
 
     /// Alle Schlafsegmente, die das Fenster beruehren - jeder Quelle, jedes

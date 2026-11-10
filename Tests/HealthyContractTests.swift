@@ -330,4 +330,161 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertTrue(named.quickCapture)
         XCTAssertNil(try decode(Features.self, #"{"quickCapture":false}"#).me)
     }
+
+    // MARK: - Strain (Vertrag §7)
+
+    /// `StrainDayView` - das Beispiel aus dem Vertrag §7.3.
+    func testDecodesStrainDay() throws {
+        let day = try decode(StrainDay.self, """
+        {"date":"2026-11-09","status":"OK","partial":false,"coverageMinutes":1312,"covered":true,
+         "load":142.6,"strain":13.4,"band":"MODERATE","targetLoad":120.3,"targetStrain":12.1,
+         "acuteLoad":118.2,"chronicLoad":110.5,"recoveryScore":65,"recoveryBand":"GREEN",
+         "hrRest":52.4,"hrMax":188.0,"calibration":{"days":22,"required":14}}
+        """)
+        XCTAssertEqual(day.date, CalendarDate(year: 2026, month: 11, day: 9))
+        XCTAssertEqual(day.status, .ok)
+        XCTAssertFalse(day.partial)
+        XCTAssertEqual(day.coverageMinutes, 1312)
+        XCTAssertTrue(day.covered)
+        XCTAssertEqual(day.load, 142.6)
+        XCTAssertEqual(day.strain, 13.4)
+        XCTAssertEqual(day.band, .moderate)
+        XCTAssertEqual(day.targetLoad, 120.3)
+        XCTAssertEqual(day.targetStrain, 12.1)
+        XCTAssertEqual(day.acuteLoad, 118.2)
+        XCTAssertEqual(day.chronicLoad, 110.5)
+        XCTAssertEqual(day.recoveryScore, 65)
+        XCTAssertEqual(day.recoveryBand, .green)
+        XCTAssertEqual(day.hrRest, 52.4)
+        XCTAssertEqual(day.hrMax, 188)
+        XCTAssertEqual(day.calibration, StrainCalibration(days: 22, required: 14))
+    }
+
+    /// Ein Tag ohne Histogramm (`NO_DATA`): Last, Strain, Band und Abdeckung
+    /// fehlen - die Werte des Morgens (Ziel, Akut, Gewohnt, Recovery) stehen
+    /// trotzdem da (§7.3). Heute ist `partial`.
+    func testDecodesStrainDayWithoutAHistogram() throws {
+        let day = try decode(StrainDay.self, """
+        {"date":"2026-11-10","status":"NO_DATA","partial":true,"coverageMinutes":null,"covered":false,
+         "load":null,"strain":null,"band":null,"targetLoad":118.9,"targetStrain":12.0,
+         "acuteLoad":121.4,"chronicLoad":111.0,"recoveryScore":null,"recoveryBand":null,
+         "hrRest":52.4,"hrMax":188.0,"calibration":{"days":22,"required":14}}
+        """)
+        XCTAssertEqual(day.status, .noData)
+        XCTAssertTrue(day.partial)
+        XCTAssertNil(day.coverageMinutes)
+        XCTAssertNil(day.strain)
+        XCTAssertNil(day.band)
+        XCTAssertEqual(day.targetStrain, 12.0)
+        XCTAssertEqual(day.acuteLoad, 121.4)
+        XCTAssertNil(day.recoveryBand)
+    }
+
+    /// Beim Kalibrieren gibt es noch kein Ziel; ein vergangener Tag mit wenig
+    /// Puls ist `LOW_COVERAGE`. Und was der Dienst spaeter Neues schickt -
+    /// einen Status, ein Band -, macht den Tag nicht unlesbar; fehlende Felder
+    /// auch nicht.
+    func testStrainDayToleratesWhatItDoesNotKnow() throws {
+        let calibrating = try decode(StrainDay.self, """
+        {"date":"2026-11-02","status":"CALIBRATING","partial":false,"coverageMinutes":1280,"covered":true,
+         "load":96.0,"strain":10.4,"band":"MODERATE","targetLoad":null,"targetStrain":null,
+         "acuteLoad":90.2,"chronicLoad":88.0,"recoveryScore":null,"recoveryBand":null,
+         "hrRest":52.4,"hrMax":170.0,"calibration":{"days":9,"required":14}}
+        """)
+        XCTAssertEqual(calibrating.status, .calibrating)
+        XCTAssertNil(calibrating.targetStrain)
+        XCTAssertEqual(calibrating.calibration?.days, 9)
+
+        let low = try decode(StrainDay.self, """
+        {"date":"2026-11-01","status":"LOW_COVERAGE","partial":false,"coverageMinutes":412,"covered":false,
+         "load":31.0,"strain":4.2,"band":"LIGHT","hrMax":170.0}
+        """)
+        XCTAssertEqual(low.status, .lowCoverage)
+        XCTAssertEqual(low.band, .light)
+        XCTAssertFalse(low.covered)
+        XCTAssertNil(low.calibration)
+
+        let newer = try decode(StrainDay.self, """
+        {"date":"2026-11-03","status":"SOMETHING_NEW","strain":19.2,"band":"BEYOND","recoveryBand":"BLUE",
+         "coverageMinutes":1301.6}
+        """)
+        XCTAssertEqual(newer.status, .unknown)
+        XCTAssertEqual(newer.band, .unknown)
+        XCTAssertEqual(newer.recoveryBand, .unknown)
+        XCTAssertFalse(newer.partial)
+        XCTAssertEqual(newer.coverageMinutes, 1302)
+        XCTAssertEqual(try decode(StrainDay.self, #"{"date":"2026-11-03","status":"OK","strain":18.0,"band":"ALL_OUT"}"#).band,
+                       .allOut)
+        XCTAssertEqual(try decode(StrainDay.self, #"{"date":"2026-11-03","status":"OK","strain":14.0,"band":"HIGH"}"#).band,
+                       .high)
+    }
+
+    /// `GET /api/strain` liefert die Tage als Liste; ohne einen gespeicherten
+    /// Tag ist sie leer.
+    func testDecodesStrainRange() throws {
+        XCTAssertTrue(try decode([StrainDay].self, "[]").isEmpty)
+        let days = try decode([StrainDay].self, """
+        [{"date":"2026-11-08","status":"OK","partial":false,"coverageMinutes":1290,"covered":true,
+          "load":80.1,"strain":9.1,"band":"MODERATE","hrMax":188.0},
+         {"date":"2026-11-09","status":"NO_DATA","partial":false,"covered":false,"hrMax":188.0}]
+        """)
+        XCTAssertEqual(days.map(\.status), [.ok, .noData])
+    }
+
+    /// `StrainSettingsView` - das Beispiel aus dem Vertrag §7.5, und der Stand
+    /// ohne Histogramme.
+    func testDecodesStrainSettings() throws {
+        let settings = try decode(StrainSettings.self, """
+        {"hrMax":188,"hrMaxUsed":188.0,"hrMaxSource":"SETTING","hrMaxObserved":184.5,"hrRest":52.4,
+         "hrRestSource":"NIGHTS","tau":140}
+        """)
+        XCTAssertEqual(settings.hrMax, 188)
+        XCTAssertEqual(settings.hrMaxUsed, 188)
+        XCTAssertEqual(settings.hrMaxSource, .setting)
+        XCTAssertEqual(settings.hrMaxObserved, 184.5)
+        XCTAssertEqual(settings.hrRest, 52.4)
+        XCTAssertEqual(settings.hrRestSource, .nights)
+        XCTAssertEqual(settings.tau, 140)
+
+        let fresh = try decode(StrainSettings.self, """
+        {"hrMax":null,"hrMaxUsed":170.0,"hrMaxSource":"DEFAULT","hrMaxObserved":null,"hrRest":null,
+         "hrRestSource":"NONE","tau":140.0}
+        """)
+        XCTAssertNil(fresh.hrMax)
+        XCTAssertEqual(fresh.hrMaxSource, .standard)
+        XCTAssertEqual(fresh.hrRestSource, .missing)
+        XCTAssertEqual(try decode(StrainSettings.self, """
+        {"hrMaxUsed":181.0,"hrMaxSource":"OBSERVED","hrMaxObserved":181.0,"hrRest":58.0,
+         "hrRestSource":"HISTOGRAM","tau":140.0}
+        """).hrRestSource, .histogram)
+    }
+
+    /// `PUT /api/strain/settings`: ein festgelegter Maximalpuls geht als Zahl,
+    /// die Freigabe als fehlendes Feld - der Dienst liest beides (§7.5).
+    func testStrainSettingsRequest() throws {
+        func json(_ request: StrainSettingsRequest) throws -> [String: Any] {
+            try XCTUnwrap(try JSONSerialization.jsonObject(with: APIClient.encoder().encode(request))
+                          as? [String: Any])
+        }
+        XCTAssertEqual(try json(StrainSettingsRequest(hrMax: 188))["hrMax"] as? Double, 188)
+        XCTAssertTrue(try json(StrainSettingsRequest(hrMax: nil)).isEmpty)
+    }
+
+    /// `POST /api/strain` - das Beispiel aus dem Vertrag §7.1, und die Antwort
+    /// mit dem gespeicherten Stand.
+    func testHeartUploadAndItsAnswer() throws {
+        let upload = HeartUpload(days: [HeartDayUpload(date: CalendarDate(year: 2026, month: 11, day: 9),
+                                                       coverageMinutes: 401.7, fromBpm: 40,
+                                                       minutes: [12.5, 88.0, 301.2])], replace: nil)
+        let sent = try XCTUnwrap(try JSONSerialization.jsonObject(with: APIClient.encoder().encode(upload))
+                                 as? [String: Any])
+        let expected = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data("""
+        {"days":[{"date":"2026-11-09","coverageMinutes":401.7,"fromBpm":40,"minutes":[12.5,88.0,301.2]}]}
+        """.utf8)) as? [String: Any])
+        XCTAssertEqual(sent as NSDictionary, expected as NSDictionary)
+
+        let stored = try decode([StrainStored].self, #"[{"date":"2026-11-09","coverageMinutes":1312.4}]"#)
+        XCTAssertEqual(stored, [StrainStored(date: CalendarDate(year: 2026, month: 11, day: 9),
+                                             coverageMinutes: 1312.4)])
+    }
 }
