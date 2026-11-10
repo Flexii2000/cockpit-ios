@@ -78,6 +78,9 @@ fi
 export TEST_RUNNER_COCKPIT_SHOPPING_TOKEN
 TEST_RUNNER_COCKPIT_SHOPPING_TOKEN="${COCKPIT_SHOPPING_TOKEN:-$(security find-generic-password -a cockpit-ios -s shopping_token -w 2>/dev/null || true)}"
 export TEST_RUNNER_COCKPIT_URL_SHOPPING="${COCKPIT_URL_SHOPPING:-}"
+# Der Rezept-Test (testRecipeFromChatToCooking) laeuft nur gegen einen lokalen
+# Dienst mit Agent-Attrappe; COCKPIT_RECIPE nennt das Rezept, das sie vorschlaegt.
+export TEST_RUNNER_COCKPIT_RECIPE="${COCKPIT_RECIPE:-}"
 
 # Der Noten-Zugang kommt aus der Umgebung, nicht aus dem Schluesselbund: das
 # Passwort ist Felix' Anmeldung und kein Dienstgeheimnis.

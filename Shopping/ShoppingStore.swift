@@ -1,17 +1,18 @@
 import Foundation
 
-/// Haelt die Liste, die Gerichte und die Regeln.
+/// Haelt die Liste, die Rezepte und die Regeln.
 ///
 /// Was im Laden passiert - hinzufuegen, abhaken, aendern, loeschen, „Abgehakte
-/// entfernen“, ein Gericht auf die Liste - ist sofort zu sehen: es geht in die
+/// entfernen“, ein Rezept auf die Liste - ist sofort zu sehen: es geht in die
 /// Warteschlange (`PendingChanges`), und die Liste zeigt den Stand des Dienstes
 /// mit dem, was wartet, darueber (`ShoppingOverlay`). Im Supermarkt fehlt oft
 /// das Netz; ein Haken, der erst nach 30 s Warten oder beim naechsten Empfang zu
 /// sehen ist, ist dort nichts wert. Lehnt der Dienst etwas ab, verschwindet es
 /// aus der Anzeige, und eine Meldung sagt, was nicht ging.
 ///
-/// Gerichte und Regeln pflegen ist Schreibtischarbeit: das wartet auf die
-/// Antwort und sagt es, wenn es nicht geht.
+/// Rezepte und Regeln pflegen ist Schreibtischarbeit: das wartet auf die
+/// Antwort und sagt es, wenn es nicht geht. Kochen fragt den Dienst direkt -
+/// seine Antwort ist kein Brett und hat in der Warteschlange nichts verloren.
 @MainActor
 @Observable
 final class ShoppingStore {
@@ -105,20 +106,56 @@ final class ShoppingStore {
                       label: dish.name)
     }
 
-    // MARK: - Gerichte und Regeln (mit Antwort)
+    /// Ein Rezept fuer so viele Portionen auf die Liste, ohne die abgewaehlten
+    /// Zutaten - auch ohne Netz: die Mengen rechnet die App nach derselben Tabelle
+    /// wie der Dienst (`ShoppingQuantity.scale`), der sie beim Senden noch einmal
+    /// selbst rechnet.
+    ///
+    /// - Parameters:
+    ///   - portions: `nil` oder ein Rezept ohne Portionen: die gespeicherten Mengen.
+    ///   - skipped: Namen der Zutaten, die nicht mit sollen (Vorrat, schon da).
+    /// - Returns: ob etwas auf die Liste ging - ohne eine gewaehlte Zutat nichts.
+    @discardableResult
+    func addRecipe(_ dish: ShoppingDish, portions: Int?, skipping skipped: [String]) -> Bool {
+        let target = dish.basePortions == nil ? nil : portions
+        let skip = Set(skipped.map(ShoppingOverlay.nameKey))
+        let items = dish.ingredients(for: target)
+            .filter { !skip.contains(ShoppingOverlay.nameKey($0.name)) }
+            .map { ShoppingChange.DishItem(id: UUID().uuidString.lowercased(), name: $0.name, quantity: $0.quantity) }
+        guard !items.isEmpty else { return false }
+        queue.enqueue(.shopping(.addRecipe(dishId: dish.id, dishName: dish.name, portions: target, items: items,
+                                           skipped: skipped, at: Date(), by: me)), label: dish.name)
+        return true
+    }
+
+    // MARK: - Rezepte und Regeln (mit Antwort)
 
     @discardableResult
-    func createDish(name: String, ingredients: [ShoppingIngredient]) async -> Bool {
-        await perform { try await api.createDish(ShoppingDishDraft(name: name, ingredients: ingredients)) }
+    func createDish(_ draft: ShoppingDishDraft) async -> Bool {
+        await perform { try await api.createDish(draft) }
     }
 
     @discardableResult
-    func updateDish(_ dish: ShoppingDish, name: String, ingredients: [ShoppingIngredient]) async -> Bool {
-        await perform { try await api.updateDish(id: dish.id, draft: ShoppingDishDraft(name: name, ingredients: ingredients)) }
+    func updateDish(_ dish: ShoppingDish, draft: ShoppingDishDraft) async -> Bool {
+        await perform { try await api.updateDish(id: dish.id, draft: draft) }
     }
 
-    func deleteDish(_ dish: ShoppingDish) async {
+    @discardableResult
+    func deleteDish(_ dish: ShoppingDish) async -> Bool {
         await perform { try await api.deleteDish(id: dish.id) }
+    }
+
+    /// Den Entwurf einer Chat-Antwort als Rezept speichern; die Antwort ist das Brett.
+    @discardableResult
+    func saveDraft(messageId: String) async -> Bool {
+        await perform { try await api.saveDraft(messageId: messageId) }
+    }
+
+    /// „Kochen“: das Rezept als Gericht in den Kalorienzaehler, bei allen mit
+    /// Healthy. Ohne Netz oder bei einem Fehler `nil` - kochen kann man trotzdem,
+    /// die Kochansicht zeigt dann nur, dass Healthy es noch nicht hat.
+    func cook(_ dish: ShoppingDish) async -> ShoppingCookResult? {
+        try? await api.cook(dishId: dish.id)
     }
 
     @discardableResult
@@ -152,7 +189,7 @@ final class ShoppingStore {
             apply(try await call(), sequence: sequence)
             return true
         } catch {
-            // Meist aus einem offenen Blatt heraus (Gericht, Regel) - die Meldung oben
+            // Meist aus einem offenen Blatt heraus (Rezept, Regel) - die Meldung oben
             // sieht man dort, die Leiste im Inhalt dahinter nicht.
             report(error, notify: true)
             return false

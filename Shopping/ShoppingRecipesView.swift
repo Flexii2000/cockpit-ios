@@ -1,11 +1,26 @@
 import SwiftUI
 
-/// Gerichte: je eines eine Zutatenliste, die mit einem Tipp komplett auf die
-/// Einkaufsliste geht.
-struct ShoppingDishesView: View {
+/// Wohin es in der Einkaufsliste hinter der Liste geht. Als Werte im Stapel, damit
+/// eine Seite die naechste oeffnen kann, ohne sie zu kennen - der Chat das
+/// gespeicherte Rezept, das Rezept die Kochansicht.
+enum ShoppingRoute: Hashable {
+    case recipes
+    case recurring
+    case recipe(id: String)
+    /// `portions`: fuer so viele wird gekocht; `nil` = wie das Rezept.
+    case cook(id: String, portions: Int?)
+    case chat
+}
+
+/// Rezepte: Zutatenlisten, die als Ganzes auf die Einkaufsliste gehen - seit
+/// November 2026 auf Wunsch mit Portionen, Schritten und Naehrwerten, und der Chat
+/// schlaegt welche vor. Ein Gericht von frueher ist ein Rezept ohne das alles und
+/// behaelt seinen einen Tipp „Auf die Liste“.
+struct ShoppingRecipesView: View {
 
     let store: ShoppingStore
-    @State private var editing: ShoppingDishTarget?
+    let chat: ShoppingChatStore
+    @State private var isCreating = false
     /// Das Gericht, dessen Zutaten gerade auf die Liste gegangen sind - der
     /// Knopf zeigt zwei Sekunden lang einen Haken statt des Wagens.
     @State private var justAdded: String?
@@ -13,30 +28,10 @@ struct ShoppingDishesView: View {
     var body: some View {
         List {
             ForEach(store.dishes) { dish in
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(dish.name)
-                        Text(ingredientLine(dish))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture { editing = .existing(dish) }
-                    Spacer(minLength: 0)
-                    Button {
-                        // Steht sofort auf der Liste, auch ohne Netz.
-                        store.addDish(dish)
-                        flash(dish.id)
-                    } label: {
-                        Image(systemName: justAdded == dish.id ? "checkmark.circle.fill" : "cart.badge.plus")
-                            .font(.title3)
-                            .foregroundStyle(justAdded == dish.id ? Color.green : Color.accentColor)
-                    }
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel("Auf die Liste")
-                    .accessibilityIdentifier("addDish-\(dish.id)")
+                NavigationLink(value: ShoppingRoute.recipe(id: dish.id)) {
+                    row(dish)
                 }
+                .accessibilityIdentifier("recipe-\(dish.id)")
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
                         Task { await store.deleteDish(dish) }
@@ -45,27 +40,59 @@ struct ShoppingDishesView: View {
                     }
                 }
             }
-            if store.dishes.isEmpty {
-                Text("Noch kein Gericht. Ein Gericht ist eine Zutatenliste, "
-                     + "die mit einem Tipp komplett auf die Einkaufsliste geht.")
-                    .foregroundStyle(.secondary)
-            }
         }
-        .navigationTitle("Gerichte")
+        .navigationTitle("Rezepte")
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { editing = .new } label: { Image(systemName: "plus") }
-                    .accessibilityLabel("Neues Gericht")
+            ToolbarItemGroup(placement: .primaryAction) {
+                // Nur wer freigeschaltet ist und einen eingerichteten Agenten hat,
+                // sieht den Chat - sonst gibt es ihn schlicht nicht.
+                if chat.isAvailable {
+                    NavigationLink(value: ShoppingRoute.chat) {
+                        Image(systemName: "bubble.left.and.text.bubble.right")
+                    }
+                    .accessibilityLabel("Chat")
+                    .accessibilityIdentifier("openChat")
+                }
+                Button { isCreating = true } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("Neues Rezept")
+                    .accessibilityIdentifier("newRecipe")
             }
         }
-        .sheet(item: $editing) { target in
-            ShoppingDishEditSheet(store: store, dish: target.dish)
+        .sheet(isPresented: $isCreating) {
+            ShoppingRecipeEditSheet(store: store, dish: nil)
         }
+        .task { await chat.load() }
     }
 
-    private func ingredientLine(_ dish: ShoppingDish) -> String {
-        dish.ingredients.isEmpty ? "keine Zutaten"
-            : dish.ingredients.map(\.name).joined(separator: ", ")
+    private func row(_ dish: ShoppingDish) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(dish.name)
+                if let line = ShoppingRecipeFormat.listLine(dish) {
+                    Text(line)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            // Ein Gericht ohne Portionen und Vorrat: da gibt es nichts zu waehlen,
+            // also weiter mit einem Tipp. Alles andere entscheidet man im Rezept.
+            if dish.isPlain, !dish.ingredients.isEmpty {
+                Button {
+                    // Steht sofort auf der Liste, auch ohne Netz.
+                    store.addDish(dish)
+                    flash(dish.id)
+                } label: {
+                    Image(systemName: justAdded == dish.id ? "checkmark.circle.fill" : "cart.badge.plus")
+                        .font(.title3)
+                        .foregroundStyle(justAdded == dish.id ? Color.green : Color.accentColor)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Auf die Liste")
+                .accessibilityIdentifier("addDish-\(dish.id)")
+            }
+        }
     }
 
     private func flash(_ id: String) {
@@ -77,140 +104,83 @@ struct ShoppingDishesView: View {
     }
 }
 
-enum ShoppingDishTarget: Identifiable {
-    case new
-    case existing(ShoppingDish)
+/// Wie ein Rezept in Zeilen und Kacheln steht - an einer Stelle, damit Liste,
+/// Rezept, Entwurf und Kochansicht dasselbe sagen.
+enum ShoppingRecipeFormat {
 
-    var id: String {
-        switch self {
-        case .new: "new"
-        case .existing(let dish): dish.id
-        }
+    private static let german = Locale(identifier: "de_DE")
+
+    /// „2 Portionen · 35 Min. · 860 kcal“ - was davon da ist; ohne alles `nil`.
+    static func meta(portions: Int?, minutes: Int?, kcal: Double? = nil) -> String? {
+        var parts: [String] = []
+        if let portions, portions > 0 { parts.append(Self.portions(portions)) }
+        if let minutes, minutes > 0 { parts.append("\(minutes) Min.") }
+        if let kcal { parts.append("\(number(kcal)) kcal") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    var dish: ShoppingDish? {
-        if case .existing(let dish) = self { return dish }
-        return nil
+    /// Die zweite Zeile in der Liste: beim Rezept Portionen und Zeit, beim Gericht
+    /// von frueher wie bisher die Zutaten.
+    static func listLine(_ dish: ShoppingDish) -> String? {
+        if let meta = meta(portions: dish.basePortions, minutes: dish.minutes) { return meta }
+        return dish.ingredients.isEmpty ? nil : dish.ingredients.map(\.name).joined(separator: ", ")
+    }
+
+    static func portions(_ count: Int) -> String {
+        count == 1 ? "1 Portion" : "\(count) Portionen"
+    }
+
+    /// Deutsch, hoechstens eine Nachkommastelle: „860“, „7,5“, „1.250“.
+    static func number(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(german))
+    }
+
+    /// Fuer ein Eingabefeld: ohne Tausenderpunkt, mit Komma, leer ohne Wert.
+    static func field(_ value: Double?) -> String {
+        guard let value else { return "" }
+        if value == value.rounded() { return String(Int(value)) }
+        return String(value).replacingOccurrences(of: ".", with: ",")
+    }
+
+    /// Was in einem Zahlenfeld steht, als Zahl - mit Komma oder Punkt; leer ist `nil`.
+    static func value(_ field: String) -> Double? {
+        let trimmed = field.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        return trimmed.isEmpty ? nil : Double(trimmed)
+    }
+
+    /// Der Name hinter einem Token, wie man ihn liest: „felix“ wird „Felix“.
+    static func person(_ name: String) -> String {
+        name.prefix(1).uppercased() + name.dropFirst()
     }
 }
 
-/// Ein Gericht anlegen oder aendern. Die Zutaten sind Zeilen mit Name und
-/// Menge; die leere Zeile am Ende nimmt die naechste - kein Knopf, kein
-/// Menue.
-struct ShoppingDishEditSheet: View {
+/// Die Naehrwerte je Portion als vier Zahlen nebeneinander - im Rezept und im
+/// Entwurf aus dem Chat.
+struct ShoppingNutritionRow: View {
 
-    let store: ShoppingStore
-    let dish: ShoppingDish?
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name: String
-    @State private var rows: [IngredientRow]
-    @State private var newIngredient = ""
-    @State private var newQuantity = ""
-    @State private var isSaving = false
-    @FocusState private var typingNew: Bool
-
-    struct IngredientRow: Identifiable {
-        let id = UUID()
-        var name: String
-        var amount: String
-        var unit: ShoppingQuantity.Unit
-
-        init(name: String, quantity: String?) {
-            self.name = name
-            let parsed = ShoppingQuantity.parse(quantity)
-            amount = parsed?.amount ?? quantity ?? ""
-            unit = parsed?.unit ?? .piece
-        }
-    }
-
-    @State private var newUnit: ShoppingQuantity.Unit = .piece
-
-    init(store: ShoppingStore, dish: ShoppingDish?) {
-        self.store = store
-        self.dish = dish
-        _name = State(initialValue: dish?.name ?? "")
-        _rows = State(initialValue: (dish?.ingredients ?? []).map {
-            IngredientRow(name: $0.name, quantity: $0.quantity)
-        })
-    }
+    let nutrition: ShoppingNutrition
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Name des Gerichts", text: $name)
-                        .accessibilityIdentifier("dishName")
-                }
-                Section("Zutaten") {
-                    ForEach($rows) { $row in
-                        HStack {
-                            TextField("Zutat", text: $row.name)
-                            QuantityField(amount: $row.amount, unit: $row.unit)
-                        }
-                    }
-                    .onDelete { rows.remove(atOffsets: $0) }
-                    HStack {
-                        Image(systemName: "circle.dashed")
-                            .foregroundStyle(.tertiary)
-                        TextField("Zutat", text: $newIngredient)
-                            .focused($typingNew)
-                            .submitLabel(.next)
-                            .onSubmit { addRow() }
-                            .accessibilityIdentifier("newIngredient")
-                        QuantityField(amount: $newQuantity, unit: $newUnit, onSubmit: addRow)
-                    }
-                }
-            }
-            .navigationTitle(dish == nil ? "Neues Gericht" : "Gericht")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Sichern") { Task { await save() } }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
-                        .accessibilityIdentifier("saveDish")
-                }
-            }
+        HStack(alignment: .firstTextBaseline) {
+            cell(nutrition.kcal, unit: "kcal", label: "je Portion")
+            cell(nutrition.proteinG, unit: "g", label: "Eiweiß")
+            cell(nutrition.carbsG, unit: "g", label: "Kohlenhydrate")
+            cell(nutrition.fatG, unit: "g", label: "Fett")
         }
+        .accessibilityElement(children: .combine)
     }
 
-    private func addRow() {
-        var n = newIngredient.trimmingCharacters(in: .whitespaces)
-        guard !n.isEmpty else { return }
-        var q = ShoppingQuantity.compose(newQuantity, unit: newUnit)
-        if q == nil {
-            let split = ShoppingQuantity.split(n)
-            n = split.name
-            q = split.quantity?.text
+    private func cell(_ value: Double?, unit: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value.map { "\(ShoppingRecipeFormat.number($0)) \(unit)" } ?? "–")
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        rows.append(IngredientRow(name: n, quantity: q))
-        newIngredient = ""
-        newQuantity = ""
-        newUnit = .piece
-        typingNew = true
-    }
-
-    private func save() async {
-        // Was noch in der leeren Zeile steht, zaehlt mit - sonst ginge die
-        // letzte Zutat verloren, weil man Sichern statt Enter getippt hat.
-        addRow()
-        let ingredients = rows.compactMap { row -> ShoppingIngredient? in
-            let n = row.name.trimmingCharacters(in: .whitespaces)
-            guard !n.isEmpty else { return nil }
-            return ShoppingIngredient(name: n, quantity: ShoppingQuantity.compose(row.amount, unit: row.unit))
-        }
-        let title = name.trimmingCharacters(in: .whitespaces)
-        isSaving = true
-        defer { isSaving = false }
-        let ok: Bool
-        if let dish {
-            ok = await store.updateDish(dish, name: title, ingredients: ingredients)
-        } else {
-            ok = await store.createDish(name: title, ingredients: ingredients)
-        }
-        if ok { dismiss() }
+        .frame(maxWidth: .infinity)
     }
 }

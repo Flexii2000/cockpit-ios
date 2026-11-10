@@ -1,11 +1,17 @@
 import SwiftUI
 
 /// Die Einkaufsliste: Offenes oben, Abgehaktes darunter, die Eingabe am
-/// Ende. Gerichte und Regeln sind eigene Seiten dahinter - als sichtbare
+/// Ende. Rezepte und Regeln sind eigene Seiten dahinter - als sichtbare
 /// Zeilen in der Liste, nicht in einem Menue.
 struct ShoppingTab: View {
 
     @State private var store = ShoppingStore()
+    /// Der Rezept-Chat. Hier oben, nicht in seiner Seite: ob es ihn gibt, zeigt
+    /// schon die Rezeptliste, und eine Antwort, die gerade entsteht, soll das
+    /// Zurueckgehen ueberleben.
+    @State private var chat = ShoppingChatStore()
+    /// Was hinter der Liste offen ist (`ShoppingRoute`).
+    @State private var path: [ShoppingRoute] = []
     @State private var newName = ""
     @State private var newQuantity = ""
     @State private var newUnit: ShoppingQuantity.Unit = .piece
@@ -13,7 +19,7 @@ struct ShoppingTab: View {
     @FocusState private var typing: Bool
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if store.board == nil, store.isLoading {
                     LoadingPlaceholder()
@@ -37,9 +43,44 @@ struct ShoppingTab: View {
                 ShoppingItemEditSheet(store: store, item: item)
             }
             .refreshable { await store.load() }
-            .task { await store.load() }
+            .task {
+                await store.load()
+                #if DEBUG
+                openDebugRoute()
+                #endif
+            }
+            .navigationDestination(for: ShoppingRoute.self) { route in
+                switch route {
+                case .recipes: ShoppingRecipesView(store: store, chat: chat)
+                case .recurring: ShoppingRecurringView(store: store)
+                case .recipe(let id): ShoppingRecipeDetailView(store: store, dishId: id)
+                case .cook(let id, let portions): ShoppingCookView(store: store, dishId: id, portions: portions)
+                case .chat: ShoppingChatView(store: store, chat: chat)
+                }
+            }
         }
     }
+
+    #if DEBUG
+    /// `COCKPIT_SHOPPING=recipes|recipe|cook|chat` oeffnet beim Start die Seite
+    /// dahinter - der Simulator kann nicht tippen. `COCKPIT_RECIPE=<Name>` waehlt das
+    /// Rezept (sonst das erste mit Portionen, sonst das erste).
+    private func openDebugRoute() {
+        let environment = ProcessInfo.processInfo.environment
+        guard path.isEmpty, let target = environment["COCKPIT_SHOPPING"], !target.isEmpty else { return }
+        let wanted = environment["COCKPIT_RECIPE"]
+        let dish = store.dishes.first { $0.name == wanted }
+            ?? store.dishes.first { $0.basePortions != nil }
+            ?? store.dishes.first
+        switch target {
+        case "recipes": path = [.recipes]
+        case "chat": path = [.recipes, .chat]
+        case "recipe": path = dish.map { [.recipes, .recipe(id: $0.id)] } ?? [.recipes]
+        case "cook": path = dish.map { [.recipes, .recipe(id: $0.id), .cook(id: $0.id, portions: nil)] } ?? [.recipes]
+        default: break
+        }
+    }
+    #endif
 
     private var list: some View {
         List {
@@ -83,15 +124,12 @@ struct ShoppingTab: View {
                 }
             }
             Section {
-                NavigationLink {
-                    ShoppingDishesView(store: store)
-                } label: {
-                    Label("Gerichte", systemImage: "frying.pan")
+                NavigationLink(value: ShoppingRoute.recipes) {
+                    Label("Rezepte", systemImage: "frying.pan")
                         .badge(store.dishes.count)
                 }
-                NavigationLink {
-                    ShoppingRecurringView(store: store)
-                } label: {
+                .accessibilityIdentifier("recipes")
+                NavigationLink(value: ShoppingRoute.recurring) {
                     Label("Regelmäßig", systemImage: "repeat")
                         .badge(store.rules.count)
                 }

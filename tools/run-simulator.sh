@@ -133,6 +133,16 @@
 #   COCKPIT_GRADES_PASSWORD=x COCKPIT_NO_LOCK=1 COCKPIT_NO_PUSH=1 \
 #   tools/run-simulator.sh Vault cloud bild.png
 #
+# COCKPIT_SHOPPING=recipes|recipe|cook|chat oeffnet in der Einkaufsliste (Fokus-Tab
+# shopping, App Einkaufsliste) die Seite dahinter - Rezepte, ein Rezept, die
+# Kochansicht, den Rezept-Chat; COCKPIT_RECIPE="<Name>" waehlt das Rezept (sonst das
+# erste mit Portionen). Gegen einen lokal gestarteten Dienst (../shopping, dort mit
+# einem Skript statt der Claude-Session):
+#
+#   COCKPIT_URL_SHOPPING=http://127.0.0.1:<port>/shopping-list COCKPIT_SHOPPING_TOKEN=<token> \
+#   COCKPIT_FH_PRIVATE_TOKEN=local-private COCKPIT_WEIGHT_TOKEN=local-weight \
+#   COCKPIT_SHOPPING=cook tools/run-simulator.sh Einkaufsliste shopping bild.png
+#
 # COCKPIT_DAY=2026-08-10 stellt den Essen-Tab auf einen bestimmten Tag. Nuetzlich
 # fuer einen leeren Tag: an einem vollen liegt der Verlauf unterhalb des
 # Bildschirms, und scrollen kann simctl nicht.
@@ -210,6 +220,8 @@ SIMCTL_CHILD_COCKPIT_SHOPPING_TOKEN="$SHOPPING" \
 SIMCTL_CHILD_COCKPIT_HEALTH_TOKEN="$HEALTH" \
 SIMCTL_CHILD_COCKPIT_HEALTH_NAME="${COCKPIT_HEALTH_NAME:-}" \
 SIMCTL_CHILD_COCKPIT_URL_SHOPPING="${COCKPIT_URL_SHOPPING:-}" \
+SIMCTL_CHILD_COCKPIT_SHOPPING="${COCKPIT_SHOPPING:-}" \
+SIMCTL_CHILD_COCKPIT_RECIPE="${COCKPIT_RECIPE:-}" \
 SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
 SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \
 SIMCTL_CHILD_COCKPIT_NO_HEALTH="${COCKPIT_NO_HEALTH:-}" \
