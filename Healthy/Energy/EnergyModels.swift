@@ -101,6 +101,34 @@ struct Calibration: Decodable, Equatable, Sendable {
     let watchDays: Int
 }
 
+/// Ob der Eichungs-Monitor einen Wert hat (Vertrag §1.6). Nur `ok` traegt
+/// `factor` und `se`.
+enum CalibrationMonitorStatus: String, LenientEnum {
+    case ok = "OK"
+    case foodUnavailable = "FOOD_UNAVAILABLE"
+    case tooFewTrackedDays = "TOO_FEW_TRACKED_DAYS"
+    case tooFewWeights = "TOO_FEW_WEIGHTS"
+    case tooFewWatchDays = "TOO_FEW_WATCH_DAYS"
+    case notEstimable = "NOT_ESTIMABLE"
+    case unknown
+}
+
+/// Der Eichungs-Monitor (Vertrag §1.6): der Faktor, den Gewicht, Aufnahme und
+/// Uhr der letzten 56 Tage zusammen ergeben - wasserbereinigt, mit seinem
+/// Standardfehler. Gerechnet im Weight Tracker.
+struct CalibrationMonitor: Decodable, Equatable, Sendable {
+    let status: CalibrationMonitorStatus
+    let factor: Double?
+    let se: Double?
+    var windowFrom: CalendarDate? = nil
+    var windowTo: CalendarDate? = nil
+    var weights: Int? = nil
+    var trackedDays: Int? = nil
+    var imputedIntakeDays: Int? = nil
+    var watchDays: Int? = nil
+    var waterKgPer1000Kcal: Double? = nil
+}
+
 /// `GET /api/energy/summary`: heute und die letzten sieben vollen Tage - fuer
 /// die Kacheln im Gewicht-Tab und die Karte im Dashboard.
 struct EnergySummary: Decodable, Equatable, Sendable {
@@ -113,6 +141,10 @@ struct EnergySummary: Decodable, Equatable, Sendable {
     let calibration: Calibration
     /// Ob der Kalorienzaehler antwortete (`food: OK|UNAVAILABLE`).
     let sources: [String: String]
+    /// Was die Daten gerade zum Faktor sagen (Vertrag §1.6, seit 10.11.) - nur
+    /// Anzeige, der Verbrauch rechnet weiter mit `calibration.factor`. Fehlt bei
+    /// einem Dienst von vor dem Feld.
+    var calibrationMonitor: CalibrationMonitor? = nil
 
     /// Ohne Kalorienzaehler kennt der Dienst das Gegessene nicht - ein
     /// Defizit waere dann der ganze Verbrauch.

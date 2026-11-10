@@ -114,7 +114,13 @@ enum DashboardDemo {
                                      measuredKcal: 2610, measuredSeKcal: 96, watchKcal: 2837,
                                      intakeKcal: 2140, weightSlopeKgPerWeek: -0.41,
                                      trackedDays: 25, weightDays: 27, watchDays: 28),
-            sources: ["food": "OK"])
+            sources: ["food": "OK"],
+            // Der Eichungs-Monitor (Vertrag §1.6): die Kachel zeigt „gemessen 0,96 ± 0,03“.
+            calibrationMonitor: CalibrationMonitor(
+                status: .ok, factor: 0.957, se: 0.031,
+                windowFrom: today.adding(days: -56), windowTo: today.adding(days: -1),
+                weights: 41, trackedDays: 50, imputedIntakeDays: 6, watchDays: 55,
+                waterKgPer1000Kcal: 0.21))
     }
 }
 
@@ -470,6 +476,122 @@ extension DashboardDemo {
         return LogbookInsights(days: days, from: today.adding(days: -days), to: today.adding(days: -1),
                                nightsWithScore: Int(71 * scale), outcomeStatus: "OK",
                                sources: ["cohabit": "OK", "food": "OK"], predictors: predictors)
+    }
+}
+
+extension DashboardDemo {
+
+    // MARK: - Briefing, Chat, Rueckblick, Serien, Freunde (seit 10.11.)
+
+    /// Chat und Briefing sind in der Vorfuehrung freigeschaltet.
+    static let features = HealthFeatures(me: "person-a", chat: true, briefing: true, friends: true)
+
+    /// Passt zu den Karten darunter: Recovery 72 %, gestern ein Defizit, heute
+    /// Strain 12,4 bei Ziel 14,1.
+    static let briefingText = "Recovery 72 % nach 7:41 h Schlaf, die HRV liegt im üblichen Bereich. "
+        + "Gestern blieben 310 kcal Defizit, beim Eiweiß fehlten 30 g. "
+        + "Heute passt ein Training bis etwa Strain 14."
+
+    /// Zwei beantwortete Fragen und eine, die noch laeuft - neutrale Texte, die
+    /// zu den erfundenen Zahlen passen.
+    static func chatExchanges(now: Date = Date()) -> [ChatExchange] {
+        [
+            ChatExchange(
+                id: "00000000-0000-4000-8000-000000000001",
+                question: "Was sollte ich heute noch essen?",
+                askedAt: now.addingTimeInterval(-900), status: .done,
+                answer: "Dir fehlen heute noch etwa 150 kcal und 30 g Eiweiß bis zum Ziel.\n\n"
+                    + "– 250 g Magerquark mit Beeren deckt beides fast genau.\n"
+                    + "– Herzhaft: zwei Eier und eine Scheibe Brot, dann fehlen noch 15 g Eiweiß.",
+                answeredAt: now.addingTimeInterval(-870), elapsedSeconds: 30),
+            ChatExchange(
+                id: "00000000-0000-4000-8000-000000000002",
+                question: "Ergibt mein Kalorienziel noch Sinn?",
+                askedAt: now.addingTimeInterval(-600), status: .done,
+                answer: "Ja. In den letzten vier Wochen lag dein Defizit im Schnitt bei 340 kcal am Tag, "
+                    + "und das Gewicht fiel um etwa 0,3 kg je Woche.\n\n"
+                    + "Das passt zum Plan. Erst wenn das Gewicht zwei Wochen lang steht, lohnt ein neuer Blick.",
+                answeredAt: now.addingTimeInterval(-565), elapsedSeconds: 35),
+            ChatExchange(
+                id: "00000000-0000-4000-8000-000000000003",
+                question: "Wie war meine Woche?",
+                askedAt: now.addingTimeInterval(-4), status: .running, elapsedSeconds: 4),
+        ]
+    }
+
+    /// Der Montag der laufenden Woche.
+    private static func monday(_ today: CalendarDate) -> CalendarDate {
+        today.adding(days: -(today.isoWeekday - 1))
+    }
+
+    /// Die letzte volle Woche gegen die davor - mit einem Feld, das gleich
+    /// blieb (Schritte), damit auch der Pfeil nach rechts zu sehen ist.
+    static func weekReview(today: CalendarDate = .today()) -> WeekReview {
+        let start = monday(today).adding(days: -7)
+        return WeekReview(
+            week: WeekStats(from: start, to: start.adding(days: 6), kcalAvg: 2180, deficitAvg: 410,
+                            trackedDays: 6, weightAvg: 82.9, weightDays: 6, weightDeltaKg: -0.42,
+                            proteinGreenDays: 4, proteinYellowDays: 1, proteinRedDays: 1,
+                            stepsAvg: 9120, stepsDays: 7, strainAvg: 11.8, strainDays: 6),
+            previous: WeekStats(from: start.adding(days: -7), to: start.adding(days: -1), kcalAvg: 2290,
+                                deficitAvg: 320, trackedDays: 7, weightAvg: 83.3, weightDays: 7,
+                                weightDeltaKg: -0.21, proteinGreenDays: 3, proteinYellowDays: 3,
+                                proteinRedDays: 1, stepsAvg: 9120, stepsDays: 7, strainAvg: 10.9,
+                                strainDays: 7),
+            sources: ["food": "OK"])
+    }
+
+    /// Die Serien-Kachel: 23 Tage getrackt, die laengste Freundes-Serie droht
+    /// heute zu reissen.
+    static func streakTile() -> StreakTile {
+        StreakTile(tracking: .init(current: 23, best: 41, todayDone: false),
+                   topFriend: .init(friendshipId: "f-demo-a", name: "Person A", type: .tracked,
+                                    current: 12, atRisk: true))
+    }
+
+    /// Zwei Freundschaften mit Platzhaltern („Person A“, „Person B“): jede
+    /// Marke kommt einmal vor - erfuellt, offen, verfehlt, unbekannt -, eine
+    /// Serie droht zu reissen, und ein Stupser ist schon vergeben.
+    static func friendsOverview(today: CalendarDate = .today()) -> FriendsOverview {
+        let start = monday(today)
+        let days = today.daysBetween(start)
+        func steps(_ mine: [Int], _ theirs: [Int]) -> FriendSteps {
+            let week = (0...days).map { offset in
+                FriendStepsDay(date: start.adding(days: offset), me: mine[offset % mine.count],
+                               friend: theirs[offset % theirs.count])
+            }
+            return FriendSteps(weekStart: start, days: week,
+                               me: week.compactMap(\.me).reduce(0, +),
+                               friend: week.compactMap(\.friend).reduce(0, +),
+                               lastWeek: FriendStepsTotals(me: 71200, friend: 69800))
+        }
+        return FriendsOverview(
+            me: FriendsMe(person: "person-x", name: "Person X"),
+            friends: [
+                Friend(id: "f-demo-a", person: "person-a", name: "Person A", since: today.adding(days: -40),
+                       today: FriendToday(tracked: true, recoveryBand: .green, strainBand: .moderate),
+                       streaks: [
+                           FriendStreak(type: .tracked, current: 12, best: 30, me: .done, friend: .open, atRisk: true),
+                           FriendStreak(type: .protein, current: 0, best: 4, me: .open, friend: .open, atRisk: false),
+                           FriendStreak(type: .steps, current: 3, best: 9, me: .done, friend: .done, atRisk: false),
+                           FriendStreak(type: .kcal, current: 1, best: 6, me: .failed, friend: .unknown, atRisk: false),
+                       ],
+                       steps: steps([8123, 11234, 9420, 6310, 12480, 7050, 10200],
+                                    [10450, 12325, 7800, 9900, 5400, 13100, 8700]),
+                       nudge: FriendNudge(allowed: true)),
+                Friend(id: "f-demo-b", person: "person-b", name: "Person B", since: today.adding(days: -9),
+                       today: FriendToday(tracked: false, recoveryBand: nil, strainBand: .high),
+                       streaks: [
+                           FriendStreak(type: .tracked, current: 1, best: 5, me: .done, friend: .open, atRisk: false),
+                           FriendStreak(type: .protein, current: 2, best: 2, me: .open, friend: .done, atRisk: true),
+                           FriendStreak(type: .steps, current: 0, best: 3, me: .done, friend: .open, atRisk: false),
+                           FriendStreak(type: .kcal, current: 4, best: 7, me: .open, friend: .open, atRisk: true),
+                       ],
+                       steps: steps([8123, 11234, 9420, 6310, 12480, 7050, 10200],
+                                    [6200, 7400, 9900, 8100, 11800, 4300, 9050]),
+                       nudge: FriendNudge(allowed: false)),
+            ],
+            invites: [])
     }
 }
 

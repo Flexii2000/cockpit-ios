@@ -68,4 +68,32 @@ final class EnergyFormatTests: XCTestCase {
         XCTAssertEqual(even?.isSurplus, false)
         XCTAssertNil(EnergyFormat.balance(day(expenditure: 2610)), "nicht getrackt: kein Defizit")
     }
+
+    // MARK: - Eichungs-Kachel (Vertrag §5 und §1.6)
+
+    private func calibration(_ status: CalibrationStatus, _ factor: Double) -> Calibration {
+        Calibration(status: status, factor: factor, rawFactor: nil, windowFrom: nil, windowTo: nil,
+                    measuredKcal: nil, measuredSeKcal: nil, watchKcal: nil, intakeKcal: nil,
+                    weightSlopeKgPerWeek: nil, trackedDays: 25, weightDays: 27, watchDays: 28)
+    }
+
+    /// „fest 0,93“ bei einem festen Faktor, sonst „rollend 0,93“.
+    func testMonitorNamesTheFactorInUse() {
+        XCTAssertEqual(EnergyFormat.monitorFactor(calibration(.fixed, 0.93)), "fest 0,93")
+        XCTAssertEqual(EnergyFormat.monitorFactor(calibration(.ok, 0.921)), "rollend 0,92")
+        XCTAssertEqual(EnergyFormat.monitorFactor(calibration(.tooFewWeights, 1)), "rollend 1,00")
+    }
+
+    /// „gemessen 0,96 ± 0,03“ - ohne `OK` im Monitor ein Strich.
+    func testMonitorShowsTheMeasuredFactorWithItsError() {
+        XCTAssertEqual(EnergyFormat.monitorMeasured(CalibrationMonitor(status: .ok, factor: 0.957, se: 0.031)),
+                       "gemessen 0,96 ± 0,03")
+        XCTAssertEqual(EnergyFormat.monitorMeasured(CalibrationMonitor(status: .ok, factor: 0.957, se: nil)),
+                       "gemessen 0,96")
+        XCTAssertEqual(EnergyFormat.monitorMeasured(CalibrationMonitor(status: .tooFewWeights, factor: nil, se: nil)),
+                       "gemessen –")
+        XCTAssertEqual(EnergyFormat.monitorMeasured(CalibrationMonitor(status: .unknown, factor: 0.9, se: 0.1)),
+                       "gemessen –", "ein Status, den die App nicht kennt, zeigt keinen Wert")
+        XCTAssertEqual(EnergyFormat.monitorMeasured(nil), "gemessen –")
+    }
 }

@@ -97,6 +97,26 @@ enum EnergyFormat {
         summary.map { calibration($0.calibration.factor) } ?? "–"
     }
 
+    // MARK: - Eichungs-Kachel im Dashboard (Vertrag §5 und §1.6)
+
+    /// Ein Faktor mit zwei Nachkommastellen: „0,93“.
+    static func factor(_ value: Double) -> String {
+        GermanNumber.string(value, decimals: 2)
+    }
+
+    /// Was gilt: „fest 0,93“ bei einem festen Faktor, sonst „rollend 0,93“.
+    static func monitorFactor(_ calibration: Calibration) -> String {
+        (calibration.status == .fixed ? "fest " : "rollend ") + factor(calibration.factor)
+    }
+
+    /// Was die Daten sagen: „gemessen 0,96 ± 0,03“; ohne `OK` im Monitor
+    /// „gemessen –“.
+    static func monitorMeasured(_ monitor: CalibrationMonitor?) -> String {
+        guard let monitor, monitor.status == .ok, let measured = monitor.factor else { return "gemessen –" }
+        guard let se = monitor.se else { return "gemessen " + factor(measured) }
+        return "gemessen " + factor(measured) + " ± " + factor(se)
+    }
+
     /// „25 Tage" - die getrackten Tage im Fenster der Kalibrierung; „fest"
     /// bei einem festen Faktor, der aus keinem Fenster kommt.
     static func calibrationNote(_ summary: EnergySummary?) -> String? {

@@ -487,4 +487,232 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(stored, [StrainStored(date: CalendarDate(year: 2026, month: 11, day: 9),
                                              coverageMinutes: 1312.4)])
     }
+
+    // MARK: - Eichungs-Monitor (Vertrag §1.6)
+
+    /// `calibrationMonitor` in der Summary - das Beispiel aus dem Vertrag §1.6.
+    /// Ein Dienst von vor dem Feld schickt es nicht (siehe `testDecodesEnergySummary`).
+    func testDecodesCalibrationMonitor() throws {
+        let monitor = try decode(CalibrationMonitor.self, """
+        {"status":"OK","factor":0.957,"se":0.031,"windowFrom":"2026-09-15","windowTo":"2026-11-09",
+         "weights":41,"trackedDays":50,"imputedIntakeDays":6,"watchDays":55,"waterKgPer1000Kcal":0.21}
+        """)
+        XCTAssertEqual(monitor.status, .ok)
+        XCTAssertEqual(monitor.factor, 0.957)
+        XCTAssertEqual(monitor.se, 0.031)
+        XCTAssertEqual(monitor.windowFrom, CalendarDate(year: 2026, month: 9, day: 15))
+        XCTAssertEqual(monitor.imputedIntakeDays, 6)
+
+        let without = try decode(CalibrationMonitor.self, """
+        {"status":"TOO_FEW_WEIGHTS","factor":null,"se":null,"windowFrom":"2026-09-15","windowTo":"2026-11-09",
+         "weights":12,"trackedDays":50,"imputedIntakeDays":6,"watchDays":55,"waterKgPer1000Kcal":null}
+        """)
+        XCTAssertEqual(without.status, .tooFewWeights)
+        XCTAssertNil(without.factor)
+        XCTAssertEqual(try decode(CalibrationMonitor.self, #"{"status":"NEU","factor":null,"se":null}"#).status,
+                       .unknown)
+    }
+
+    /// Die Summary traegt den Monitor neben der Kalibrierung; ohne das Feld
+    /// (aelterer Dienst) bleibt sie lesbar.
+    func testEnergySummaryCarriesTheMonitor() throws {
+        let body = """
+        {"today":null,"deficit7":null,"deficit7Days":0,"expenditure7":null,"expenditure7Days":0,
+         "calibration":{"status":"FIXED","factor":0.93,"rawFactor":0.807,"windowFrom":"2026-10-13",
+           "windowTo":"2026-11-09","measuredKcal":2651.0,"measuredSeKcal":160.0,"watchKcal":3287.0,
+           "intakeKcal":2913.0,"weightSlopeKgPerWeek":0.238,"trackedDays":28,"weightDays":27,"watchDays":28},
+         MONITOR"sources":{"food":"OK"}}
+        """
+        let with = try decode(EnergySummary.self, body.replacingOccurrences(
+            of: "MONITOR", with: #""calibrationMonitor":{"status":"OK","factor":0.957,"se":0.031},"#))
+        XCTAssertEqual(with.calibration.status, .fixed)
+        XCTAssertEqual(with.calibrationMonitor?.factor, 0.957)
+        XCTAssertNil(try decode(EnergySummary.self, body.replacingOccurrences(of: "MONITOR", with: ""))
+            .calibrationMonitor)
+    }
+
+    // MARK: - Freischaltungen, Chat, Briefing (Vertrag §8)
+
+    /// `GET /api/features` - und ein Dienst, der ein Feld noch nicht kennt.
+    func testDecodesHealthFeatures() throws {
+        let features = try decode(HealthFeatures.self,
+                                  #"{"me":"person-a","chat":true,"briefing":true,"friends":true}"#)
+        XCTAssertEqual(features, HealthFeatures(me: "person-a", chat: true, briefing: true, friends: true))
+        XCTAssertEqual(try decode(HealthFeatures.self, #"{"me":"person-a"}"#),
+                       HealthFeatures(me: "person-a"), "was fehlt, ist aus")
+    }
+
+    /// `ChatView` - Fragen mit Antwort, aelteste zuerst; Zeitpunkte mit
+    /// Bruchteilen von Sekunden, wie der Dienst sie schreibt.
+    func testDecodesChat() throws {
+        let chat = try decode(ChatState.self, """
+        {"available":true,"exchanges":[
+          {"id":"00000000-0000-4000-8000-0000000000aa","question":"Was sollte ich heute noch essen?",
+           "askedAt":"2026-11-10T17:02:11Z","status":"DONE","answer":"Antwort.",
+           "answeredAt":"2026-11-10T17:02:40.791736Z","error":null,"elapsedSeconds":29},
+          {"id":"00000000-0000-4000-8000-0000000000ab","question":"Und morgen?",
+           "askedAt":"2026-11-10T12:39:55.700686Z","status":"RUNNING","answer":null,
+           "answeredAt":null,"error":null,"elapsedSeconds":3}],
+         "limits":{"perDay":30,"usedToday":7,"maxChars":1000}}
+        """)
+        XCTAssertTrue(chat.available)
+        XCTAssertEqual(chat.exchanges.map(\.status), [.done, .running])
+        XCTAssertEqual(chat.exchanges[0].answer, "Antwort.")
+        XCTAssertEqual(chat.exchanges[0].elapsedSeconds, 29)
+        let asked = try XCTUnwrap(chat.exchanges[0].askedAt)
+        let answered = try XCTUnwrap(chat.exchanges[0].answeredAt)
+        XCTAssertEqual(answered.timeIntervalSince(asked), 29, accuracy: 0.001)
+        XCTAssertNotNil(chat.exchanges[1].askedAt, "auch mit Bruchteilen lesbar")
+        XCTAssertEqual(chat.limits, ChatLimits(perDay: 30, usedToday: 7, maxChars: 1000))
+    }
+
+    /// Eine gescheiterte Frage traegt ihren Satz; ein Status, den die App
+    /// nicht kennt, macht das Gespraech nicht unlesbar; ein leerer Chat ist leer.
+    func testDecodesFailedAndUnknownExchanges() throws {
+        let failed = try decode(ChatExchange.self, """
+        {"id":"x","question":"Frage","askedAt":"2026-11-10T17:02:11Z","status":"FAILED","answer":null,
+         "answeredAt":"2026-11-10T17:04:11Z",
+         "error":"Die Anmeldung von Claude auf dem Server ist abgelaufen.","elapsedSeconds":120}
+        """)
+        XCTAssertEqual(failed.status, .failed)
+        XCTAssertEqual(failed.error, "Die Anmeldung von Claude auf dem Server ist abgelaufen.")
+        XCTAssertEqual(try decode(ChatExchange.self, #"{"id":"y","question":"Frage","status":"NEU"}"#).status,
+                       .unknown)
+        let empty = try decode(ChatState.self, #"{"available":false,"exchanges":[]}"#)
+        XCTAssertFalse(empty.available)
+        XCTAssertTrue(empty.exchanges.isEmpty)
+        XCTAssertNil(empty.limits)
+    }
+
+    /// `POST /api/chat/messages` - Kennung und Text, sonst nichts.
+    func testChatSend() throws {
+        let sent = try XCTUnwrap(try JSONSerialization.jsonObject(
+            with: APIClient.encoder().encode(ChatSend(id: "00000000-0000-4000-8000-0000000000aa", text: "Frage")))
+            as? [String: String])
+        XCTAssertEqual(sent, ["id": "00000000-0000-4000-8000-0000000000aa", "text": "Frage"])
+    }
+
+    /// `BriefingView` - fertig, laufend (mit dem alten Text) und ohne.
+    func testDecodesBriefing() throws {
+        let done = try decode(Briefing.self, """
+        {"date":"2026-11-10","status":"DONE","text":"Zwei Sätze.","generatedAt":"2026-11-10T12:39:58.794697Z"}
+        """)
+        XCTAssertEqual(done.status, .done)
+        XCTAssertEqual(done.text, "Zwei Sätze.")
+        XCTAssertEqual(done.date, CalendarDate(year: 2026, month: 11, day: 10))
+        XCTAssertNotNil(done.generatedAt)
+
+        let running = try decode(Briefing.self,
+                                 #"{"date":"2026-11-10","status":"RUNNING","text":null,"generatedAt":null}"#)
+        XCTAssertEqual(running.status, .running)
+        XCTAssertNil(running.text)
+        XCTAssertEqual(try decode(Briefing.self, #"{"date":"2026-11-10","status":"NONE"}"#).status, BriefingStatus.none)
+        XCTAssertEqual(try decode(Briefing.self, #"{"status":"NEU"}"#).status, .unknown)
+    }
+
+    // MARK: - Wochenrueckblick (Vertrag §9)
+
+    /// `WeekReview` - das Beispiel aus dem Vertrag; ohne Kalorienzaehler
+    /// fehlen Aufnahme, Defizit und Eiweiss-Tage, der Rest steht da.
+    func testDecodesWeekReview() throws {
+        let review = try decode(WeekReview.self, """
+        {"week":{"from":"2026-11-02","to":"2026-11-08","kcalAvg":2180.0,"deficitAvg":410.0,"trackedDays":6,
+          "weightAvg":91.4,"weightDays":6,"weightDeltaKg":-0.42,
+          "proteinGreenDays":4,"proteinYellowDays":1,"proteinRedDays":1,
+          "stepsAvg":9120.0,"stepsDays":7,"strainAvg":11.8,"strainDays":6},
+         "previous":{"from":"2026-10-26","to":"2026-11-01","kcalAvg":null,"deficitAvg":null,"trackedDays":0,
+          "weightAvg":91.8,"weightDays":5,"weightDeltaKg":null,
+          "proteinGreenDays":0,"proteinYellowDays":0,"proteinRedDays":0,
+          "stepsAvg":8800.0,"stepsDays":7,"strainAvg":null,"strainDays":0},
+         "sources":{"food":"OK"}}
+        """)
+        XCTAssertEqual(review.week.from, CalendarDate(year: 2026, month: 11, day: 2))
+        XCTAssertEqual(review.week.kcalAvg, 2180)
+        XCTAssertEqual(review.week.weightDeltaKg, -0.42)
+        XCTAssertEqual(review.week.proteinGreenDays, 4)
+        XCTAssertEqual(review.week.strainAvg, 11.8)
+        XCTAssertNil(review.previous?.kcalAvg)
+        XCTAssertEqual(review.previous?.stepsAvg, 8800)
+        XCTAssertEqual(review.sources?["food"], "OK")
+    }
+
+    // MARK: - Freunde und Serien (Vertrag §10)
+
+    /// `FriendsView` - das Beispiel aus dem Vertrag §10.1 mit allen vier Serien.
+    func testDecodesFriends() throws {
+        let overview = try decode(FriendsOverview.self, """
+        {"me":{"person":"person-a","name":"Person A"},
+         "friends":[{"id":"f-3k9x","person":"person-b","name":"Person B","since":"2026-11-10",
+           "today":{"tracked":true,"recoveryBand":"GREEN","strainBand":"MODERATE"},
+           "streaks":[{"type":"TRACKED","current":12,"best":30,"me":"DONE","friend":"OPEN","atRisk":true},
+                      {"type":"PROTEIN","current":0,"best":4,"me":"OPEN","friend":"OPEN","atRisk":false},
+                      {"type":"STEPS","current":3,"best":9,"me":"DONE","friend":"DONE","atRisk":false},
+                      {"type":"KCAL","current":1,"best":6,"me":"FAILED","friend":"UNKNOWN","atRisk":false}],
+           "steps":{"weekStart":"2026-11-09","days":[{"date":"2026-11-09","me":8123,"friend":10450},
+                                                    {"date":"2026-11-10","me":5200,"friend":null}],
+                    "me":13323,"friend":10450,"lastWeek":{"me":71200,"friend":69800}},
+           "nudge":{"allowed":true}}],
+         "invites":[{"code":"K7Q4-M2XD","expiresAt":"2026-11-17T18:00:00.123456Z"}]}
+        """)
+        XCTAssertEqual(overview.me?.name, "Person A")
+        let friend = try XCTUnwrap(overview.friends.first)
+        XCTAssertEqual(friend.id, "f-3k9x")
+        XCTAssertEqual(friend.name, "Person B")
+        XCTAssertEqual(friend.since, CalendarDate(year: 2026, month: 11, day: 10))
+        XCTAssertEqual(friend.today, FriendToday(tracked: true, recoveryBand: .green, strainBand: .moderate))
+        XCTAssertEqual(friend.streaks.map(\.type), [.tracked, .protein, .steps, .kcal])
+        XCTAssertEqual(friend.streaks[0],
+                       FriendStreak(type: .tracked, current: 12, best: 30, me: .done, friend: .open, atRisk: true))
+        XCTAssertEqual(friend.streaks[3].me, .failed)
+        XCTAssertEqual(friend.streaks[3].friend, .unknown)
+        XCTAssertEqual(friend.steps?.days.count, 2)
+        XCTAssertNil(friend.steps?.days[1].friend)
+        XCTAssertEqual(friend.steps?.lastWeek, FriendStepsTotals(me: 71200, friend: 69800))
+        XCTAssertTrue(friend.nudge.allowed)
+        XCTAssertEqual(overview.invites.first?.code, "K7Q4-M2XD")
+        XCTAssertNotNil(overview.invites.first?.expiresAt)
+    }
+
+    /// Ohne Recovery und Strain sind die Baender `null`; Arten und Zustaende,
+    /// die die App noch nicht kennt, machen die Antwort nicht unlesbar.
+    func testFriendsTolerateWhatTheyDoNotKnow() throws {
+        let friend = try decode(Friend.self, """
+        {"id":"f-1","person":"person-a","name":"Person A","since":"2026-11-10",
+         "today":{"tracked":false,"recoveryBand":null,"strainBand":"NEU"},
+         "streaks":[{"type":"SLEEP","current":2,"best":2,"me":"PAUSED","friend":"DONE","atRisk":false}],
+         "steps":{"weekStart":"2026-11-09","days":[],"me":0,"friend":0,"lastWeek":{"me":0,"friend":0}},
+         "nudge":{"allowed":false}}
+        """)
+        XCTAssertNil(friend.today.recoveryBand)
+        XCTAssertEqual(friend.today.strainBand, .unknown)
+        XCTAssertEqual(friend.streaks[0].type, .unknown)
+        XCTAssertEqual(friend.streaks[0].me, .unknown)
+        XCTAssertTrue(friend.shownStreaks.isEmpty)
+        XCTAssertFalse(friend.nudge.allowed)
+        XCTAssertEqual(try decode(FriendsOverview.self, #"{"friends":[]}"#), FriendsOverview())
+    }
+
+    /// `POST /api/friends/invites`, `POST /api/friends`, der Stupser und die
+    /// Kachel `GET /api/streaks` - mit und ohne Freundes-Serie.
+    func testDecodesInviteNudgeAndStreakTile() throws {
+        let invite = try decode(FriendInvite.self, #"{"code":"K7Q4-M2XD","expiresAt":"2026-11-17T18:00:00Z"}"#)
+        XCTAssertEqual(invite.code, "K7Q4-M2XD")
+        XCTAssertFalse(try decode(NudgeResult.self, #"{"delivered":false}"#).delivered)
+        let accept = try XCTUnwrap(try JSONSerialization.jsonObject(
+            with: APIClient.encoder().encode(FriendAcceptRequest(code: "K7Q4-M2XD"))) as? [String: String])
+        XCTAssertEqual(accept, ["code": "K7Q4-M2XD"])
+
+        let tile = try decode(StreakTile.self, """
+        {"tracking":{"current":23,"best":41,"todayDone":false},
+         "topFriend":{"friendshipId":"f-3k9x","name":"Person B","type":"STEPS","current":12,"atRisk":true}}
+        """)
+        XCTAssertEqual(tile.tracking?.current, 23)
+        XCTAssertEqual(tile.topFriend?.name, "Person B")
+        XCTAssertEqual(tile.topFriend?.type, .steps)
+        XCTAssertEqual(tile.topFriend?.atRisk, true)
+        let alone = try decode(StreakTile.self,
+                               #"{"tracking":{"current":40,"best":40,"todayDone":false},"topFriend":null}"#)
+        XCTAssertNil(alone.topFriend)
+        XCTAssertEqual(alone.tracking?.best, 40)
+    }
 }

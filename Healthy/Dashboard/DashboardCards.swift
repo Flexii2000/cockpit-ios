@@ -257,3 +257,58 @@ struct FoodHalfCard: View {
         }
     }
 }
+
+/// Halbe Karte „Serien“ (Vertrag §5 und §10, seit 10.11.): die eigene
+/// Tracking-Serie und, falls es eine gibt, die laengste Freundes-Serie. Tipp
+/// oeffnet den Freunde-Tab.
+struct StreaksHalfCard: View {
+
+    let tile: StreakTile
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Serien")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(FriendsFormat.tracking(tile))
+                .font(.title3.weight(.semibold).monospacedDigit())
+            if let friend = FriendsFormat.topFriend(tile) {
+                Text(friend)
+                    .font(.caption.monospacedDigit())
+                    // Droht sie heute zu reissen, faellt sie auf - ohne ein Wort dazu.
+                    .foregroundStyle(tile.topFriend?.atRisk == true ? Tone.warn.color : Color.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .dashboardCard()
+    }
+}
+
+/// Halbe Karte „Eichung“ (Vertrag §5 und §1.6, seit 10.11.): der Faktor, mit
+/// dem gerechnet wird, und daneben, was die Daten gerade sagen. Nur Anzeige -
+/// hier, weil sich der gemessene Wert von selbst bewegt (der Gewicht-Tab zeigt
+/// weiter nur „fest“).
+struct CalibrationHalfCard: View {
+
+    let summary: EnergySummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Eichung")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(EnergyFormat.monitorFactor(summary.calibration))
+                .font(.title3.weight(.semibold).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(EnergyFormat.monitorMeasured(summary.calibrationMonitor))
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .dashboardCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("calibrationCard")
+    }
+}
