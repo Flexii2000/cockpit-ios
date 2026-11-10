@@ -1,7 +1,20 @@
 # Stand
 
+> **Runde vom 10.11. ausgerollt (Stand 10.11., 15:30):** die vier Blöcke darunter stehen in `main`
+> (`815f8b4`, `tools/verify.sh` grün auf dem zusammengeführten Stand). Die Dienste laufen seit 15:16
+> mit dem neuen Stand (`../food`, `../weight-app`, `../shopping`), **Healthy mit Uhr-App und Fokus
+> sind seit 15:30 auf Felix' iPhone** (`tools/install-device.sh`), Android 1.12 (72) ist
+> veröffentlicht.
+> - **Offen auf dem Server:** das einmalige Setup mit sudo (Agenten für Chat, Briefing und
+>   Rezept-Chat, Zugang für die zweite Person). Bis dahin fehlen Chat-Knopf und Briefing
+>   (`/api/features` meldet `chat:false`), und „Kochen“ legt noch kein Gericht in Healthy an.
+> - **Offen bei Apple:** TestFlight für Healthy und Einkaufsliste – der Export braucht erst die
+>   neue Lizenzvereinbarung und einen App-Store-Connect-Eintrag für `com.fherrmann.cockpit`.
+> - **Nur auf Geräten zu prüfen:** Puls-Rückholung und Strain mit echten Werten, Pushes (Stupser,
+>   Serien-Warnung, Chat-Antwort), Makros in der Uhr-App, stündlicher Puls-Abgleich im Hintergrund.
+
 > **Healthy: Morgen-Briefing, Chat, Wochenrückblick, Serien- und Eichungs-Kachel, Freunde-Tab
-> (10.11., Felix) - gebaut, NICHT installiert:** Teil 3 der Runde vom 10.11. (Branch `healthy-plus`;
+> (10.11., Felix) - gebaut, installiert am 10.11. um 15:30:** Teil 3 der Runde vom 10.11. (Branch `healthy-plus`;
 > Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §1.6, §8–§10 und §5, der Dienst dazu steht in
 > `../weight-app` auf demselben Branch, noch nicht ausgerollt).
 > - **Dashboard** in der Reihenfolge des Vertrags: Briefing, Recovery, Strain, Energie, Gewicht |
@@ -80,7 +93,7 @@
 >   Minute, Push bei geschlossener App), Stupser zwischen zwei Geräten.
 
 > **Healthy: Strain - Puls-Histogramm, Karte im Dashboard, Fenster mit Verlauf und Form-Kurve
-> (10.11., Felix) - gebaut, NICHT installiert:** Teil 2 der Runde vom 10.11. (Branch
+> (10.11., Felix) - gebaut, installiert am 10.11. um 15:30:** Teil 2 der Runde vom 10.11. (Branch
 > `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §7 und §5, der Dienst dazu steht
 > in `../weight-app` auf demselben Branch, noch nicht ausgerollt).
 > - **Puls zum Dienst:** `HealthReader.minuteAverages` (Statistik je Kalenderminute, nur belegte),
@@ -128,7 +141,7 @@
 >   Eichung, Logbook, Effekte, Wochenrückblick.
 
 > **Einkaufsliste: Rezepte mit Portionen, Rezept-Chat und Kochansicht (10.11., Felix) - gebaut,
-> NICHT installiert, NICHT zu TestFlight hochgeladen:** eigener Schritt der Runde vom 10.11., auf
+> in Fokus installiert am 10.11. um 15:30, NICHT zu TestFlight hochgeladen:** eigener Schritt der Runde vom 10.11., auf
 > dem Branch `healthy-plus` (in einem eigenen Arbeitsverzeichnis gebaut und danach
 > zusammengeführt). Der Dienst dazu steht in `../shopping` auf `healthy-plus` (Rezepte, Chat,
 > Kochen; README dort), ebenfalls noch nicht ausgerollt. Entscheidungen:
@@ -187,7 +200,7 @@
 >   Lizenzvereinbarung bei Apple (siehe unten).
 >
 > **Healthy für ein zweites iPhone, Eiweiß mit Erhalt, Makros auf der Uhr (10.11., Felix) - gebaut,
-> NICHT installiert, NICHT zu TestFlight hochgeladen:** Teil 1 der Runde vom 10.11. (Branch
+> installiert am 10.11. um 15:30, NICHT zu TestFlight hochgeladen:** Teil 1 der Runde vom 10.11. (Branch
 > `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §11, die Dienste dazu entstehen
 > parallel in `../food` und `../weight-app`). Strain, Chat, Briefing, Wochenrückblick, Eichung,
 > Freunde und die Rezepte der Einkaufsliste folgen in eigenen Schritten auf diesem Stand.
