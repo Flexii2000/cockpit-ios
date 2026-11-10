@@ -60,8 +60,13 @@ struct EnergyCardModel: Equatable {
         /// Ueberschuss in der Woche), 0 oben (kein Defizit), sonst im
         /// Verhaeltnis groesstes Defizit : groesster Ueberschuss.
         let zeroLine: Double
-        /// `deficit7` der Summary: „460 kcal", „−120 kcal", ohne Wert „–".
+        /// `deficit7` der Summary **ohne Vorzeichen**: „460 kcal", ein
+        /// Ueberschuss „120 kcal" (rot statt mit Minus - Felix, 10.11.: ein
+        /// „−" las sich wie „kein Defizit, sondern ein Plus"), ohne Wert „–".
         let average: String
+        /// Ob `average` ein Ueberschuss ist - die Farbe der Zahl; `nil` ohne Wert.
+        /// Wie beim Wort der Kopfzeile nach dem Runden: −0,3 ist ein Defizit von 0.
+        let averageIsSurplus: Bool?
     }
 
     /// `nil` ohne Defizit heute - dann fehlen Kopfzeile und Balken.
@@ -135,7 +140,8 @@ extension EnergyCardModel {
         }
         return Week(bars: bars,
                     zeroLine: span > 0 ? largestDeficit / span : 1,
-                    average: average.map(EnergyFormat.kcal) ?? "–")
+                    average: average.map { EnergyFormat.kcal(abs($0)) } ?? "–",
+                    averageIsSurplus: average.map { $0.rounded() < 0 })
     }
 
     /// Wie lang ein Balken gezeichnet wird: mindestens ein duenner Strich -

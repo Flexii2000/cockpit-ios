@@ -6,6 +6,9 @@
 > Kurven „Defizit ⌀“/„Defizit Tag“ bleiben orange (`Palette.deficit`) - Felix' Wahl gegen „überall
 > grün“, weil neben „Gewicht ⌀“ sonst zwei Grüntöne stünden. Vertrag §5 („Farben“), Android und
 > beide Weboberflächen gleich. Demo-Dashboard hell und dunkel im Simulator angesehen.
+> Dazu „⌀ 7 T“ der Energie-Karte **ohne Vorzeichen**: Defizit grün, Überschuss rot (`Week.averageIsSurplus`,
+> Felix: das „−“ las sich wie „kein Defizit“); für VoiceOver mit dem Wort davor. Unit-Tests grün; im
+> Simulator nicht gesehen (die Zahl liegt unter der Tab-Leiste).
 
 > **Runde vom 10.11. ausgerollt (Stand 10.11., 15:30):** die vier Blöcke darunter stehen in `main`
 > (`815f8b4`, `tools/verify.sh` grün auf dem zusammengeführten Stand). Die Dienste laufen seit 15:16

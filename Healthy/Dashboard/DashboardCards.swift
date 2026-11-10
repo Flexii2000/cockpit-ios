@@ -146,8 +146,29 @@ private struct EnergyWeek: View {
                     .font(.caption)
                 Text(week.average)
                     .font(.subheadline.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(averageColor)
             }
             .fixedSize()
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(averageLabel)
+        }
+    }
+
+    /// Gruen ein Defizit, rot ein Ueberschuss - die Zahl traegt kein Vorzeichen.
+    private var averageColor: Color {
+        switch week.averageIsSurplus {
+        case true?:  Palette.surplus
+        case false?: Palette.deficitBalance
+        case nil:    .primary
+        }
+    }
+
+    /// Ohne Farbe muss das Wort sagen, welche Richtung die Zahl hat.
+    private var averageLabel: String {
+        switch week.averageIsSurplus {
+        case true?:  "Überschuss ⌀ 7 Tage \(week.average)"
+        case false?: "Defizit ⌀ 7 Tage \(week.average)"
+        case nil:    "Defizit ⌀ 7 Tage unbekannt"
         }
     }
 

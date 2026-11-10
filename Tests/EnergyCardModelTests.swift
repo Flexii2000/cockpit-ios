@@ -119,6 +119,7 @@ final class EnergyCardModelTests: XCTestCase {
         XCTAssertEqual(days.bars[6].height ?? 0, days.zeroLine, accuracy: 1e-9)
         XCTAssertEqual((days.bars[3].height ?? 0) + days.zeroLine, 1, accuracy: 1e-9)
         XCTAssertEqual(days.average, "312 kcal", "deficit7 - dieselben sieben Tage")
+        XCTAssertEqual(days.averageIsSurplus, false)
     }
 
     /// Ohne Ueberschuss liegt die Nulllinie unten, ohne Defizit oben.
@@ -135,7 +136,9 @@ final class EnergyCardModelTests: XCTestCase {
         XCTAssertEqual(down.bars[7 - 1].height, 1)
         XCTAssertEqual(down.bars[7 - 2].height, 0.25)
         XCTAssertTrue(down.bars[7 - 2].isSurplus)
-        XCTAssertEqual(down.average, "\u{2212}250 kcal", "Ueberschuss mit echtem Minus")
+        XCTAssertEqual(down.average, "250 kcal", "Ueberschuss ohne Minus - die Farbe sagt es")
+        XCTAssertEqual(down.averageIsSurplus, true)
+        XCTAssertEqual(up.averageIsSurplus, false)
     }
 
     /// Was auf 0 rundet, ist kein Ueberschuss - wie beim Wort der Kopfzeile.
@@ -146,6 +149,10 @@ final class EnergyCardModelTests: XCTestCase {
         XCTAssertEqual(days.bars[5].height, 0)
         XCTAssertEqual(days.zeroLine, 1)
         XCTAssertEqual(days.average, "–", "ohne Summary ein Strich")
+        XCTAssertNil(days.averageIsSurplus)
+        let almost = try XCTUnwrap(EnergyCardModel.week(week, today: today, average: -0.3))
+        XCTAssertEqual(almost.average, "0 kcal")
+        XCTAssertEqual(almost.averageIsSurplus, false, "was auf 0 rundet, ist kein Ueberschuss")
     }
 
     /// Ein Tag mit 0 oder fast 0 bekommt einen duennen Strich und sieht damit
