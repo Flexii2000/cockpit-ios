@@ -226,6 +226,86 @@ struct ShoppingQuantity: Equatable, Sendable {
         return nx.lowercased() == ny.lowercased() ? nx : "\(nx) + \(ny)"
     }
 
+    // MARK: - Umrechnen
+
+    /// Eine umgerechnete Menge. `scaled` ist falsch, wenn sie dasteht, wie sie
+    /// gespeichert ist, obwohl umgerechnet werden sollte („eine Handvoll“).
+    struct Scaled: Equatable, Sendable {
+        let quantity: String?
+        let scaled: Bool
+    }
+
+    /// Die Menge fuer `portions` statt `base` Portionen - dieselbe Rechnung wie
+    /// `QuantityParser.scale` beim Dienst, damit ein Rezept auch ohne Netz mit den
+    /// richtigen Mengen auf die Liste geht. Beide laufen gegen dieselben Beispiele
+    /// (`scale-vectors.json`, dort `../shopping/src/test/resources/`); wer hier an
+    /// der Rundung dreht, dreht dort mit.
+    ///
+    /// Mehrere Teile („500 g + 1 Pck“, so schreibt `merge`) werden einzeln gerechnet.
+    /// Laesst sich einer nicht lesen, bleibt die ganze Menge, wie sie ist.
+    ///
+    /// Gerundet wird kaufmaennisch, je nach Einheit: `g` und `ml` ab 10 auf ganze,
+    /// darunter auf eine Nachkommastelle; `kg`, `l`, `cl`, `Pfund` auf zwei
+    /// Nachkommastellen; alles andere (Stk, Dose, EL …) auf halbe. Nie auf null -
+    /// was sich wegrunden wuerde, bleibt beim kleinsten Schritt. Keine Umrechnung
+    /// zwischen Einheiten, kein Aufrunden auf ganze Packungen: auf der Liste werden
+    /// Mengen zusammengezaehlt, und die Summe soll stimmen.
+    static func scale(_ quantity: String?, portions: Int, base: Int) -> Scaled {
+        let trimmed = quantity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return Scaled(quantity: nil, scaled: true) }
+        guard portions != base, portions >= 1, base >= 1 else {
+            return Scaled(quantity: normalized(trimmed), scaled: true)
+        }
+        var parts: [String] = []
+        for piece in trimmed.components(separatedBy: " + ") {
+            guard let parsed = parse(piece),
+                  let amount = Decimal(string: parsed.amount.replacingOccurrences(of: ",", with: ".")) else {
+                return Scaled(quantity: normalized(trimmed), scaled: false)
+            }
+            // Erst auf sechs Stellen, dann auf den Schritt der Einheit - in dieser
+            // Reihenfolge rechnet auch der Dienst (BigDecimal, HALF_UP).
+            let exact = round(amount * Decimal(portions) / Decimal(base), places: 6)
+            parts.append(ShoppingQuantity(amount: plain(stepped(exact, unit: parsed.unit)), unit: parsed.unit).text)
+        }
+        return Scaled(quantity: parts.joined(separator: " + "), scaled: true)
+    }
+
+    /// „500g“ wird „500 g“, „2“ wird „2 Stk“; was sich nicht lesen laesst, bleibt.
+    private static func normalized(_ quantity: String) -> String {
+        parse(quantity)?.text ?? quantity
+    }
+
+    private static func stepped(_ amount: Decimal, unit: Unit) -> Decimal {
+        let step: Decimal
+        let value: Decimal
+        switch unit {
+        case .gram, .milliliter:
+            let whole = amount >= 10
+            step = whole ? 1 : Decimal(string: "0.1")!
+            value = round(amount, places: whole ? 0 : 1)
+        case .kilogram, .liter, .centiliter, .pound:
+            step = Decimal(string: "0.01")!
+            value = round(amount, places: 2)
+        default:
+            step = Decimal(string: "0.5")!
+            value = round(amount * 2, places: 0) / 2
+        }
+        return value < step ? step : value
+    }
+
+    /// Kaufmaennisch: die Haelfte geht nach oben (`.plain`, wie HALF_UP bei positiven Zahlen).
+    private static func round(_ value: Decimal, places: Int) -> Decimal {
+        var input = value
+        var result = Decimal()
+        NSDecimalRound(&result, &input, places, .plain)
+        return result
+    }
+
+    /// Ohne Nachkommanullen, mit Komma: 1000, 2,5.
+    private static func plain(_ value: Decimal) -> String {
+        "\(value)".replacingOccurrences(of: ".", with: ",")
+    }
+
     // MARK: - Lesen
 
     private static func words(_ text: String) -> [String] {

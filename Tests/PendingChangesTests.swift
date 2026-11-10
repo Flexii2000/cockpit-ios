@@ -224,6 +224,62 @@ final class PendingChangesTests: XCTestCase {
         XCTAssertTrue(second.isLocal("a", on: .todo))
     }
 
+    /// Die Datei, wie sie vor den Rezepten geschrieben wurde: ein Gericht, das auf
+    /// Netz wartet. An einem einzigen unlesbaren Eintrag haengt die ganze
+    /// Warteschlange (sie wird dann beiseitegelegt) - deshalb ist `addRecipe` ein
+    /// neuer Fall und `addDish` blieb, wie er war.
+    private static let storedBeforeRecipes = Data(#"""
+        {"version":1,"entries":[
+         {"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","label":"Suppe","createdAt":784111111.5,
+          "change":{"shopping":{"_0":{"addDish":{"dishId":"d-1","dishName":"Suppe","at":784111100,"by":"felix",
+            "items":[{"id":"x","name":"Zwiebeln","quantity":"2 Stk"},{"id":"y","name":"Lauch"}]}}}}},
+         {"id":"6F9619FF-8B86-D011-B42D-00C04FC96500","label":"Milch","createdAt":784111112,
+          "change":{"shopping":{"_0":{"setChecked":{"id":"m","checked":true,"at":784111112,"by":"felix"}}}}}
+        ]}
+        """#.utf8)
+
+    func testAQueueStoredBeforeRecipesStillLoads() throws {
+        try Self.storedBeforeRecipes.write(to: file)
+        let queue = queue(FakeService())
+        XCTAssertEqual(queue.count(for: .shopping), 2, "die alte Datei wurde nicht gelesen")
+        let waiting = queue.changes(for: .shopping).compactMap(\.shopping)
+        XCTAssertEqual(waiting.first, .addDish(dishId: "d-1", dishName: "Suppe", items: [
+            .init(id: "x", name: "Zwiebeln", quantity: "2 Stk"),
+            .init(id: "y", name: "Lauch", quantity: nil),
+        ], at: Date(timeIntervalSinceReferenceDate: 784_111_100), by: "felix"))
+        let aside = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { $0.hasPrefix("changes-unreadable-") }
+        XCTAssertTrue(aside.isEmpty, "die Datei von vor den Rezepten darf nicht als kaputt gelten")
+    }
+
+    func testTheOldFormatIsWhatADishStillWrites() throws {
+        // Dass die Datei oben wirklich die alte Form ist: ein Gericht schreibt sie heute noch so.
+        let queue = queue(FakeService())
+        queue.enqueue(.shopping(.addDish(dishId: "d-1", dishName: "Suppe", items: [
+            .init(id: "x", name: "Zwiebeln", quantity: "2 Stk"),
+        ], at: Date(timeIntervalSinceReferenceDate: 784_111_100), by: "felix")), label: "Suppe")
+        let written = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        let entry = try XCTUnwrap((written["entries"] as? [[String: Any]])?.first)
+        let change = try XCTUnwrap(((entry["change"] as? [String: Any])?["shopping"] as? [String: Any])?["_0"] as? [String: Any])
+        let dish = try XCTUnwrap(change["addDish"] as? [String: Any])
+        XCTAssertEqual(Set(dish.keys), ["dishId", "dishName", "items", "at", "by"])
+        XCTAssertEqual(dish["at"] as? Double, 784_111_100)
+    }
+
+    func testARecipeOnItsWayToTheListSurvivesARestart() {
+        let service = FakeService()
+        let change = ShoppingChange.addRecipe(dishId: "d-1", dishName: "Rezept A", portions: 3, items: [
+            .init(id: "y", name: "Nudeln", quantity: "375 g"),
+        ], skipped: ["Öl"], at: Date(timeIntervalSinceReferenceDate: 784_111_100), by: "felix")
+        var first: PendingChanges? = queue(service)
+        first?.enqueue(.shopping(change), label: "Rezept A")
+        first = nil
+        let second = queue(service)
+        XCTAssertEqual(second.changes(for: .shopping).compactMap(\.shopping), [change])
+        XCTAssertEqual(PendingChange.shopping(change).boardPath, "/api/board",
+                       "die Antwort ist das Brett und darf als Offline-Stand gelten")
+    }
+
     func testAnUnreadableFileIsSetAsideNotOverwritten() throws {
         try Data("kaputt".utf8).write(to: file)
         let queue = PendingChanges(file: file, transport: { _, _ in .offline }, sendsImmediately: false)

@@ -15,6 +15,17 @@ enum ShoppingChange: Codable, Equatable, Sendable {
     /// der waehrenddessen dazukam, bleibt.
     case clearChecked(ids: [String])
     case addDish(dishId: String, dishName: String, items: [DishItem], at: Date, by: String)
+    /// Ein Rezept fuer `portions` Portionen auf die Liste, ohne die Zutaten in
+    /// `skipped` (Vorrat, schon da). Ein eigener Fall neben `addDish` und kein
+    /// weiteres Feld dort: was schon wartend in der Datei liegt, muss lesbar bleiben -
+    /// an einem einzigen unlesbaren Eintrag haengt die ganze Warteschlange.
+    ///
+    /// `items` sind die Zutaten, die mitgehen, mit der Menge, wie sie nach dem
+    /// Umrechnen auf der Liste steht (`ShoppingQuantity.scale`); der Dienst rechnet
+    /// selbst noch einmal, nach derselben Tabelle. `portions` ist `nil`, wenn das
+    /// Rezept keine Portionen hat - dann gelten die gespeicherten Mengen.
+    case addRecipe(dishId: String, dishName: String, portions: Int?, items: [DishItem], skipped: [String],
+                   at: Date, by: String)
 
     /// Eine Zutat mit der Kennung, die die App ihr gibt.
     struct DishItem: Codable, Equatable, Sendable {
@@ -26,7 +37,7 @@ enum ShoppingChange: Codable, Equatable, Sendable {
     var target: String? {
         switch self {
         case .add(let id, _, _, _, _, _, _), .setChecked(let id, _, _, _), .update(let id, _, _, _, _), .delete(let id): id
-        case .clearChecked, .addDish: nil
+        case .clearChecked, .addDish, .addRecipe: nil
         }
     }
 
@@ -36,7 +47,7 @@ enum ShoppingChange: Codable, Equatable, Sendable {
         case .setChecked: .state
         case .update: .edit
         case .delete: .delete
-        case .clearChecked, .addDish: .other
+        case .clearChecked, .addDish, .addRecipe: .other
         }
     }
 
@@ -60,6 +71,10 @@ enum ShoppingChange: Codable, Equatable, Sendable {
         case .addDish(let dishId, _, let items, _, _):
             PendingRequest(method: "POST", path: "/api/dishes/\(dishId)/add",
                            body: Self.json(DishAdd(items: items.map { DishAdd.Entry(name: $0.name, id: $0.id) })))
+        case .addRecipe(let dishId, _, let portions, let items, let skipped, _, _):
+            PendingRequest(method: "POST", path: "/api/dishes/\(dishId)/add",
+                           body: Self.json(DishAdd(items: items.map { DishAdd.Entry(name: $0.name, id: $0.id) },
+                                                   portions: portions, skip: skipped)))
         }
     }
 
@@ -74,12 +89,12 @@ enum ShoppingChange: Codable, Equatable, Sendable {
         let name = "„\(label)“"
         if status == 404 {
             return switch self {
-            case .addDish: PendingNotice(text: "Das Gericht \(name) gibt es nicht mehr.", isInfo: true)
+            case .addDish, .addRecipe: PendingNotice(text: "Das Rezept \(name) gibt es nicht mehr.", isInfo: true)
             default: PendingNotice(text: "\(name) stand nicht mehr auf der Liste.", isInfo: true)
             }
         }
         return switch self {
-        case .add, .addDish: .error("\(name) kam nicht auf die Liste", message, status: status)
+        case .add, .addDish, .addRecipe: .error("\(name) kam nicht auf die Liste", message, status: status)
         case .setChecked(_, let checked, _, _):
             .error(checked ? "\(name) ließ sich nicht abhaken" : "\(name) ließ sich nicht zurücknehmen", message, status: status)
         case .update: .error("\(name) ließ sich nicht ändern", message, status: status)
@@ -92,8 +107,12 @@ enum ShoppingChange: Codable, Equatable, Sendable {
         let ids: [String]
     }
 
+    /// `portions` und `skip` fehlen im Rumpf, wenn sie `nil` sind - dann verhaelt sich
+    /// der Dienst wie immer (jede Zutat, die Mengen wie gespeichert).
     private struct DishAdd: Encodable {
         let items: [Entry]
+        var portions: Int? = nil
+        var skip: [String]? = nil
         struct Entry: Encodable {
             let name: String
             let id: String
@@ -151,7 +170,10 @@ enum ShoppingOverlay {
         case .clearChecked(let ids):
             let set = Set(ids)
             items.removeAll { $0.isChecked && set.contains($0.id) }
-        case .addDish(let dishId, let dishName, let entries, let at, let by):
+        case .addDish(let dishId, let dishName, let entries, let at, let by),
+             .addRecipe(let dishId, let dishName, _, let entries, _, let at, let by):
+            // Beim Rezept stehen in `entries` schon nur die gewaehlten Zutaten, mit
+            // der umgerechneten Menge - zusammengefasst wird wie beim Gericht.
             for entry in entries {
                 guard !items.contains(where: { $0.id == entry.id }) else { continue }
                 if let i = openIndex(named: entry.name, in: items) {

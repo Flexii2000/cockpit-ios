@@ -139,6 +139,73 @@ final class ShoppingOverlayTests: XCTestCase {
         XCTAssertEqual(shown.items[1].dishId, "d")
     }
 
+    func testARecipeGoesOnTheListWithTheChosenIngredientsAndScaledQuantities() {
+        let base = board([item("z", "Zwiebeln", quantity: "1 Stk", category: "produce")])
+        // Was die App beim Einreihen ausrechnet: 3 statt 2 Portionen, das Öl (Vorrat) bleibt weg.
+        let shown = ShoppingOverlay.apply([.addRecipe(dishId: "d", dishName: "Rezept A", portions: 3, items: [
+            .init(id: "x", name: "zwiebeln", quantity: "1,5 Stk"),
+            .init(id: "y", name: "Nudeln", quantity: "375 g"),
+        ], skipped: ["Öl"], at: now, by: "felix")], to: base)
+        XCTAssertEqual(shown.items.map(\.id), ["z", "y"], "gleicher Name geht im offenen Eintrag auf, wie beim Gericht")
+        XCTAssertEqual(shown.items[0].quantity, "2,5 Stk")
+        XCTAssertEqual(shown.items[0].note, "Rezept A")
+        XCTAssertEqual(shown.items[1].quantity, "375 g")
+        XCTAssertEqual(shown.items[1].dishId, "d")
+        XCTAssertEqual(shown.items[1].addedBy, "felix")
+        XCTAssertFalse(shown.items.contains { $0.name == "Öl" }, "Abgewaehltes steht nicht auf der Liste")
+    }
+
+    func testARecipeAlreadyAppliedIsNotAddedTwice() {
+        let change = ShoppingChange.addRecipe(dishId: "d", dishName: "Rezept A", portions: nil, items: [
+            .init(id: "y", name: "Nudeln", quantity: "250 g"),
+        ], skipped: [], at: now, by: "felix")
+        let once = ShoppingOverlay.apply([change], to: board([]))
+        let twice = ShoppingOverlay.apply([change], to: once)
+        XCTAssertEqual(twice.items.count, 1, "dieselbe Kennung kommt nicht zweimal")
+        XCTAssertEqual(twice.items[0].quantity, "250 g")
+    }
+
+    func testARecipeAsksTheServiceForPortionsAndSkips() throws {
+        let change = ShoppingChange.addRecipe(dishId: "d-1", dishName: "Rezept A", portions: 3, items: [
+            .init(id: "y", name: "Nudeln", quantity: "375 g"),
+        ], skipped: ["Öl", "Salz"], at: now, by: "felix")
+        XCTAssertEqual(change.request.method, "POST")
+        XCTAssertEqual(change.request.path, "/api/dishes/d-1/add")
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(change.request.body)) as? [String: Any])
+        XCTAssertEqual(body["portions"] as? Int, 3)
+        XCTAssertEqual(body["skip"] as? [String], ["Öl", "Salz"])
+        let items = try XCTUnwrap(body["items"] as? [[String: String]])
+        XCTAssertEqual(items, [["name": "Nudeln", "id": "y"]], "die Menge rechnet der Dienst selbst")
+        XCTAssertNil(change.target)
+        XCTAssertEqual(change.role, .other)
+
+        // Ohne Portionen am Rezept fehlt das Feld - mit ihm antwortete der Dienst 400.
+        let plain = ShoppingChange.addRecipe(dishId: "d-1", dishName: "Rezept A", portions: nil, items: [],
+                                             skipped: [], at: now, by: "felix")
+        let plainBody = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(plain.request.body)) as? [String: Any])
+        XCTAssertNil(plainBody["portions"])
+    }
+
+    func testTheOldDishRequestIsUnchanged() throws {
+        // Aeltere Dienste kennen weder `portions` noch `skip` - das Gericht schickt sie nie.
+        let change = ShoppingChange.addDish(dishId: "d-1", dishName: "Gericht A", items: [
+            .init(id: "y", name: "Nudeln", quantity: "250 g"),
+        ], at: now, by: "felix")
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(change.request.body)) as? [String: Any])
+        XCTAssertEqual(Set(body.keys), ["items"])
+    }
+
+    func testAGoneRecipeIsAHint() {
+        let change = ShoppingChange.addRecipe(dishId: "d", dishName: "Rezept A", portions: 2, items: [], skipped: [],
+                                              at: now, by: "felix")
+        let gone = change.notice(label: "Rezept A", status: 404, message: nil)
+        XCTAssertTrue(gone.isInfo)
+        XCTAssertEqual(gone.text, "Das Rezept „Rezept A“ gibt es nicht mehr.")
+        let refused = change.notice(label: "Rezept A", status: 400, message: "Das Rezept hat keine Portionen.")
+        XCTAssertFalse(refused.isInfo)
+        XCTAssertEqual(refused.text, "„Rezept A“ kam nicht auf die Liste: Das Rezept hat keine Portionen.")
+    }
+
     func testEditingAndDeleting() {
         let base = board([item("m", "Milch")])
         var shown = ShoppingOverlay.apply([.update(id: "m", name: "Hafermilch", quantity: "2 l", note: "ohne Zucker",

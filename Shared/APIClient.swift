@@ -49,6 +49,13 @@ struct APIClient: Sendable {
         try await perform(request(method: "GET", path: path, query: query))
     }
 
+    /// Wie `get`, aber ohne Offline-Stand: die Antwort wird weder gemerkt noch ohne
+    /// Netz aus dem Zwischenspeicher bedient. Fuer Abfragen im Takt, deren alter
+    /// Stand ohne Netz nur in die Irre fuehrte (Rezept-Chat: „Antwort laeuft“).
+    func getFresh<T: Decodable>(_ path: String) async throws -> T {
+        try await perform(request(method: "GET", path: path), cached: false)
+    }
+
     /// - Parameter queueWhenOffline: ohne Netz in den Postausgang legen statt
     ///   zu scheitern (wirft dann `APIError.queued`). Nur fuer Aenderungen,
     ///   die spaeter genauso gelten - ein Haken, ein Messwert, ein Eintrag
@@ -144,8 +151,9 @@ struct APIClient: Sendable {
     }
 
     private func perform<T: Decodable>(_ request: URLRequest,
-                                       queueWhenOffline: Bool = false) async throws -> T {
-        let isRead = request.httpMethod == "GET"
+                                       queueWhenOffline: Bool = false,
+                                       cached: Bool = true) async throws -> T {
+        let isRead = cached && request.httpMethod == "GET"
         let data: Data
         let response: URLResponse
         do {

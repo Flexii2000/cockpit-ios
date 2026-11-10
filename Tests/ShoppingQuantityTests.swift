@@ -1,8 +1,89 @@
+import Foundation
 import Testing
 @testable import Healthy
 
+/// Nur damit sich das Test-Bundle finden laesst - darin liegt `scale-vectors.json`.
+private final class FixtureBundle {}
+
 /// Mengen: was Menschen tippen, in Zahl und Einheit - und zurueck.
 struct ShoppingQuantityTests {
+
+    // MARK: - Umrechnen auf eine andere Portionenzahl
+
+    /// Die Beispiele, gegen die auch der Dienst rechnet (`QuantityParser.scale`):
+    /// eine Kopie von `../shopping/src/test/resources/scale-vectors.json`. Wer die
+    /// Rundung aendert, aendert die Datei dort und kopiert sie hierher.
+    private struct Vectors: Decodable {
+        let vectors: [Vector]
+
+        struct Vector: Decodable {
+            let quantity: String?
+            let portions: Int
+            let base: Int
+            let expected: String?
+            let scaled: Bool
+        }
+    }
+
+    @Test func scalesLikeTheService() throws {
+        let url = try #require(Bundle(for: FixtureBundle.self).url(forResource: "scale-vectors", withExtension: "json"),
+                               "scale-vectors.json fehlt im Test-Bundle")
+        let vectors = try JSONDecoder().decode(Vectors.self, from: Data(contentsOf: url)).vectors
+        #expect(vectors.count >= 38, "die Datei ist kuerzer als die des Dienstes")
+        for vector in vectors {
+            let result = ShoppingQuantity.scale(vector.quantity, portions: vector.portions, base: vector.base)
+            let label = "\(vector.quantity ?? "nil") × \(vector.portions)/\(vector.base)"
+            #expect(result.quantity == vector.expected, "\(label)")
+            #expect(result.scaled == vector.scaled, "\(label)")
+        }
+    }
+
+    @Test func scalingRoundsHalvesUp() {
+        // 312,5 ml wird 313 - kaufmaennisch, nicht zur geraden Zahl.
+        #expect(ShoppingQuantity.scale("250 ml", portions: 5, base: 4).quantity == "313 ml")
+        // 2,25 Stk auf halbe: 2,5, nicht 2.
+        #expect(ShoppingQuantity.scale("3 Stk", portions: 3, base: 4).quantity == "2,5 Stk")
+    }
+
+    @Test func scalingNeverRoundsToNothing() {
+        #expect(ShoppingQuantity.scale("1 g", portions: 1, base: 99).quantity == "0,1 g")
+        #expect(ShoppingQuantity.scale("1 Stk", portions: 1, base: 8).quantity == "0,5 Stk")
+        #expect(ShoppingQuantity.scale("1 l", portions: 1, base: 500).quantity == "0,01 l")
+    }
+
+    @Test func whatCannotBeReadStaysAsItIs() {
+        let handful = ShoppingQuantity.scale("eine Handvoll", portions: 4, base: 2)
+        #expect(handful == ShoppingQuantity.Scaled(quantity: "eine Handvoll", scaled: false))
+        // Ein unlesbarer Teil haelt die ganze Menge fest - lieber unveraendert als halb gerechnet.
+        #expect(ShoppingQuantity.scale("500 g + etwas", portions: 4, base: 2).quantity == "500 g + etwas")
+        #expect(ShoppingQuantity.scale(nil, portions: 4, base: 2) == ShoppingQuantity.Scaled(quantity: nil, scaled: true))
+        #expect(ShoppingQuantity.scale("  ", portions: 4, base: 2).quantity == nil)
+    }
+
+    @Test func aRecipeScalesItsIngredients() {
+        let dish = ShoppingDish(id: "d", name: "Rezept A", ingredients: [
+            ShoppingIngredient(name: "Nudeln", quantity: "250 g"),
+            ShoppingIngredient(name: "Öl", quantity: "3 EL", pantry: true),
+            ShoppingIngredient(name: "Basilikum", quantity: "1 Handvoll"),
+            ShoppingIngredient(name: "Salz", quantity: nil, pantry: true),
+        ], createdAt: Date(timeIntervalSince1970: 1_790_000_000), portions: 2)
+        let three = dish.ingredients(for: 3)
+        #expect(three.map(\.quantity) == ["375 g", "4,5 EL", "1 Handvoll", nil])
+        #expect(three.map(\.scaled) == [true, true, false, true])
+        #expect(three.map(\.pantry) == [false, true, false, true])
+        // Ohne Angabe: die gespeicherten Mengen.
+        #expect(dish.ingredients(for: nil).map(\.quantity) == ["250 g", "3 EL", "1 Handvoll", nil])
+    }
+
+    @Test func aDishWithoutPortionsDoesNotScale() {
+        let dish = ShoppingDish(id: "d", name: "Gericht A", ingredients: [ShoppingIngredient(name: "Nudeln", quantity: "250 g")],
+                                createdAt: Date(timeIntervalSince1970: 1_790_000_000))
+        #expect(dish.basePortions == nil)
+        #expect(dish.isPlain)
+        #expect(dish.ingredients(for: 6).map(\.quantity) == ["250 g"])
+    }
+
+    // MARK: - Lesen und Schreiben
 
     @Test func readsNumberAndUnit() {
         #expect(ShoppingQuantity.parse("500 g") == ShoppingQuantity(amount: "500", unit: .gram))
