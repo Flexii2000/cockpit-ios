@@ -90,6 +90,11 @@ export TEST_RUNNER_COCKPIT_URL_TODO="${COCKPIT_URL_TODO:-}"
 # Healthy gegen einen lokal gestarteten Weight Tracker bzw. Kalorienzaehler.
 export TEST_RUNNER_COCKPIT_URL_WEIGHT="${COCKPIT_URL_WEIGHT:-}"
 export TEST_RUNNER_COCKPIT_URL_FOOD="${COCKPIT_URL_FOOD:-}"
+# Healthy: Briefing, Chat und Freunde gegen lokal gestartete Dienste mit einer
+# Agent-Attrappe (testBriefingChatAndFriendsAgainstLocalServices) - nur auf
+# ausdruecklichen Wunsch und nur gegen eine Schleifenadresse: gegen den echten
+# Server startete jede Frage eine Claude-Sitzung.
+export TEST_RUNNER_COCKPIT_CHAT_TEST="${COCKPIT_CHAT_TEST:-}"
 # Sport gegen einen lokal gestarteten Padel-Dienst.
 export TEST_RUNNER_COCKPIT_URL_PADEL="${COCKPIT_URL_PADEL:-}"
 # Vault: der Cloud-Tab (AWS + Verda) gegen einen lokalen Dienst oder Schein-Server.

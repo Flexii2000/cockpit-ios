@@ -24,6 +24,13 @@ final class HealthyUITests: XCTestCase {
     /// bekommt keine Health-Daten.
     private let demo = ["COCKPIT_DASHBOARD_DEMO": "1"]
 
+    /// Wechselt hell/dunkel und wartet den Uebergang ab - ein Bild direkt
+    /// danach zeigte sonst ein Zwischending (helle Flaeche, weisse Uhrzeit).
+    private func appearance(_ style: XCUIDevice.Appearance) {
+        XCUIDevice.shared.appearance = style
+        Thread.sleep(forTimeInterval: 1.2)
+    }
+
     /// Scrollt die Liste des Essen-Tabs ueber ihren Rand links.
     ///
     /// Nicht ueber die Zeilen: Tachos, Mahlzeit-Ueberschriften und
@@ -230,6 +237,256 @@ final class HealthyUITests: XCTestCase {
         app.buttons["Fertig"].tap()
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         shoot(app, "dashboard-strain-dunkel")
+    }
+
+    /// Das Dashboard seit 10.11. (Vertrag §5): oben das Morgen-Briefing, unter
+    /// Gewicht und Essen die Kacheln „Serien“ und „Eichung“, ganz unten der
+    /// Wochenrueckblick - und in der Leiste der Chat. Hell und dunkel, mit den
+    /// erfundenen Werten der Vorfuehrung.
+    func testDashboardShowsBriefingTilesAndWeekReview() {
+        XCUIDevice.shared.appearance = .light
+        addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        let app = launch(tab: "dashboard", extra: demo)
+        let briefing = app.descendants(matching: .any).matching(identifier: "briefingCard").firstMatch
+        XCTAssertTrue(briefing.waitForExistence(timeout: 20))
+        shoot(app, "dashboard-oben-hell")
+        XCTAssertTrue(briefing.label.contains("Recovery 72 %"), briefing.label)
+        XCTAssertTrue(app.buttons["chatButton"].exists, "der Chat ist in der Vorfuehrung freigeschaltet")
+        appearance(.dark)
+        shoot(app, "dashboard-oben-dunkel")
+        appearance(.light)
+
+        let streaks = app.buttons["streaksCard"]
+        for _ in 0..<8 where !streaks.isHittable { scrollDown(app) }
+        // Noch ein Stueck: die Kacheln sollen ueber der Tab-Leiste stehen.
+        scrollDown(app)
+        shoot(app, "dashboard-serien-eichung-hell")
+        XCTAssertTrue(streaks.label.contains("23 Tage"), streaks.label)
+        XCTAssertTrue(streaks.label.contains("12 Tage · Person A"), streaks.label)
+        let calibration = app.descendants(matching: .any).matching(identifier: "calibrationCard").firstMatch
+        XCTAssertTrue(calibration.label.contains("rollend 0,92"), calibration.label)
+        XCTAssertTrue(calibration.label.contains("gemessen 0,96 ± 0,03"), calibration.label)
+        appearance(.dark)
+        shoot(app, "dashboard-serien-eichung-dunkel")
+        appearance(.light)
+
+        // Der Rueckblick steht ganz unten, unter Logbook und Effekten.
+        let title = app.staticTexts["Wochenrückblick"]
+        for _ in 0..<30 where !title.isHittable { scrollDown(app) }
+        scrollDown(app, times: 2)
+        shoot(app, "dashboard-wochenrueckblick-hell")
+        XCTAssertTrue(title.exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "weekReviewCard").firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["02.11.–08.11."].exists || app.staticTexts.matching(
+            NSPredicate(format: "label MATCHES %@", "\\d{2}\\.\\d{2}\\.–\\d{2}\\.\\d{2}\\.")).firstMatch.exists)
+        appearance(.dark)
+        shoot(app, "dashboard-wochenrueckblick-dunkel")
+    }
+
+    /// Die Serien-Kachel fuehrt in den Freunde-Tab: je Freund eine Karte, mit
+    /// „+“ ein Code. Entfernen ueber langes Druecken - ohne Freunde stehen nur
+    /// die beiden Knoepfe da (Vertrag §10.4).
+    func testStreaksCardOpensFriends() {
+        XCUIDevice.shared.appearance = .light
+        addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        let app = launch(tab: "dashboard", extra: demo)
+        let streaks = app.buttons["streaksCard"]
+        XCTAssertTrue(streaks.waitForExistence(timeout: 20))
+        for _ in 0..<8 where !streaks.isHittable { scrollDown(app) }
+        streaks.tap()
+        XCTAssertTrue(app.navigationBars["Freunde"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.tabBars.buttons["Freunde"].isSelected)
+        XCTAssertTrue(app.staticTexts["Person A"].waitForExistence(timeout: 10))
+        shoot(app, "freunde-hell")
+        XCTAssertTrue(app.staticTexts["Person B"].exists)
+        XCTAssertTrue(app.staticTexts["Tracking"].firstMatch.exists)
+        appearance(.dark)
+        shoot(app, "freunde-dunkel")
+        appearance(.light)
+
+        // Der Stupser: danach ist er fuer heute vergeben.
+        let nudge = app.buttons["nudge-f-demo-a"]
+        XCTAssertTrue(nudge.isEnabled)
+        nudge.tap()
+        let spent = expectation(for: NSPredicate(format: "isEnabled == false"), evaluatedWith: nudge)
+        XCTAssertEqual(XCTWaiter.wait(for: [spent], timeout: 10), .completed)
+
+        // „+“ → Code erstellen: der Code gross, darunter Teilen.
+        app.buttons["friendsAdd"].tap()
+        app.buttons["Code erstellen"].tap()
+        let code = app.staticTexts["inviteCode"]
+        XCTAssertTrue(code.waitForExistence(timeout: 10))
+        shoot(app, "freunde-code-erstellen")
+        XCTAssertEqual(code.label, "K7Q4-M2XD")
+        app.buttons["Fertig"].tap()
+
+        // „+“ → Code eingeben: erst mit einem ganzen Code geht der Knopf an.
+        app.buttons["friendsAdd"].tap()
+        app.buttons["Code eingeben"].tap()
+        let field = app.textFields["friendCode"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Hinzufügen"].isEnabled)
+        field.tap()
+        field.typeText("k7q4m2xd")
+        shoot(app, "freunde-code-eingeben")
+        XCTAssertTrue(app.buttons["Hinzufügen"].isEnabled)
+        app.buttons["Abbrechen"].tap()
+
+        // Entfernen ueber langes Druecken, mit Rueckfrage - bis keiner mehr da ist.
+        for name in ["Person A", "Person B"] {
+            let title = app.staticTexts[name]
+            XCTAssertTrue(title.waitForExistence(timeout: 10))
+            title.press(forDuration: 1.2)
+            let remove = app.buttons["Entfernen"]
+            XCTAssertTrue(remove.waitForExistence(timeout: 10), name)
+            remove.tap()
+            // Erst die Rueckfrage abwarten - ihr Knopf heisst wie der im Menue.
+            XCTAssertTrue(app.staticTexts["\(name) entfernen?"].waitForExistence(timeout: 10), name)
+            let confirm = app.buttons["Entfernen"].firstMatch
+            XCTAssertTrue(confirm.waitForExistence(timeout: 10), name)
+            shoot(app, "freunde-entfernen-\(name.suffix(1))")
+            confirm.tap()
+            let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: title)
+            XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 10), .completed, name)
+        }
+        XCTAssertTrue(app.buttons["friendsCreate"].waitForExistence(timeout: 10))
+        shoot(app, "freunde-leer-hell")
+        XCTAssertTrue(app.buttons["friendsEnter"].exists)
+        appearance(.dark)
+        shoot(app, "freunde-leer-dunkel")
+    }
+
+    /// Der Knopf in der Leiste oeffnet den Chat (Vertrag §8.2): eigene Fragen
+    /// rechts, Antworten links, eine laeuft noch - solange ist das Senden aus.
+    /// „Neuer Chat“ leert ihn nach Rueckfrage.
+    func testChatButtonOpensTheChat() {
+        XCUIDevice.shared.appearance = .light
+        addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        let app = launch(tab: "dashboard", extra: demo)
+        let button = app.buttons["chatButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 20))
+        button.tap()
+        XCTAssertTrue(app.navigationBars["Chat"].waitForExistence(timeout: 10))
+        let answer = app.staticTexts.matching(identifier: "chatAnswer").firstMatch
+        XCTAssertTrue(answer.waitForExistence(timeout: 10))
+        shoot(app, "chat-hell")
+        XCTAssertEqual(app.staticTexts.matching(identifier: "chatQuestion").count, 3)
+        XCTAssertEqual(app.staticTexts.matching(identifier: "chatAnswer").count, 2)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "chatProgress").firstMatch.exists)
+        XCTAssertFalse(app.buttons["chatSend"].isEnabled, "solange eine Antwort laeuft")
+        appearance(.dark)
+        shoot(app, "chat-dunkel")
+        appearance(.light)
+
+        app.buttons["chatNew"].tap()
+        let confirm = app.buttons["Chat leeren"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 10))
+        shoot(app, "chat-neu-rueckfrage")
+        confirm.tap()
+        let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: answer)
+        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 10), .completed)
+        shoot(app, "chat-leer")
+        XCTAssertFalse(app.buttons["chatNew"].isEnabled, "ein leerer Chat ist schon neu")
+
+        // Eine Frage tippen: der Knopf geht an, die Frage steht sofort da.
+        let input = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        input.tap()
+        input.typeText("Wie viel Eiweiß fehlt mir noch?")
+        XCTAssertTrue(app.buttons["chatSend"].isEnabled)
+        app.buttons["chatSend"].tap()
+        XCTAssertTrue(app.staticTexts.matching(identifier: "chatQuestion").firstMatch.waitForExistence(timeout: 10))
+        shoot(app, "chat-frage-gestellt")
+        app.buttons["Fertig"].tap()
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+    }
+
+    /// `COCKPIT_TAB=chat` stellt die Bitte um den Chat, bevor es das Dashboard
+    /// gibt - derselbe Weg wie der Tipp auf „Deine Antwort ist da.“ beim
+    /// Kaltstart (`Router.takeChatRequest`). Das Blatt geht mit dem Dashboard auf.
+    func testChatRequestBeforeTheDashboardOpensTheChat() {
+        let app = launch(tab: "chat", extra: demo)
+        XCTAssertTrue(app.navigationBars["Chat"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts.matching(identifier: "chatAnswer").firstMatch.waitForExistence(timeout: 10))
+        shoot(app, "chat-bitte-vor-dem-dashboard")
+        app.buttons["Fertig"].tap()
+        XCTAssertTrue(app.buttons["chatButton"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.tabBars.buttons["Dashboard"].isSelected)
+        // Bedient ist bedient: der Chat geht nicht von selbst wieder auf.
+        app.tabBars.buttons["Essen"].tap()
+        app.tabBars.buttons["Dashboard"].tap()
+        XCTAssertTrue(app.buttons["chatButton"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.navigationBars["Chat"].exists)
+    }
+
+    /// Briefing, Chat und Freunde gegen **lokal gestartete Dienste mit einer
+    /// Agent-Attrappe** (`COCKPIT_URL_WEIGHT`, `COCKPIT_URL_FOOD`,
+    /// `COCKPIT_CHAT_TEST=1`). Nie gegen den echten Server: dort startete jede
+    /// Frage eine Claude-Sitzung auf Felix' Kontingent - deshalb ueberspringt
+    /// sich der Test ohne den Schalter und ohne eine Schleifenadresse.
+    func testBriefingChatAndFriendsAgainstLocalServices() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard environment["COCKPIT_CHAT_TEST"] == "1",
+              let weight = environment["COCKPIT_URL_WEIGHT"],
+              weight.contains("127.0.0.1") || weight.contains("localhost") else {
+            throw XCTSkip("Braucht einen lokal gestarteten Weight Tracker mit Agent-Attrappe und COCKPIT_CHAT_TEST=1.")
+        }
+        let app = launch(tab: "dashboard")
+        // Das Briefing wird nach dem Abgleich angefordert und erscheint, sobald
+        // die Sitzung fertig ist (nachgefragt wird alle fuenf Sekunden).
+        let briefing = app.descendants(matching: .any).matching(identifier: "briefingCard").firstMatch
+        XCTAssertTrue(briefing.waitForExistence(timeout: 60))
+        shoot(app, "lokal-dashboard-oben")
+
+        let button = app.buttons["chatButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 20))
+        button.tap()
+        XCTAssertTrue(app.navigationBars["Chat"].waitForExistence(timeout: 10))
+        // Was von frueheren Laeufen dasteht, weg - der Test beginnt leer.
+        let new = app.buttons["chatNew"]
+        if new.waitForExistence(timeout: 5), new.isEnabled {
+            new.tap()
+            XCTAssertTrue(app.buttons["Chat leeren"].waitForExistence(timeout: 10))
+            app.buttons["Chat leeren"].tap()
+            let emptied = expectation(for: NSPredicate(format: "isEnabled == false"), evaluatedWith: new)
+            XCTAssertEqual(XCTWaiter.wait(for: [emptied], timeout: 15), .completed)
+        }
+        let input = app.textFields["chatInput"].exists ? app.textFields["chatInput"] : app.textViews["chatInput"]
+        input.tap()
+        input.typeText("Was sollte ich heute noch essen?")
+        app.buttons["chatSend"].tap()
+        let progress = app.descendants(matching: .any).matching(identifier: "chatProgress").firstMatch
+        XCTAssertTrue(progress.waitForExistence(timeout: 10), "die Frage steht da, die Antwort laeuft")
+        shoot(app, "lokal-chat-laeuft")
+        XCTAssertFalse(app.buttons["chatSend"].isEnabled)
+        let answer = app.staticTexts.matching(identifier: "chatAnswer").firstMatch
+        XCTAssertTrue(answer.waitForExistence(timeout: 60), "die Antwort kommt ueber die Abfrage")
+        shoot(app, "lokal-chat-antwort")
+        XCTAssertFalse(progress.exists)
+        app.buttons["Fertig"].tap()
+
+        // Die Kacheln unten und der Rueckblick aus echten Antworten.
+        let streaks = app.buttons["streaksCard"]
+        XCTAssertTrue(streaks.waitForExistence(timeout: 20))
+        for _ in 0..<8 where !streaks.isHittable { scrollDown(app) }
+        scrollDown(app)
+        shoot(app, "lokal-dashboard-serien-eichung")
+        for _ in 0..<30 where !app.staticTexts["Wochenrückblick"].isHittable { scrollDown(app) }
+        scrollDown(app, times: 2)
+        shoot(app, "lokal-dashboard-wochenrueckblick")
+        XCTAssertTrue(app.staticTexts["Wochenrückblick"].exists)
+
+        app.tabBars.buttons["Freunde"].tap()
+        XCTAssertTrue(app.navigationBars["Freunde"].waitForExistence(timeout: 10))
+        // Entweder Karten oder - ohne Freunde - die beiden Knoepfe.
+        let anyFriend = app.staticTexts["Tracking"].firstMatch
+        let empty = app.buttons["friendsCreate"]
+        var shown = false
+        for _ in 0..<40 where !shown {
+            shown = anyFriend.exists || empty.exists
+            if !shown { Thread.sleep(forTimeInterval: 0.5) }
+        }
+        XCTAssertTrue(shown)
+        shoot(app, "lokal-freunde")
     }
 
     /// Das Ziele-Blatt hat seit 10.11. unter „Eiweiß“ den Erhalt, und das
@@ -455,7 +712,64 @@ final class HealthyUITests: XCTestCase {
         sleep(2)
         XCTAssertEqual(app.state, .runningForeground, "App ist nach dem Tipp weg")
         shoot(app, "push-getippt")
-        XCTAssertTrue(app.tabBars.buttons["Essen"].isSelected, "eine Meldung ohne Art fuehrt in den Essen-Tab")
+        // Wohin der Tipp fuehrt, sagt die Art der Meldung (`HealthyRoute.notification`);
+        // tools/pushtest.sh liest sie aus der Nutzlast.
+        switch ProcessInfo.processInfo.environment["COCKPIT_PUSH_KIND"] ?? "" {
+        case "chat-answer":
+            XCTAssertTrue(app.navigationBars["Chat"].waitForExistence(timeout: 10),
+                          "„Deine Antwort ist da.“ oeffnet den Chat")
+            XCTAssertTrue(app.tabBars.buttons["Dashboard"].isSelected)
+        case "friend-nudge", "streak-warning":
+            XCTAssertTrue(app.navigationBars["Freunde"].waitForExistence(timeout: 10),
+                          "Stupser und Serien-Warnung fuehren zu den Freunden")
+            XCTAssertTrue(app.tabBars.buttons["Freunde"].isSelected)
+        default:
+            XCTAssertTrue(app.tabBars.buttons["Essen"].isSelected, "eine Meldung ohne Art fuehrt in den Essen-Tab")
+        }
+    }
+
+    /// „Deine Antwort ist da.“ erscheint nicht als Banner, solange der Chat
+    /// offen ist - die Antwort steht dann schon da (Vertrag §8.2). Jede andere
+    /// Meldung erscheint, und ihr Tipp fuehrt weg vom Chat: das Blatt macht Platz.
+    ///
+    /// Die Meldungen kommen von aussen (`tools/pushtest.sh Healthy --chat-open`):
+    /// erst `chat-answer`, zehn Sekunden spaeter ein Stupser als Gegenprobe. Der
+    /// Test wartet auf die zweite und darf die erste bis dahin nie gesehen haben
+    /// - ohne die Gegenprobe bewiese ein leerer Bildschirm nichts.
+    func testChatAnswerShowsNoBannerWhileTheChatIsOpen() throws {
+        let environment = ProcessInfo.processInfo.environment
+        try XCTSkipIf(environment["COCKPIT_PUSH_TEST"] != "chat-open",
+                      "nur mit tools/pushtest.sh Healthy --chat-open")
+        // `chat` oeffnet den Chat ueber den Weg des Kaltstarts: die Bitte steht
+        // da, bevor es das Dashboard gibt.
+        let app = launch(tab: "chat", extra: demo.merging(["COCKPIT_ASK_PUSH": "1"]) { _, neu in neu })
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons["Allow"].exists ? springboard.buttons["Allow"]
+                                                         : springboard.buttons["Erlauben"]
+        if allow.waitForExistence(timeout: 10) { allow.tap() }
+        XCTAssertTrue(app.navigationBars["Chat"].waitForExistence(timeout: 20))
+
+        let answer = springboard.staticTexts["Deine Antwort ist da."]
+        let control = springboard.staticTexts[environment["COCKPIT_PUSH_TITLE"] ?? "Person A"]
+        var sawAnswer = false
+        let deadline = Date().addingTimeInterval(150)
+        while Date() < deadline, !control.exists {
+            if answer.exists { sawAnswer = true }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        XCTAssertTrue(control.exists, "die Gegenprobe kam nicht an - ohne sie beweist der Lauf nichts")
+        shoot(app, "push-chat-offen-gegenprobe")
+        XCTAssertFalse(sawAnswer || answer.exists, "bei offenem Chat darf „Deine Antwort ist da.“ kein Banner sein")
+        XCTAssertTrue(app.navigationBars["Chat"].exists, "der Chat steht noch offen")
+
+        control.tap()
+        XCTAssertTrue(app.navigationBars["Freunde"].waitForExistence(timeout: 10),
+                      "der Tipp auf den Stupser fuehrt zu den Freunden")
+        XCTAssertTrue(app.tabBars.buttons["Freunde"].isSelected)
+        let chatGone = expectation(for: NSPredicate(format: "exists == false"),
+                                   evaluatedWith: app.navigationBars["Chat"])
+        XCTAssertEqual(XCTWaiter.wait(for: [chatGone], timeout: 10), .completed, "der Chat macht Platz")
+        shoot(app, "push-chat-offen-freunde")
     }
 
     func testWeightTabShowsStepsCardBelowTheChart() {
@@ -595,7 +909,8 @@ final class HealthyUITests: XCTestCase {
     func testTabsAreReachable() {
         let app = launch(tab: "dashboard")
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 20))
-        for tab in ["Essen", "Gewicht", "Dashboard"] {
+        // Seit 10.11. vier Tabs: die Freunde als letzter.
+        for tab in ["Essen", "Gewicht", "Freunde", "Dashboard"] {
             app.tabBars.buttons[tab].tap()
             XCTAssertTrue(app.navigationBars.firstMatch.waitForExistence(timeout: 10), tab)
             XCTAssertTrue(app.tabBars.buttons[tab].isSelected, tab)

@@ -4,8 +4,9 @@
 #
 #   tools/run-simulator.sh <Healthy|Vault|Fokus|Einkaufsliste|coHabit|Sport> [tab] [screenshot.png]
 #
-# Tabs: Healthy dashboard|food|weight|widget|recovery|logbook|effects, Sport padel|gym
-# (recovery = Dashboard samt dieser Seite; logbook, effects = Dashboard an dieser
+# Tabs: Healthy dashboard|food|weight|friends|widget|recovery|strain|chat|logbook|effects,
+# Sport padel|gym (recovery = Dashboard samt dieser Seite, strain = samt dem
+# Strain-Fenster, chat = samt dem Chat; logbook, effects = Dashboard an dieser
 # Stelle), Vault grades|finance|cloud,
 # Fokus todo|forest|shopping|evaluation|widget, Einkaufsliste (hat nur die eine Seite),
 # coHabit today|timeline|stats|profile|new|widget;
