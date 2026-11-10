@@ -463,6 +463,56 @@ weg, statt sie zu schicken.
 ist eine HTML-Seite. 200 Nächte sind rund 75 kB (`RecoveryAPI.nightsPerRequest`,
 geprüft in `HealthEnergyTests`).
 
+### Strain — für Healthy (seit 2026-11-10)
+
+Vertrag: `../weight-app/docs/HEALTHY-CONTRACT.md` §7 (JSON, die Regel für das
+Histogramm, die Rechnung) und §5 (Karte, Fenster, Farben). Nachgesehen in
+`../weight-app/src/main/java/…/strain/` (`StrainController`, `dto/`,
+`service/StrainCalculator`), Branch `healthy-plus`.
+
+⚠️ **Noch nicht ausgerollt.** Ein älterer Dienst antwortet mit 404 - die Karte
+fehlt dann, und der Abgleich lässt den Puls aus, ohne als gescheitert zu gelten.
+
+| Methode | Pfad | Rumpf → Antwort |
+|---|---|---|
+| POST | `/api/strain` | `{days:[{date, coverageMinutes, fromBpm, minutes[]}], replace?}` → `[{date, coverageMinutes}]`, der gespeicherte Stand (≤ 400 Tage; die App schickt ≤ 60) |
+| GET | `/api/strain/today` | `StrainDay` - antwortet immer, ohne Histogramm mit `NO_DATA` |
+| GET | `/api/strain?from=&to=` | `[StrainDay]`, jeder Kalendertag ab dem ersten gespeicherten bis höchstens heute (≤ 400 Tage); ohne einen gespeicherten Tag `[]` |
+| GET / PUT | `/api/strain/settings` | PUT `{hrMax}` (120–230; fehlend oder `null` = beobachtet) → `{hrMax, hrMaxUsed, hrMaxSource, hrMaxObserved, hrRest, hrRestSource, tau}` |
+
+```
+StrainDay { date, status: OK|CALIBRATING|LOW_COVERAGE|NO_DATA, partial, coverageMinutes?, covered,
+            load?, strain?, band?: LIGHT|MODERATE|HIGH|ALL_OUT,
+            targetLoad?, targetStrain?, acuteLoad?, chronicLoad?,
+            recoveryScore?, recoveryBand?: GREEN|YELLOW|RED, hrRest?, hrMax,
+            calibration { days, required } }
+```
+
+- **Histogramm:** `minutes[i]` sind die Minuten mit Puls in
+  `[fromBpm + 5·i, fromBpm + 5·i + 5)`. `fromBpm` ein Vielfaches von 5 aus
+  20–220, höchstens 46 Fächer, `coverageMinutes` über 0 und höchstens 1.500,
+  die Summe der Fächer weicht höchstens um 2 davon ab, kein Tag nach morgen.
+  **Ein Verstoß lässt die ganze Anfrage mit 400 scheitern** - `HealthHeart`
+  hält sich deshalb an die Grenzen (Puls unter 25 oder über 250 gilt als nicht
+  gemessen, `fromBpm` nie über 220, Abdeckung nie über 1.500).
+- **Heute und gestern gewinnt als Ganzes der Upload mit der größeren
+  Abdeckung**, ältere Tage ersetzt der neue; `replace: true` schickt die App nie.
+- **Zwei Gruppen von Feldern** in `StrainDay`: zum Histogramm des Tages
+  (`coverageMinutes`, `load`, `strain`, `band` - ohne Histogramm `null`) und zum
+  Morgen des Tages (`targetLoad`, `targetStrain`, `acuteLoad`, `chronicLoad`,
+  Recovery, `hrRest`, `hrMax`, `calibration` - auch an einem Tag ohne Histogramm).
+  Die Form-Kurve und die Stufenlinie des Ziels laufen deshalb über Tage ohne
+  Uhr weiter.
+- `partial` ist heute wahr: der Strain ist der Stand bisher, nie eine Prognose.
+  `covered`: der Tag ist vorbei und hat mindestens 600 Minuten - nur solche
+  zählen in „Akut“/„Gewohnt“.
+- `CALIBRATING`: noch kein Ziel (`targetLoad`/`targetStrain` `null`) - kein
+  Ruhepuls bestimmbar oder weniger als 14 abgedeckte Tage unter den 28 davor.
+- Die Recovery des Tages steht in jedem `StrainDay` - das Fenster braucht dafür
+  keine zweite Abfrage.
+- Die App liest für die Karte `today` und `?from=D−6&to=D`, für das Fenster
+  42/90/180/365 Tage bis heute.
+
 ## Kalorienzähler — `/api/food`
 
 | Methode | Pfad | Antwort |

@@ -1,5 +1,53 @@
 # Stand
 
+> **Healthy: Strain - Puls-Histogramm, Karte im Dashboard, Fenster mit Verlauf und Form-Kurve
+> (10.11., Felix) - gebaut, NICHT installiert:** Teil 2 der Runde vom 10.11. (Branch
+> `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §7 und §5, der Dienst dazu steht
+> in `../weight-app` auf demselben Branch, noch nicht ausgerollt).
+> - **Puls zum Dienst:** `HealthReader.minuteAverages` (Statistik je Kalenderminute, nur belegte),
+>   `HealthHeart` bildet daraus das Histogramm je Tag (5er-Fächer, Halten höchstens 5 Minuten,
+>   gekappt an Mitternacht und „jetzt“, unter 25/über 250 nicht gemessen - dieselbe Regel wie auf
+>   Android), `StrainAPI.send` → `POST /api/strain` (höchstens 60 Tage je Anfrage, ohne
+>   Postausgang). `HealthSync`: Reihenfolge Nächte → Puls → Energie → Schritte → Gewicht; bei jedem
+>   Abgleich heute und gestern, D−13 … D höchstens alle sechs Stunden oder beim Ziehen, nur Tage
+>   mit geändertem Histogramm (Fingerabdruck je Tag; beim Ziehen alle des Fensters); einmalig 425
+>   Tage in 7-Tage-Blöcken nach Nächten und Energie; stündlicher Weckruf für den Puls (liest nur
+>   heute und gestern, höchstens alle 15 Minuten, nur entsperrt). **Kein neuer Health-Dialog** -
+>   der Puls stand schon unter den Lesearten (Recovery).
+> - **Karte:** `StrainCard` nach der Recovery (`StrainCardModel`, rein): groß `12,4`, rechts
+>   `Ziel 14,1`, Balken 0–21 mit Zielmarke und dem Teil „über Ziel“ in Orange, sieben Tage D−6 … D
+>   (heute blasser, Tag ohne Wert leer); ohne Histogramm heute `–` mit Ziel und Marke; ohne Strain
+>   heute und in der Woche fehlt sie. `DashboardStore` lädt dafür `GET /api/strain/today` und die
+>   Woche; neu `take(optional:)` - ein 403 blendet eine freiwillige Karte aus, ohne Zugangs-Hinweis
+>   (für Briefing, Rückblick, Serien und Chat des nächsten Schritts).
+> - **Fenster:** `StrainSheet` (Blatt über dem Dashboard, „Fertig“): Zeitraum `6 Wo.` · `3 Mon.` ·
+>   `6 Mon.` · `1 Jahr` (gemerkt); „Strain“ als Balken 0–21 mit dem Ziel als gestrichelter
+>   Stufenlinie; „Form“ mit den Linien „Akut“ und „Gewohnt“, der Fläche dazwischen
+>   (`EnergyBand`, Farbwechsel am Schnittpunkt) und Recovery-Punkten in der Farbe ihres Bands;
+>   Antippen zeigt `Strain 12,4`/`Ziel 14,1` bzw. `Akut 118`/`Gewohnt 111`. Aufbereitung in
+>   `StrainChartData` (rein). Farben in `Palette` (Strain, über Ziel, die vier Bänder).
+> - **Vorführung und Schalter:** `DashboardDemo.strainDay/strainDays` (ein Jahr, Tage ohne Uhr,
+>   ein Tag mit wenig Abdeckung; heute 12,4 bei Ziel 14,1), `COCKPIT_TAB=strain` öffnet das
+>   Dashboard samt Fenster.
+> - **Geprüft:** `tools/verify.sh` (alle grün; Healthy 395 Unit-Tests, davon 49 neu:
+>   `HealthHeartTests`, `StrainCardModelTests` samt `DashboardTakeTests`, `StrainChartDataTests`,
+>   Strain in `HealthyContractTests`). Im Simulator gesehen (UI-Test
+>   `testStrainCardOpensTheWindow`, Vorführdaten): Dashboard mit der Karte hell und dunkel, das
+>   Fenster in allen vier Zeiträumen hell, ein Jahr und sechs Wochen mit Sprechblase dunkel.
+>   **Gegen einen lokal gestarteten Weight Tracker** (Stand `healthy-plus`, eine Testperson, 58
+>   per `curl` eingespielte Histogramme): Karte (`4,3`, `Ziel 12,5`, ein Tag ohne Uhr leer) und
+>   Fenster aus echten Antworten, samt `CALIBRATING`, `LOW_COVERAGE` und `NO_DATA` mit Ziel.
+> - **Nicht geprüft:** die Health-Abfrage selbst und alles dahinter - der Simulator hat keinen
+>   Puls: Dauer und Ergebnis von `minuteAverages` (ein Tag, 14 Tage, ein 7-Tage-Block der
+>   Rückholung), der Upload aus der App (das Format ist gegen den Vertrag und den Dienst geprüft,
+>   der Weg von Health dorthin nicht), der stündliche Weckruf, die Rückholung über 425 Tage. Das
+>   zeigt erst Felix' iPhone: nach der Installation Dashboard öffnen, ziehen - die Karte sollte
+>   nach dem ersten Abgleich stehen, der Verlauf füllt sich mit der Rückholung.
+> - **Nächster Schritt:** Teil 3 der Runde auf diesem Stand - Morgen-Briefing, Wochenrückblick,
+>   Eichungs-Kachel, Serien-Kachel, Chat und der Freunde-Tab (Vertrag §8–§10, §1.6). Reihenfolge
+>   im Dashboard laut Vertrag §5: Briefing, Recovery, Strain, Energie, Gewicht | Essen, Serien |
+>   Eichung, Logbook, Effekte, Wochenrückblick.
+
 > **Healthy für ein zweites iPhone, Eiweiß mit Erhalt, Makros auf der Uhr (10.11., Felix) - gebaut,
 > NICHT installiert, NICHT zu TestFlight hochgeladen:** Teil 1 der Runde vom 10.11. (Branch
 > `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §11, die Dienste dazu entstehen

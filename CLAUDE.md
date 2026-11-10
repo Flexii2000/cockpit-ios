@@ -97,8 +97,8 @@ tools/install-mac.sh ClaudeUsageBar              # dito; eine fremde App gleiche
 
 Jedes Skript nimmt die App als **erstes** Argument (`Healthy`, `Vault`,
 `Fokus`, `Einkaufsliste`, `coHabit`, `Sport`; `verify.sh` kennt dazu `HealthyWatch`, `SportWatch`,
-`CloudUsageBar` und `ClaudeUsageBar`). Tabs: Healthy `dashboard|food|weight|widget|recovery|logbook|effects`
-(`recovery` ist das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle), Vault
+`CloudUsageBar` und `ClaudeUsageBar`). Tabs: Healthy `dashboard|food|weight|widget|recovery|strain|logbook|effects`
+(`recovery` ist das Dashboard samt dieser Seite, `strain` samt dem Strain-Fenster, `logbook` und `effects` das Dashboard an dieser Stelle), Vault
 `grades|finance|cloud`, Fokus `todo|forest|shopping|evaluation|widget`, Einkaufsliste hat nur die eine Seite,
 coHabit `today|timeline|stats|profile|new|widget`, Sport `padel|gym`;
 `setup` öffnet das Zugang-Blatt (nicht in coHabit — dort ist der Zugang ein
@@ -211,7 +211,7 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`; Sport `padel`, `gym`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`; Sport `padel`, `gym`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `strain` samt dem Strain-Fenster (seit 10.11.), `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
 | `COCKPIT_GYM_DEMO=1` | füllt den Gym-Tab (Sport, bis 23.10. Healthy) mit zwei erfundenen Tagen („Tag A", „Gerät A", zwei Spannen, Notiz „Sitz 4") und acht Wochen Verlauf - nur im Speicher, nie gesendet; `COCKPIT_GYM_WORKOUT=1` startet dazu gleich das Training samt erfundener Uhr-Werte |
 | `COCKPIT_WATCH_DEMO=kcal` | in der Uhr-App von Healthy (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 samt Makros (E 96/195 mit Erhalt 140 - also rot -, F 41/70, KH 180/236) - der Uhren-Simulator legt keine Komplikation aufs Zifferblatt und hat keinen Zugang |
 | `COCKPIT_HEALTH_TOKEN=<token>` | Healthy als **eine Person** statt als Felix (seit 10.11.): ihr persönlicher Token (`HEALTH_TOKENS` des Dienstes), als wäre er im Zugang-Blatt eingetragen. `run-simulator.sh` und `uitest.sh` nehmen dann Felix' Token im Simulator weg (`COCKPIT_FH_PRIVATE_TOKEN=none`, `COCKPIT_WEIGHT_TOKEN=none`) und geben ohne die Variable `none` mit - der Schlüsselbund des Simulators überlebt jeden Lauf, und ein liegengebliebener persönlicher Token überstimmte Felix' Cookies. `COCKPIT_HEALTH_NAME=person-a` setzt den Namen fürs Zugang-Blatt („✓ Person-a“). ⚠️ Immer mit `COCKPIT_NO_HEALTH=1`, sonst lädt der Abgleich die Health-Daten des Geräts ins Konto der Person; und nur gegen lokal gestartete Dienste mit einer Testperson |
@@ -220,11 +220,11 @@ Debug-Schalter, die nur im Debug-Build wirken:
 | `COCKPIT_PADEL_DEMO=1` | füllt den Padel-Tab (Sport) mit erfundenen Terminen, Buchungen, Serien und einem Ergebnis, Mitspieler „Person A" (gelb) und „Person B" (türkis) - nur im Speicher, keine Anfrage an den Dienst; Ändern tut nichts |
 | `COCKPIT_EVALUATION_DEMO=1` | füllt den Evaluation-Tab (Fokus) mit einem Jahr erfundener Antworten auf drei Platzhalter-Fragen - nur im Speicher, nie gespeichert. Mit `COCKPIT_NO_LOCK=1` |
 | `COCKPIT_EVALUATION_SCRATCH=1` | Evaluation (Fokus) mit einer frischen Datei im Temp-Ordner je Start - für UI-Tests, die Fragen anlegen, ohne etwas liegen zu lassen |
-| `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Recovery-Seite, Logbook mit Platzhaltern („Verhalten A", gestern halb beantwortet), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
+| `COCKPIT_DASHBOARD_DEMO=1` | erfundene Werte in Healthy: Dashboard samt Woche der Energie-Karte, Strain-Karte und Strain-Fenster (ein Jahr, heute 12,4 bei Ziel 14,1), Recovery-Seite, Logbook mit Platzhaltern („Verhalten A", gestern halb beantwortet), der ganze Essen-Tab (Tage ohne Einträge, Verlauf, Gewichtskurve) und der ganze Gewicht-Tab (Gewicht, Kacheln, kcal, Schritte), überall mit Energie und „Defizit ⌀" - nur im Speicher, nie gesendet: Speichern, Anlegen und Löschen tun nichts; keine Logbook-Erinnerung. So zeigt kein Bild echte Daten, obwohl `run-simulator.sh` die echten Token mitgibt. Der Simulator bekommt keine Health-Daten. Mit `COCKPIT_NO_HEALTH=1` |
 | `COCKPIT_RANGE=threeYears` | Zeitraum im Gewicht-Tab (`month`, `last90`, `last180`, `year`, `threeYears`, `allTime`) |
 | `COCKPIT_SERIES=kcal` | schaltet im Gewicht-Tab Reihen zusätzlich ein (Komma-Liste der `WeightSeries`, etwa `kcal,expenditure`), mit „-" davor ab (`targetDistance,-deficit`) - vorgewählt sind dort nur Gewicht ⌀, Zielkurve und „Defizit ⌀" |
 | `COCKPIT_DAY=2026-08-10` | Tag im Essen-Tab — ein leerer Tag macht die Liste kurz genug, dass mehr ins Bild passt |
-| `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist |
+| `COCKPIT_SELECT=2026-08-15` | wählt einen Tag im Diagramm vor, damit die Sprechblase im Bild ist (Gewicht, Essen-Verlauf, Strain-Fenster) |
 | `COCKPIT_SCAN=4000417025005` | liefert im Essen-Tab sofort diesen Produktcode, als wäre er gescannt worden: das Scanner-Blatt geht auf, gibt ihn ohne Kamera ab, danach öffnet sich das Eintrag-Blatt mit dem Produkt aus Open Food Facts — im Simulator gibt es keine Kamera |
 | `COCKPIT_NO_LOCK=1` | Face-ID-Sperre aus |
 | `COCKPIT_FORCE_LOCK=1` | Sperrbildschirm erzwingen (im Simulator ist kein Gesicht hinterlegt) |

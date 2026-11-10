@@ -60,16 +60,19 @@ Dreiteilig, und in M2 genauso wie in M1:
 ```
 Healthy/            App: Dashboard, Essen, Gewicht, Health-Abgleich, Diagramm-Bausteine (Gym seit 23.10. in Sport)
   App/              Einstieg, Tab-Gerüst, AppDelegate (HealthKit, Push-Kennung), HealthyRoute
-  Dashboard/        der erste Tab: Karten für Recovery, Energie (EnergyCardModel), Gewicht, Essen, darunter
-                    das Logbook; Vorführdaten - auch für Essen- und Gewicht-Tab
+  Dashboard/        der erste Tab: Karten für Recovery, Strain, Energie (EnergyCardModel), Gewicht, Essen,
+                    darunter das Logbook; Vorführdaten - auch für Essen- und Gewicht-Tab
   Recovery/         Recovery-Seite (Ring, Bausteine, HRV-Kurve), Nächte und Recovery beim Weight Tracker
+  Strain/           Strain beim Weight Tracker (seit 10.11.): Karte im Dashboard (StrainCardModel), Fenster
+                    mit Verlauf und Form-Kurve (StrainSheet, StrainChartData), Puls-Histogramm als Upload
   Energy/           Energiebilanz beim Weight Tracker und ihre Formate
   Logbook/          Logbook und Effekte im Dashboard (LogbookSection, LogbookDays), Verhalten-Blatt,
                     Erinnerung 09:00, beim Weight Tracker
   Charts/           Callout, DaySeries, SeriesChip, Palette; „Defizit ⌀": Skala, Fläche, Zahlen innen
   Watch/            WatchLink: Token (Felix' und/oder der persönliche) und Tagesstand samt Makros
                     an die Uhr (WatchConnectivity)
-  Health/           HealthKit lesen (HealthReader), Tage und Nächte bilden, Abgleich (HealthSync),
+  Health/           HealthKit lesen (HealthReader), Tage, Nächte und das Puls-Histogramm (HealthHeart)
+                    bilden, Abgleich (HealthSync),
                     Schritte für die Sperrbildschirm-Kacheln (StepsWidgetBridge)
   Food/ Weight/
 Vault/              App: Noten, Finanzen, Cloud - eine Sperre vor allem
@@ -359,28 +362,34 @@ Zwei Dinge passieren, ohne dass jemand die App offen hat — und beide brauchen
 deshalb einen `AppDelegate` statt einer `.task` an einer View: wird die App im
 Hintergrund geweckt, gibt es gar keine Oberfläche.
 
-**HealthKit.** Drei `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
-App, wenn ein neuer Gewichtswert oder Schlaf geschrieben wird - und seit 14.10.
+**HealthKit.** Vier `HKObserverQuery` mit Hintergrundzustellung; iOS weckt die
+App, wenn ein neuer Gewichtswert oder Schlaf geschrieben wird - seit 14.10.
 höchstens stündlich für Schritte, nur damit die Sperrbildschirm-Kacheln einen
 frischen Health-Stand haben (`StepsMirror`; ohne Upload, gesperrt scheitert das
-Lesen ohnehin). Beim Gewicht
+Lesen ohnehin) - und seit 10.11. stündlich für den Puls: dann gehen die
+Histogramme von heute und gestern zum Dienst, damit der Strain frisch bleibt
+(nur entsperrt; solange die App läuft, höchstens alle 15 Minuten). Beim Gewicht
 merkt sich ein Anker, was schon geholt wurde, und wird erst **nach**
 erfolgreichem Senden gespeichert — sonst gingen Werte verloren, wenn der
 Server gerade nicht erreichbar war. Beim Schlaf bildet der Weckruf die letzten
 14 Nächte neu und schickt sie nur, wenn sich ihr Inhalt geändert hat (Hash)
 und das iPhone entsperrt ist.
 
-Den Rest macht `HealthSync` als Dirigent im Vordergrund: Nächte → Energie →
+Den Rest macht `HealthSync` als Dirigent im Vordergrund: Nächte → Puls → Energie →
 Schritte → Gewicht, beim Wechsel in den Vordergrund und beim Öffnen von
 Dashboard und Gewicht-Tab höchstens alle zehn Minuten (`syncIfDue`), beim
 Ziehen sofort (`syncAll(force:)`). Die Erlaubnis fragt das Dashboard
 (`connect()`), und war die Frage neu, wird gleich alles geholt. Gelesen wird in `HealthReader` (jede
 Abfrage `async`, Ergebnis sofort in eigene Typen), aus Rohdaten werden Tage
-und Nächte in `HealthEnergy` und `HealthNights` — rein und getestet, genau nach
-den Regeln im Healthy-Vertrag, damit iOS und Android dieselbe Nacht bilden.
+und Nächte in `HealthEnergy` und `HealthNights`, aus den Minutenmitteln des
+Pulses das Histogramm je Tag in `HealthHeart` — rein und getestet, genau nach
+den Regeln im Healthy-Vertrag, damit iOS und Android dieselbe Nacht und
+dasselbe Histogramm bilden. Vom Puls gehen nur Tage hoch, deren Histogramm sich
+geändert hat (heute und gestern bei jedem Abgleich, das Fenster von 14 Tagen
+höchstens alle sechs Stunden oder beim Ziehen).
 Danach, nicht abgewartet und nur im Vordergrund, die einmalige Rückholung
 (`HealthBackfill`: 425 Nächte in Blöcken zu 60, zehn Jahre Energie in Blöcken
-zu 365, Cursor in den UserDefaults). Wer etwas hochgeladen hat, zählt
+zu 365, 425 Tage Puls in Blöcken zu 7, Cursor in den UserDefaults). Wer etwas hochgeladen hat, zählt
 `HealthSync.uploads` hoch; Dashboard, Recovery-Seite und Gewicht-Tab laden
 darauf neu.
 

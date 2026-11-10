@@ -3,6 +3,50 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-10 — Healthy: Strain aus dem Puls - Histogramm je Tag, Karte, Fenster
+Felix will einen Strain-Wert, der zeigt, wie viel der Tag gekostet hat - gegen ein Ziel für heute -,
+und beim Antippen den Verlauf über Wochen und Monate. Er wählte die **Skala 0–21 mit Zielmarke**
+(statt „Prozent der Kapazität“ oder beidem) und die **Form-Kurve** im selben Fenster. Gerechnet wird
+im Weight Tracker (Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §7); die App liefert nur den Puls.
+
+Entschieden beim Bauen:
+- **Die App schickt ein Histogramm je Tag, nicht Last oder Zonen.** Minuten je 5er-Fach des Pulses
+  (§7.2). So lassen sich Ruhe- und Maximalpuls, Schwelle und Skala beim Dienst ändern, ohne dass
+  eine App neu ausgerollt wird - und iOS und Android rechnen sicher gleich. Verworfen: die Last auf
+  dem Gerät rechnen (jede Korrektur der Formel bräuchte ein App-Update und eine neue Rückholung);
+  Trainings (`HKWorkout`) als Quelle (ein Tag ohne aufgezeichnetes Training hätte keinen Strain).
+- **Minuten-Statistik statt Rohwerte.** `HKStatisticsCollectionQuery` mit `.discreteAverage` und
+  Kübeln von einer Minute, nur die belegten (`statistics()`). Im Training misst die Uhr alle paar
+  Sekunden - ein Tag sind dann tausende Proben -, und was älter als ein paar Monate ist, hat
+  Health verdichtet; die Statistik behandelt beides gleich. Verworfen: `HKSampleQuery` über die
+  Rohwerte (langsam bei 425 Tagen, und alte Trainings sähen anders aus als neue). Je Abfrage
+  höchstens sieben Tage (gut 10.000 Kübel).
+- **Halten in ganzen Sekunden, wie Android.** Eine belegte Minute gilt bis zur nächsten, höchstens
+  fünf Minuten, gekappt an Mitternacht und „jetzt“. Der angebrochene Rest von heute zählt in
+  ganzen Sekunden - sonst rundete derselbe Tag auf den beiden Geräten verschieden.
+- **Stündliche Hintergrund-Lieferung für den Puls**, die nur heute und gestern liest. Der Strain
+  von heute soll stimmen, wenn man hinschaut, nicht erst nach dem Öffnen (und Freunde sehen ihn
+  später als Farbe). Solange die App läuft, meldet sich der Beobachter mit jeder Messung - gelesen
+  wird dann höchstens alle 15 Minuten. Verworfen: wie bei Schritten und Energie nur im
+  Vordergrund - der Wert bliebe bis zum nächsten Öffnen der vom Morgen.
+- **Nur geänderte Tage gehen hoch**, je Tag ein Fingerabdruck in den UserDefaults (je Person,
+  `HealthSyncScope`); das Fenster D−13 … D−2 höchstens alle sechs Stunden. Beim Ziehen gehen alle
+  Tage des Fensters hoch - wer zieht, will sicher sein, dass der Dienst den Stand hat (wie bei den
+  Nächten). Die Rückholung (425 Tage, 7er-Blöcke, neueste zuerst) läuft **nach** Nächten und
+  Energie: der Ruhepuls eines Tages kommt beim Dienst aus den Nächten davor.
+- **Ein Balken, kein Ring.** Direkt darüber steht die Recovery als Ring; zwei Ringe übereinander
+  läsen sich wie dieselbe Art Zahl. Und im Balken hat die Zielmarke Platz - um die geht es (Stand
+  gegen Ziel). So hat Felix es im Entwurf auch gewählt. Verworfen: ein zweiter Ring.
+- **Ein Blatt, keine Seite.** Das Fenster liegt über dem Dashboard (`.sheet`), mit „Fertig“ wie die
+  anderen Blätter. Die Recovery ist eine Seite im Stapel, weil man dort einstellt und liest; der
+  Strain-Verlauf ist ein Blick, von dem man gleich zurück will - und Felix sprach von einem
+  Fenster. Android zeigt ihn als Seite (dort stritte die Ziehgeste des Diagramms mit dem Blatt).
+- **Ein Maximalpuls zum Einstellen fehlt in der Oberfläche.** Der Dienst nimmt einen
+  (`PUT /api/strain/settings`), `StrainAPI.updateSettings` gibt es; ein Blatt dafür kommt, wenn
+  die ersten echten Werte zeigen, dass der beobachtete Maximalpuls nicht passt.
+- **Tage ohne Uhr reißen nichts ab.** Ziel, „Akut“ und „Gewohnt“ gehören zum Morgen des Tages
+  (§7.3) und laufen weiter; nur der Balken fehlt. In der Karte steht dann `–` mit Ziel und Marke.
+
 ## 2026-11-10 — Healthy für eine zweite Person: persönlicher Token, TestFlight, Eiweiß mit Erhalt, Makros auf der Uhr
 Felix will, dass Joana Healthy auf ihrem iPhone bekommt - mit eigenem Zugang und allem, was seine
 App kann. Dazu zwei Wünsche für alle: das Eiweiß farbig (rot unter dem **Erhalt**, gelb ab dem
