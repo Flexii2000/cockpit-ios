@@ -11,10 +11,12 @@ import Foundation
 /// ein Hinweis. Bei anderen Fehlern bleibt der letzte Stand stehen; ohne Netz
 /// liefert ohnehin der Cache (`OfflineCache`).
 ///
-/// **Freiwillige Karten** (seit 10.11.: Strain; Briefing, Rueckblick, Serien und
-/// Chat folgen) nehmen `take(optional: true)`: ein 403 heisst dort „fuer diese
-/// Person nicht freigeschaltet“ und blendet nur die Karte aus (Vertrag §5).
-/// Stimmt der Zugang insgesamt nicht, melden das die Karten oben ohnehin.
+/// **Freiwillige Karten** (seit 10.11.: Strain, Serien, Rueckblick und die
+/// Freischaltungen fuer Chat und Briefing) nehmen `take(optional: true)`: ein
+/// 403 heisst dort „fuer diese Person nicht freigeschaltet“ und blendet nur die
+/// Karte aus (Vertrag §5). Stimmt der Zugang insgesamt nicht, melden das die
+/// Karten oben ohnehin. Das Briefing selbst hat seinen eigenen Store
+/// (`BriefingStore`) - es wird angefordert, nicht nur gelesen.
 @MainActor
 @Observable
 final class DashboardStore {
@@ -24,6 +26,9 @@ final class DashboardStore {
     private let energyApi = EnergyAPI()
     private let weightApi = WeightAPI()
     private let foodApi = FoodAPI()
+    private let featuresApi = HealthFeaturesAPI()
+    private let reviewApi = ReviewAPI()
+    private let friendsApi = FriendsAPI()
     private var queue: PendingChanges { PendingChanges.shared }
 
     private(set) var recovery: RecoveryDay?
@@ -41,6 +46,14 @@ final class DashboardStore {
     /// Heute beim Kalorienzaehler - ohne das, was noch wartet.
     private(set) var food: DaySummary?
     private(set) var steps: Int?
+    /// Was der Weight Tracker fuer diese Person freigeschaltet hat - Chat und
+    /// Briefing (Vertrag §8.1). `nil`: noch nicht geladen oder ein Dienst von
+    /// vor den Freischaltungen.
+    private(set) var features: HealthFeatures?
+    /// Die Serien-Kachel: eigene Tracking-Serie und die laengste Freundes-Serie.
+    private(set) var streaks: StreakTile?
+    /// Der Wochenrueckblick: die letzte volle Woche gegen die davor.
+    private(set) var review: WeekReview?
 
     private(set) var isLoading = false
     /// Ob schon einmal geladen wurde - vorher zeigt der Tab einen Platzhalter
@@ -120,12 +133,16 @@ final class DashboardStore {
             weight = DashboardDemo.weightSummary()
             food = DashboardDemo.foodDay()
             steps = DashboardDemo.steps
+            features = DashboardDemo.features
+            streaks = DashboardDemo.streakTile()
+            review = DashboardDemo.weekReview()
             return
         }
         #endif
         // Lokale Kopien: die Abfragen laufen nebenher, ohne den Store.
         let recoveryApi = recoveryApi, energyApi = energyApi, strainApi = strainApi
         let weightApi = weightApi, foodApi = foodApi
+        let featuresApi = featuresApi, reviewApi = reviewApi, friendsApi = friendsApi
         let today = CalendarDate.today()
         async let recovery = Self.attempt { try await recoveryApi.today() }
         async let strain = Self.attempt { try await strainApi.today() }
@@ -133,6 +150,9 @@ final class DashboardStore {
         async let energy = Self.attempt { try await energyApi.summary() }
         async let energyWeek = Self.attempt { try await energyApi.days(from: today.adding(days: -7), to: today) }
         async let weight = Self.attempt { try await weightApi.summary() }
+        async let features = Self.attempt { try await featuresApi.get() }
+        async let streaks = Self.attempt { try await friendsApi.streaks() }
+        async let review = Self.attempt { try await reviewApi.week() }
         let foodRequest = queue.nextSequence()
         async let food = Self.attempt { try await foodApi.day(.today()) }
 
@@ -146,6 +166,12 @@ final class DashboardStore {
         self.energyWeek = Self.take(await energyWeek, previous: self.energyWeek, backend: .weight,
                                     problems: &problems)
         self.weight = Self.take(await weight, previous: self.weight, backend: .weight, problems: &problems)
+        self.features = Self.take(await features, previous: self.features, backend: .weight,
+                                  problems: &problems, optional: true)
+        self.streaks = Self.take(await streaks, previous: self.streaks, backend: .weight,
+                                 problems: &problems, optional: true)
+        self.review = Self.take(await review, previous: self.review, backend: .weight,
+                                problems: &problems, optional: true)
         // Ein Tag, der inzwischen mit einem Eintrag zurueckkam, ist neuer als diese Abfrage.
         if let fresh = Self.take(await food, previous: self.food, backend: .food, problems: &problems) {
             takeFood(fresh, sequence: foodRequest)

@@ -16,9 +16,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     /// Dashboard auf - ohne das landete der fertige Vorschlag dort, und sein
     /// Blatt ginge erst auf, wenn jemand Essen antippt. Die APNs-Meldung des
     /// Kalorienzaehlers hat keine Art; ohne Art heisst deshalb Essen.
+    ///
+    /// „Deine Antwort ist da.“ erscheint nicht als Banner, solange der Chat
+    /// offen ist - die Antwort steht dann schon da (10.11.).
     private let notifications = NotificationDelegate(onOpen: { kind in
         guard let route = HealthyRoute.notification(kind: kind) else { return }
         Task { @MainActor in Router.shared.follow(route) }
+    }, shouldPresent: { kind in
+        !(kind == HealthyRoute.chatAnswerKind && ChatPresence.shared.isVisible)
     })
 
     func application(

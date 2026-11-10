@@ -6,7 +6,11 @@ import SwiftUI
 /// vom kcal-Ziel uebrig ist, Schritte - und darunter das Logbook samt Effekten,
 /// direkt zum Eintragen (seit 12.10.). Die Karten oben fuehren dorthin, wo das
 /// Einzelne steht: Recovery auf ihre Seite, Strain in sein Fenster, Energie und
-/// kcal in den Essen-Tab mit heute, Gewicht in seinen Tab.
+/// kcal in den Essen-Tab mit heute, Gewicht in seinen Tab, Serien zu den Freunden.
+///
+/// Seit 10.11. dazu (Vertrag §5): ganz oben das Morgen-Briefing, die Kacheln
+/// „Serien“ und „Eichung“, ganz unten der Wochenrueckblick - und in der Leiste
+/// der Chat mit der Claude-Instanz auf dem Server, wo er freigeschaltet ist.
 ///
 /// Nicht zu verwechseln mit `/api/dashboard` des Weight Trackers - das ist die
 /// Auswahl der Kacheln im Gewicht-Tab.
@@ -17,6 +21,14 @@ struct DashboardTab: View {
     /// Das Strain-Fenster (Vertrag §5) - ein Blatt, keine Seite: es ist ein
     /// Blick in den Verlauf, von dem man gleich zurueck will.
     @State private var showingStrain = DashboardTab.opensStrain
+    /// Das Morgen-Briefing (Vertrag §8.3) - angefordert nach dem Abgleich.
+    @State private var briefing = BriefingStore()
+    /// Der Chat gehoert dem Dashboard, nicht dem Blatt: eine laufende Antwort
+    /// laeuft weiter, wenn es zugeht, und der Knopf zeigt, wenn sie da ist.
+    @State private var chat = ChatStore()
+    /// Der Knopf in der Leiste oeffnet ihn direkt; der Tipp auf „Deine Antwort
+    /// ist da.“ und im Debug-Build `COCKPIT_TAB=chat` ueber den `Router`.
+    @State private var showingChat = false
     @Environment(\.scenePhase) private var scenePhase
 
     private var router: Router { Router.shared }
@@ -38,6 +50,11 @@ struct DashboardTab: View {
                             .id(DashboardAnchor.logbook)
                         LogbookEffectsSection(store: logbook)
                             .id(DashboardAnchor.effects)
+                        // Ganz unten: ein Rueckblick liest sich in Ruhe, die
+                        // Karten des Tages und das Logbook bleiben, wo sie waren.
+                        if let review = WeekReviewCardModel(store.review) {
+                            WeekReviewCard(model: review)
+                        }
                     }
                     .padding(16)
                     // Platz fuer die schwebende Tab-Leiste, wie im Gewicht-Tab.
@@ -64,7 +81,21 @@ struct DashboardTab: View {
                 }
             }
             .sheet(isPresented: $showingStrain) { StrainSheet() }
+            .sheet(isPresented: $showingChat) { ChatSheet(store: chat) }
             .toolbar {
+                // Der Chat - nur, wo der Dienst ihn fuer diese Person freigeschaltet hat.
+                if store.features?.chat == true {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { showingChat = true } label: {
+                            // Gefuellt, solange eine Antwort ungesehen ist.
+                            Image(systemName: chat.hasUnseenAnswer
+                                  ? "bubble.left.and.text.bubble.right.fill"
+                                  : "bubble.left.and.text.bubble.right")
+                        }
+                        .accessibilityLabel(chat.hasUnseenAnswer ? "Chat, neue Antwort" : "Chat")
+                        .accessibilityIdentifier("chatButton")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Zugang …") { SetupPresenter.shared.isPresented = true }
@@ -78,8 +109,10 @@ struct DashboardTab: View {
                 async let cards: Void = store.load()
                 async let entries: Void = logbook.load(forceInsights: true)
                 _ = await (cards, entries)
+                await afterSync()
             }
             .task {
+                briefing.appeared()
                 async let cards: Void = store.load()
                 async let entries: Void = logbook.load()
                 _ = await (cards, entries)
@@ -91,12 +124,33 @@ struct DashboardTab: View {
                 // sie gebraucht wird. Fehlt keine, wird abgeglichen, wenn es
                 // faellig ist.
                 await HealthSync.shared.connect()
+                await afterSync()
             }
             // Welcher Tag im Logbook: neu, wenn das Dashboard erscheint, die App
             // zurueckkommt und um Mitternacht.
-            .onAppear { logbook.followToday() }
+            .onAppear {
+                logbook.followToday()
+                briefing.appeared()
+                openChatIfRequested()
+            }
+            .onDisappear { briefing.disappeared() }
+            .onChange(of: router.chatRequests) { openChatIfRequested() }
+            // Ein Weg fuehrt anderswohin (Stupser, Logbook-Erinnerung, Kachel):
+            // ein offenes Blatt laege ueber dem Ziel.
+            .onChange(of: router.dashboardSheetDismissals) {
+                showingStrain = false
+                showingChat = false
+            }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { logbook.followToday() }
+                guard phase == .active else { return }
+                logbook.followToday()
+                // Zurueck im Vordergrund: erst der Abgleich (laeuft schon einer,
+                // wird er abgewartet), dann das Briefing und der Chat.
+                guard router.selection == .dashboard else { return }
+                Task {
+                    await HealthSync.shared.syncIfDue()
+                    await afterSync()
+                }
             }
             .task {
                 while !Task.isCancelled {
@@ -108,7 +162,11 @@ struct DashboardTab: View {
             // Hat der Abgleich etwas hochgeladen, steht beim Dienst ein neuer
             // Stand - die Nacht von heute frueh etwa.
             .onChange(of: HealthSync.shared.uploads) {
-                Task { await store.load() }
+                Task {
+                    await store.load()
+                    // Kam eine Nacht dazu, schreibt der Dienst das Briefing einmal neu.
+                    await briefing.ensure(enabled: store.features?.briefing)
+                }
             }
             .onChange(of: OfflineStatus.shared.pending) { before, after in
                 if before > 0, after == 0 { Task { await store.load() } }
@@ -126,6 +184,24 @@ struct DashboardTab: View {
         #endif
     }
 
+    /// Was nach dem Health-Abgleich dieses Oeffnens kommt (mit oder ohne
+    /// Erfolg): das Briefing anfordern - vorher laege die Nacht von heute frueh
+    /// noch nicht beim Dienst (Vertrag §8.3) - und nachsehen, ob im Chat eine
+    /// Antwort wartet.
+    private func afterSync() async {
+        await briefing.ensure(enabled: store.features?.briefing)
+        if store.features?.chat == true { await chat.load() }
+    }
+
+    /// Ein Tipp auf „Deine Antwort ist da.“ oeffnet den Chat - auch, wenn die
+    /// Bitte vor dieser Ansicht kam (Kaltstart).
+    private func openChatIfRequested() {
+        guard router.takeChatRequest() else { return }
+        // Zwei Blaetter zugleich zeigt SwiftUI nicht - das Strain-Fenster macht Platz.
+        showingStrain = false
+        showingChat = true
+    }
+
     /// Bis kurz nach Mitternacht - ueber den Kalender, wegen der Zeitumstellung.
     private static func secondsUntilTomorrow(now: Date = Date()) -> Double {
         let calendar = Calendar.current
@@ -136,6 +212,10 @@ struct DashboardTab: View {
 
     @ViewBuilder
     private var cards: some View {
+        // Ganz oben, nur der Text (Vertrag §5); ohne Text fehlt die Karte.
+        if let text = briefing.text {
+            BriefingCard(text: text)
+        }
         if let recovery = store.recovery {
             NavigationLink(value: DashboardPage.recovery) {
                 RecoveryCard(day: recovery)
@@ -181,6 +261,22 @@ struct DashboardTab: View {
                 }
             }
             // Beide Haelften gleich hoch, auch wenn eine eine Zeile mehr hat.
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        // Serien | Eichung (Vertrag §5). Die Eichung fehlt bei einem Dienst von
+        // vor dem Monitor, die Serien, wo der Dienst sie nicht kennt.
+        let calibration = store.energy.flatMap { $0.calibrationMonitor == nil ? nil : $0 }
+        if store.streaks != nil || calibration != nil {
+            HStack(alignment: .top, spacing: 12) {
+                if let streaks = store.streaks {
+                    Button { router.show(.friends) } label: { StreaksHalfCard(tile: streaks) }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("streaksCard")
+                }
+                if let calibration {
+                    CalibrationHalfCard(summary: calibration)
+                }
+            }
             .fixedSize(horizontal: false, vertical: true)
         }
     }

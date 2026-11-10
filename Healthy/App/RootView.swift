@@ -3,9 +3,9 @@ import SwiftUI
 /// Was in der Leiste unten steht. Das Dashboard zuerst, und dort macht die
 /// App auf: es fasst zusammen, was die anderen Tabs im Einzelnen zeigen.
 /// Evaluation und Einkauf sind am 14.10. nach Fokus gezogen, der Gym-Tab am 23.10.
-/// nach Sport.
+/// nach Sport. Seit 10.11. als vierter die Freunde (Vertrag §10.4).
 enum TabSelection: Hashable {
-    case dashboard, food, weight
+    case dashboard, food, weight, friends
     #if DEBUG
     /// Nur zum Ansehen der Kacheln - siehe WidgetPreviewTab.
     case widget
@@ -20,12 +20,14 @@ enum TabSelection: Hashable {
 
     /// Womit die App aufmacht. Im Debug-Build ueber `COCKPIT_TAB` vorgebbar;
     /// `recovery` oeffnet das Dashboard samt dieser Seite, `strain` samt dem
-    /// Strain-Fenster, `logbook` und `effects` das Dashboard an dieser Stelle.
+    /// Strain-Fenster, `chat` samt dem Chat, `logbook` und `effects` das
+    /// Dashboard an dieser Stelle.
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {
         case "food":       return .food
         case "weight":     return .weight
+        case "friends":    return .friends
         case "widget":     return .widget
         default:           return .dashboard
         }
@@ -82,10 +84,36 @@ final class Router {
     /// Zaehlt die Tipps auf die Erinnerung des Logbooks: das Dashboard scrollt
     /// dann zum Logbook und zeigt gestern (`LogbookStore.followToday`).
     private(set) var logbookRequests = 0
+    /// Zaehlt die Bitten um den Chat - der Tipp auf „Deine Antwort ist da.“
+    /// und `healthy://chat`. Das Dashboard oeffnet dann sein Blatt.
+    private(set) var chatRequests = 0
+    /// Wie viele davon schon bedient sind. Hier und nicht im Dashboard: beim
+    /// Kaltstart kommt die Bitte, bevor es die Ansicht gibt - und baut sich das
+    /// Dashboard neu auf (andere Person), soll eine alte Bitte nicht noch
+    /// einmal gelten.
+    @ObservationIgnored private var servedChatRequests = 0
+    /// Zaehlt die Wege, die anderswohin fuehren als in den Chat (der Tipp auf
+    /// einen Stupser, die Erinnerung des Logbooks, eine Kachel): das Dashboard
+    /// schliesst dann sein Blatt - Chat oder Strain-Fenster laegen sonst ueber
+    /// dem Ziel.
+    private(set) var dashboardSheetDismissals = 0
 
-    private init() {}
+    private init() {
+        #if DEBUG
+        // `COCKPIT_TAB=chat`: derselbe Weg wie der Tipp auf „Deine Antwort ist
+        // da.“ beim Kaltstart - die Bitte steht da, bevor es das Dashboard gibt.
+        if ProcessInfo.processInfo.environment["COCKPIT_TAB"] == "chat" { chatRequests = 1 }
+        #endif
+    }
 
     func show(_ tab: TabSelection) { selection = tab }
+
+    /// Ob eine Bitte um den Chat offen ist - und wenn ja, gilt sie damit als bedient.
+    func takeChatRequest() -> Bool {
+        guard servedChatRequests != chatRequests else { return false }
+        servedChatRequests = chatRequests
+        return true
+    }
 
     /// Eine Seite im Dashboard, frisch oben auf dem Stapel.
     func open(_ page: DashboardPage) {
@@ -99,6 +127,7 @@ final class Router {
     }
 
     func follow(_ route: HealthyRoute) {
+        if route != .chat { dashboardSheetDismissals += 1 }
         switch route {
         case .food:       show(.food)
         case .foodToday:  showFoodToday()
@@ -109,6 +138,12 @@ final class Router {
             selection = .dashboard
             dashboardPath = []
             logbookRequests += 1
+        case .friends:
+            show(.friends)
+        case .chat:
+            selection = .dashboard
+            dashboardPath = []
+            chatRequests += 1
         }
     }
 }
@@ -149,6 +184,9 @@ struct RootView: View {
             }
             Tab(Backend.weight.title, systemImage: Backend.weight.systemImage, value: TabSelection.weight) {
                 WeightTab()
+            }
+            Tab("Freunde", systemImage: "person.2", value: TabSelection.friends) {
+                FriendsTab()
             }
             #if DEBUG
             if TabSelection.showsWidgetPreview {

@@ -15,9 +15,18 @@ enum HealthyRoute: Equatable, Sendable {
     case dashboard
     /// Die Logbook-Seite im Dashboard - die Erinnerung um 09:00.
     case logbook
+    /// Der Freunde-Tab - Stupser, Serien-Warnung und die Serien-Kachel (10.11.).
+    case friends
+    /// Das Dashboard samt offenem Chat - „Deine Antwort ist da.“ (10.11.).
+    case chat
 
     /// Die Art der lokalen „Vorschlag ist fertig"-Mitteilung.
     static let quickCaptureKind = "quick-capture"
+    /// Die Arten, die der Weight Tracker ueber den Kalorienzaehler schickt
+    /// (Vertrag §11.5).
+    static let chatAnswerKind = "chat-answer"
+    static let friendNudgeKind = "friend-nudge"
+    static let streakWarningKind = "streak-warning"
     /// Das URL-Schema von Healthy (`healthy://food`), in `project.yml`.
     static let urlScheme = "healthy"
 
@@ -32,17 +41,22 @@ enum HealthyRoute: Equatable, Sendable {
         switch kind {
         case quickCaptureKind:     return .food
         case LogbookReminder.kind: return .logbook
+        case chatAnswerKind:       return .chat
+        case friendNudgeKind, streakWarningKind: return .friends
         default:                      return nil
         }
     }
 
     /// `healthy://food` - die Kalorien-Kachel; `healthy://dashboard` - die
-    /// Schritte-Kacheln. Anderes Schema, anderer Weg: nichts.
+    /// Schritte-Kacheln; `healthy://friends` und `healthy://chat` seit 10.11.
+    /// (Vertrag §11.5). Anderes Schema, anderer Weg: nichts.
     static func url(_ url: URL) -> HealthyRoute? {
         guard url.scheme?.lowercased() == urlScheme else { return nil }
         switch url.host()?.lowercased() {
         case "food":      return .foodToday
         case "dashboard": return .dashboard
+        case "friends":   return .friends
+        case "chat":      return .chat
         default:          return nil
         }
     }
