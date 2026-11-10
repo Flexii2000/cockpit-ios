@@ -113,6 +113,22 @@ final class Router {
     }
 }
 
+/// Welche Abschnitte das Zugang-Blatt von Healthy zeigt (seit 10.11.).
+///
+/// Mit persoenlichem Token nur dessen Feld. Mit einem von Felix' Token genau
+/// das Blatt von vorher. Ohne jeden Zugang - ein frisches iPhone - das Feld
+/// fuer den persoenlichen Token, Felix' Token zugeklappt darunter: `fh_private`
+/// soll auf einem zweiten Handy gar nicht erst gefragt sein.
+enum HealthySetup {
+
+    static func sections(health: Bool, owner: Bool)
+        -> (shown: Set<SetupSection>, collapsed: Set<SetupSection>) {
+        if health { return ([.healthToken], []) }
+        if owner { return ([.privateToken, .weightToken], []) }
+        return ([.healthToken], [.privateToken, .weightToken])
+    }
+}
+
 struct RootView: View {
 
     @Environment(Access.self) private var access
@@ -142,13 +158,19 @@ struct RootView: View {
             }
             #endif
         }
+        // Eine andere Person: alle Tabs neu aufbauen - ihre Stores halten den
+        // Stand der Person davor. Felix' eigenes iPhone kommt hier nie vorbei,
+        // der Zaehler bewegt sich nur mit dem persoenlichen Token.
+        .id(access.healthGeneration)
         .onAppear {
             // Ohne Token zeigen die Tabs nur Anmeldeseiten - dann gleich das
             // Blatt aufmachen, auf dem man das aendern kann.
-            if access.privateToken == nil || access.weightToken == nil { setup.isPresented = true }
+            if !access.isHealthyConfigured { setup.isPresented = true }
         }
         .sheet(isPresented: $setup.isPresented) {
-            SetupView(sections: [.privateToken, .weightToken])
+            let choice = HealthySetup.sections(health: access.healthToken != nil,
+                                               owner: access.privateToken != nil || access.weightToken != nil)
+            SetupView(sections: choice.shown, collapsed: choice.collapsed)
         }
         // healthy://food - die Kalorien-Kachel. Startet sie die App erst, kommt
         // der Link genauso hier an.
@@ -171,12 +193,17 @@ struct RootView: View {
                 }
             }
         }
-        .task {
+        // Mit der Person neu: auf einem frischen iPhone gibt es beim Start noch
+        // keinen Zugang - die Frage nach dem Schrittzaehler kommt dann, sobald
+        // der Token eingetragen ist. Bei Felix laeuft das wie immer einmal.
+        .task(id: access.healthGeneration) {
             await handOverEvaluation()
             await LogbookReminder.refresh()
             // Die Schritte-Kacheln zaehlen gesperrt mit dem Schrittzaehler des
             // iPhones - fragen kann nur die App, und nur im Vordergrund.
-            if HealthSync.shared.isAvailable { await StepsNow.requestPermission() }
+            if HealthSync.shared.isAvailable, HealthSync.shared.hasAccess {
+                await StepsNow.requestPermission()
+            }
             await StepsWidgetBridge.refresh()
         }
     }

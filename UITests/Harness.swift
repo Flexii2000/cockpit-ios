@@ -20,6 +20,11 @@ extension XCTestCase {
             "COCKPIT_FH_PRIVATE_TOKEN": environment["COCKPIT_FH_PRIVATE_TOKEN"] ?? "",
             "COCKPIT_WEIGHT_TOKEN": environment["COCKPIT_WEIGHT_TOKEN"] ?? "",
             "COCKPIT_SHOPPING_TOKEN": environment["COCKPIT_SHOPPING_TOKEN"] ?? "",
+            // Der persoenliche Healthy-Token (seit 10.11.). Ohne Angabe „none“:
+            // der Schluesselbund des Simulators ueberlebt jeden Lauf, und ein
+            // Lauf als Person liesse die App sonst fuer alle folgenden so stehen.
+            "COCKPIT_HEALTH_TOKEN": environment["COCKPIT_HEALTH_TOKEN"] ?? "none",
+            "COCKPIT_HEALTH_NAME": environment["COCKPIT_HEALTH_NAME"] ?? "",
             "COCKPIT_TAB": tab,
             "COCKPIT_NO_HEALTH": "1",
             "COCKPIT_NO_PUSH": "1",

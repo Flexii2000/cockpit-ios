@@ -37,6 +37,16 @@ enum Keychain {
     /// Der Einkaufs-Token ist je Person - Joana hat ihren eigenen,
     /// und der oeffnet nur die Einkaufsliste (docs/PLAN-AUFTEILUNG.md).
     static let shoppingTokenKey = "shopping_token"
+    /// Der persoenliche Healthy-Token (seit 10.11.): je Person einer, er oeffnet
+    /// Kalorienzaehler und Weight Tracker nur fuer ihre eigenen Daten
+    /// (`HEALTH_TOKENS` auf dem Server). Nur Healthy, seine Kacheln und seine
+    /// Uhr lesen ihn - die uebrigen Apps fassen ihn nicht an
+    /// (`Access(usesHealthToken:)`, `HealthCookie`).
+    static let healthTokenKey = "health_token"
+    /// Wem dieser Token gehoert, wie der Dienst es meldet (`me`). Kein
+    /// Geheimnis - liegt aber neben dem Token, damit beides zusammen kommt
+    /// und geht.
+    static let healthNameKey = "health_name"
     static let gradesUserKey = "grades_user"
 
     /// Das Passwort der Notenuebersicht. Als einziger Eintrag **hinter Face

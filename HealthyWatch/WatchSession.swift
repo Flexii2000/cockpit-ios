@@ -16,9 +16,14 @@ final class WatchSession {
 
     func activate() {
         guard WCSession.isSupported() else { return }
-        relay.onToken = { token in
+        relay.onAccess = { owner, health, replacesAll in
             Task { @MainActor in
-                if ComplicationStore.save(token: token) { WidgetCenter.shared.reloadAllTimelines() }
+                if ComplicationStore.save(owner: owner, health: health, replacesAll: replacesAll) {
+                    // Ein anderer Zugang heisst ein anderes Tagebuch: der alte
+                    // Stand zaehlt nicht mehr.
+                    ComplicationStore.clearSnapshot()
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
             }
         }
         relay.onSnapshot = { data in
@@ -48,11 +53,16 @@ final class WatchSession {
 /// Der Delegat - WatchConnectivity ruft ihn auf einer eigenen Warteschlange.
 final class WatchSessionRelay: NSObject, WCSessionDelegate, @unchecked Sendable {
 
-    nonisolated(unsafe) var onToken: (@Sendable (String) -> Void)?
+    /// Privat-Token, persoenlicher Token, und ob der Kontext beide vollstaendig nennt.
+    nonisolated(unsafe) var onAccess: (@Sendable (String?, String?, Bool) -> Void)?
     nonisolated(unsafe) var onSnapshot: (@Sendable (Data) -> Void)?
 
     nonisolated func take(context: [String: Any]) {
-        if let token = context[WatchKeys.privateToken] as? String, !token.isEmpty { onToken?(token) }
+        let owner = context[WatchKeys.privateToken] as? String
+        let health = context[WatchKeys.healthToken] as? String
+        let replacesAll = context[WatchKeys.accessVersion] != nil
+        // Ein leerer Kontext (noch nie etwas gekommen) sagt nichts.
+        if owner != nil || health != nil || replacesAll { onAccess?(owner, health, replacesAll) }
         if let data = context[WatchKeys.snapshot] as? Data { onSnapshot?(data) }
     }
 

@@ -45,11 +45,25 @@ CLASS_NAME="$BUNDLE_NAME"
 
 export TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN
 export TEST_RUNNER_COCKPIT_WEIGHT_TOKEN
+# Der persoenliche Healthy-Token (seit 10.11.) - nur Healthy kennt ihn. Ohne
+# Angabe „none“: so nimmt jeder Lauf einen liegengebliebenen wieder weg.
+export TEST_RUNNER_COCKPIT_HEALTH_TOKEN="none"
+[ "$APP" = "Healthy" ] && TEST_RUNNER_COCKPIT_HEALTH_TOKEN="${COCKPIT_HEALTH_TOKEN:-none}"
+export TEST_RUNNER_COCKPIT_HEALTH_NAME="${COCKPIT_HEALTH_NAME:-}"
+# Fuer testEnteringAPersonalTokenOpensTheApp: der Token einer Testperson bei lokal
+# gestarteten Diensten (COCKPIT_URL_FOOD, COCKPIT_URL_WEIGHT). Der Test tippt ihn
+# selbst ins Zugang-Blatt - anders als COCKPIT_HEALTH_TOKEN, das ihn fertig ablegt.
+export TEST_RUNNER_COCKPIT_PERSON_TOKEN="${COCKPIT_PERSON_TOKEN:-}"
 if [ "$APP" = "coHabit" ]; then
     # coHabit laeuft gegen einen lokalen Dienst mit Demo-Daten und eigenen
     # Token je Person - die Token der anderen Apps braucht es nicht.
     TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN=""
     TEST_RUNNER_COCKPIT_WEIGHT_TOKEN=""
+elif [ "$TEST_RUNNER_COCKPIT_HEALTH_TOKEN" != "none" ]; then
+    # Healthy als Person: Felix' Token weder aus dem Schluesselbund holen noch
+    # im Simulator liegen lassen (siehe run-simulator.sh).
+    TEST_RUNNER_COCKPIT_FH_PRIVATE_TOKEN="${COCKPIT_FH_PRIVATE_TOKEN:-none}"
+    TEST_RUNNER_COCKPIT_WEIGHT_TOKEN="${COCKPIT_WEIGHT_TOKEN:-none}"
 else
     # Aus der Umgebung vor dem Schluesselbund: gegen einen lokal gestarteten
     # Dienst (COCKPIT_URL_HABITS) gilt dessen Token, etwa local-private.

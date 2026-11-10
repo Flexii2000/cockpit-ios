@@ -4,6 +4,13 @@ import SwiftUI
 /// Dienste sie benutzt.
 enum SetupSection: Hashable {
     case privateToken, weightToken, grades, shoppingToken
+    /// Der persoenliche Healthy-Token (seit 10.11.) - ein Feld fuer Token oder
+    /// Setup-Link. Nur Healthy zeigt ihn.
+    case healthToken
+
+    /// Die Abschnitte fuer Felix' eigene Token - nur zu ihnen gehoert der
+    /// Hinweis auf den geteilten Schluesselbund.
+    static let owner: Set<SetupSection> = [.privateToken, .weightToken, .grades, .shoppingToken]
 }
 
 /// Einmalige Eingabe der Zugangstoken.
@@ -16,6 +23,10 @@ enum SetupSection: Hashable {
 struct SetupView: View {
 
     let sections: Set<SetupSection>
+    /// Abschnitte, die zugeklappt unter „Besitzer-Token“ stehen: in Healthy auf
+    /// einem iPhone ohne jeden Zugang. Dort ist der persoenliche Token der
+    /// Normalfall; Felix' Token braucht nur sein eigenes Geraet.
+    var collapsed: Set<SetupSection> = []
 
     @Environment(Access.self) private var access
     @Environment(\.dismiss) private var dismiss
@@ -34,18 +45,39 @@ struct SetupView: View {
     @State private var shoppingToken = ""
     @State private var shoppingSaved = false
 
+    @State private var healthInput = ""
+    @State private var healthFailure: String?
+    @State private var healthBusy = false
+    @State private var showsCollapsed = false
+
+    /// Was gerade zu sehen ist - die zugeklappten erst nach dem Aufklappen.
+    private var visible: Set<SetupSection> {
+        showsCollapsed ? sections.union(collapsed) : sections
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                if sections.contains(.privateToken) { privateSection }
-                if sections.contains(.weightToken) { weightSection }
-                if sections.contains(.grades) { gradesSection }
-                if sections.contains(.shoppingToken) { shoppingSection }
-                Section {
-                    Text("Die Token liegen im Keychain des Geräts, geteilt zwischen "
-                         + "Healthy, Vault, Fokus und Einkaufsliste - einmal eingegeben, überall da.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                if visible.contains(.healthToken) { healthSection }
+                if !collapsed.isEmpty {
+                    Section {
+                        DisclosureGroup("Besitzer-Token", isExpanded: $showsCollapsed) {}
+                            .accessibilityIdentifier("ownerTokens")
+                    }
+                }
+                if visible.contains(.privateToken) { privateSection }
+                if visible.contains(.weightToken) { weightSection }
+                if visible.contains(.grades) { gradesSection }
+                if visible.contains(.shoppingToken) { shoppingSection }
+                // Gilt nur fuer Felix' Token: der persoenliche Healthy-Token
+                // wird von keiner anderen App gelesen.
+                if !visible.isDisjoint(with: SetupSection.owner) {
+                    Section {
+                        Text("Die Token liegen im Keychain des Geräts, geteilt zwischen "
+                             + "Healthy, Vault, Fokus und Einkaufsliste - einmal eingegeben, überall da.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .navigationTitle("Zugang")
@@ -57,6 +89,55 @@ struct SetupView: View {
         }
     }
 
+    // MARK: - Persoenlicher Healthy-Token
+
+    /// Ein Feld fuer den Token oder den Setup-Link. Gespeichert wird erst, wenn
+    /// Kalorienzaehler und Weight Tracker ihn angenommen haben - danach geht
+    /// das Blatt zu, weil es sonst nichts mehr zu tun gibt.
+    private var healthSection: some View {
+        Section {
+            SecureField("Token oder Link", text: $healthInput)
+                .textContentType(.password)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .accessibilityIdentifier("healthToken")
+            Button("Speichern") {
+                Task {
+                    healthBusy = true
+                    healthFailure = await access.storeHealth(input: healthInput)
+                    healthBusy = false
+                    // Auch nach einer Absage leeren: das Feld zeigt nur Punkte,
+                    // und ein zweiter Versuch haengte sich sonst an den ersten an.
+                    healthInput = ""
+                    if healthFailure == nil { dismiss() }
+                }
+            }
+            .disabled(healthInput.isEmpty || healthBusy)
+            if access.healthToken != nil {
+                Button("Entfernen", role: .destructive) {
+                    Task { await access.resetHealthToken() }
+                }
+            }
+        } header: {
+            if let header = Self.healthHeader(hasToken: access.healthToken != nil, name: access.healthName) {
+                Text(header).accessibilityIdentifier("healthAccess")
+            }
+        } footer: {
+            if let healthFailure {
+                Text(healthFailure).foregroundStyle(.red)
+            }
+        }
+    }
+
+    /// „✓ Name“, sobald ein Token liegt - der Name, wie der Dienst die Person
+    /// nennt, mit grossem Anfangsbuchstaben. Ohne Token keine Kopfzeile: das
+    /// Blatt heisst schon „Zugang“.
+    static func healthHeader(hasToken: Bool, name: String?) -> String? {
+        guard hasToken else { return nil }
+        guard let name, let first = name.first else { return "✓" }
+        return "✓ " + first.uppercased() + name.dropFirst()
+    }
+
     // MARK: - Privat-Token
 
     private var privateSection: some View {
@@ -65,6 +146,7 @@ struct SetupView: View {
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
+                .accessibilityIdentifier("privateToken")
             Button("Speichern") {
                 Task {
                     await access.store(privateToken: privateToken)
@@ -96,6 +178,7 @@ struct SetupView: View {
                 .textContentType(.password)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
+                .accessibilityIdentifier("weightToken")
             Button("Speichern") {
                 Task {
                     await access.store(weightToken: weightToken)

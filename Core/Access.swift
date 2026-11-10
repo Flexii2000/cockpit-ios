@@ -2,7 +2,13 @@ import Foundation
 import LocalAuthentication
 import WebKit
 
-/// Haelt die beiden Zugangstoken und macht daraus Cookies.
+/// Haelt die Zugangstoken und macht daraus Cookies.
+///
+/// Healthy kennt seit 10.11. zwei Arten von Zugang: Felix' Token (`fh_private`
+/// und `weight_app_token`) **oder** den persoenlichen Token einer Person
+/// (`health_token`, `HEALTH_TOKENS` auf dem Server) - damit laeuft die App auch
+/// auf einem zweiten iPhone, ohne dass der Privat-Token dorthin muss. Die
+/// uebrigen Apps bleiben bei Felix' Token (`usesHealthToken` ist dort aus).
 ///
 /// Die Backends kennen ausschliesslich Cookie-Auth (siehe docs/BACKENDS.md).
 /// Im Browser stellt man die Cookies einmal pro Geraet ueber `/setup?token=…`
@@ -27,6 +33,24 @@ final class Access {
 
     private(set) var privateToken: String?
     private(set) var weightToken: String?
+
+    /// Der persoenliche Healthy-Token - oeffnet Kalorienzaehler und Weight
+    /// Tracker fuer die Daten genau dieser Person. Nur in Healthy gesetzt.
+    private(set) var healthToken: String?
+    /// Wem er gehoert, wie der Kalorienzaehler es meldet (`me`).
+    private(set) var healthName: String?
+    /// Zaehlt die Wechsel der Person. Healthy baut daran seine Tabs neu auf -
+    /// was sie geladen haben, gehoerte der Person davor.
+    private(set) var healthGeneration = 0
+
+    /// Nur Healthy liest und setzt den persoenlichen Token. Der Schluesselbund
+    /// ist zwischen den Apps geteilt; ohne diese Weiche schickte auch Fokus
+    /// oder Einkaufsliste ihn auf demselben iPhone mit.
+    private let usesHealthToken: Bool
+    /// Was ausserhalb der Oberflaeche am Zugang haengt - Kacheln, Uhr, Push,
+    /// der Health-Abgleich. `Access` liegt in `Core/` und kennt nichts davon;
+    /// Healthy haengt es hier ein.
+    @ObservationIgnored var onHealthAccessChanged: (() -> Void)?
     /// Der Einkaufs-Token. Je Person einer, und er oeffnet nur die
     /// Einkaufsliste - deshalb eigener Eintrag statt Teil des Privat-Tokens.
     private(set) var shoppingToken: String?
@@ -50,7 +74,13 @@ final class Access {
     /// Einrichtung, statt drei Tabs mit Fehlermeldungen anzubieten.
     var isConfigured: Bool { privateToken != nil && weightToken != nil }
 
-    init() {
+    /// Ob Healthy etwas zeigen kann: mit dem persoenlichen Token **oder** mit
+    /// Felix' beiden.
+    var isHealthyConfigured: Bool { healthToken != nil || isConfigured }
+
+    /// - Parameter usesHealthToken: nur Healthy uebergibt `true`.
+    init(usesHealthToken: Bool = false) {
+        self.usesHealthToken = usesHealthToken
         // Vor dem Lesen: sonst laege alles noch in der alten Gruppe und die
         // App fragte nach Token, die laengst da sind.
         Self.migrateToSharedGroup()
@@ -60,6 +90,10 @@ final class Access {
         gradesUser = Keychain.read(Keychain.gradesUserKey)
         shoppingToken = Keychain.read(Self.shoppingTokenKey)
         hasGradesPassword = Keychain.hasProtected(Keychain.gradesPasswordKey)
+        if usesHealthToken {
+            healthToken = Keychain.read(Keychain.healthTokenKey).flatMap { $0.isEmpty ? nil : $0 }
+            healthName = Keychain.read(Keychain.healthNameKey)
+        }
         #if DEBUG
         // Muss hier passieren und nicht erst in einer `.task`: `RootView`
         // entscheidet beim Erscheinen, ob es zum Zugang-Bildschirm springt -
@@ -134,6 +168,67 @@ final class Access {
         await applyCookies()
     }
 
+    // MARK: - Persoenlicher Healthy-Token
+
+    /// Prueft die Eingabe (Token oder Setup-Link) gegen Kalorienzaehler und
+    /// Weight Tracker und legt den Token ab, wenn beide ihn annehmen.
+    ///
+    /// - Returns: `nil` bei Erfolg, sonst die Meldung fuers Zugang-Blatt.
+    func storeHealth(input: String) async -> String? {
+        switch await HealthAccessCheck.run(input: input) {
+        case .invalid(let message):
+            return message
+        case .valid(let token, let name):
+            await store(healthToken: token, name: name)
+            return nil
+        }
+    }
+
+    /// Legt einen geprueften Token ab.
+    ///
+    /// Ein anderer Token heisst eine andere Person: dann darf weder ihr letzter
+    /// Stand noch das, was noch gesendet werden sollte, liegen bleiben - eine
+    /// wartende Aenderung ginge sonst unter dem neuen Token in ein fremdes
+    /// Tagebuch.
+    func store(healthToken token: String, name: String?) async {
+        let changed = token != healthToken
+        if changed { await forgetHealthData() }
+        Keychain.save(token, for: Keychain.healthTokenKey)
+        if let name {
+            Keychain.save(name, for: Keychain.healthNameKey)
+        } else {
+            Keychain.delete(Keychain.healthNameKey)
+        }
+        healthToken = token
+        healthName = name
+        await applyCookies()
+        if changed { healthAccessChanged() }
+    }
+
+    func resetHealthToken() async {
+        guard healthToken != nil else { return }
+        Keychain.delete(Keychain.healthTokenKey)
+        Keychain.delete(Keychain.healthNameKey)
+        healthToken = nil
+        healthName = nil
+        await forgetHealthData()
+        // Nimmt auch das Cookie weg: ein liegengebliebenes `health_token`
+        // ueberstimmte beim Dienst sonst weiter Felix' Privat-Cookie.
+        await applyCookies()
+        healthAccessChanged()
+    }
+
+    private func forgetHealthData() async {
+        OfflineCache.clear()
+        PendingChanges.shared.clear([.food, .weight])
+        await Outbox.shared.discard([.food, .weight])
+    }
+
+    private func healthAccessChanged() {
+        healthGeneration += 1
+        onHealthAccessChanged?()
+    }
+
 #if DEBUG
     /// Nimmt die Token aus der Prozessumgebung, falls welche da sind.
     ///
@@ -144,13 +239,52 @@ final class Access {
     /// kommt, hat in einem Build fuer ein echtes Geraet nichts zu suchen.
     func seedFromEnvironment() {
         let environment = ProcessInfo.processInfo.environment
+        // `none` nimmt einen Token weg: der Schluesselbund des Simulators
+        // ueberlebt jeden Lauf, und ein Lauf mit persoenlichem Token soll nicht
+        // nebenher noch Felix' Token vom Lauf davor mitschicken (und umgekehrt).
         if let value = environment["COCKPIT_FH_PRIVATE_TOKEN"], !value.isEmpty {
-            Keychain.save(value, for: Self.privateTokenKey)
-            privateToken = value
+            if value == "none" {
+                Keychain.delete(Self.privateTokenKey)
+                privateToken = nil
+            } else {
+                Keychain.save(value, for: Self.privateTokenKey)
+                privateToken = value
+            }
         }
         if let value = environment["COCKPIT_WEIGHT_TOKEN"], !value.isEmpty {
-            Keychain.save(value, for: Self.weightTokenKey)
-            weightToken = value
+            if value == "none" {
+                Keychain.delete(Self.weightTokenKey)
+                weightToken = nil
+            } else {
+                Keychain.save(value, for: Self.weightTokenKey)
+                weightToken = value
+            }
+        }
+        if usesHealthToken, let value = environment["COCKPIT_HEALTH_TOKEN"], !value.isEmpty {
+            // Eine andere Person als beim Lauf davor: wie beim Wechsel im
+            // Zugang-Blatt bleibt von ihr nichts liegen.
+            if (value == "none" ? nil : value) != healthToken {
+                OfflineCache.clear()
+                PendingChanges.shared.clear([.food, .weight])
+            }
+            if value == "none" {
+                Keychain.delete(Keychain.healthTokenKey)
+                Keychain.delete(Keychain.healthNameKey)
+                healthToken = nil
+                healthName = nil
+            } else {
+                Keychain.save(value, for: Keychain.healthTokenKey)
+                healthToken = value
+                // Der Name kaeme sonst erst mit der Pruefung beim Dienst - und
+                // die laeuft beim Eintragen ueber die Umgebung nicht.
+                if let name = environment["COCKPIT_HEALTH_NAME"], !name.isEmpty {
+                    Keychain.save(name, for: Keychain.healthNameKey)
+                    healthName = name
+                } else {
+                    Keychain.delete(Keychain.healthNameKey)
+                    healthName = nil
+                }
+            }
         }
         if let value = environment["COCKPIT_GRADES_TOKEN"], !value.isEmpty {
             Keychain.save(value, for: Self.gradesTokenKey)
@@ -258,6 +392,15 @@ final class Access {
                                                 domain: "weight.fherrmann.com") {
             cookies.append(c)
         }
+        // Der persoenliche Healthy-Token gilt bei Kalorienzaehler und Weight
+        // Tracker, beide unter fherrmann.com - mit derselben Domain, die
+        // `food.fherrmann.com/setup` dem Cookie im Browser gibt. Die Dienste
+        // pruefen ihn vor Felix' Cookies.
+        if usesHealthToken, let healthToken,
+           let c = Self.cookie(name: Keychain.healthTokenKey, value: healthToken,
+                               domain: ".fherrmann.com") {
+            cookies.append(c)
+        }
         // Der Noten-Token gilt nur fuer den einen Pfad - so stellt ihn auch
         // `/grades/setup` aus. Breiter gesetzt liefe er bei jeder Anfrage an
         // fherrmann.com mit, ohne dass ihn dort jemand braucht.
@@ -313,7 +456,27 @@ final class Access {
                                secure: weightURL.scheme == "https") {
             cookies.append(c)
         }
+        // Dasselbe fuer den persoenlichen Token gegen lokal gestartete Dienste.
+        if usesHealthToken, let healthToken {
+            for backend in [Backend.food, .weight] {
+                let url = backend.url
+                if let host = url.host(), !host.hasSuffix("fherrmann.com"),
+                   let c = Self.cookie(name: Keychain.healthTokenKey, value: healthToken,
+                                       domain: host, path: url.path().isEmpty ? "/" : url.path(),
+                                       secure: url.scheme == "https") {
+                    cookies.append(c)
+                }
+            }
+        }
         #endif
+        // Ohne persoenlichen Token darf auch kein Cookie davon liegen bleiben:
+        // die Dienste pruefen `health_token` zuerst, ein altes ueberstimmte
+        // Felix' Cookies - auch nach dem Entfernen im Zugang-Blatt.
+        if usesHealthToken, healthToken == nil {
+            for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.name == Keychain.healthTokenKey {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
+        }
         // Erst alle in den gemeinsamen Speicher - der geht ohne Warten. Wer
         // beides verschraenkt, laesst zwischen dem ersten und dem letzten
         // Cookie ein Zeitfenster offen, in dem eine schon laufende Anfrage
@@ -323,6 +486,11 @@ final class Access {
             HTTPCookieStorage.shared.setCookie(cookie)
         }
         let store = WKWebsiteDataStore.default().httpCookieStore
+        if usesHealthToken, healthToken == nil {
+            for cookie in await store.allCookies() where cookie.name == Keychain.healthTokenKey {
+                await store.deleteCookie(cookie)
+            }
+        }
         for cookie in cookies {
             await store.setCookie(cookie)
         }

@@ -62,6 +62,25 @@
 # COCKPIT_FH_PRIVATE_TOKEN (und COCKPIT_WEIGHT_TOKEN) gehen dem Schluesselbund
 # vor - ein lokaler Dienst kennt nur seinen eigenen, z. B. local-private.
 #
+# Healthy als eine Person statt als Felix (seit 10.11.): mit ihrem persoenlichen
+# Token. Felix' Token gehen dann nicht mit und werden im Simulator weggenommen -
+# sein Schluesselbund ueberlebt jeden Lauf, und die Dienste sollen in diesem Lauf
+# nur den einen Token sehen. COCKPIT_HEALTH_NAME steht dann im Zugang-Blatt
+# („Zugang ✓ Name“); sonst kennt die App den Namen erst nach der Pruefung beim
+# Eintragen von Hand. Gegen lokal gestartete Dienste:
+#
+#   COCKPIT_URL_FOOD=http://127.0.0.1:48180 COCKPIT_URL_WEIGHT=http://127.0.0.1:48173 \
+#   COCKPIT_HEALTH_TOKEN=<Token der Testperson> COCKPIT_HEALTH_NAME=person-a \
+#   COCKPIT_NO_HEALTH=1 COCKPIT_NO_PUSH=1 tools/run-simulator.sh Healthy dashboard bild.png
+#
+# ⚠️ COCKPIT_NO_HEALTH=1 gehoert dazu: sonst laedt der Abgleich die Health-Daten
+# dieses Geraets in das Konto der Person. Ohne COCKPIT_HEALTH_TOKEN nimmt jeder
+# Lauf einen liegengebliebenen persoenlichen Token wieder weg (none).
+# Das Zugang-Blatt eines frischen iPhones (kein einziger Token):
+#
+#   COCKPIT_FH_PRIVATE_TOKEN=none COCKPIT_WEIGHT_TOKEN=none COCKPIT_DASHBOARD_DEMO=1 \
+#   COCKPIT_NO_HEALTH=1 COCKPIT_NO_PUSH=1 tools/run-simulator.sh Healthy setup bild.png
+#
 # COCKPIT_NO_HEALTH=1 laesst die Health-Anbindung aus. Ohne das verdeckt der
 # Berechtigungsdialog jeden Screenshot des Gewicht-Tabs, und wegklicken laesst
 # er sich nicht - simctl kennt keinen Health-Dienst.
@@ -138,11 +157,21 @@ case "$APP" in
     *) echo "Erste Angabe muss Healthy, Vault, Fokus, Einkaufsliste, coHabit oder Sport sein." >&2; exit 1 ;;
 esac
 
+# Der persoenliche Healthy-Token - nur Healthy kennt ihn. Ohne Angabe „none“.
+HEALTH="none"
+[ "$APP" = "Healthy" ] && HEALTH="${COCKPIT_HEALTH_TOKEN:-none}"
+
 if [ "$APP" = "coHabit" ]; then
     PRIVATE=""
     WEIGHT=""
     COHABIT="${COCKPIT_COHABIT_TOKEN:-$(security find-generic-password -a cockpit-ios -s cohabit_token -w 2>/dev/null || true)}"
     [ -n "$COHABIT" ] || echo "Kein coHabit-Token - die App zeigt den Start mit „Link einfügen“." >&2
+elif [ "$HEALTH" != "none" ]; then
+    # Als Person: Felix' Token weder aus dem Schluesselbund holen noch im
+    # Simulator liegen lassen.
+    COHABIT=""
+    PRIVATE="${COCKPIT_FH_PRIVATE_TOKEN:-none}"
+    WEIGHT="${COCKPIT_WEIGHT_TOKEN:-none}"
 else
     COHABIT=""
     # Aus der Umgebung vor dem Schluesselbund - gegen einen lokal gestarteten
@@ -177,6 +206,8 @@ xcrun simctl terminate "$DEVICE" "$BUNDLE" 2>/dev/null || true
 SIMCTL_CHILD_COCKPIT_FH_PRIVATE_TOKEN="$PRIVATE" \
 SIMCTL_CHILD_COCKPIT_WEIGHT_TOKEN="$WEIGHT" \
 SIMCTL_CHILD_COCKPIT_SHOPPING_TOKEN="$SHOPPING" \
+SIMCTL_CHILD_COCKPIT_HEALTH_TOKEN="$HEALTH" \
+SIMCTL_CHILD_COCKPIT_HEALTH_NAME="${COCKPIT_HEALTH_NAME:-}" \
 SIMCTL_CHILD_COCKPIT_URL_SHOPPING="${COCKPIT_URL_SHOPPING:-}" \
 SIMCTL_CHILD_COCKPIT_TAB="$TAB" \
 SIMCTL_CHILD_COCKPIT_DAY="${COCKPIT_DAY:-}" \

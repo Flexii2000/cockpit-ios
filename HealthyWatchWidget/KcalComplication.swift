@@ -39,10 +39,13 @@ struct KcalProvider: TimelineProvider {
 
     private func entry(now: Date = Date()) async -> KcalEntry {
         let today = CalendarDate(date: now)
-        if let token = ComplicationStore.token(),
-           let day = try? await FoodAPI(cookie: "\(Keychain.privateTokenKey)=\(token)", timeout: 10).day(today) {
+        if let cookie = ComplicationStore.cookie(),
+           let day = try? await FoodAPI(cookie: cookie, timeout: 10).day(today) {
+            // Samt Makros: die Uhr-App zeigt sie unter dem Bogen und liest
+            // denselben Stand.
             ComplicationStore.save(snapshot: ComplicationSnapshot(date: today.iso, consumedKcal: day.consumed.kcal,
-                                                                  targetKcal: day.targets.kcal, fetchedAt: now))
+                                                                  targetKcal: day.targets.kcal, fetchedAt: now,
+                                                                  consumed: day.consumed, targets: day.targets))
             return KcalEntry(date: now, consumed: day.consumed.kcal, target: day.targets.kcal)
         }
         let snapshot = ComplicationStore.snapshot()

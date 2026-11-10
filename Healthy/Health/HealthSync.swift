@@ -39,7 +39,11 @@ final class HealthSync {
     private let api = WeightAPI()
     private let energyApi = EnergyAPI()
     private let recoveryApi = RecoveryAPI()
-    private let anchorKey = "health.bodyMass.anchor"
+    /// Haengt an jedem Merk-Schluessel: leer mit Felix' Token, ein Abdruck des
+    /// persoenlichen Tokens sonst (`HealthSyncScope`).
+    @ObservationIgnored private var keyScope =
+        HealthSyncScope.suffix(healthToken: Keychain.read(Keychain.healthTokenKey))
+    private var anchorKey: String { "health.bodyMass.anchor" + keyScope }
     @ObservationIgnored private var observers: [HKObserverQuery] = []
     @ObservationIgnored private var running: Task<Bool, Never>?
     @ObservationIgnored private var backfill: Task<Void, Never>?
@@ -79,14 +83,14 @@ final class HealthSync {
     private static let stepWindowDays = 30
     /// Beim ersten Mal die ganze Historie - danach reicht das Fenster.
     private static let stepBackfillDays = 3650
-    private let stepBackfillKey = "health.steps.backfilled"
+    private var stepBackfillKey: String { "health.steps.backfilled" + keyScope }
 
     /// Energie: das Fenster wie bei Schritten; die Historie einmalig in
     /// Bloecken zu einem Jahr (Vertrag §1.1).
     static let energyWindowDays = 30
     static let energyBackfillDays = 3650
     static let energyBlockDays = 365
-    private let energyCursorKey = "health.energy.backfillCursor"
+    private var energyCursorKey: String { "health.energy.backfillCursor" + keyScope }
 
     /// Naechte: die letzten 14 bei jedem Abgleich, einmalig 425 in Bloecken
     /// zu 60 (Vertrag §2.1). 425 = ein Jahr, der laengste Logbook-Zeitraum,
@@ -99,10 +103,10 @@ final class HealthSync {
     /// Seit 22.10. ein neuer Cursor: die Rueckholung laeuft einmal erneut,
     /// damit die alten Naechte die Handgelenktemperatur bekommen. Der alte
     /// (`health.nights.backfillCursor`) bleibt einfach liegen.
-    private let nightsCursorKey = "health.nights.backfillCursor.temperature"
+    private var nightsCursorKey: String { "health.nights.backfillCursor.temperature" + keyScope }
     /// Der Inhalt des zuletzt geschickten Naechte-Fensters. Ein Weckruf, der
     /// nichts Neues bringt (die Uhr schreibt Schlaf in Raten), schickt nichts.
-    private let nightsHashKey = "health.nights.windowHash"
+    private var nightsHashKey: String { "health.nights.windowHash" + keyScope }
 
     /// Huelle um HealthKits Fertig-Meldung. Sie ist nicht als `Sendable`
     /// deklariert, darf aber laut Vertrag von jedem Thread genau einmal
@@ -127,6 +131,30 @@ final class HealthSync {
         }
         #endif
         return HKHealthStore.isHealthDataAvailable()
+    }
+
+    /// Ob es einen Zugang zum Weight Tracker gibt - den persoenlichen Token
+    /// oder Felix' eigenen.
+    ///
+    /// Ohne ihn fragt der Abgleich im Vordergrund weder Health noch den Dienst:
+    /// auf einem frischen iPhone (seit 10.11. moeglich) laege der Health-Dialog
+    /// sonst ueber dem Zugang-Blatt, bevor ueberhaupt ein Token eingetragen
+    /// ist. Bewusst **nicht** Teil von `isAvailable`: die Beobachter werden beim
+    /// Start eingetragen, auch im Hintergrund vor dem ersten Entsperren - dann
+    /// ist der Schluesselbund nicht lesbar, und ohne Beobachter gingen Felix'
+    /// Weckrufe verloren.
+    var hasAccess: Bool {
+        HealthSyncScope.hasAccess(healthToken: Keychain.read(Keychain.healthTokenKey),
+                                  weightToken: Keychain.read(Keychain.weightTokenKey))
+    }
+
+    /// Der persoenliche Token wurde gesetzt, gewechselt oder entfernt
+    /// (`Access.onHealthAccessChanged`): ab jetzt gelten die Merk-Schluessel
+    /// der neuen Person, und der naechste Abgleich wartet nicht die zehn
+    /// Minuten ab.
+    func accessChanged() {
+        keyScope = HealthSyncScope.suffix(healthToken: Keychain.read(Keychain.healthTokenKey))
+        lastSuccess = nil
     }
 
     // MARK: - Erlaubnis
@@ -162,7 +190,7 @@ final class HealthSync {
     /// iOS jetzt - und danach wird sofort alles geholt, ohne auf die zehn
     /// Minuten zu warten: sonst saehe man nach dem Erlauben eine leere Karte.
     func connect() async {
-        guard isAvailable else { return }
+        guard isAvailable, hasAccess else { return }
         let status = try? await store.statusForAuthorizationRequest(toShare: [], read: readTypes)
         if status == .shouldRequest {
             await requestPermission()
@@ -178,7 +206,7 @@ final class HealthSync {
     /// ist. Laeuft gerade einer, wird er abgewartet statt ein zweiter
     /// gestartet.
     func syncIfDue() async {
-        guard isAvailable else { return }
+        guard isAvailable, hasAccess else { return }
         if let running {
             _ = await running.value
             return
@@ -242,9 +270,12 @@ final class HealthSync {
         let nights = try await readNights(days)
         guard !nights.isEmpty else { return false }
         let hash = Self.hash(nights)
-        if skipUnchanged, hash == UserDefaults.standard.string(forKey: nightsHashKey) { return false }
+        // Den Schluessel vor dem Senden festhalten: wechselt die Person
+        // waehrenddessen, gehoert der Merker noch zur alten.
+        let key = nightsHashKey
+        if skipUnchanged, hash == UserDefaults.standard.string(forKey: key) { return false }
         try await recoveryApi.sendNights(nights)
-        UserDefaults.standard.set(hash, forKey: nightsHashKey)
+        UserDefaults.standard.set(hash, forKey: key)
         return true
     }
 
@@ -357,13 +388,16 @@ final class HealthSync {
                                               start: today.adding(days: -Self.nightWindowDays),
                                               oldest: today.adding(days: -Self.nightBackfillDays),
                                               blockDays: Self.nightBlockDays) {
+            // Wie beim Naechte-Fenster: der Cursor gehoert der Person, fuer die
+            // der Block gelesen wurde.
+            let key = nightsCursorKey
             do {
                 let nights = try await readNights(Self.days(in: block))
                 if !nights.isEmpty {
                     try await recoveryApi.sendNights(nights)
                     uploaded = true
                 }
-                setCursor(block.from, nightsCursorKey)
+                setCursor(block.from, key)
             } catch {
                 break
             }
@@ -373,12 +407,13 @@ final class HealthSync {
                                               start: today.adding(days: -(Self.energyWindowDays + 1)),
                                               oldest: today.adding(days: -Self.energyBackfillDays),
                                               blockDays: Self.energyBlockDays) {
+            let key = energyCursorKey
             do {
                 if try await syncEnergy(from: block.from.startOfDay(),
                                         to: block.to.adding(days: 1).startOfDay()) {
                     uploaded = true
                 }
-                setCursor(block.from, energyCursorKey)
+                setCursor(block.from, key)
             } catch {
                 break
             }
@@ -447,7 +482,8 @@ final class HealthSync {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
         let now = Date()
-        let erstesMal = !UserDefaults.standard.bool(forKey: stepBackfillKey)
+        let backfillKey = stepBackfillKey
+        let erstesMal = !UserDefaults.standard.bool(forKey: backfillKey)
         let tage = erstesMal ? Self.stepBackfillDays : Self.stepWindowDays
         guard let from = calendar.date(byAdding: .day, value: -tage,
                                        to: calendar.startOfDay(for: now)) else { return false }
@@ -458,7 +494,7 @@ final class HealthSync {
         guard (try? await api.sendSteps(values)) != nil else { return false }
         // Merker erst nach erfolgreichem Senden, sonst faellt der Nachtrag
         // aus, wenn der Server gerade nicht erreichbar war.
-        UserDefaults.standard.set(true, forKey: stepBackfillKey)
+        UserDefaults.standard.set(true, forKey: backfillKey)
         return true
     }
 
@@ -527,9 +563,12 @@ final class HealthSync {
     @discardableResult
     func syncNow() async -> Bool {
         guard isAvailable else { return false }
-        let (samples, newAnchor) = await newSamples()
+        // Der Anker gehoert der Person, fuer die gelesen wird - auch wenn sie
+        // waehrend des Sendens wechselt.
+        let key = anchorKey
+        let (samples, newAnchor) = await newSamples(anchorKey: key)
         guard !samples.isEmpty else {
-            if let newAnchor { save(newAnchor) }
+            if let newAnchor { save(newAnchor, key: key) }
             return false
         }
         var sent = false
@@ -545,11 +584,11 @@ final class HealthSync {
         }
         // Anker erst nach erfolgreichem Senden merken, sonst gingen Werte
         // verloren, wenn der Server gerade nicht erreichbar war.
-        if sent, let newAnchor { save(newAnchor) }
+        if sent, let newAnchor { save(newAnchor, key: key) }
         return sent
     }
 
-    private func newSamples() async -> ([WeightSample], HKQueryAnchor?) {
+    private func newSamples(anchorKey: String) async -> ([WeightSample], HKQueryAnchor?) {
         // Eigene Schreibvorgaenge ausschliessen: sonst weckt uns spaeter der
         // eigene Rueckweg und der Wert liefe im Kreis.
         let notOurs = NSCompoundPredicate(notPredicateWithSubpredicate:
@@ -559,7 +598,7 @@ final class HealthSync {
             let query = HKAnchoredObjectQuery(
                 type: bodyMass,
                 predicate: notOurs,
-                anchor: loadAnchor(),
+                anchor: loadAnchor(key: anchorKey),
                 limit: HKObjectQueryNoLimit
             ) { _, samples, _, anchor, _ in
                 // Sofort in einen eigenen Typ umschaufeln - so laesst sich die
@@ -576,15 +615,15 @@ final class HealthSync {
 
     // MARK: - Anker
 
-    private func loadAnchor() -> HKQueryAnchor? {
-        guard let data = UserDefaults.standard.data(forKey: anchorKey) else { return nil }
+    private func loadAnchor(key: String) -> HKQueryAnchor? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         return try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: data)
     }
 
-    private func save(_ anchor: HKQueryAnchor) {
+    private func save(_ anchor: HKQueryAnchor, key: String) {
         guard let data = try? NSKeyedArchiver.archivedData(withRootObject: anchor,
                                                            requiringSecureCoding: true)
         else { return }
-        UserDefaults.standard.set(data, forKey: anchorKey)
+        UserDefaults.standard.set(data, forKey: key)
     }
 }

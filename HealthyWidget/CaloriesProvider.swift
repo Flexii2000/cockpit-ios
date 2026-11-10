@@ -45,10 +45,11 @@ enum CaloriesSource {
     private static let timeout: TimeInterval = 12
 
     static func state() async -> WidgetState {
-        guard let token = Keychain.read(Keychain.privateTokenKey), !token.isEmpty else {
+        // Der persoenliche Token, sonst Felix' Privat-Token (`HealthCookie`).
+        guard let cookie = HealthCookie.current() else {
             return .noAccess
         }
-        let api = FoodAPI(cookie: "\(Keychain.privateTokenKey)=\(token)", timeout: timeout)
+        let api = FoodAPI(cookie: cookie, timeout: timeout)
         do {
             let day = try await api.day(.today())
             // Was in der App noch wartet, zaehlt vorlaeufig mit - ueber den frisch

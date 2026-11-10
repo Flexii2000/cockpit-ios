@@ -193,6 +193,19 @@ actor Outbox {
         await OfflineStatus.shared.outbox(pending: items.count, lastError: nil, byBackend: countsByBackend())
     }
 
+    /// Der Zugang zu diesen Diensten gehoert jetzt einer anderen Person
+    /// (Healthy, seit 10.11.): was fuer sie noch wartet, ginge sonst unter dem
+    /// neuen Token hinaus - in ein fremdes Tagebuch.
+    func discard(_ backends: [Backend]) async {
+        load()
+        let names = Set(backends.map(\.rawValue))
+        let before = items.count
+        items.removeAll { names.contains($0.backend) }
+        guard items.count < before else { return }
+        persist()
+        await OfflineStatus.shared.outbox(pending: items.count, lastError: nil, byBackend: countsByBackend())
+    }
+
     /// Schickt der Reihe nach raus, was wartet.
     ///
     /// Haelt an, sobald wieder kein Netz ist oder der Dienst nicht antwortet -

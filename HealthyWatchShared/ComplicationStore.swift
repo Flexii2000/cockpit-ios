@@ -9,16 +9,33 @@ enum ComplicationStore {
 
     static let snapshotKey = "watch_complication"
 
-    static func token() -> String? {
-        Keychain.read(Keychain.privateTokenKey).flatMap { $0.isEmpty ? nil : $0 }
+    /// Der Cookie-Kopf fuer den Kalorienzaehler: der persoenliche Token, sonst
+    /// Felix' Privat-Token (`HealthCookie`), `nil` ohne Zugang.
+    static func cookie() -> String? {
+        HealthCookie.current()
     }
 
+    /// Legt ab, was das iPhone an Zugang nennt.
+    ///
+    /// - Parameter replacesAll: der Kontext traegt die Marke
+    ///   `WatchKeys.accessVersion` - dann wird ein Token, der fehlt, geloescht.
+    ///   Ohne sie (aeltere iPhone-App) bleibt Fehlendes, wie es ist.
     /// - Returns: ob sich etwas geaendert hat.
     @discardableResult
-    static func save(token: String) -> Bool {
-        guard token != self.token() else { return false }
-        Keychain.save(token, for: Keychain.privateTokenKey)
-        return true
+    static func save(owner: String?, health: String?, replacesAll: Bool) -> Bool {
+        var changed = false
+        for (key, value) in [(Keychain.privateTokenKey, owner), (Keychain.healthTokenKey, health)] {
+            let stored = Keychain.read(key).flatMap { $0.isEmpty ? nil : $0 }
+            if let value, !value.isEmpty {
+                guard value != stored else { continue }
+                Keychain.save(value, for: key)
+                changed = true
+            } else if replacesAll, stored != nil {
+                Keychain.delete(key)
+                changed = true
+            }
+        }
+        return changed
     }
 
     static func snapshot() -> ComplicationSnapshot? {
@@ -35,5 +52,10 @@ enum ComplicationStore {
         else { return false }
         Keychain.save(text, for: snapshotKey)
         return true
+    }
+
+    /// Der Stand gehoerte der Person davor - weg damit, wenn der Zugang wechselt.
+    static func clearSnapshot() {
+        Keychain.delete(snapshotKey)
     }
 }
