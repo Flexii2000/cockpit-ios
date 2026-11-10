@@ -1,5 +1,12 @@
 # Stand
 
+> **TestFlight (10.11., 17:51/17:53):** Healthy Build 202611101750 (erster TestFlight-Build,
+> App-Eintrag „Healthy-Fherrmann“, Export mit `aps-environment=production` belegt) und
+> Einkaufsliste Build 202611101752 (mit Rezepten) hochgeladen. Der erste Healthy-Upload scheiterte
+> an `NSHealthUpdateUsageDescription` - Healthy schreibt nichts in Health, App Store Connect
+> verlangt den Satz trotzdem (jetzt in `project.yml`). Offen bei Felix: interne Testgruppe für
+> Healthy mit Joana; Joana trägt ihren Setup-Link ein. Den TestFlight-Build nicht auf Felix' iPhone.
+
 > **⌀ 7 T der Energie-Karte ohne Vorzeichen (10.11., Felix):** `deficit7` steht als Betrag da,
 > ein Defizit grün, ein Überschuss rot (vorher „−120 kcal“ in Textfarbe - das Minus las sich wie
 > „kein Defizit“). Für VoiceOver mit Wort davor. `EnergyCardModel.Week.averageIsSurplus`, Tests in
@@ -23,8 +30,8 @@
 > - **Server-Setup:** Zugang der zweiten Person, Chat und Briefing seit 10.11. ~15:40 durch und mit
 >   echten Sitzungen geprüft. Offen ist nur noch der Rezept-Schritt (`setup-recipes.sh`, Felix); bis
 >   dahin legt „Kochen“ noch kein Gericht in Healthy an.
-> - **Offen bei Apple:** TestFlight für Healthy und Einkaufsliste – der Export braucht erst die
->   neue Lizenzvereinbarung und einen App-Store-Connect-Eintrag für `com.fherrmann.cockpit`.
+> - **TestFlight:** Lizenzvereinbarung angenommen, App-Eintrag angelegt, beide Builds am 10.11.
+>   hochgeladen (siehe oben).
 > - **Nur auf Geräten zu prüfen:** Puls-Rückholung und Strain mit echten Werten, Pushes (Stupser,
 >   Serien-Warnung, Chat-Antwort), Makros in der Uhr-App, stündlicher Puls-Abgleich im Hintergrund.
 

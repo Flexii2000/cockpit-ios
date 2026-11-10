@@ -175,6 +175,12 @@ targets:
         # Der Satz, den iOS beim Nachfragen zeigt. Ohne ihn beendet sich die
         # App beim ersten HealthKit-Aufruf.
         INFOPLIST_KEY_NSHealthShareUsageDescription: Damit Gewicht, Schritte, Energieverbrauch, Schlaf und Herzwerte aus Health in Healthy landen.
+        # Healthy schreibt nichts in Health (requestAuthorization mit leerem
+        # toShare), iOS zeigt diesen Satz also nie. App Store Connect lehnt
+        # den Upload ohne ihn trotzdem ab ("Missing purpose string ...
+        # NSHealthUpdateUsageDescription", 10.11., erster TestFlight-Upload) -
+        # der Aufruf allein verweist auf das Schreiben.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Healthy liest nur aus Health und schreibt nichts hinein.
         # Der Barcode-Scanner im Essen-Tab. Ohne den Satz beendet iOS die App
         # beim ersten Kamerazugriff.
         INFOPLIST_KEY_NSCameraUsageDescription: Zum Scannen der Barcodes auf Lebensmittelpackungen.
