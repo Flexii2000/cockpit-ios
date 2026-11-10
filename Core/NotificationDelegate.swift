@@ -19,11 +19,24 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     /// Fokus (Feature Requests ueber das To-Do). Wer ihn nicht uebergibt,
     /// uebergeht den Link.
     private let onLink: (@Sendable (URL) -> Void)?
+    /// Bekommt die Art einer Meldung, die bei offener App ankommt, und sagt,
+    /// ob sie als Banner erscheinen soll - Healthy laesst „Deine Antwort ist
+    /// da.“ weg, solange der Chat offen ist (10.11.). Wer nichts uebergibt,
+    /// zeigt wie bisher alles.
+    private let shouldPresent: (@Sendable (String?) -> Bool)?
 
     init(onOpen: @escaping @Sendable (String?) -> Void,
-         onLink: (@Sendable (URL) -> Void)? = nil) {
+         onLink: (@Sendable (URL) -> Void)? = nil,
+         shouldPresent: (@Sendable (String?) -> Bool)? = nil) {
         self.onOpen = onOpen
         self.onLink = onLink
+        self.shouldPresent = shouldPresent
+    }
+
+    /// `kind` bei Notendienst und Kalorienzaehler, `tab` beim Cloud-Dienst
+    /// (Vault, seit 01.11.) - beides sagt, worum es geht.
+    static func kind(in userInfo: [AnyHashable: Any]) -> String? {
+        userInfo["kind"] as? String ?? userInfo["tab"] as? String
     }
 
     /// Nur http(s): was in der Nutzlast steht, kommt vom Server, und ein
@@ -45,6 +58,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        if let shouldPresent, !shouldPresent(Self.kind(in: notification.request.content.userInfo)) {
+            completionHandler([])
+            return
+        }
         completionHandler([.banner, .sound])
     }
 
@@ -56,9 +73,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         // Nur die Art (und den Link) hinueberreichen: die Meldung selbst ist
         // nicht versendbar, eine Zeichenkette schon.
         let userInfo = response.notification.request.content.userInfo
-        // `kind` bei Notendienst und Kalorienzaehler, `tab` beim Cloud-Dienst
-        // (Vault, seit 01.11.) - beides sagt, wohin der Tipp fuehrt.
-        onOpen(userInfo["kind"] as? String ?? userInfo["tab"] as? String)
+        onOpen(Self.kind(in: userInfo))
         if let onLink, let link = Self.link(in: userInfo) {
             onLink(link)
         }

@@ -246,10 +246,23 @@ struct APIClient: Sendable {
     /// Der Klartext einer Fehlerantwort, sofern es einer ist. Bewusst
     /// begrenzt: eine HTML-Seite oder ein Stacktrace gehoert nicht in eine
     /// Fehlermeldung auf dem Bildschirm.
+    ///
+    /// Der Weight Tracker begruendet einen Fehler im Rumpf von Spring
+    /// (`{"timestamp":…,"status":409,"error":"Conflict","message":"Eine Antwort
+    /// läuft noch.","path":…}`) - dann zaehlt nur der Satz in `message`, nicht
+    /// das JSON drumherum (seit 10.11.; bis dahin stand es roh in der Meldung).
     static func shortMessage(from data: Data) -> String? {
         guard let text = String(data: data, encoding: .utf8) else { return nil }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !trimmed.hasPrefix("<"), trimmed.count <= 300 else { return nil }
+        guard !trimmed.isEmpty, !trimmed.hasPrefix("<") else { return nil }
+        if trimmed.hasPrefix("{") {
+            guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let message = (object["message"] as? String)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !message.isEmpty, message.count <= 300 else { return nil }
+            return message
+        }
+        guard trimmed.count <= 300 else { return nil }
         return trimmed
     }
 
