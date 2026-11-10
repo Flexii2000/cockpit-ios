@@ -202,6 +202,90 @@ extension DashboardDemo {
         return days
     }
 
+    // MARK: - Strain
+
+    /// Die Konstante der Strain-Kurve, wie beim Dienst (Vertrag §7.4).
+    private static let strainTau = 140.0
+
+    /// Die Last `offset` Tage vor heute: drei Trainingstage je Woche, sonst
+    /// Alltag - und ab und zu ein Tag ohne Uhr (`nil`). Heute so, dass die
+    /// Karte „12,4“ zeigt, wie im freigegebenen Entwurf.
+    private static func strainLoad(_ offset: Int) -> Double? {
+        if offset == 0 { return 125 }
+        if offset % 13 == 5 { return nil }
+        let training = [1, 3, 6].contains(offset % 7)
+        let load = (training ? 185.0 : 62.0) + (training ? 55 : 28) * noise(offset, 31)
+            + 18 * sin(Double(offset) * 0.21)
+        return max(8, load)
+    }
+
+    /// Vor neun Tagen lag die Uhr den halben Tag am Ladekabel: der Tag hat
+    /// Werte, zaehlt aber nicht in die Mittel (`LOW_COVERAGE`).
+    private static func lowCoverage(_ offset: Int) -> Bool { offset == 9 }
+
+    private static func strainValue(_ load: Double) -> Double {
+        round1(21 * (1 - exp(-load / strainTau)))
+    }
+
+    private static func round1(_ value: Double) -> Double { (value * 10).rounded() / 10 }
+
+    /// „Akut“ und „Gewohnt“ am Morgen des Tages: gewichtete Mittel ueber die
+    /// abgedeckten Tage davor, wie beim Dienst.
+    private static func strainMeans(_ offset: Int) -> (acute: Double, chronic: Double)? {
+        var acuteSum = 0.0, acuteWeight = 0.0, chronicSum = 0.0, chronicWeight = 0.0
+        for older in (offset + 1)...(offset + 120) {
+            guard !lowCoverage(older), let load = strainLoad(older) else { continue }
+            let age = Double(older - offset - 1)
+            let acute = exp(-age / 7), chronic = exp(-age / 28)
+            acuteSum += load * acute
+            acuteWeight += acute
+            chronicSum += load * chronic
+            chronicWeight += chronic
+        }
+        guard acuteWeight > 0 else { return nil }
+        return (acuteSum / acuteWeight, chronicSum / chronicWeight)
+    }
+
+    private static func strainBand(_ strain: Double) -> StrainBand {
+        strain < 8 ? .light : strain < 14 ? .moderate : strain < 18 ? .high : .allOut
+    }
+
+    /// Der Strain `offset` Tage vor heute, in der Form des Dienstes: ein Tag
+    /// ohne Uhr hat keinen Strain, aber Ziel, „Akut“ und „Gewohnt“ des Morgens.
+    /// Heute wie der freigegebene Entwurf: 12,4 bei Ziel 14,1.
+    static func strainDay(offset: Int, today: CalendarDate = .today()) -> StrainDay {
+        let date = today.adding(days: -offset)
+        let means = strainMeans(offset)
+        let recovery = recoveryDay(offset: offset, today: today)
+        var targetLoad: Double?
+        if let means {
+            let form = min(max(1 + 0.5 * (means.chronic - means.acute) / means.chronic, 0.7), 1.3)
+            let rec = recovery?.score.map { 0.6 + 0.8 * Double($0) / 100 } ?? 1
+            targetLoad = max(40, means.chronic * form * rec)
+        }
+        // Heute steht das Ziel fest im Bild (14,1), wie im Entwurf.
+        if offset == 0 { targetLoad = 155.8 }
+        let load = strainLoad(offset)
+        let strain = load.map(strainValue)
+        let status: StrainStatus = load == nil ? .noData : lowCoverage(offset) ? .lowCoverage : .ok
+        return StrainDay(
+            date: date, status: status, partial: offset == 0,
+            coverageMinutes: load == nil ? nil : lowCoverage(offset) ? 412 : offset == 0 ? 655 : 1310,
+            covered: load != nil && offset > 0 && !lowCoverage(offset),
+            load: load.map(round1), strain: strain, band: strain.map(strainBand),
+            targetLoad: targetLoad.map(round1), targetStrain: targetLoad.map(strainValue),
+            acuteLoad: means.map { round1($0.acute) }, chronicLoad: means.map { round1($0.chronic) },
+            recoveryScore: recovery?.score, recoveryBand: recovery?.band,
+            hrRest: 52.4, hrMax: 188, calibration: StrainCalibration(days: 24, required: 14))
+    }
+
+    /// Jeder Kalendertag zwischen `from` und `to` bis heute, wie
+    /// `GET /api/strain`.
+    static func strainDays(from: CalendarDate, to: CalendarDate,
+                           today: CalendarDate = .today()) -> [StrainDay] {
+        days(from: from, to: to, today: today).map { offset, _ in strainDay(offset: offset, today: today) }
+    }
+
     // MARK: - Gewicht und Essen
 
     /// Ein erfundenes Gewicht - nicht Felix' echtes, das Bild landet in Doku

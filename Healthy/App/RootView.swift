@@ -19,8 +19,8 @@ enum TabSelection: Hashable {
     #endif
 
     /// Womit die App aufmacht. Im Debug-Build ueber `COCKPIT_TAB` vorgebbar;
-    /// `recovery` oeffnet das Dashboard samt dieser Seite, `logbook` und
-    /// `effects` das Dashboard an dieser Stelle.
+    /// `recovery` oeffnet das Dashboard samt dieser Seite, `strain` samt dem
+    /// Strain-Fenster, `logbook` und `effects` das Dashboard an dieser Stelle.
     static var initial: TabSelection {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["COCKPIT_TAB"] {

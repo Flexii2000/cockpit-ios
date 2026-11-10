@@ -4,7 +4,7 @@ import SwiftUI
 /// dorthin, wo das Einzelne steht - die Zahlen kommen fertig aus den Diensten.
 
 /// Ueberschrift einer Karte mit dem Pfeil, der sagt: hier geht es weiter.
-private struct CardTitle: View {
+struct CardTitle: View {
     let title: String
 
     var body: some View {

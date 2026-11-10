@@ -1,6 +1,6 @@
 import Foundation
 
-/// Haelt, was das Dashboard zeigt: Recovery, Energie, Gewicht, Essen und
+/// Haelt, was das Dashboard zeigt: Recovery, Strain, Energie, Gewicht, Essen und
 /// Schritte von heute - je aus dem Dienst, der es rechnet. Das Logbook darunter
 /// hat seinen eigenen Store (`LogbookStore`).
 ///
@@ -10,17 +10,28 @@ import Foundation
 /// Meldung. Ein Banner gibt es nur fuer fehlenden Zugang, denn nur dort hilft
 /// ein Hinweis. Bei anderen Fehlern bleibt der letzte Stand stehen; ohne Netz
 /// liefert ohnehin der Cache (`OfflineCache`).
+///
+/// **Freiwillige Karten** (seit 10.11.: Strain; Briefing, Rueckblick, Serien und
+/// Chat folgen) nehmen `take(optional: true)`: ein 403 heisst dort „fuer diese
+/// Person nicht freigeschaltet“ und blendet nur die Karte aus (Vertrag §5).
+/// Stimmt der Zugang insgesamt nicht, melden das die Karten oben ohnehin.
 @MainActor
 @Observable
 final class DashboardStore {
 
     private let recoveryApi = RecoveryAPI()
+    private let strainApi = StrainAPI()
     private let energyApi = EnergyAPI()
     private let weightApi = WeightAPI()
     private let foodApi = FoodAPI()
     private var queue: PendingChanges { PendingChanges.shared }
 
     private(set) var recovery: RecoveryDay?
+    /// Der Strain von heute - `noData`, solange noch kein Puls angekommen ist;
+    /// das Ziel steht trotzdem da.
+    private(set) var strain: StrainDay?
+    /// Die Woche der Strain-Karte: D−6 … heute aus `GET /api/strain`.
+    private(set) var strainWeek: [StrainDay]?
     private(set) var energy: EnergySummary?
     /// Die Woche der Energie-Karte: D−7 … heute aus `GET /api/energy` - die
     /// Balken zeigen die vollen Tage, heute dient nur als Ersatz fuer die
@@ -102,6 +113,8 @@ final class DashboardStore {
         #if DEBUG
         if DashboardDemo.isOn {
             recovery = DashboardDemo.recoveryDay(offset: 0)
+            strain = DashboardDemo.strainDay(offset: 0)
+            strainWeek = DashboardDemo.strainDays(from: .today().adding(days: -6), to: .today())
             energy = DashboardDemo.energySummary()
             energyWeek = DashboardDemo.energyDays(from: .today().adding(days: -7), to: .today())
             weight = DashboardDemo.weightSummary()
@@ -111,10 +124,12 @@ final class DashboardStore {
         }
         #endif
         // Lokale Kopien: die Abfragen laufen nebenher, ohne den Store.
-        let recoveryApi = recoveryApi, energyApi = energyApi
+        let recoveryApi = recoveryApi, energyApi = energyApi, strainApi = strainApi
         let weightApi = weightApi, foodApi = foodApi
         let today = CalendarDate.today()
         async let recovery = Self.attempt { try await recoveryApi.today() }
+        async let strain = Self.attempt { try await strainApi.today() }
+        async let strainWeek = Self.attempt { try await strainApi.days(from: today.adding(days: -6), to: today) }
         async let energy = Self.attempt { try await energyApi.summary() }
         async let energyWeek = Self.attempt { try await energyApi.days(from: today.adding(days: -7), to: today) }
         async let weight = Self.attempt { try await weightApi.summary() }
@@ -123,6 +138,10 @@ final class DashboardStore {
 
         var problems: [Backend] = []
         self.recovery = Self.take(await recovery, previous: self.recovery, backend: .weight, problems: &problems)
+        self.strain = Self.take(await strain, previous: self.strain, backend: .weight, problems: &problems,
+                                optional: true)
+        self.strainWeek = Self.take(await strainWeek, previous: self.strainWeek, backend: .weight,
+                                    problems: &problems, optional: true)
         self.energy = Self.take(await energy, previous: self.energy, backend: .weight, problems: &problems)
         self.energyWeek = Self.take(await energyWeek, previous: self.energyWeek, backend: .weight,
                                     problems: &problems)
@@ -161,14 +180,17 @@ final class DashboardStore {
     /// Erfolg uebernehmen; ein 404 heisst „gibt es noch nicht" - die Karte
     /// fehlt. Fehlender Zugang landet im Banner. Alles andere laesst den
     /// letzten Stand stehen, statt eine Karte bei jedem Wackler zu leeren.
-    private static func take<T>(_ result: Result<T, Error>, previous: T?, backend: Backend,
-                                problems: inout [Backend]) -> T? {
+    ///
+    /// - Parameter optional: eine freiwillige Karte - ein 403 heisst dort
+    ///   „nicht freigeschaltet“: die Karte fehlt, ohne Banner.
+    static func take<T>(_ result: Result<T, Error>, previous: T?, backend: Backend,
+                        problems: inout [Backend], optional: Bool = false) -> T? {
         switch result {
         case .success(let value):
             return value
         case .failure(let error):
             if case APIError.notAuthorised = error {
-                if !problems.contains(backend) { problems.append(backend) }
+                if !optional, !problems.contains(backend) { problems.append(backend) }
                 return nil
             }
             if case APIError.http(404, _) = error { return nil }

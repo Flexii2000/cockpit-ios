@@ -188,6 +188,50 @@ final class HealthyUITests: XCTestCase {
         XCTAssertEqual(protein.label, "Eiweiß 150/180 g")
     }
 
+    /// Die Strain-Karte (seit 10.11.) zeigt den Stand von heute gegen das Ziel
+    /// (in der Vorfuehrung 12,4 bei Ziel 14,1) und oeffnet das Fenster mit dem
+    /// Verlauf: vier Zeitraeume, darunter die Form-Kurve. Aufgenommen hell und
+    /// dunkel - der Simulator bekommt keinen Puls, anders ist das nie zu sehen.
+    func testStrainCardOpensTheWindow() {
+        XCUIDevice.shared.appearance = .light
+        addTeardownBlock { XCUIDevice.shared.appearance = .light }
+        let app = launch(tab: "dashboard", extra: demo)
+        let card = app.buttons["strainCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 20))
+        shoot(app, "dashboard-strain-hell")
+        XCTAssertTrue(card.label.contains("12,4"), card.label)
+        XCTAssertTrue(card.label.contains("Ziel 14,1"), card.label)
+
+        card.tap()
+        XCTAssertTrue(app.navigationBars["Strain"].waitForExistence(timeout: 10))
+        // Der Zeitraum wird gemerkt - der Test beginnt und endet bei sechs Wochen.
+        app.buttons["6 Wo."].tap()
+        let chart = app.descendants(matching: .any).matching(identifier: "strainChart").firstMatch
+        XCTAssertTrue(chart.waitForExistence(timeout: 10))
+        shoot(app, "strain-6-wochen-hell")
+        XCTAssertTrue(app.staticTexts["Form"].exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "formChart").firstMatch.exists)
+
+        for (title, name) in [("3 Mon.", "3-monate"), ("6 Mon.", "6-monate"), ("1 Jahr", "1-jahr")] {
+            app.buttons[title].tap()
+            XCTAssertTrue(chart.waitForExistence(timeout: 10))
+            shoot(app, "strain-\(name)-hell")
+        }
+
+        XCUIDevice.shared.appearance = .dark
+        shoot(app, "strain-1-jahr-dunkel")
+        app.buttons["6 Wo."].tap()
+        XCTAssertTrue(chart.waitForExistence(timeout: 10))
+        // Ein Tipp ins Diagramm zeigt die Sprechblase des Tages - nur im Bild
+        // zu pruefen: was in einem Diagramm steht, kennt der Testlaeufer nicht.
+        chart.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5)).tap()
+        shoot(app, "strain-6-wochen-dunkel-sprechblase")
+
+        app.buttons["Fertig"].tap()
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        shoot(app, "dashboard-strain-dunkel")
+    }
+
     /// Das Ziele-Blatt hat seit 10.11. unter „Eiweiß“ den Erhalt, und das
     /// Gewicht-Menue die Koerpergroesse - beide kommen vom Dienst.
     func testSheetsOfferProteinFloorAndHeight() {

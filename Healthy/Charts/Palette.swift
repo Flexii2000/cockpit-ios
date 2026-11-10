@@ -41,4 +41,39 @@ enum Palette {
                                             lightOpacity: 0.16, darkOpacity: 0.2)
     static let surplusFill = Color.adaptive(light: 0xD33131, dark: 0xEF5350,
                                             lightOpacity: 0.16, darkOpacity: 0.2)
+
+    // MARK: - Strain (Vertrag §5, seit 10.11.)
+
+    /// Der Strain: Zahl, Balken und die Linie „Akut“ - zugleich das Band
+    /// `MODERATE`. Blau, weit weg vom Orange des Defizits direkt darunter im
+    /// Dashboard.
+    static let strain = Color.adaptive(light: 0x1971C2, dark: 0x4DABF7)
+    /// Ueber dem Ziel: der Teil des Balkens hinter der Marke - zugleich das
+    /// Band `HIGH`.
+    static let strainOver = Color.adaptive(light: 0xE8590C, dark: 0xFF922B)
+    /// Die Linie „Gewohnt“ in der Form-Kurve - ein ruhiges Grau neben dem
+    /// Blau von „Akut“, in beiden Erscheinungsbildern gut zu sehen.
+    static let strainChronic = Color.adaptive(light: 0x868E96, dark: 0xADB5BD)
+    /// Band `LIGHT`.
+    static let strainLight = Color.adaptive(light: 0x74C0FC, dark: 0x74C0FC)
+    /// Band `ALL_OUT`.
+    static let strainAllOut = Color.adaptive(light: 0xD33131, dark: 0xEF5350)
+    /// Die Flaeche zwischen „Akut“ und „Gewohnt“ in der Form-Kurve: wo Akut
+    /// darunter liegt, in der Strain-Farbe, sonst in „über Ziel“ - hell 16 %,
+    /// dunkel 20 %, wie die Flaeche der Energie.
+    static let strainFill = Color.adaptive(light: 0x1971C2, dark: 0x4DABF7,
+                                           lightOpacity: 0.16, darkOpacity: 0.2)
+    static let strainOverFill = Color.adaptive(light: 0xE8590C, dark: 0xFF922B,
+                                               lightOpacity: 0.16, darkOpacity: 0.2)
+
+    /// Die Farbe eines Strain-Bands - fuer Punkte, die nur die Stufe zeigen.
+    static func strainBand(_ band: StrainBand?) -> Color {
+        switch band {
+        case .light:    strainLight
+        case .moderate: strain
+        case .high:     strainOver
+        case .allOut:   strainAllOut
+        default:        .secondary
+        }
+    }
 }

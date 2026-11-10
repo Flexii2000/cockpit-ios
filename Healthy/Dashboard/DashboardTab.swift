@@ -2,11 +2,11 @@ import SwiftUI
 
 /// Das Dashboard - ganz links, und dort macht die App auf (Felix, 09.10.).
 ///
-/// Ein Blick auf den Tag: Recovery, Energie, Gewicht, was vom kcal-Ziel
-/// uebrig ist, Schritte - und darunter das Logbook samt Effekten, direkt zum
-/// Eintragen (seit 12.10.). Die Karten oben fuehren dorthin, wo das Einzelne
-/// steht: Recovery auf ihre Seite, Energie und kcal in den Essen-Tab mit heute,
-/// Gewicht in seinen Tab.
+/// Ein Blick auf den Tag: Recovery, Strain (seit 10.11.), Energie, Gewicht, was
+/// vom kcal-Ziel uebrig ist, Schritte - und darunter das Logbook samt Effekten,
+/// direkt zum Eintragen (seit 12.10.). Die Karten oben fuehren dorthin, wo das
+/// Einzelne steht: Recovery auf ihre Seite, Strain in sein Fenster, Energie und
+/// kcal in den Essen-Tab mit heute, Gewicht in seinen Tab.
 ///
 /// Nicht zu verwechseln mit `/api/dashboard` des Weight Trackers - das ist die
 /// Auswahl der Kacheln im Gewicht-Tab.
@@ -14,6 +14,9 @@ struct DashboardTab: View {
 
     @State private var store = DashboardStore()
     @State private var logbook = LogbookStore()
+    /// Das Strain-Fenster (Vertrag §5) - ein Blatt, keine Seite: es ist ein
+    /// Blick in den Verlauf, von dem man gleich zurueck will.
+    @State private var showingStrain = DashboardTab.opensStrain
     @Environment(\.scenePhase) private var scenePhase
 
     private var router: Router { Router.shared }
@@ -60,6 +63,7 @@ struct DashboardTab: View {
                 case .recovery: RecoveryView()
                 }
             }
+            .sheet(isPresented: $showingStrain) { StrainSheet() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -112,6 +116,16 @@ struct DashboardTab: View {
         }
     }
 
+    /// Im Debug-Build ueber `COCKPIT_TAB=strain`: das Dashboard samt offenem
+    /// Strain-Fenster - fuer Bilder, tippen kann der Simulator nicht.
+    private static var opensStrain: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["COCKPIT_TAB"] == "strain"
+        #else
+        return false
+        #endif
+    }
+
     /// Bis kurz nach Mitternacht - ueber den Kalender, wegen der Zeitumstellung.
     private static func secondsUntilTomorrow(now: Date = Date()) -> Double {
         let calendar = Calendar.current
@@ -130,6 +144,15 @@ struct DashboardTab: View {
             // Anker fuer die UI-Tests - am Knopf, nicht an der Karte darin:
             // ein Container ist nie „hittable".
             .accessibilityIdentifier("recoveryCard")
+        }
+        // Ohne Strain heute und in der Woche fehlt die Karte (Vertrag §5) -
+        // etwa ohne Uhr, oder solange der Dienst den Strain nicht kennt.
+        if let strain = StrainCardModel(today: store.strain, week: store.strainWeek ?? [], on: .today()) {
+            Button { showingStrain = true } label: {
+                StrainCard(model: strain)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("strainCard")
         }
         // Ohne Defizit heute und ohne Wert in der Woche fehlt die Karte
         // (Vertrag §5) - etwa ohne Kalorienzaehler: dann ist die Aufnahme
