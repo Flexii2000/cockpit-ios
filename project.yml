@@ -86,13 +86,20 @@ _cohabit_group: &cohabit_group group.com.fherrmann.cohabit
 
 # Was in Shared/ auf watchOS nicht baut (iPhone-Kacheln, ActivityKit, die
 # dynamische UIColor) - die Uhr-Ziele nehmen den Rest (14.10.).
+# Macro.swift baut seit 10.11. mit (die Uhr zeigt die Makros); draussen bleiben
+# nur seine Verlaeufe (Color(hex:)). Die Schritte-Dateien bleiben draussen, weil
+# die Uhr sie nicht benutzt und StepsNow CoreMotion einbindet - ohne
+# NSMotionUsageDescription in den Uhr-Bundles ein Befund beim Hochladen.
 _watch_excludes: &watch_excludes
   - CaloriesWidgetView.swift
   - Color+Hex.swift
-  - Macro.swift
+  - MacroTone+Gradient.swift
   - GaugeView.swift
   - FocusActivity.swift
   - FocusWidgetView.swift
+  - StepsNow.swift
+  - StepsMirror.swift
+  - StepsWidgetViews.swift
 
 _widget_info: &widget_info
   # Der Bezeichner muss UNTER NSExtension stehen. Auf oberster Ebene baut
@@ -148,7 +155,12 @@ targets:
         # wird - auch wenn sie beendet ist.
         com.apple.developer.healthkit.background-delivery: true
         # "development" passt zu einer Entwicklungssignatur; die Kennungen
-        # daraus kennt NUR die APNs-Sandbox.
+        # daraus kennt NUR die APNs-Sandbox. Bleibt auch fuer TestFlight so
+        # stehen (seit 10.11.): archiviert wird mit der Entwicklungssignatur,
+        # und erst der Export signiert neu - mit dem Verteilungsprofil, aus dem
+        # Xcode "production" einsetzt. Ein "production" hier wuerde schon beim
+        # Archivieren am Entwicklungsprofil scheitern. Welche Welt gilt, meldet
+        # die App dem Kalorienzaehler selbst (Healthy/App/APNsEnvironment.swift).
         aps-environment: development
         keychain-access-groups:
           - $(AppIdentifierPrefix)com.fherrmann.cockpit
@@ -170,6 +182,13 @@ targets:
         # eine Kachel nicht an Health heran, der Schrittzaehler des iPhones
         # zaehlt dort weiter. Fragen kann nur die App.
         INFOPLIST_KEY_NSMotionUsageDescription: Damit die Schritte auf dem Sperrbildschirm auch bei gesperrtem iPhone weiterzählen.
+        # Geht seit 10.11. auch ueber TestFlight (ein zweites iPhone mit
+        # persoenlichem Token). Verschluesselt wird nur per HTTPS und
+        # Schluesselbund des Systems - ohne den Schluessel fragt App Store
+        # Connect das bei jedem Build ab. Die Gruende fuer UserDefaults und das
+        # Datum des Offline-Stands stehen je Bundle in PrivacyInfo.xcprivacy
+        # (Healthy, HealthyWidget, HealthyWatch, HealthyWatchWidget).
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
 
   HealthyWidget:
     type: app-extension

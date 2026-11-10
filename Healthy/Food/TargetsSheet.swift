@@ -8,6 +8,11 @@ struct TargetsSheet: View {
 
     @State private var kcal = ""
     @State private var protein = ""
+    /// Eiweiss Erhalt (seit 10.11., Vertrag §11.1): darunter ist die Anzeige
+    /// rot, ab hier gelb, ab dem Eiweissziel gruen.
+    @State private var proteinMin = ""
+    /// Was beim Oeffnen im Feld stand - nur eine Aenderung geht zum Dienst.
+    @State private var loadedProteinMin = ""
     @State private var carbs = ""
     @State private var fat = ""
     /// Anteile in Prozent, damit die Mahlzeitenziele mitwandern, wenn sich
@@ -33,6 +38,7 @@ struct TargetsSheet: View {
                 Section("Tagesziele") {
                     LabeledContent("kcal") { field($kcal) }
                     LabeledContent("Eiweiß (g)") { field($protein) }
+                    LabeledContent("Eiweiß Erhalt (g)") { field($proteinMin) }
                     LabeledContent("Kohlenhydrate (g)") { field($carbs) }
                     LabeledContent("Fett (g)") { field($fat) }
                 }
@@ -80,6 +86,8 @@ struct TargetsSheet: View {
         guard let day = store.day, kcal.isEmpty else { return }
         kcal = day.targets.kcal.whole
         protein = day.targets.proteinG.oneDecimal
+        proteinMin = day.targets.proteinMinG?.oneDecimal ?? ""
+        loadedProteinMin = proteinMin
         carbs = day.targets.carbsG.oneDecimal
         fat = day.targets.fatG.oneDecimal
         let total = day.targets.kcal
@@ -87,6 +95,20 @@ struct TargetsSheet: View {
         for (meal, value) in day.targetsByMeal {
             shares[meal] = (value / total * 100).whole
         }
+    }
+
+    /// Was fuer den Erhalt zum Dienst geht (Vertrag §11.1).
+    ///
+    /// Unveraendert: nichts (`nil`) - so bleibt eine Vorgabe des Dienstes eine
+    /// Vorgabe und wandert weiter mit dem Eiweissziel. Geleert: `0`, zurueck auf
+    /// die Vorgabe - ausser es war ohnehin die Vorgabe. Sonst die Zahl.
+    static func proteinMinChange(entered: String, loaded: String, isServerDefault: Bool) -> Double? {
+        let text = entered.trimmingCharacters(in: .whitespaces)
+        guard text != loaded.trimmingCharacters(in: .whitespaces) else { return nil }
+        guard let value = AddEntrySheet.number(text), value > 0 else {
+            return isServerDefault ? nil : 0
+        }
+        return value
     }
 
     private func save() async {
@@ -105,7 +127,10 @@ struct TargetsSheet: View {
                                      proteinG: AddEntrySheet.number(protein),
                                      carbsG: AddEntrySheet.number(carbs),
                                      fatG: AddEntrySheet.number(fat),
-                                     mealShares: mealShares.isEmpty ? nil : mealShares)
+                                     mealShares: mealShares.isEmpty ? nil : mealShares,
+                                     proteinMinG: Self.proteinMinChange(
+                                        entered: proteinMin, loaded: loadedProteinMin,
+                                        isServerDefault: store.day?.targets.proteinMinDefault ?? true))
         if await store.updateTargets(request) { dismiss() }
     }
 }

@@ -1,20 +1,13 @@
-import SwiftUI
+import Foundation
 
 /// Wie ein Wert gegen sein Ziel dasteht.
+///
+/// Ohne SwiftUI: seit 10.11. uebersetzt auch die Uhr diese Datei (sie zeigt die
+/// Makros unter dem kcal-Bogen). Die Farben stehen deshalb daneben -
+/// `MacroTone+Gradient.swift` fuer das iPhone, `MacroTone+WatchColor.swift`
+/// fuer die Uhr.
 enum MacroTone: Sendable {
     case neutral, near, good, warn, bad
-
-    /// Dieselben Verlaeufe wie in der Weboberflaeche (`#gauge-…` in
-    /// `food/.../index.html`) - dieselbe Zahl soll in App und Browser nicht
-    /// unterschiedlich eingefaerbt sein.
-    var gradient: [Color] {
-        switch self {
-        case .neutral, .near: [Color(hex: 0x8BA3FF), Color(hex: 0x4C6EF5)]
-        case .good:           [Color(hex: 0x8EE09B), Color(hex: 0x43A75A)]
-        case .warn:           [Color(hex: 0xFFD68A), Color(hex: 0xF59F26)]
-        case .bad:            [Color(hex: 0xFF938F), Color(hex: 0xDC3C39)]
-        }
-    }
 }
 
 /// In welche Richtung ein Ziel gemeint ist.
@@ -100,9 +93,25 @@ enum NutritionTone {
         }
     }
 
+    /// Eiweiss seit 10.11. (Felix; Vertrag §11.1): unter dem Erhalt rot, ab dem
+    /// Erhalt gelb, ab dem Ziel gruen. Der Erhalt kommt mit den Zielen vom
+    /// Dienst (`proteinMinG`); fehlt er - ein aelterer Dienst -, gilt die
+    /// Regel von vorher.
+    static func proteinTone(consumed: Double, target: Double, minimum: Double?) -> MacroTone {
+        guard let minimum, minimum > 0 else {
+            return tone(consumed: consumed, target: target, direction: .floor, tolerance: 0)
+        }
+        if consumed >= target { return .good }
+        return consumed >= minimum ? .warn : .bad
+    }
+
     static func tone(for macro: Macro, consumed: Nutrients, targets: Nutrients) -> MacroTone {
-        tone(consumed: macro.value(consumed), target: macro.value(targets),
-             direction: macro.direction, tolerance: macro.tolerance)
+        if macro == .protein {
+            return proteinTone(consumed: consumed.proteinG, target: targets.proteinG,
+                               minimum: targets.proteinMinG)
+        }
+        return tone(consumed: macro.value(consumed), target: macro.value(targets),
+                    direction: macro.direction, tolerance: macro.tolerance)
     }
 
     static func kcalTone(consumed: Nutrients, targets: Nutrients) -> MacroTone {

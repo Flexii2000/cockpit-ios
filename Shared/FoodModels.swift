@@ -7,6 +7,14 @@ struct Nutrients: Codable, Equatable, Sendable {
     let proteinG: Double
     let carbsG: Double
     let fatG: Double
+    /// Nur an den **Zielen** (`targets`, seit 10.11., Vertrag §11.1): das
+    /// Eiweiss, das die Muskeln haelt. Darunter ist die Anzeige rot, ab hier
+    /// gelb, ab `proteinG` gruen. Fehlt bei einem aelteren Dienst - und bei
+    /// allem, was kein Ziel ist (Verzehrtes, Werte je 100 g, Reste).
+    var proteinMinG: Double? = nil
+    /// Ob `proteinMinG` nur die Vorgabe des Dienstes ist (aus dem Ziel
+    /// gerechnet) und niemand ihn gesetzt hat.
+    var proteinMinDefault: Bool? = nil
 
     static let zero = Nutrients(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0)
 
@@ -120,6 +128,9 @@ struct DayAverage: Decodable, Identifiable, Sendable, Equatable {
 
 struct Features: Decodable, Sendable {
     let quickCapture: Bool
+    /// Wem der Zugang gehoert, mit dem gefragt wurde - der Name aus
+    /// `HEALTH_TOKENS` bzw. der Eigentuemer. Fehlt bei einem aelteren Dienst.
+    var me: String? = nil
 }
 
 /// Liegt auch in der Warteschlange (`FoodChange.add`) - deshalb in beide Richtungen.
@@ -149,6 +160,9 @@ struct TargetsRequest: Encodable, Sendable {
     let carbsG: Double?
     let fatG: Double?
     let mealShares: [String: Double]?
+    /// Der Erhalt (Vertrag §11.1): fehlend = unveraendert, 0 = zurueck auf die
+    /// Vorgabe des Dienstes.
+    var proteinMinG: Double? = nil
 }
 
 struct QuickCaptureRequest: Encodable, Sendable {
@@ -197,4 +211,10 @@ struct QuickCapturePreview: Decodable, Sendable {
 /// Die Push-Kennung dieses Geraets, wie der Server sie erwartet.
 struct DeviceRegistration: Encodable, Sendable {
     let token: String
+    /// `sandbox` oder `production` (Vertrag §11.2): an welchen APNs-Rechner der
+    /// Dienst fuer dieses Geraet schicken muss. Ein Entwickler-Install und ein
+    /// TestFlight-Build bekommen Kennungen aus verschiedenen Welten. Nur der
+    /// Kalorienzaehler kennt das Feld; To-Do und Noten melden weiter ohne an -
+    /// `nil` bleibt im JSON weg.
+    var environment: String? = nil
 }

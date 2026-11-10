@@ -221,8 +221,31 @@ struct FoodHalfCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            // Eiweiss von heute in seiner Farbe (seit 10.11., Vertrag §5 und
+            // §11.1): rot unter dem Erhalt, gelb ab dem Erhalt, gruen ab dem Ziel.
+            if day.targets.proteinG > 0 {
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(proteinTone.gradient.last ?? .secondary)
+                        .frame(width: 8, height: 8)
+                    Text(FoodHalfCard.proteinText(day))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("dashboardProtein")
+            }
         }
         .dashboardCard()
+    }
+
+    private var proteinTone: MacroTone {
+        NutritionTone.tone(for: .protein, consumed: day.consumed, targets: day.targets)
+    }
+
+    /// „Eiweiß 96/195 g“ - gegessen und Ziel in ganzen Gramm.
+    static func proteinText(_ day: DaySummary) -> String {
+        "Eiweiß \(day.consumed.proteinG.whole)/\(day.targets.proteinG.whole) g"
     }
 
     /// Wie der Tacho im Essen-Tab: bis 100 kcal drueber orange, darueber rot.

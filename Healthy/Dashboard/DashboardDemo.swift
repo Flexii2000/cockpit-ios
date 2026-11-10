@@ -211,7 +211,7 @@ extension DashboardDemo {
         {"date":"\(today.iso)","current":82.6,"avg7":82.9,"avg14":83.1,"avg30":83.6,"target":83.2,
          "targetDate":"2026-12-20","goalWeight":80.0,"startWeight":92.0,"recordingStart":"2025-01-05",
          "corridorLower":null,"corridorUpper":null,"corridorReachedOn":null,
-         "residual7":-0.3,"residual7Days":7}
+         "residual7":-0.3,"residual7Days":7,"heightCm":188}
         """
         // Fest im Code und vom selben Decoder gelesen wie die echte Antwort.
         return try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8))
@@ -232,7 +232,8 @@ extension DashboardDemo {
         let fat = (64 * kcal / 2150).rounded()
         let json = """
         {"date":"\(date.iso)",
-         "targets":{"kcal":\(kcalTarget),"proteinG":180,"carbsG":240,"fatG":70},
+         "targets":{"kcal":\(kcalTarget),"proteinG":180,"carbsG":240,"fatG":70,
+                    "proteinMinG":130,"proteinMinDefault":false},
          "consumed":{"kcal":\(kcal),"proteinG":\(protein),"carbsG":\(carbs),"fatG":\(fat)},
          "remaining":{"kcal":\(kcalTarget - kcal),"proteinG":\(180 - protein),"carbsG":\(240 - carbs),
                       "fatG":\(70 - fat)},
