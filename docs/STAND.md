@@ -1,5 +1,10 @@
 # Stand
 
+> **⌀ 7 T der Energie-Karte ohne Vorzeichen (10.11., Felix):** `deficit7` steht als Betrag da,
+> ein Defizit grün, ein Überschuss rot (vorher „−120 kcal“ in Textfarbe - das Minus las sich wie
+> „kein Defizit“). Für VoiceOver mit Wort davor. `EnergyCardModel.Week.averageIsSurplus`, Tests in
+> `EnergyCardModelTests`; Vertrag §5 Punkt 4.
+
 > **Defizit grün, Überschuss rot (10.11., Felix):** Zahl, Bilanzbalken und Wochenbalken der
 > Energie-Karte und die Fläche zwischen „Verbrauch ⌀“ und „kcal ⌀“ zeigen ein Defizit jetzt grün
 > (`Palette.deficitBalance`, hell `#2B8A3E`, dunkel `#51CF66`), einen Überschuss weiter rot. Die
