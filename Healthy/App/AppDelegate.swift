@@ -39,7 +39,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         let hex = deviceToken.map { String(format: "%02x", $0) }.joined()
         Notifications.store(deviceToken: hex)
-        Task { try? await FoodAPI().registerDevice(token: hex) }
+        // Mit der Umgebung (Vertrag §11.2): eine Kennung aus TestFlight kennt
+        // nur Apples Produktions-Rechner, eine aus dem Entwickler-Install nur
+        // die Sandbox - der Dienst muss wissen, wohin er schickt.
+        let environment = APNsEnvironment.current.rawValue
+        Task { try? await FoodAPI().registerDevice(token: hex, environment: environment) }
     }
 
     func application(_ application: UIApplication,

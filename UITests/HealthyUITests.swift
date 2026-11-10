@@ -37,6 +37,106 @@ final class HealthyUITests: XCTestCase {
         start.press(forDuration: 0.05, thenDragTo: end)
     }
 
+    // MARK: - Zugang (seit 10.11.: persoenlicher Token)
+
+    /// Ein iPhone ohne jeden Token: das Blatt fragt nach dem persoenlichen Token,
+    /// Felix' Token stehen zugeklappt darunter und gehen erst auf Tipp auf.
+    func testSetupOnAFreshPhoneAsksForThePersonalToken() {
+        let app = start(tab: "setup", extra: demo.merging([
+            "COCKPIT_FH_PRIVATE_TOKEN": "none", "COCKPIT_WEIGHT_TOKEN": "none",
+            "COCKPIT_HEALTH_TOKEN": "none",
+        ]) { _, neu in neu })
+        let field = app.secureTextFields["healthToken"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        shoot(app, "zugang-frisch")
+        XCTAssertFalse(app.secureTextFields["privateToken"].exists, "Felix' Token stehen zugeklappt")
+        XCTAssertFalse(app.staticTexts["healthAccess"].exists, "ohne Token keine Kopfzeile")
+
+        app.buttons["Besitzer-Token"].firstMatch.tap()
+        XCTAssertTrue(app.secureTextFields["privateToken"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.secureTextFields["weightToken"].exists)
+        shoot(app, "zugang-frisch-besitzer")
+    }
+
+    /// Mit persoenlichem Token: nur dessen Feld, die Person in der Kopfzeile.
+    /// „Entfernen“ nimmt ihn weg - danach sieht das Blatt aus wie auf einem
+    /// frischen iPhone.
+    func testSetupAsAPersonShowsOnlyThePersonalToken() {
+        let app = start(tab: "setup", extra: demo.merging([
+            "COCKPIT_FH_PRIVATE_TOKEN": "none", "COCKPIT_WEIGHT_TOKEN": "none",
+            "COCKPIT_HEALTH_TOKEN": "ui-test-person", "COCKPIT_HEALTH_NAME": "person-a",
+        ]) { _, neu in neu })
+        XCTAssertTrue(app.secureTextFields["healthToken"].waitForExistence(timeout: 10))
+        shoot(app, "zugang-person")
+        XCTAssertEqual(app.staticTexts["healthAccess"].label.lowercased(), "✓ person-a")
+        XCTAssertFalse(app.buttons["Besitzer-Token"].exists)
+        XCTAssertFalse(app.secureTextFields["privateToken"].exists)
+
+        app.buttons["Entfernen"].tap()
+        XCTAssertTrue(app.buttons["Besitzer-Token"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Entfernen"].exists)
+        shoot(app, "zugang-person-entfernt")
+    }
+
+    /// Der Weg eines zweiten iPhones von Anfang bis Ende: ohne Zugang geht das
+    /// Blatt auf, ein falscher Token wird abgelehnt, der Setup-Link angenommen,
+    /// das Blatt schliesst sich und die App zeigt die Daten der Person.
+    ///
+    /// Laeuft nur gegen **lokal gestartete** Dienste mit einer Testperson
+    /// (`COCKPIT_URL_FOOD`, `COCKPIT_URL_WEIGHT`, `COCKPIT_PERSON_TOKEN` =
+    /// ihr Token aus `HEALTH_TOKENS`) - sonst ueberspringt er sich.
+    func testEnteringAPersonalTokenOpensTheApp() throws {
+        let environment = ProcessInfo.processInfo.environment
+        guard let token = environment["COCKPIT_PERSON_TOKEN"], !token.isEmpty,
+              let food = environment["COCKPIT_URL_FOOD"], !food.isEmpty,
+              let weight = environment["COCKPIT_URL_WEIGHT"], !weight.isEmpty else {
+            throw XCTSkip("Braucht lokal gestartete Dienste und COCKPIT_PERSON_TOKEN.")
+        }
+        let fresh = ["COCKPIT_FH_PRIVATE_TOKEN": "none", "COCKPIT_WEIGHT_TOKEN": "none",
+                     "COCKPIT_URL_FOOD": food, "COCKPIT_URL_WEIGHT": weight]
+        let app = start(tab: "dashboard", extra: fresh.merging(["COCKPIT_HEALTH_TOKEN": "none"]) { _, neu in neu })
+        // Ohne jeden Zugang geht das Blatt von selbst auf.
+        let field = app.secureTextFields["healthToken"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+
+        field.tap()
+        field.typeText("kein-gueltiger-token")
+        app.buttons["Speichern"].tap()
+        let refusal = app.staticTexts["Essen: Kein Zugang – Token prüfen."]
+        let refused = refusal.waitForExistence(timeout: 20)
+        shoot(app, "zugang-abgelehnt")
+        XCTAssertTrue(refused, "ein Token, den der Dienst nicht kennt, darf nicht gespeichert werden")
+
+        // Nach der Absage ist das Feld wieder leer - der Link haengt sich nicht an.
+        field.tap()
+        field.typeText("\(food)/setup?token=\(token)")
+        app.buttons["Speichern"].tap()
+        // Angenommen: das Blatt geht zu, das Dashboard laedt als diese Person.
+        XCTAssertTrue(field.waitForNonExistence(timeout: 20), "nach dem Speichern geht das Blatt zu")
+        XCTAssertTrue(app.staticTexts["Recovery"].waitForExistence(timeout: 15))
+        shoot(app, "zugang-angenommen-dashboard")
+        XCTAssertFalse(app.staticTexts["Kein Zugang - Token prüfen."].exists)
+
+        // Der Token ueberlebt den Neustart, und das Blatt nennt die Person, wie
+        // der Dienst sie meldet. Leer heisst hier: nichts an der Ablage aendern.
+        app.terminate()
+        let again = start(tab: "setup", extra: fresh.merging(["COCKPIT_HEALTH_TOKEN": ""]) { _, neu in neu })
+        XCTAssertTrue(again.staticTexts["healthAccess"].waitForExistence(timeout: 10))
+        shoot(again, "zugang-nach-neustart")
+        XCTAssertTrue(again.staticTexts["healthAccess"].label.hasPrefix("✓ "))
+        XCTAssertFalse(again.buttons["Besitzer-Token"].exists)
+    }
+
+    /// Felix' iPhone: das Blatt von vorher, ohne das neue Feld.
+    func testSetupWithOwnerTokensIsAsBefore() {
+        let app = start(tab: "setup", extra: demo)
+        XCTAssertTrue(app.secureTextFields["privateToken"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.secureTextFields["weightToken"].exists)
+        XCTAssertFalse(app.secureTextFields["healthToken"].exists)
+        XCTAssertFalse(app.buttons["Besitzer-Token"].exists)
+        shoot(app, "zugang-besitzer")
+    }
+
     // MARK: - Dashboard
 
     /// Ohne Vorgabe macht die App im Dashboard auf (Felix, 09.10.).
@@ -76,6 +176,39 @@ final class HealthyUITests: XCTestCase {
         weight.tap()
         XCTAssertTrue(app.navigationBars["Gewicht"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.tabBars.buttons["Gewicht"].isSelected)
+    }
+
+    /// Eiweiss von heute steht seit 10.11. in der Essen-Kachel des Dashboards,
+    /// mit Farbpunkt (in der Vorfuehrung 150 von 180 g bei Erhalt 130 - gelb).
+    func testDashboardShowsTodaysProtein() {
+        let app = launch(tab: "dashboard", extra: demo)
+        let protein = app.descendants(matching: .any).matching(identifier: "dashboardProtein").firstMatch
+        XCTAssertTrue(protein.waitForExistence(timeout: 20))
+        shoot(app, "dashboard-eiweiss")
+        XCTAssertEqual(protein.label, "Eiweiß 150/180 g")
+    }
+
+    /// Das Ziele-Blatt hat seit 10.11. unter „Eiweiß“ den Erhalt, und das
+    /// Gewicht-Menue die Koerpergroesse - beide kommen vom Dienst.
+    func testSheetsOfferProteinFloorAndHeight() {
+        var app = launch(tab: "food", extra: demo)
+        let foodMenu = app.navigationBars.buttons["foodMenu"].firstMatch
+        XCTAssertTrue(foodMenu.waitForExistence(timeout: 20))
+        foodMenu.tap()
+        app.buttons["Tagesziele …"].tap()
+        XCTAssertTrue(app.staticTexts["Eiweiß Erhalt (g)"].waitForExistence(timeout: 10))
+        shoot(app, "ziele-blatt-erhalt")
+        app.terminate()
+
+        app = launch(tab: "weight", extra: demo)
+        let weightMenu = app.navigationBars.buttons["weightMenu"].firstMatch
+        XCTAssertTrue(weightMenu.waitForExistence(timeout: 20))
+        weightMenu.tap()
+        app.buttons["Größe …"].tap()
+        let field = app.textFields["heightField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        shoot(app, "groesse-blatt")
+        XCTAssertEqual(field.value as? String, "188")
     }
 
     /// Das Logbook im Dashboard (seit 12.10.): gestern ist halb beantwortet und

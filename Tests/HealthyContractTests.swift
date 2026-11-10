@@ -289,4 +289,45 @@ final class HealthyContractTests: XCTestCase {
         XCTAssertEqual(try json(35.84)["wristTemperatureCelsius"] as? Double, 35.84)
         XCTAssertNil(try json(nil)["wristTemperatureCelsius"])
     }
+
+    // MARK: - Kalorienzaehler seit 10.11. (Vertrag §11)
+
+    /// `GET /api/food/targets` - das Beispiel aus dem Vertrag §11.1.
+    func testDecodesTargetsWithProteinFloor() throws {
+        let targets = try decode(Nutrients.self, """
+        {"kcal":2300.0,"proteinG":195.0,"carbsG":236.0,"fatG":70.0,"proteinMinG":140.0,"proteinMinDefault":false}
+        """)
+        XCTAssertEqual(targets.proteinG, 195)
+        XCTAssertEqual(targets.proteinMinG, 140)
+        XCTAssertEqual(targets.proteinMinDefault, false)
+
+        // Niemand hat einen Erhalt gesetzt: der Dienst rechnet ihn aus dem Ziel.
+        let byDefault = try decode(Nutrients.self, """
+        {"kcal":2300.0,"proteinG":200.0,"carbsG":235.5,"fatG":62.0,"proteinMinG":145.0,"proteinMinDefault":true}
+        """)
+        XCTAssertEqual(byDefault.proteinMinDefault, true)
+    }
+
+    /// `POST /api/food/devices` (§11.2): Healthy nennt die Umgebung; die
+    /// Anmeldungen bei To-Do und Noten bleiben, wie sie waren.
+    func testDeviceRegistrationNamesTheEnvironment() throws {
+        func json(_ registration: DeviceRegistration) throws -> [String: Any] {
+            try XCTUnwrap(try JSONSerialization.jsonObject(with: APIClient.encoder().encode(registration))
+                          as? [String: Any])
+        }
+        let healthy = try json(DeviceRegistration(token: "abc", environment: APNsEnvironment.production.rawValue))
+        XCTAssertEqual(healthy["token"] as? String, "abc")
+        XCTAssertEqual(healthy["environment"] as? String, "production")
+        let other = try json(DeviceRegistration(token: "abc"))
+        XCTAssertEqual(other.count, 1, "ohne Umgebung bleibt das Feld weg")
+    }
+
+    /// `GET /api/food/features`: `me` nennt die Person des Zugangs; ein
+    /// aelterer Dienst kennt das Feld nicht.
+    func testDecodesFeaturesWithAndWithoutTheName() throws {
+        let named = try decode(Features.self, #"{"quickCapture":true,"me":"person-a"}"#)
+        XCTAssertEqual(named.me, "person-a")
+        XCTAssertTrue(named.quickCapture)
+        XCTAssertNil(try decode(Features.self, #"{"quickCapture":false}"#).me)
+    }
 }

@@ -10,6 +10,13 @@
 # der Weg: einmal hochladen, sie installiert ueber die TestFlight-App, Updates
 # kommen per Fingertipp. Ein Build laeuft dort 90 Tage.
 #
+# Healthy (seit 10.11., mit persoenlichem Token auf dem zweiten Handy) bringt
+# Kachel, Uhr-App und Komplikation mit: EIN App-Eintrag in App Store Connect
+# (Bundle-ID com.fherrmann.cockpit) deckt alle vier Bundles. ⚠️ Den
+# TestFlight-Build NICHT auf Felix' eigenes iPhone laden: dieselbe Bundle-ID,
+# er ersetzte dort den Entwickler-Install, und die Push-Kennung wechselte in
+# die Produktions-Welt.
+#
 # Zugang: ein App-Store-Connect-API-Schluessel. Er liegt NICHT im Repo:
 #   ~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8   (nur einmal ladbar)
 #   ~/.appstoreconnect/config                            (ASC_KEY_ID=..., ASC_ISSUER_ID=...)
@@ -59,6 +66,26 @@ elif [ "$MODE" != "--export-only" ]; then
     exit 1
 fi
 
+# Was App Store Connect an jedem Bundle prueft, auf einen Blick (seit 10.11.,
+# Healthy bringt Kachel, Uhr-App und Komplikation mit): mit welcher
+# aps-environment signiert ist, ob das Privacy-Manifest drin liegt und ob eine
+# Begruendung fuer den Schrittzaehler dasteht. Im Archiv steht noch
+# "development" - archiviert wird mit der Entwicklungssignatur, erst der Export
+# signiert neu und setzt "production".
+inspect() {
+    local root="$1" bundle name aps privacy motion
+    find "$root" \( -name '*.app' -o -name '*.appex' \) -print | while read -r bundle; do
+        name="${bundle#"$(dirname "$root")/"}"
+        aps="$(codesign -d --entitlements - --xml "$bundle" 2>/dev/null \
+               | plutil -extract aps-environment raw -o - - 2>/dev/null || true)"
+        privacy="fehlt"; [ -f "$bundle/PrivacyInfo.xcprivacy" ] && privacy="da"
+        motion="-"
+        /usr/libexec/PlistBuddy -c 'Print :NSMotionUsageDescription' "$bundle/Info.plist" >/dev/null 2>&1 && motion="da"
+        printf '  %-58s aps-environment=%-12s Privacy-Manifest=%-6s Motion-Text=%s\n' \
+            "$name" "${aps:--}" "$privacy" "$motion"
+    done
+}
+
 BUILD="$(date +%Y%m%d%H%M)"
 ARCHIVE="build/archive/$APP.xcarchive"
 EXPORT="build/export/$APP"
@@ -70,6 +97,9 @@ xcodebuild archive -project Cockpit.xcodeproj -scheme "$APP" \
     -destination 'generic/platform=iOS' -archivePath "$ARCHIVE" \
     -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} \
     CURRENT_PROJECT_VERSION="$BUILD" -quiet
+
+echo "== Bundles im Archiv =="
+inspect "$ARCHIVE/Products/Applications/$APP.app"
 
 DESTINATION=upload
 [ "$MODE" = "--export-only" ] && DESTINATION=export
@@ -107,6 +137,11 @@ fi
 
 if [ "$DESTINATION" = "export" ]; then
     ls -la "$EXPORT"/*.ipa
+    # So, wie es hochginge: neu signiert mit dem Verteilungsprofil. Ausgepackt
+    # in den Export-Ordner, den der naechste Lauf ohnehin neu anlegt.
+    unzip -q -o "$EXPORT"/*.ipa -d "$EXPORT/unpacked"
+    echo "== Bundles in der .ipa =="
+    inspect "$EXPORT/unpacked/Payload/$APP.app"
     echo "Nur exportiert - nichts hochgeladen."
 else
     echo "Hochgeladen: $APP Build $BUILD. In App Store Connect unter TestFlight erscheint er nach ein paar Minuten"
