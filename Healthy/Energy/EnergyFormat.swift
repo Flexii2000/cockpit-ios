@@ -73,9 +73,11 @@ enum EnergyFormat {
 
     // MARK: - Kacheln im Gewicht-Tab
 
-    /// „Defizit ⌀ 7 T": „460 kcal", ein Ueberschuss als „−120 kcal".
+    /// „Defizit ⌀ 7 T": „460 kcal", ein Ueberschuss **ohne Minus** als „120 kcal" - die
+    /// Kachel faerbt ihn rot, die Notiz sagt „Überschuss" (Felix, 10.11.: das „−" las sich
+    /// wie „kein Defizit, sondern ein Plus").
     static func deficit7(_ summary: EnergySummary?) -> String {
-        summary?.deficit7.map(kcal) ?? "–"
+        summary?.deficit7.map { kcal(abs($0)) } ?? "–"
     }
 
     /// „Überschuss", wenn es einer ist; „5 von 7 Tagen", wenn Tage fehlen.

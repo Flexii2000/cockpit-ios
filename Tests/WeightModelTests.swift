@@ -307,7 +307,7 @@ final class WeightWidgetTests: XCTestCase {
         return try! APIClient.decoder().decode(EnergySummary.self, from: Data(json.utf8))
     }
 
-    /// Die Formate aus dem Vertrag (§5): deutsch, ein Ueberschuss mit „−",
+    /// Die Formate aus dem Vertrag (§5): deutsch, ein Ueberschuss ohne „−" (rot, seit 10.11.),
     /// die Kalibrierung als Korrektur in ganzen Prozent.
     func testEnergyTilesFollowTheContract() {
         let weight = summary().weight
@@ -320,7 +320,10 @@ final class WeightWidgetTests: XCTestCase {
         XCTAssertEqual(WeightWidget.calibration.note(deficit), "25 Tage")
 
         let surplus = TileInput(weight: weight, energy: energy(deficit7: -120, days: 5))
-        XCTAssertEqual(WeightWidget.deficit7.value(surplus), "−120 kcal")
+        XCTAssertEqual(WeightWidget.deficit7.value(surplus), "120 kcal", "ohne Minus - rot und mit Notiz")
+        XCTAssertEqual(WeightWidget.deficit7.tone(surplus), .bad)
+        XCTAssertEqual(WeightWidget.deficit7.tone(deficit), .good)
+        XCTAssertNil(WeightWidget.deficit7.tone(TileInput(weight: weight, energy: energy(deficit7: nil))))
         XCTAssertEqual(WeightWidget.deficit7.note(surplus), "Überschuss · 5 von 7 Tagen")
 
         XCTAssertEqual(WeightWidget.calibration.value(TileInput(weight: weight, energy: energy(deficit7: nil, factor: 1.03))), "+3 %")

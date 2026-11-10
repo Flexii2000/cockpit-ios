@@ -174,6 +174,11 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
         case .totalDiff:
             guard let current = s.current, let start = s.startWeight else { return nil }
             return current <= start ? .good : .bad
+        case .deficit7:
+            // Gruen ein Defizit, rot ein Ueberschuss - die Zahl traegt kein Vorzeichen
+            // (Felix, 10.11.). Nach dem Runden, wie die Notiz: −0,3 ist ein Defizit von 0.
+            guard let deficit = input.energy?.deficit7 else { return nil }
+            return deficit.rounded() < 0 ? .bad : .good
         default:
             return nil
         }
