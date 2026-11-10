@@ -12,6 +12,9 @@
 > „kein Defizit“). Für VoiceOver mit Wort davor. `EnergyCardModel.Week.averageIsSurplus`, Tests in
 > `EnergyCardModelTests`; Vertrag §5 Punkt 4. Auf Felix' iPhone seit 17:45, Android 1.12 (74)
 > veröffentlicht. Im Simulator nicht gesehen (die Zahl liegt unter der Tab-Leiste), nur Unit-Tests.
+> Abends ebenso die Kachel „Defizit ⌀ 7 T“ im Gewicht-Tab (`WeightWidget.tone`, Notiz „Überschuss“
+> bleibt; Web und Android 1.12 (75) gleich). Dazu im Dienst: Kalibrierung rollend über 40 Tage, Felix'
+> fester Faktor gelöscht (Vertrag §1.4) - in der App ändert sich nur die Kachel („N Tage“ statt „fest“).
 
 > **Defizit grün, Überschuss rot (10.11., Felix):** Zahl, Bilanzbalken und Wochenbalken der
 > Energie-Karte und die Fläche zwischen „Verbrauch ⌀“ und „kcal ⌀“ zeigen ein Defizit jetzt grün

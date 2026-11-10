@@ -13,8 +13,8 @@ sind „Gewicht ⌀“ (grün) und „Defizit ⌀“ zusammen vorgewählt, genau
 „Karte grün, Kurven orange“ gewählt. Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §5.
 Nachtrag am selben Tag (Felix): „⌀ 7 T“ der Energie-Karte steht **ohne Vorzeichen** da, grün bei
 Defizit, rot bei Überschuss - „−120 kcal“ las sich wie „kein Defizit, sondern ein Plus“.
-**Verworfen:** Minus behalten und nur einfärben. Die Kachel „Defizit ⌀ 7 T“ im Gewicht-Tab bleibt,
-wie sie ist (dort steht „Überschuss“ als Notiz darunter).
+**Verworfen:** Minus behalten und nur einfärben. Am Abend auf Felix' Wunsch genauso die Kachel
+„Defizit ⌀ 7 T“ im Gewicht-Tab (Ton `good`/`bad`); die Notiz „Überschuss“ darunter bleibt.
 
 ## 2026-11-10 — Uhr: Makros als Tachos, nicht als Balken
 Felix nach dem ersten Blick auf die Uhr: „mach in der Watch-App bitte auch Tachos und nicht
