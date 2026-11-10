@@ -17,14 +17,17 @@ struct WatchHomeView: View {
                     .scaleEffect(1.3)
                     .frame(height: 76)
                 if isToday, let consumed = snapshot?.consumed, let targets = snapshot?.targets {
-                    // Knapp gesetzt: auf der kleinen Uhr (40 mm) sollen alle
-                    // drei Zeilen ohne Scrollen unter den Bogen passen.
-                    VStack(spacing: 3) {
+                    // Drei kleine Tachos nebeneinander (Felix, 10.11.: Tachos, keine
+                    // Balken) - knapp gesetzt, damit sie auch auf der kleinen Uhr
+                    // (40 mm) ohne Scrollen unter den kcal-Bogen passen.
+                    HStack(alignment: .top, spacing: 2) {
                         ForEach(Macro.allCases) { macro in
-                            WatchMacroRow(macro: macro, consumed: consumed, targets: targets)
+                            WatchMacroGauge(macro: macro, consumed: consumed, targets: targets)
+                                .frame(maxWidth: .infinity)
                         }
                     }
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 2)
+                    .padding(.top, 2)
                 } else {
                     // Ein Stand von vor dem Update oder von gestern: nur der Bogen.
                     Text("Healthy").font(.footnote).foregroundStyle(.secondary)
@@ -77,35 +80,61 @@ struct WatchHomeView: View {
     #endif
 }
 
-/// Eine Makro-Zeile: „E 96/195“ und ein schmaler Balken, in der Farbe ihres
-/// Stands - Eiweiss rot unter dem Erhalt, gelb ab dem Erhalt, gruen ab dem Ziel
-/// (Vertrag §11.1); Fett und Kohlenhydrate erst ueber dem Ziel gelb und rot.
-struct WatchMacroRow: View {
+/// Ein Makro als kleiner Tacho (Felix, 10.11.: Tachos statt Balken): ein offener
+/// Bogen wie in der Essen-Ansicht des iPhones, der sich bis zum Ziel fuellt, in
+/// der Mitte das Gegessene, in der Luecke unten das Kuerzel, darunter das Ziel.
+/// Die Farbe ist die des Stands - Eiweiss rot unter dem Erhalt, gelb ab dem
+/// Erhalt, gruen ab dem Ziel (Vertrag §11.1); Fett und Kohlenhydrate erst ueber
+/// dem Ziel gelb und rot.
+struct WatchMacroGauge: View {
 
     let macro: Macro
     let consumed: Nutrients
     let targets: Nutrients
 
+    /// Der Bogen laesst unten ein Viertel offen.
+    private static let sweep = 0.75
+    private static let lineWidth: CGFloat = 4
+
     var body: some View {
         let tone = NutritionTone.tone(for: macro, consumed: consumed, targets: targets)
+        let eaten = macro.value(consumed)
         let target = macro.value(targets)
-        let fraction = target > 0 ? min(max(macro.value(consumed) / target, 0), 1) : 0
-        VStack(alignment: .leading, spacing: 2) {
-            Text(WatchMacroText.label(macro, consumed: consumed, targets: targets))
-                .font(.system(.footnote, design: .rounded).monospacedDigit())
-                .foregroundStyle(tone == .neutral || tone == .near ? Color.primary : tone.watchColor)
-            // Von Hand statt `ProgressView`: dessen Balken ist auf der Uhr so
-            // dick, dass die dritte Zeile aus dem Bild rutscht.
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(tone.watchColor.opacity(0.25))
-                    Capsule().fill(tone.watchColor)
-                        .frame(width: geometry.size.width * fraction)
-                }
+        let fraction = target > 0 ? min(max(eaten / target, 0), 1) : 0
+        VStack(spacing: 1) {
+            ZStack {
+                arc(to: 1).stroke(tone.watchColor.opacity(0.25), style: Self.stroke)
+                arc(to: fraction).stroke(tone.watchColor, style: Self.stroke)
+                Text(String(Int(eaten.rounded())))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded).monospacedDigit())
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+                    .padding(.horizontal, 7)
+                Text(macro.short)
+                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    .offset(y: 3)
             }
-            .frame(height: 4)
+            .aspectRatio(1, contentMode: .fit)
+            .frame(maxWidth: 50)
+            .padding(Self.lineWidth / 2)
+            Text("\(Int(target.rounded())) g")
+                .font(.system(size: 10, design: .rounded).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(macro.label)
+        .accessibilityValue(WatchMacroText.label(macro, consumed: consumed, targets: targets))
+    }
+
+    private static var stroke: StrokeStyle { StrokeStyle(lineWidth: lineWidth, lineCap: .round) }
+
+    /// Der Bogen von links unten im Uhrzeigersinn; `share` 1 ist der ganze Tacho.
+    private func arc(to share: Double) -> some Shape {
+        Circle()
+            .trim(from: 0, to: Self.sweep * share)
+            .rotation(.degrees(135))
     }
 }

@@ -3,6 +3,18 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-10 — Uhr: Makros als Tachos, nicht als Balken
+Felix nach dem ersten Blick auf die Uhr: „mach in der Watch-App bitte auch Tachos und nicht
+Balken“. Unter dem kcal-Bogen stehen deshalb drei kleine Tachos nebeneinander (`WatchMacroGauge`
+in `HealthyWatch/WatchViews.swift`): ein offener Bogen wie in der Essen-Ansicht des iPhones, der
+sich bis zum Ziel füllt, in der Mitte das Gegessene, in der Lücke das Kürzel (E, F, KH), darunter
+das Ziel in Gramm, in der Farbe des Stands. Selbst gezeichnet statt `Gauge` mit
+`.accessoryCircular`: der Systemstil zeigt eine Marke auf einem ganz gefärbten Bogen, keinen Bogen,
+der sich füllt - so sieht der kcal-Bogen darüber aus, und drei davon in einer Zeile wären auf der
+kleinen Uhr (40 mm) zu breit. Verworfen: die erste Fassung vom selben Tag, drei Zeilen „E 96/195“
+mit schmalem Balken. Gesehen im Uhren-Simulator auf 46 mm und 40 mm (`COCKPIT_WATCH_DEMO=kcal`),
+alle drei passen ohne Scrollen.
+
 ## 2026-11-10 — Healthy: Morgen-Briefing, Chat, Wochenrückblick, Serien, Eichung, Freunde-Tab
 Felix will das Dashboard ausbauen und mit Freunden Serien haben. Seine Wahl (10.11.): Morgen-Briefing,
 Wochenrückblick, Eichungs-Monitor und Serien-Kachel im Dashboard (nicht: Zielprognose, Jahres-Kalender);

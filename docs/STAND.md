@@ -223,8 +223,9 @@
 >   (g)“ im Ziele-Blatt (schickt nur eine Änderung), Zeile „● Eiweiß 96/195 g“ in der Essen-Kachel
 >   des Dashboards.
 > - **Uhr:** `ComplicationSnapshot` trägt den Tag samt Zielen; die Uhr-App holt ihn beim Öffnen
->   selbst und zeigt unter dem kcal-Bogen „E 96/195“, „F 41/70“, „KH 180/236“ mit schmalem Balken,
->   Eiweiß in seiner Farbe. `Shared/Macro.swift` baut dafür auf der Uhr mit.
+>   selbst und zeigt unter dem kcal-Bogen die drei Makros - zuerst als Zeilen „E 96/195“ mit
+>   schmalem Balken, seit 10.11. nachmittags als drei kleine Tachos (Felix nach dem ersten Blick
+>   auf die Uhr), Eiweiß in seiner Farbe. `Shared/Macro.swift` baut dafür auf der Uhr mit.
 > - **Geprüft:** `tools/verify.sh` (alle grün; Healthy 346 Unit-Tests, davon 46 neu:
 >   `AccessTokenTests`, `HealthCookieTests`, `HealthAccessCheckTests`, `HealthySetupTests`,
 >   `APNsEnvironmentTests`, `ProteinFloorTests`, `WatchSnapshotTests`, dazu Größe/BMI in

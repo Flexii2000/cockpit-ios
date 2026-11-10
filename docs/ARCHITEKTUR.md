@@ -129,7 +129,7 @@ Shared/             was Apps UND Erweiterungen übersetzen: APIClient, Keychain,
 HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, unverändert), seit 14.10.
                     dazu Schritte (Ring) und „Heute" (kcal + Schritte) auf dem Sperrbildschirm
 HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Tagesstand, seit 10.11.
-                    darunter die Makros „E 96/195“ mit Balken, Eiweiß in seiner Farbe; holt den Tag
+                    darunter die Makros als drei kleine Tachos, Eiweiß in seiner Farbe; holt den Tag
                     selbst wie die Komplikation (das Training seit 23.10. in SportWatch)
 HealthyWatchWidget/ kcal-Komplikation der Uhr (Stil der Temperatur-Komplikation)
 HealthyWatchShared/ was iPhone und Uhr teilen: Botschaften (WatchMessages), Komplikations-Stand
