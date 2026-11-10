@@ -111,8 +111,11 @@ einen eigenen Token, und ihrer öffnet **nur** diesen Dienst. Der Dienst
 sortiert die Liste von selbst nach dem Supermarkt-Rundgang (Obst & Gemüse
 zuerst, Drogerie und Haushalt zuletzt) und zeigt je Eintrag ein Symbol; wer
 eine Kategorie von Hand ändert, bringt sie ihm für den Namen bei.
-**Gerichte** sind Zutatenlisten, die mit einem Tipp komplett auf die Liste
-gehen; **Regelmäßig** setzt Dinge von selbst wieder darauf („Klopapier alle
+**Rezepte** (bis 10.11. „Gerichte“) sind Zutatenlisten, die als Ganzes auf die Liste
+gehen - auf Wunsch mit Portionen (die Mengen rechnen mit), Schritten und Nährwerten;
+ein **Rezept-Chat** schlägt welche vor, und beim **Kochen** (Zutaten und Schritte zum
+Abhaken, der Bildschirm bleibt an) landet das Gericht im Kalorienzähler.
+**Regelmäßig** setzt Dinge von selbst wieder auf die Liste („Klopapier alle
 14 Tage", ab dem Abhaken neu gerechnet). Abgehaktes steht durchgestrichen
 unten, mit dem Namen dessen, der es in den Wagen gelegt hat, und verschwindet
 am nächsten Tag. Dieselbe Liste im Browser unter `fherrmann.com/shopping-list`
@@ -128,7 +131,7 @@ damit er nicht wie ein aktueller aussieht. Haken, Messwerte und Essenseinträge
 lassen sich trotzdem eintragen: sie warten in einem Postausgang und gehen beim
 nächsten Netz raus. Nachgerechnet wird bis dahin nichts. Die Einkaufsliste
 geht einen Schritt weiter, weil im Supermarkt am häufigsten das Netz fehlt:
-Haken, neue Einträge und Gerichte erscheinen sofort so, als wären sie durch,
+Haken, neue Einträge und die Zutaten eines Rezepts erscheinen sofort so, als wären sie durch,
 und der nächste Empfang holt den Stand des Dienstes.
 
 **Widgets** — die heute noch übrigen Kalorien auf dem Homescreen, klein

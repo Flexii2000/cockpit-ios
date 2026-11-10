@@ -112,7 +112,7 @@ CohabitShared/      was coHabit UND coHabitWidget teilen: API mit Bearer, Modell
                     App-Gruppe group.com.fherrmann.cohabit, App-Intents, Kachel-Ansichten, Farben
 Einkaufsliste/            App: nur die Einkaufsliste (zweites Handy) - Einstieg und Icon, sonst nichts
   App/
-Shopping/           der Einkaufs-Tab: Store, Liste, Gerichte, Regeln - in Fokus UND Einkaufsliste
+Shopping/           der Einkaufs-Tab: Store, Liste, Rezepte (Rezept, Bearbeiten, Rezept-Chat, Kochansicht), Regeln - in Fokus UND Einkaufsliste
                     (bis 14.10. Healthy statt Fokus)
 Sport/              App (seit 23.10.): Padel und Gym
   App/              Einstieg, Tab-Gerüst, AppDelegate (gespiegeltes Training, Draht zur Uhr)
@@ -654,7 +654,9 @@ Dienst, von wann sie ist. Die Tabs zeigen das als Leiste: „Offline – Stand v
 geantwortet.
 
 **Sofort sichtbar: To-Do, Einkaufsliste, Logbook, Essen, Gewicht** (`PendingChanges`). Anlegen
-(auch Unteraufgaben und die Zutaten eines Gerichts), Abhaken, Ändern, Löschen,
+(auch Unteraufgaben und die Zutaten eines Rezepts - seit 10.11. für eine gewählte Portionenzahl:
+`ShoppingChange.addRecipe`, die Mengen rechnet die App nach der Tabelle des Dienstes,
+`ShoppingQuantity.scale`), Abhaken, Ändern, Löschen,
 „Abgehakte entfernen" gehen nicht mehr direkt an den Dienst, sondern als
 **typisierte Änderung** in die Warteschlange (`TodoChange`, `ShoppingChange`;
 seit Runde 3 auch jeder Logbook-Wert als `LogbookChange` auf der Spur des
@@ -702,6 +704,28 @@ kleine Uhr am Haken sagt es.
 - **Stand gegen Stand:** jede Anfrage bekommt eine Nummer; ein Abruf, der vor
   einer Antwort losging und nach ihr ankommt, ersetzt den neueren Stand nicht.
   Vor einem Abruf wartet der Store bis zu 3 s, bis seine Spur nicht sendet.
+
+**Rezepte in der Einkaufsliste (seit 10.11.2026)** - was davon durch die Warteschlange geht und
+was nicht:
+- **Auf die Liste** ja, als eigener Fall `ShoppingChange.addRecipe` neben `addDish`. Kein
+  weiteres Feld an `addDish`: an einem einzigen unlesbaren Eintrag hängt die ganze Datei der
+  Warteschlange (sie wird dann beiseitegelegt), und ein Gericht, das auf einem Handy mit altem
+  Stand noch wartet, muss lesbar bleiben (`PendingChangesTests`). Die Antwort ist das Brett.
+- **Umgerechnet wird in der App**, nach der Tabelle des Dienstes (`ShoppingQuantity.scale`,
+  gemeinsame Beispiele in `Tests/Fixtures/scale-vectors.json`) - nicht über
+  `GET dishes/{id}/scaled`: der Portionswähler soll ohne Netz gehen, und jede Adresse mit
+  Abfrage bekäme im `OfflineCache` ihre eigene Datei. Der Dienst rechnet beim Senden selbst
+  noch einmal.
+- **Kochen und der Rezept-Chat** sind direkte Aufrufe (`ShoppingAPI.cook`, `chat`, `sendChat`):
+  ihre Antworten sind kein Brett, und in der Warteschlange gälten sie als Offline-Stand der
+  Liste. Der Chat wird ohne Offline-Stand geholt (`APIClient.getFresh`) - ein Gespräch von
+  gestern mit „Antwort läuft“ führte ohne Netz nur in die Irre. Das Gespräch liegt beim Dienst;
+  die App merkt sich davon nichts (`ShoppingChatStore`, die Zeilen rechnet
+  `ShoppingChatTimeline` in `Shared/`, getestet).
+- **Seiten als Werte** (`ShoppingRoute` im Stapel von `ShoppingTab`): der Chat öffnet das
+  gespeicherte Rezept, das Rezept die Kochansicht, ohne dass eine Seite die andere kennt.
+- **Die Kochansicht hält den Bildschirm an** (`UIApplication.shared.isIdleTimerDisabled`) -
+  deshalb liegt sie in `Shopping/` und nicht in `Shared/`.
 
 **Der alte Postausgang** (`Outbox`, rohe `URLRequest`s mit
 `queueWhenOffline: true`) bleibt nur noch für die Waldsitzungen; was eine ältere

@@ -117,6 +117,50 @@ Entschieden beim Bauen:
   die ersten echten Werte zeigen, dass der beobachtete Maximalpuls nicht passt.
 - **Tage ohne Uhr reißen nichts ab.** Ziel, „Akut“ und „Gewohnt“ gehören zum Morgen des Tages
   (§7.3) und laufen weiter; nur der Balken fehlt. In der Karte steht dann `–` mit Ziel und Marke.
+## 2026-11-10 — Einkaufsliste: Rezepte mit Portionen, Rezept-Chat und Kochansicht
+Felix will eine „coolere Gerichte-Funktion“: ein Chat mit einer Claude-Instanz auf dem Heimserver
+schlägt ein Rezept vor, das man ansehen und speichern kann; von den Rezepten aus kocht man direkt
+(das Gericht landet dann in Healthy), und ein Rezept geht mit allen Zutaten für eine wählbare
+Portionenzahl auf die Liste. Der Dienst dazu: `../shopping` (Runde vom 10.11., dort README).
+Aus „Gerichte“ werden **„Rezepte“** - dieselben Objekte, um Portionen, Minuten, Schritte,
+Nährwerte je Portion und „Vorrat“ je Zutat erweitert; beim Dienst heißt alles weiter `dishes`.
+
+Entschieden beim Bauen:
+- **Die App rechnet die Mengen selbst um** (`ShoppingQuantity.scale`, dieselbe Rundungstabelle
+  wie `QuantityParser.scale`, beide gegen `scale-vectors.json`). Verworfen: den Dienst fragen
+  (`GET dishes/{id}/scaled`) - der Portionswähler stünde im Laden ohne Netz still, „Auf die Liste“
+  könnte die Einträge nicht sofort mit den richtigen Mengen zeigen, und jede Abfrage-Adresse bekäme
+  eine eigene Datei im Offline-Stand. Der Preis: die Tabelle steht zweimal. Die gemeinsamen
+  Beispiele halten beide Seiten beieinander; der Dienst rechnet beim Senden ohnehin selbst.
+- **`addRecipe` als neuer Fall, `addDish` unangetastet.** Verworfen: `addDish` um Portionen und
+  Abgewähltes erweitern - ein Eintrag der Warteschlange, der sich nicht mehr lesen lässt, legt die
+  ganze Datei beiseite, und auf Joanas Handy kann beim Update ein Gericht noch warten.
+- **Ein Gericht ohne Portionen und Vorrat behält den einen Tipp** (Wagen in der Zeile): dort gibt
+  es nichts zu wählen. Alles andere wählt man im Rezept - Portionen, welche Zutaten mitgehen;
+  Vorrat ist abgewählt. Verworfen: ein eigenes Blatt „Auf die Liste“ - das Rezept zeigt dieselbe
+  Liste schon.
+- **Kochen und Chat gehen nicht durch die Warteschlange.** Ihre Antworten sind kein Brett; die
+  Warteschlange legte sie als Offline-Stand der Liste ab. Ohne Netz öffnet die Kochansicht
+  trotzdem (aus dem Stand, den die App hat) und zeigt „✗ Healthy“ mit einem Knopf zum
+  Wiederholen. Ohne Nährwerte am Rezept fragt sie gar nicht erst.
+- **Der Chat wird nicht im Offline-Stand gehalten** (`APIClient.getFresh`, neu): das Gespräch
+  liegt beim Dienst, und ein gemerktes „Antwort läuft“ von gestern drehte ohne Netz bis zur
+  Frist. Ohne Antwort des Dienstes gibt es den Chat-Knopf nicht - wie bei `available: false`.
+  Verworfen: das Gespräch in der App spiegeln.
+- **Eigene, schlichte Blasen** statt des Chats aus coHabit - der hängt an dessen Theme, Fotos,
+  Reaktionen. Nachgefragt wird alle 2 s, höchstens 150 s (der Dienst gibt einer Antwort 120 s),
+  nur solange der Chat zu sehen ist. „Erneut senden“ schickt dieselbe Kennung - der Dienst hängt
+  nichts an und fordert nur die Antwort neu an. „Neu“ ohne Rückfrage.
+- **Der Vorschlag ist erst ein Blatt zum Ansehen, dann ein Rezept.** „Speichern“ an der Karte
+  oder im Blatt; danach führt die Karte ins gespeicherte Rezept.
+- **Seiten als Werte** (`ShoppingRoute`, `NavigationStack(path:)`), damit Chat → Rezept →
+  Kochansicht ohne gegenseitige Kenntnis gehen und die Debug-Schalter eine Seite öffnen können.
+- **„Vorrat“ ist beim Bearbeiten ein Haus-Symbol je Zutat**, kein Schalter: der bräuchte eine
+  zweite Zeile unter jeder Zutat.
+- **Keine Erklärtexte:** die leere Rezeptliste ist leer (der Satz „Noch kein Gericht …“ ist weg),
+  der Chat beginnt ohne Vorschläge.
+- **Bildschirm an beim Kochen** über `isIdleTimerDisabled`, nur solange die Ansicht vorn ist -
+  und deshalb in `Shopping/`, nicht in `Shared/`.
 
 ## 2026-11-10 — Healthy für eine zweite Person: persönlicher Token, TestFlight, Eiweiß mit Erhalt, Makros auf der Uhr
 Felix will, dass Joana Healthy auf ihrem iPhone bekommt - mit eigenem Zugang und allem, was seine

@@ -127,6 +127,65 @@
 >   im Dashboard laut Vertrag §5: Briefing, Recovery, Strain, Energie, Gewicht | Essen, Serien |
 >   Eichung, Logbook, Effekte, Wochenrückblick.
 
+> **Einkaufsliste: Rezepte mit Portionen, Rezept-Chat und Kochansicht (10.11., Felix) - gebaut,
+> NICHT installiert, NICHT zu TestFlight hochgeladen:** eigener Schritt der Runde vom 10.11., auf
+> dem Branch `healthy-plus` (in einem eigenen Arbeitsverzeichnis gebaut und danach
+> zusammengeführt). Der Dienst dazu steht in `../shopping` auf `healthy-plus` (Rezepte, Chat,
+> Kochen; README dort), ebenfalls noch nicht ausgerollt. Entscheidungen:
+> `docs/ENTSCHEIDUNGEN.md`, 2026-11-10 „Einkaufsliste: Rezepte …“.
+> - **„Gerichte“ heißen „Rezepte“** (`ShoppingRecipesView`, Zeile „Rezepte“ in der Liste). Ein
+>   Gericht ohne Portionen und Vorrat behält den einen Tipp „Auf die Liste“; jedes andere öffnet
+>   das Rezept. Kein Erklärtext mehr in der leeren Liste.
+> - **Rezept** (`ShoppingRecipeDetailView`): Portionswähler (die Mengen rechnet die App selbst
+>   um, `ShoppingQuantity.scale`, dieselbe Tabelle wie der Dienst), Zutaten zum An- und Abwählen
+>   (Vorrat abgewählt; nicht Umrechenbares blasser und schräg), Schritte, Nährwerte je Portion,
+>   unten „Auf die Liste“ und „Kochen“. Bearbeiten (`ShoppingRecipeEditSheet`): Portionen,
+>   Minuten, Zutaten mit Haus-Symbol für „Vorrat“, Schritte, Nährwerte und Gramm je Portion.
+> - **Auf die Liste** geht durch die Warteschlange (`ShoppingChange.addRecipe`, neuer Fall;
+>   `addDish` unverändert) - sofort zu sehen, auch ohne Netz, mit den umgerechneten Mengen und
+>   ohne Abgewähltes.
+> - **Rezept-Chat** (`ShoppingChatView`, `ShoppingChatStore`, Zeilen aus `ShoppingChatTimeline`):
+>   schlichte Blasen, Frage sofort zu sehen, Antwort wird alle 2 s nachgefragt (höchstens 150 s);
+>   Vorschlag als Karte mit „Ansehen“ (Blatt) und „Speichern“, danach führt die Karte ins
+>   Rezept; „Erneut senden“ mit derselben Kennung; „Neu“ leert. Den Knopf gibt es nur, wenn der
+>   Dienst `available` meldet. Kein Offline-Stand (`APIClient.getFresh`).
+> - **Kochansicht** (`ShoppingCookView`): Zutaten (für die gewählten Portionen) und Schritte zum
+>   Abhaken, große Schrift, Bildschirm bleibt an; beim Öffnen `POST dishes/{id}/cook`, das
+>   Ergebnis je Person als Marke („✓ Felix“), ohne Antwort „✗ Healthy“ mit Wiederholen; ohne
+>   Nährwerte am Rezept keine Anfrage.
+> - **Schalter:** `COCKPIT_SHOPPING=recipes|recipe|cook|chat`, `COCKPIT_RECIPE=<Name>`
+>   (`CLAUDE.md`).
+> - **Geprüft** (Simulator „iPhone Air“, weil parallel ein zweiter Strang baut - dieselben
+>   Aufrufe wie `tools/verify.sh`): alle grün - Healthy 354 XCTest- und
+>   53 Swift-Testing-Tests (davon neu 8 und 20), Vault 37, Fokus 64, coHabit 189, Sport 59,
+>   ClaudeUsageBar 10; HealthyWatch, SportWatch, Einkaufsliste und CloudUsageBar bauen.
+>   Neue Unit-Tests: `ShoppingModelsTests` (Brett vor und nach den Rezepten, Chat, Kochergebnis,
+>   was die App schickt, Zeilen des Chats), `ShoppingQuantityTests` (die 38 Beispiele des
+>   Dienstes aus `Tests/Fixtures/scale-vectors.json`, Rundung, Unlesbares), `ShoppingOverlayTests`
+>   (`addRecipe`: Overlay, Rumpf mit `portions`/`skip`, Meldungen; `addDish` schickt weiter nur
+>   `items`), `PendingChangesTests` (eine Warteschlangen-Datei von vor den Rezepten lädt weiter).
+> - **Gesehen, gegen einen lokal gestarteten Dienst** (`../shopping` auf `healthy-plus`,
+>   `tools/recipe-agent-stub.sh` statt der Claude-Session, dazu ein lokaler Kalorienzähler; UI-Tests
+>   `testRecipeFromChatToCooking`, `testRecipeCanBeCreatedEditedAndDeleted`,
+>   `testARecipeGoesOnTheListWithoutNetwork`): Rezeptliste, Chat mit Vorschlag, Rezept,
+>   Kochansicht je hell und dunkel; dazu hell der Chat beim Warten, das Blatt mit dem Vorschlag,
+>   das Bearbeiten-Blatt, drei statt zwei Portionen (375 g, 4,5 EL, „1 Handvoll“ blass), die
+>   Liste danach (fünf Einträge, Vorrat fehlt), „✓ Felix ✓ Joana“ in der Kochansicht (das Gericht
+>   „Rezept: …“ stand danach bei beiden im lokalen Kalorienzähler). Von Hand angelegt, Portionen
+>   wieder geleert (der Dienst löscht sie), gelöscht. **Ohne Netz** (Dienst angehalten): Rezept
+>   aus dem Offline-Stand geöffnet, drei Portionen auf die Liste - stand sofort da; nach dem
+>   Neustart des Dienstes kam es dort mit denselben Mengen an.
+>   In Fokus (derselbe Code) nur das Rezept im Einkaufs-Tab angesehen, hell.
+> - **Nicht geprüft:** eine echte Claude-Session (nur die Attrappe), der echte Dienst, Tastatur
+>   und Gesten auf dem Gerät (etwa das Umsortieren der Schritte per Ziehen im Bearbeiten-Blatt),
+>   ob der Bildschirm auf dem Gerät wirklich an bleibt, die Kochansicht mit einer abgelehnten
+>   Person (`rejected`), ein Gesprächsende über die Frist von 150 s hinaus.
+> - **Nächster Schritt:** Branch mit `healthy-plus` zusammenführen (beide ändern `docs/STAND.md`,
+>   `docs/ENTSCHEIDUNGEN.md`, `CLAUDE.md`, `tools/run-simulator.sh`, `tools/uitest.sh`), dann
+>   `tools/verify.sh`. Nach dem Ausrollen des Dienstes: `tools/install-device.sh Fokus --launch`
+>   und `tools/testflight.sh Einkaufsliste` (Joanas Handy) - der Export braucht die neue
+>   Lizenzvereinbarung bei Apple (siehe unten).
+>
 > **Healthy für ein zweites iPhone, Eiweiß mit Erhalt, Makros auf der Uhr (10.11., Felix) - gebaut,
 > NICHT installiert, NICHT zu TestFlight hochgeladen:** Teil 1 der Runde vom 10.11. (Branch
 > `healthy-plus`; Vertrag `../weight-app/docs/HEALTHY-CONTRACT.md` §11, die Dienste dazu entstehen

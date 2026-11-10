@@ -1398,20 +1398,31 @@ ebenso das Anlegen ohne Bereich (`create` mit `areaId: nil, today: true`).
 
 ## Einkaufsliste — `/shopping-list/api`
 
-Quelle: `../shopping/src/main/java/com/fherrmann/shopping/`. Eigene Token je
+Quelle: `../shopping/src/main/java/com/fherrmann/shopping/` (Stand 2026-11-10: `controller/`,
+`dto/`, `model/`, `recipe/`, `healthy/`, `service/QuantityParser.java`). Eigene Token je
 Person (`SHOPPING_TOKENS=felix:…,joana:…` in `/etc/shopping.env`), kein
-Privat-Gate. **Jede Antwort ist das ganze Brett.**
+Privat-Gate. **Jede Antwort, die Liste, Rezepte oder Regeln ändert, ist das ganze Brett.**
+Drei Antworten sind keines, weil sie daran nichts ändern: die umgerechneten Zutaten, das
+Ergebnis von „Kochen“ und der Rezept-Chat.
 
 | Methode | Pfad | Was |
 |---|---|---|
-| GET | `/api/board` | `me`, `categories[]` (Reihenfolge = Sortierung), `items[]`, `dishes[]`, `recurring[]` |
+| GET | `/api/board` | `me`, `categories[]` (Reihenfolge = Sortierung), `items[]`, `dishes[]` (die Rezepte), `recurring[]` |
 | POST | `/api/items` | `{name, quantity?, note?, category?}` — ohne `category` ordnet der Dienst zu |
 | PUT | `/api/items/{id}` | dasselbe; mit `category` **lernt** der Dienst den Namen |
 | POST / DELETE | `/api/items/{id}/check` | abhaken (idempotent, `checkedBy` = Name zum Token) / wieder öffnen |
 | POST | `/api/items/clear-checked` | alle abgehakten sofort weg |
 | DELETE | `/api/items/{id}` | löschen |
-| POST/PUT/DELETE | `/api/dishes[/{id}]` | `{name, ingredients:[{name, quantity?}]}` |
-| POST | `/api/dishes/{id}/add` | alle Zutaten auf die Liste (`dishId`, `note` = Gerichtname); antwortet **201**, 400 bei einem Gericht ohne Zutaten |
+| POST | `/api/dishes` | `{name, ingredients:[{name, quantity?, pantry?}], portions?, minutes?, steps?, nutrition?, gramsPerPortion?}` → 201; **409**, wenn ein Rezept schon so heißt |
+| PUT | `/api/dishes/{id}` | derselbe Rumpf. **Fehlt ein Feld, bleibt es** (ältere App-Stände schicken nur Name und Zutaten); der leere Wert löscht: `steps: []`, `portions: 0`, `minutes: 0`, `gramsPerPortion: 0`, `nutrition: {}`. Nur `ingredients` ersetzt die alten ganz; fehlt bei einer Zutat `pantry`, behält die gleichnamige ihr Kennzeichen |
+| DELETE | `/api/dishes/{id}` | löschen, Einträge auf der Liste bleiben |
+| POST | `/api/dishes/{id}/add` | je Zutat ein Eintrag (`dishId`, `note` = Rezeptname); antwortet **201**, 400 ohne Zutaten. Ohne Rumpf alles wie immer. Optional `{items:[{name,id}], portions, skip:[Namen]}`: `portions` rechnet um (**400**, wenn das Rezept keine Portionen hat), `skip` lässt Zutaten weg |
+| GET | `/api/dishes/{id}/scaled?portions=N` | die Zutaten für N Portionen (`{dishId, portions, basePortions, ingredients[] {name, quantity, pantry, scaled}}`); 400 ohne Portionen am Rezept. **Die App fragt das nicht** - sie rechnet selbst (siehe unten) |
+| POST | `/api/dishes/{id}/cook` | „Kochen“, kein Rumpf → 200 `{dishId, reason, healthy[] {person, status, message}}`: das Rezept als Gericht „Rezept: <Name>“ im Kalorienzähler aller, die Healthy haben. Auch bei einem Ausfall 200 |
+| GET | `/api/chat` | der Rezept-Chat der Person - und die Nachfrage, solange `job.status` `running` ist |
+| POST | `/api/chat/messages` | `{text, id}` → **202** mit dem Gespräch und `job.status: "running"`. 400 leer oder über 1.000 Zeichen, 403 nicht freigeschaltet, 409 solange eine Antwort läuft, 429 Tageslimit, 503 kein Agent. Dieselbe `id` noch einmal hängt nichts an - steht die Nachricht ohne Antwort da und läuft nichts, fordert sie nur die Antwort neu an |
+| DELETE | `/api/chat` | „Neu“ → 200 leeres Gespräch; eine Antwort, die noch unterwegs war, verwirft der Dienst |
+| POST | `/api/chat/drafts/{messageId}/save` | den Entwurf einer Antwort als Rezept speichern → **201 Brett**; ein zweiter Aufruf legt nichts mehr an; 409, wenn ein Rezept schon so heißt |
 | POST/PUT/DELETE | `/api/recurring[/{id}]` | `{name, quantity?, everyDays, nextAt?}` (`yyyy-MM-dd`) |
 | GET | `/setup?token=…` | Cookie setzen, Weiterleitung auf die Oberfläche |
 
@@ -1420,19 +1431,29 @@ Board     me, categories[] {key, label, emoji, symbol, color (#RRGGBB)}, items[]
 Item      id, name, quantity? (Text: „500 g", „2 Stk" - siehe ShoppingQuantity), note?,
           addedAt, addedBy, checkedAt?, checkedBy?,
           dishId?, ruleId?, category (Schlüssel, nie leer)
-Dish      id, name, ingredients[] {name, quantity?}, createdAt
+Dish      id, name, ingredients[] {name, quantity?, pantry}, createdAt,
+          portions?, minutes?, steps[], nutrition? {kcal, proteinG, carbsG, fatG} (je Portion),
+          gramsPerPortion?, source? ("chat" bei einem gespeicherten Entwurf), createdBy?
 Rule      id, name, quantity?, everyDays, nextAt (ISO-Datum), createdAt
+Chat      available, messages[] {id, role ("user" | "assistant"), text, at, draft?, savedDishId?},
+          job? {status ("running" | "failed"), elapsedSeconds?, error?}
+Draft     name, portions?, minutes?, ingredients[] {name, quantity?, pantry}, steps[],
+          nutrition?, gramsPerPortion?                    (wie der Rumpf eines Rezepts)
+Cook      dishId, reason? ("no-nutrition" | "not-configured"), healthy[] {person,
+          status ("created" | "updated" | "unchanged" | "rejected" | "failed"), message?}
 ```
 
 Null-Felder kommen als `null`, nicht weggelassen; Zeitpunkte tragen
 Mikrosekunden (`2026-09-04T22:29:08.516444Z`) — `APIClient.parseInstant`
-streicht den Bruchteil, bevor `ISO8601DateFormatter` ihn sieht.
+streicht den Bruchteil, bevor `ISO8601DateFormatter` ihn sieht. Die neuen Felder
+am Rezept sind in der App alle optional: ein Brett aus dem Offline-Stand von vor
+den Rezepten hat sie nicht (`ShoppingModelsTests`).
 
 Regeln, die der Dienst durchsetzt: **derselbe Name wird ein Eintrag** —
 Groß-/Kleinschreibung und Leerraum zählen nicht; Mengen gleicher Einheit
 werden addiert („500 g“ + „500 g“ = „1000 g“), verschiedene stehen nebeneinander
 („500 g + 1 Pck“); ein abgehakter Eintrag zählt nicht mehr als „steht schon
-drauf“. Gilt für Eingaben, Gerichte und Regeln (eine Regel hängt sich an einen
+drauf“. Gilt für Eingaben, Rezepte und Regeln (eine Regel hängt sich an einen
 vorhandenen Eintrag). Offene Einträge stehen in
 Kategorie-Reihenfolge (Supermarkt-Rundgang), darin nach `addedAt`; abgehakte
 bleiben bis zum Tageswechsel (Europe/Berlin) sichtbar und liegen danach noch
@@ -1441,15 +1462,40 @@ auf heute + `everyDays`; der Regel-Lauf (stündlich, beim Start, nach dem
 Anlegen) fügt nichts doppelt hinzu, solange ein offener Eintrag der Regel da
 ist.
 
+**Rezepte (seit 2026-11-10).** Ein Gericht von früher ist ein Rezept ohne die neuen
+Felder; beim Dienst, im Brett und in der Datei heißt alles weiter `dishes`.
+`nutrition` gilt je Portion, alle vier Werte oder keiner, und braucht
+`gramsPerPortion`; Grenzen: `portions` 1–99, `minutes` 1–1.440, `gramsPerPortion`
+1–5.000, höchstens 40 Schritte und 60 Zutaten. `pantry` heißt „hat man meist da“.
+- **Umrechnen** (`QuantityParser.scale`): Menge × Portionen ÷ Portionen des Rezepts,
+  kaufmännisch gerundet je Einheit - `g`/`ml` ab 10 auf ganze, darunter auf eine
+  Nachkommastelle; `kg`/`l`/`cl`/`Pfund` auf zwei Nachkommastellen; alles andere auf
+  halbe; nie auf null. Teile mit „ + “ einzeln; lässt sich einer nicht lesen („eine
+  Handvoll“), bleibt die ganze Menge, wie sie ist (`scaled: false`). **Die App rechnet
+  nach derselben Tabelle selbst** (`ShoppingQuantity.scale`), damit der Portionswähler
+  und „Auf die Liste“ ohne Netz gehen; beide Seiten laufen gegen dieselben Beispiele
+  (`../shopping/src/test/resources/scale-vectors.json`, Kopie in `Tests/Fixtures/`).
+- **Kochen** legt bei jeder Person der Liste, die es im Kalorienzähler gibt, das Gericht
+  „Rezept: <Name>“ an (je 100 g aus `nutrition` und `gramsPerPortion`, eine Portion als
+  Vorgabe); ohne Nährwerte `reason: "no-nutrition"` und eine leere Liste. Wer kein Healthy
+  hat, steht nicht in `healthy`. Ist der Kalorienzähler nicht erreichbar, steht bei allen
+  `failed`.
+- **Rezept-Chat**: jede Antwort ist eine Claude-Session auf dem Server (ohne Werkzeuge),
+  sie entsteht im Hintergrund; `available` sagt, ob die Person freigeschaltet und der
+  Agent eingerichtet ist - sonst zeigt die App den Chat nicht. Höchstens eine offene
+  Frage je Person, 40 Nachrichten je Person und Tag, 120 s je Antwort.
+
 ⚠️ **Ohne Netz** (seit 12.10.2026): Hinzufügen, Abhaken, Ändern, Löschen,
-„Abgehakte entfernen" und ein Gericht auf die Liste gehen durch die
+„Abgehakte entfernen" und ein Rezept auf die Liste gehen durch die
 Warteschlange (`PendingChanges`, `ShoppingChange`) und sind sofort zu sehen.
 Neue Einträge (und jede Zutat bei `POST /api/dishes/{id}/add`, Rumpf
-`{items:[{name,id}]}`) tragen die Kennung der App; dieselbe zweimal legt nichts
+`{items:[{name,id}]}`, beim Rezept dazu `portions` und `skip`) tragen die Kennung der
+App; dieselbe zweimal legt nichts
 an, und geht der Eintrag in einem gleichnamigen offenen auf, trifft die Kennung
 der App diesen (`clientIds`). `clear-checked` schickt die Kennungen, die die App
 abgehakt sah (`{ids}`) — ein Haken der anderen Person, der inzwischen dazukam,
-bleibt. Gerichte und Regeln pflegen wartet auf die Antwort.
+bleibt. Rezepte und Regeln pflegen, der Chat und „Kochen“ warten auf die Antwort;
+`GET /api/chat` geht am Offline-Stand vorbei (`APIClient.getFresh`).
 
 ## Padel — `/padel/api` (seit 2026-10-23)
 
