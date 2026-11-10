@@ -150,7 +150,8 @@ final class WeightWidgetTests: XCTestCase {
     /// Dienst, der sie noch nicht kennt.
     private func summary(current: Double? = 83.2, target: Double? = 82.7,
                          corridorReached: Bool = true,
-                         residual7: Double? = nil, residual7Days: Int = 0) -> TileInput {
+                         residual7: Double? = nil, residual7Days: Int = 0,
+                         heightCm: Double? = 194) -> TileInput {
         let json = """
         {"date":"2026-09-01","current":\(jsonNumber(current)),
          "avg7":83.5,"avg14":null,"avg30":null,
@@ -158,7 +159,8 @@ final class WeightWidgetTests: XCTestCase {
          "targetDate":"2026-12-20","goalWeight":82.0,"startWeight":92.0,
          "recordingStart":"2025-01-05","corridorLower":80.5,"corridorUpper":83.5,
          "corridorReachedOn":\(corridorReached ? "\"2026-07-14\"" : "null"),
-         "residual7":\(jsonNumber(residual7)),"residual7Days":\(residual7Days)}
+         "residual7":\(jsonNumber(residual7)),"residual7Days":\(residual7Days),
+         "heightCm":\(jsonNumber(heightCm))}
         """
         return TileInput(weight: try! APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8)))
     }
@@ -211,10 +213,43 @@ final class WeightWidgetTests: XCTestCase {
                                                       corridorReached: false)), .bad)
     }
 
-    func testBmiUsesConfiguredHeight() {
+    /// Die Groesse kommt seit 10.11. mit der Summary vom Dienst - je Person.
+    func testBmiUsesTheHeightFromTheService() {
         // 83,2 kg bei 1,94 m -> 22,1
         XCTAssertEqual(WeightWidget.bmi.value(summary()), "22.1")
         XCTAssertEqual(WeightWidget.bmi.tone(summary()), .good)
+        // Dieselben 83,2 kg bei 1,70 m -> 28,8: eine andere Person, ein anderer BMI.
+        XCTAssertEqual(WeightWidget.bmi.value(summary(heightCm: 170)), "28.8")
+        XCTAssertEqual(WeightWidget.bmi.tone(summary(heightCm: 170)), .warn)
+    }
+
+    /// Ohne Groesse kein BMI - auch nicht mit einer angenommenen.
+    func testBmiNeedsAHeight() {
+        XCTAssertEqual(WeightWidget.bmi.value(summary(heightCm: nil)), "–")
+        XCTAssertNil(WeightWidget.bmi.tone(summary(heightCm: nil)))
+    }
+
+    /// Ein aelterer Dienst kennt `heightCm` nicht - die Summary laedt trotzdem.
+    func testSummaryDecodesWithoutHeight() throws {
+        let json = #"{"date":"2026-09-01","current":83.2,"residual7Days":0}"#
+        let summary = try APIClient.decoder().decode(WeightSummary.self, from: Data(json.utf8))
+        XCTAssertNil(summary.heightCm)
+        XCTAssertEqual(WeightWidget.bmi.value(TileInput(weight: summary)), "–")
+    }
+
+    /// Das Groesse-Blatt nimmt nur an, was der Dienst auch annimmt (100–250 cm).
+    func testHeightInputMatchesTheService() throws {
+        XCTAssertEqual(HeightSheet.parse("172"), 172)
+        XCTAssertEqual(HeightSheet.parse(" 172,5 "), 172.5)
+        XCTAssertEqual(HeightSheet.parse("100"), 100)
+        XCTAssertEqual(HeightSheet.parse("250"), 250)
+        XCTAssertNil(HeightSheet.parse("99"))
+        XCTAssertNil(HeightSheet.parse("251"))
+        XCTAssertNil(HeightSheet.parse("1,72 m"))
+        XCTAssertNil(HeightSheet.parse(""))
+        let body = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(UpdateHeightRequest(heightCm: 172))) as? [String: Any]
+        XCTAssertEqual(body?["heightCm"] as? Double, 172)
     }
 
     func testProgressCountsFromStartToGoal() {

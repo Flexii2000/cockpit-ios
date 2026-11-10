@@ -8,6 +8,7 @@ struct WeightTab: View {
     @State private var store = WeightStore()
     @State private var showingEntry = false
     @State private var showingTarget = false
+    @State private var showingHeight = false
     @State private var showingStepsGoal = false
     @State private var showingHighlights = false
 
@@ -49,6 +50,7 @@ struct WeightTab: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Ziel anpassen …") { showingTarget = true }
+                        Button("Größe …") { showingHeight = true }
                         Button("Schrittziel …") { showingStepsGoal = true }
                         Button("Zeiträume …") { showingHighlights = true }
                         if HealthSync.shared.isAvailable {
@@ -74,6 +76,7 @@ struct WeightTab: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityIdentifier("weightMenu")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -100,6 +103,7 @@ struct WeightTab: View {
             }
             .sheet(isPresented: $showingEntry) { WeightEntrySheet(store: store) }
             .sheet(isPresented: $showingTarget) { WeightTargetSheet(store: store) }
+            .sheet(isPresented: $showingHeight) { HeightSheet(store: store) }
             .sheet(isPresented: $showingStepsGoal) { StepsGoalSheet(store: store) }
             .sheet(isPresented: $showingHighlights) { HighlightsSheet(store: store) }
         }

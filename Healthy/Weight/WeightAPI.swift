@@ -82,4 +82,10 @@ struct WeightAPI: Sendable {
         try await client.send("PUT", "/api/weight/target",
                               body: UpdateTargetRequest(targetWeightKg: weightKg))
     }
+
+    /// Die Koerpergroesse fuer den BMI - je Person beim Dienst.
+    func updateHeight(_ heightCm: Double) async throws -> WeightSummary {
+        try await client.send("PUT", "/api/weight/height",
+                              body: UpdateHeightRequest(heightCm: heightCm))
+    }
 }

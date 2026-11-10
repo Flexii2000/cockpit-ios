@@ -54,10 +54,6 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
     /// noch nie jemand etwas entfernt hat.
     static let defaults: [WeightWidget] = [.current, .goal, .diff, .bmi]
 
-    /// Koerpergroesse fuer den BMI. Steht so auch in der Weboberflaeche
-    /// (`HEIGHT_M`); eine weitere Personalisierung braucht diese App nicht.
-    static let heightM = 1.94
-
     var label: String {
         switch self {
         case .current:        "Aktuell"
@@ -203,8 +199,11 @@ enum WeightWidget: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// Mit der Groesse aus der Summary (seit 10.11.) - Healthy laeuft auch bei
+    /// einer zweiten Person, und die ist nicht 1,94 m. Ohne Groesse kein BMI.
     private static func bmi(_ s: WeightSummary) -> Double? {
-        guard let current = s.current else { return nil }
-        return current / (heightM * heightM)
+        guard let current = s.current, let heightCm = s.heightCm, heightCm > 0 else { return nil }
+        let meters = heightCm / 100
+        return current / (meters * meters)
     }
 }

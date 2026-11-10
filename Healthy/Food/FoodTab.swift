@@ -269,6 +269,7 @@ struct FoodTab: View {
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
+            .accessibilityIdentifier("foodMenu")
         }
     }
 

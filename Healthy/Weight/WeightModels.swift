@@ -45,6 +45,11 @@ struct WeightSummary: Decodable, Sendable {
     /// Dienst von vor der Kachel - deshalb optional, damit die Summary dann
     /// trotzdem laedt.
     let residual7Days: Int?
+    /// Koerpergroesse fuer den BMI, wie der Dienst sie kennt (seit 10.11. von
+    /// dort statt fest im Code): je Person gespeichert, fuer Felix mit einer
+    /// Vorgabe des Dienstes. `nil`, solange niemand eine eingetragen hat - der
+    /// BMI zeigt dann „–“.
+    var heightCm: Double? = nil
 
     /// Liegt der aktuelle Wert im Zielkorridor? Erst ab `corridorReachedOn`.
     var isInCorridor: Bool {
@@ -147,6 +152,13 @@ struct NewWeightRequest: Encodable, Sendable {
 
 struct UpdateTargetRequest: Encodable, Sendable {
     let targetWeightKg: Double
+}
+
+/// `PUT /api/weight/height` - der Dienst nimmt 100 bis 250 cm.
+struct UpdateHeightRequest: Encodable, Sendable {
+    let heightCm: Double
+
+    static let range: ClosedRange<Double> = 100...250
 }
 
 /// Zeitraum der Kurve. Die Weboberflaeche stapelt vier Diagramme untereinander;

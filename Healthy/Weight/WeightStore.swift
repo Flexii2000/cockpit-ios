@@ -302,6 +302,18 @@ final class WeightStore {
         }
     }
 
+    func updateHeight(_ heightCm: Double) async -> Bool {
+        guard !isDemo else { return true }
+        do {
+            summary = try await api.updateHeight(heightCm)
+            clearError()
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
     func addHighlight(_ request: NewHighlightRequest) async -> Bool {
         guard !isDemo else { return true }
         do {
