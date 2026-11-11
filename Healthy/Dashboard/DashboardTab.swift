@@ -109,7 +109,8 @@ struct DashboardTab: View {
                 async let cards: Void = store.load()
                 async let entries: Void = logbook.load(forceInsights: true)
                 _ = await (cards, entries)
-                await afterSync()
+                // Runterwischen schreibt das Briefing aus dem aktuellen Stand neu (Felix, 11.11.).
+                await afterSync(refreshBriefing: true)
             }
             .task {
                 briefing.appeared()
@@ -188,8 +189,8 @@ struct DashboardTab: View {
     /// Erfolg): das Briefing anfordern - vorher laege die Nacht von heute frueh
     /// noch nicht beim Dienst (Vertrag §8.3) - und nachsehen, ob im Chat eine
     /// Antwort wartet.
-    private func afterSync() async {
-        await briefing.ensure(enabled: store.features?.briefing)
+    private func afterSync(refreshBriefing: Bool = false) async {
+        await briefing.ensure(enabled: store.features?.briefing, refresh: refreshBriefing)
         if store.features?.chat == true { await chat.load() }
     }
 
@@ -214,7 +215,7 @@ struct DashboardTab: View {
     private var cards: some View {
         // Ganz oben, nur der Text (Vertrag §5); ohne Text fehlt die Karte.
         if let text = briefing.text {
-            BriefingCard(text: text)
+            BriefingCard(text: text, rewriting: briefing.rewriting)
         }
         if let recovery = store.recovery {
             NavigationLink(value: DashboardPage.recovery) {

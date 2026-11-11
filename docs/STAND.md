@@ -1,5 +1,11 @@
 # Stand
 
+> **Briefing beim Runterwischen neu, Dauern in Stunden (11.11., Felix):** Runterwischen im Dashboard
+> schreibt das Briefing aus dem aktuellen Stand neu (`refresh=true`, Vertrag §8.3; ohne neue Daten
+> keine Sitzung), solange steht der alte Text blasser mit Kreisel da (`BriefingCard.rewriting`,
+> Bild mit `COCKPIT_BRIEFING_REWRITING=1`). Ab 12 Uhr spricht es vom bisherigen Tag. Schlafdauern
+> stehen als „9 h 59 min“ statt „599 min“. Dienst seit 12:58 live.
+
 > **Rezepte schon nach dem Speichern in Healthy (11.11., Felix):** ein gespeichertes Rezept mit
 > Nährwerten steht sofort als „Rezept: <Name>“ im Kalorienzähler (bei allen Listen-Personen mit
 > Healthy), nicht erst nach „Kochen“; Umbenennen benennt dort um. Nur die Dienste (`../shopping`,

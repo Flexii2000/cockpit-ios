@@ -3,6 +3,19 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-11 — Briefing: Runterwischen schreibt es neu, Dauern in Stunden und Minuten
+Felix: Das Briefing entstand nur einmal am Tag; beim Runterwischen soll es aus dem aktuellen Stand
+neu entstehen. Und „normale Nacht mit 599 min Schlaf“ versteht niemand. Jetzt schickt das
+Runterwischen `refresh=true`; der Dienst schreibt neu, außer der Datenauszug ist derselbe wie beim
+letzten Text (dann läuft keine Sitzung und der Lauf zählt nicht). Ab 12 Uhr spricht der Text vom
+bisherigen Tag und dem, was bis zum Abend passt, statt von gestern. Höchstens zehn Läufe am Tag
+statt drei. Während der neue Text entsteht, steht der alte blasser mit einem Kreisel da. Dauern
+stehen im Datenauszug als „9 h 59 min“, und der Auftrag verlangt sie so. **Verworfen:** bei jedem
+Runterwischen ohne Vergleich neu schreiben (zweimal hintereinander wischen kostete zwei
+Opus-Sitzungen für denselben Text) und ein eigener Knopf auf der Karte (Felix wollte das
+Runterwischen). Das Limit von zehn habe ich gesetzt; es schützt Felix' Claude-Kontingent und ist im
+Dienst eine Konstante (`BriefingService.MAX_RUNS_PER_DAY`).
+
 ## 2026-11-11 — Rezepte stehen schon nach dem Speichern in Healthy
 Felix: „Sobald es gespeichert wird, soll es auch eintragbar sein.“ Ein aus dem Chat gespeichertes
 Rezept fehlte in Healthy, weil das Gericht bis dahin erst beim Öffnen von „Kochen“ entstand. Jetzt

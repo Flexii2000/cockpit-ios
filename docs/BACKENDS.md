@@ -529,7 +529,7 @@ Karten fehlen dann, ohne Meldung.
 | POST | `/api/chat/messages` | `{id, text}` → **202** `Exchange` mit `RUNNING` (dieselbe `id` noch einmal: der vorhandene Stand, 202 oder 200) |
 | GET | `/api/chat/messages/{id}` | `Exchange`; 404 unbekannt |
 | DELETE | `/api/chat` | 204 - „Neuer Chat“, eine laufende Antwort wird verworfen |
-| POST | `/api/briefing/today` | 200 `Briefing` oder 202 mit `RUNNING` - idempotent, fordert das Briefing von heute an |
+| POST | `/api/briefing/today[?refresh=true]` | 200 `Briefing` oder 202 mit `RUNNING` - idempotent, fordert das Briefing von heute an; mit `refresh=true` (Runterwischen, seit 11.11.) entsteht es aus dem aktuellen Stand neu |
 | GET | `/api/briefing/today` | `Briefing` - löst nie etwas aus (`NONE`, solange es keins gibt) |
 | GET | `/api/review/week[?start=<Montag>]` | `{week: WeekStats, previous: WeekStats, sources:{food}}` - ohne `start` die letzte volle Woche |
 
@@ -562,11 +562,15 @@ CalibrationMonitor { status: OK|FOOD_UNAVAILABLE|TOO_FEW_TRACKED_DAYS|TOO_FEW_WE
 - **Antworten** sind schlichter Text mit Absätzen und „– “-Aufzählungen, höchstens 4.000 Zeichen -
   kein Markdown. Der Agent hat auf dem Server 120 Sekunden; danach ist die Frage `FAILED` mit einem
   Satz in `error`.
-- **Briefing:** ein Text je Person und Tag (Europe/Berlin), höchstens 400 Zeichen, höchstens drei
-  Läufe am Tag. **Keine Sperre nach Uhrzeit.** Kommt nach dem Schreiben eine Nacht für heute an,
-  schreibt der nächste `POST` ihn einmal neu (`RUNNING` **mit** dem alten `text`). 503 nur ohne Agent
-  und ohne Text von heute. Die App ruft `POST` erst nach ihrem Health-Abgleich und fragt bei
-  `RUNNING` alle 5 s mit `GET` nach, höchstens zwei Minuten. Keine Push.
+- **Briefing:** ein Text je Person und Tag (Europe/Berlin), höchstens 400 Zeichen, höchstens zehn
+  Läufe am Tag (bis 10.11. drei). **Keine Sperre nach Uhrzeit.** Kommt nach dem Schreiben eine Nacht
+  für heute an, schreibt der nächste `POST` ihn einmal neu (`RUNNING` **mit** dem alten `text`). Mit
+  `refresh=true` schreibt er ihn immer neu - außer der Datenauszug ist derselbe wie beim letzten
+  Text: dann bleibt er, ohne Sitzung, und der Lauf zählt nicht. Ab 12 Uhr spricht der Text vom
+  bisherigen Tag statt von gestern. 503 nur ohne Agent und ohne Text von heute. Die App ruft `POST`
+  erst nach ihrem Health-Abgleich (beim Runterwischen mit `refresh=true`) und fragt bei `RUNNING`
+  alle 5 s mit `GET` nach, höchstens zwei Minuten; solange steht der alte Text blasser mit einem
+  Kreisel da. Keine Push. Dauern (Schlaf) schreibt die Sitzung seit 11.11. als „9 h 59 min“.
 - **Rückblick:** jeder Wert ist `null`, wenn kein Tag zählt - nie 0. kcal, Defizit und Eiweiß-Tage
   zählen nur getrackte Tage; die Eiweiß-Farben mit den **heutigen** Zielen. `weightDeltaKg` ist das
   Mittel dieser Woche minus das der Vorwoche (`null` unter drei Messungen in einer der beiden).

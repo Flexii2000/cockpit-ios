@@ -18,9 +18,15 @@ final class BriefingStore {
 
     /// Der Text von heute - `nil`: die Karte fehlt.
     private(set) var text: String?
+    /// Ein neuer Text entsteht, der alte steht noch da - die Karte zeigt das
+    /// mit einem kleinen Kreisel (nach dem Runterwischen dauert es 20 bis 40 s).
+    private(set) var rewriting = false
 
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var ensuring = false
+    /// Runterwischen, waehrend noch eine Anfrage ohne `refresh` unterwegs war
+    /// (etwa nach einem Upload des Abgleichs): danach noch einmal mit.
+    @ObservationIgnored private var refreshQueued = false
     /// Nachgefragt wird nur, solange das Dashboard zu sehen ist.
     @ObservationIgnored private var visible = false
     /// Ein Lauf ist unterwegs und noch nicht zu Ende abgewartet: verschwindet
@@ -42,6 +48,8 @@ final class BriefingStore {
         if DashboardDemo.isOn {
             text = DashboardDemo.briefingText
             remembered = true
+            // Fuer Bilder der Karte, waehrend ein neuer Text entsteht.
+            rewriting = ProcessInfo.processInfo.environment["COCKPIT_BRIEFING_REWRITING"] == "1"
         }
         #endif
     }
@@ -69,21 +77,36 @@ final class BriefingStore {
 
     /// Fordert das Briefing von heute an - nach dem Abgleich dieses Oeffnens.
     ///
-    /// - Parameter enabled: was `/api/features` sagt; `false` heisst sicher
-    ///   „nicht freigeschaltet“ - dann gar nicht erst fragen. `nil` (noch nicht
-    ///   geladen, oder ein aelterer Dienst) fragt trotzdem: ein 403 oder 404
-    ///   kostet nichts und blendet nur die Karte aus.
-    func ensure(enabled: Bool?) async {
+    /// - Parameters:
+    ///   - enabled: was `/api/features` sagt; `false` heisst sicher
+    ///     „nicht freigeschaltet“ - dann gar nicht erst fragen. `nil` (noch nicht
+    ///     geladen, oder ein aelterer Dienst) fragt trotzdem: ein 403 oder 404
+    ///     kostet nichts und blendet nur die Karte aus.
+    ///   - refresh: Runterwischen - der Dienst schreibt den Text aus dem
+    ///     aktuellen Stand neu (Felix, 11.11.).
+    func ensure(enabled: Bool?, refresh: Bool = false) async {
         if Self.isDemo || Self.isTestHost { return }
         if enabled == false {
             forget()
             return
         }
-        guard !ensuring else { return }
+        guard !ensuring else {
+            if refresh { refreshQueued = true }
+            return
+        }
         ensuring = true
         defer { ensuring = false }
+        var refresh = refresh
+        repeat {
+            refreshQueued = false
+            await request(refresh: refresh)
+            refresh = true
+        } while refreshQueued
+    }
+
+    private func request(refresh: Bool) async {
         do {
-            apply(try await api.ensure())
+            apply(try await api.ensure(refresh: refresh))
         } catch APIError.notAuthorised {
             // Nicht (mehr) freigeschaltet: auch der gemerkte Text geht.
             forget()
@@ -101,6 +124,8 @@ final class BriefingStore {
             UserDefaults.standard.set(data, forKey: Self.memoryKey)
         }
         awaiting = briefing.status == .running
+        let rewritingNow = awaiting && shown != nil
+        if rewriting != rewritingNow { rewriting = rewritingNow }
         if awaiting { follow() }
     }
 
@@ -129,11 +154,13 @@ final class BriefingStore {
             // Zwei Minuten sind um: Schluss. Das naechste Oeffnen fragt neu an.
             self?.pollTask = nil
             self?.awaiting = false
+            self?.rewriting = false
         }
     }
 
     private func forget() {
         text = nil
+        rewriting = false
         awaiting = false
         pollTask?.cancel()
         pollTask = nil

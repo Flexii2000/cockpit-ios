@@ -5,12 +5,25 @@ import SwiftUI
 struct BriefingCard: View {
 
     let text: String
+    /// Ein neuer Text entsteht (nach dem Runterwischen): der alte steht
+    /// blasser da, oben rechts ein kleiner Kreisel.
+    var rewriting = false
 
     var body: some View {
         Text(text)
             .font(.subheadline)
+            .foregroundStyle(rewriting ? .secondary : .primary)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.trailing, rewriting ? 22 : 0)
+            .overlay(alignment: .topTrailing) {
+                if rewriting {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Wird neu geschrieben")
+                }
+            }
+            .animation(.default, value: rewriting)
             .dashboardCard()
             .accessibilityIdentifier("briefingCard")
     }

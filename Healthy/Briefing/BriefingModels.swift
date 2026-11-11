@@ -8,7 +8,7 @@ enum BriefingStatus: String, LenientEnum {
     case running = "RUNNING"
     case done = "DONE"
     /// Der Lauf ist gescheitert; der naechste `POST` wiederholt ihn, solange
-    /// von den drei Laeufen des Tages noch einer uebrig ist.
+    /// von den zehn Laeufen des Tages noch einer uebrig ist.
     case failed = "FAILED"
     case unknown
 }
@@ -34,8 +34,11 @@ struct BriefingAPI: Sendable {
 
     /// Fordert das Briefing von heute an. Idempotent: gibt es schon eins, kommt
     /// es zurueck; kam seither eine Nacht dazu, schreibt der Dienst es einmal neu.
-    func ensure() async throws -> Briefing {
-        try await client.send("POST", "/api/briefing/today")
+    /// Mit `refresh` (Runterwischen, seit 11.11.) entsteht es aus dem aktuellen
+    /// Stand neu - hat sich nichts geaendert, bleibt der Text, ohne Sitzung.
+    func ensure(refresh: Bool = false) async throws -> Briefing {
+        try await client.send("POST", "/api/briefing/today",
+                              query: refresh ? [URLQueryItem(name: "refresh", value: "true")] : [])
     }
 }
 
