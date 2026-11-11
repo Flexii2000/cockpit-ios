@@ -4,8 +4,8 @@
 > schreibt das Briefing aus dem aktuellen Stand neu (`refresh=true`, Vertrag §8.3; ohne neue Daten
 > keine Sitzung), solange steht der alte Text blasser mit Kreisel da (`BriefingCard.rewriting`,
 > Bild mit `COCKPIT_BRIEFING_REWRITING=1`). Ab 12 Uhr spricht es vom bisherigen Tag. Schlafdauern
-> stehen als „9 h 59 min“ statt „599 min“. Dienst seit 12:58 live; die App (`cf137b8`) war um 13:01
-> noch nicht auf dem iPhone (nicht erreichbar) - `tools/install-device.sh Healthy` steht aus.
+> stehen als „9 h 59 min“ statt „599 min“. Dienst seit 12:58 live; die App (`cf137b8`) per Kabel auf
+> Felix' iPhone. Die Uhr war nicht erreichbar - an ihr hat sich nichts geändert, sie bleibt beim 10.11.
 
 > **Rezepte schon nach dem Speichern in Healthy (11.11., Felix):** ein gespeichertes Rezept mit
 > Nährwerten steht sofort als „Rezept: <Name>“ im Kalorienzähler (bei allen Listen-Personen mit
