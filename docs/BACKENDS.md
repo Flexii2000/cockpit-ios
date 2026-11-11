@@ -1475,9 +1475,12 @@ Felder; beim Dienst, im Brett und in der Datei heißt alles weiter `dishes`.
   nach derselben Tabelle selbst** (`ShoppingQuantity.scale`), damit der Portionswähler
   und „Auf die Liste“ ohne Netz gehen; beide Seiten laufen gegen dieselben Beispiele
   (`../shopping/src/test/resources/scale-vectors.json`, Kopie in `Tests/Fixtures/`).
-- **Kochen** legt bei jeder Person der Liste, die es im Kalorienzähler gibt, das Gericht
-  „Rezept: <Name>“ an (je 100 g aus `nutrition` und `gramsPerPortion`, eine Portion als
-  Vorgabe); ohne Nährwerte `reason: "no-nutrition"` und eine leere Liste. Wer kein Healthy
+- **Rezepte in Healthy:** jedes Rezept mit Nährwerten steht bei jeder Person der Liste, die
+  es im Kalorienzähler gibt, als Gericht „Rezept: <Name>“ (je 100 g aus `nutrition` und
+  `gramsPerPortion`, eine Portion als Vorgabe) - **seit 11.11. schon nach dem Speichern**
+  (anlegen, ändern, Entwurf übernehmen; der Dienst schreibt im Hintergrund, die Antwort des
+  Speicherns sagt dazu nichts), Umbenennen benennt dort um. **Kochen** schreibt noch einmal
+  und meldet das Ergebnis je Person; ohne Nährwerte `reason: "no-nutrition"` und eine leere Liste. Wer kein Healthy
   hat, steht nicht in `healthy`. Ist der Kalorienzähler nicht erreichbar, steht bei allen
   `failed`.
 - **Rezept-Chat**: jede Antwort ist eine Claude-Session auf dem Server (ohne Werkzeuge),

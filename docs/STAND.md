@@ -1,5 +1,11 @@
 # Stand
 
+> **Rezepte schon nach dem Speichern in Healthy (11.11., Felix):** ein gespeichertes Rezept mit
+> Nährwerten steht sofort als „Rezept: <Name>“ im Kalorienzähler (bei allen Listen-Personen mit
+> Healthy), nicht erst nach „Kochen“; Umbenennen benennt dort um. Nur die Dienste (`../shopping`,
+> `../food`), die Apps bleiben, wie sie sind - „Kochen“ zeigt weiter das Ergebnis je Person.
+> `docs/ENTSCHEIDUNGEN.md` (2026-11-11), BACKENDS „Rezepte in Healthy“.
+
 > **TestFlight (10.11., 17:51/17:53):** Healthy Build 202611101750 (erster TestFlight-Build,
 > App-Eintrag „Healthy-Fherrmann“, Export mit `aps-environment=production` belegt) und
 > Einkaufsliste Build 202611101752 (mit Rezepten) hochgeladen. Der erste Healthy-Upload scheiterte

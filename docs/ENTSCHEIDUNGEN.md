@@ -3,6 +3,17 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-11 — Rezepte stehen schon nach dem Speichern in Healthy
+Felix: „Sobald es gespeichert wird, soll es auch eintragbar sein.“ Ein aus dem Chat gespeichertes
+Rezept fehlte in Healthy, weil das Gericht bis dahin erst beim Öffnen von „Kochen“ entstand. Jetzt
+schreibt die Einkaufsliste nach jedem Anlegen, Ändern und Übernehmen eines Entwurfs im Hintergrund
+in den Kalorienzähler, bei allen Listen-Personen mit Healthy, und gleicht beim Start alle ab.
+Umbenennen benennt dort um (`previousName`), Löschen lässt das Gericht stehen. „Kochen“ bleibt und
+zeigt das Ergebnis je Person. **Verworfen:** beim Kochen bleiben (so beschlossen am 10.11.) - dann
+steht jedes Rezept, das nie gekocht wird, auch nie in Healthy, und wer es nachkocht, ohne „Kochen“
+zu öffnen, findet es nicht. In Kauf genommen: auch nie gekochte Rezepte stehen in beiden
+Gerichtelisten. Die Apps ändern sich nicht (`../shopping`, `../food`).
+
 ## 2026-11-10 — Defizit als Bilanz grün, Kurven bleiben orange
 Felix: „grün = Defizit, rot = drüber“. Überall, wo Defizit gegen Überschuss steht - Zahl,
 Bilanzbalken und Wochenbalken der Energie-Karte, Fläche zwischen „Verbrauch ⌀“ und „kcal ⌀“ - ist
