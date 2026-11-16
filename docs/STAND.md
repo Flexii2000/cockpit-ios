@@ -3,9 +3,9 @@
 > **Action Button: „Assistent fragen“ (16.11.):** neuer App-Intent in Fokus
 > (`Fokus/Assistant/`), schickt eine diktierte Frage an den Assistenten auf dem Heimserver
 > (`/assistant/api/ask`, BACKENDS) und zeigt die Antwort, nach ~20 s „kommt in Telegram“.
-> `tools/verify.sh Fokus` grün (6 neue Tests in `AssistantAskTests`). **Offen:** auf Felix'
-> iPhone installieren (Heimnetz), Kurzbefehl „Text diktieren → Assistent fragen“ auf den
-> Action Button legen, einmal echt fragen. Entscheidung in `ENTSCHEIDUNGEN.md` (16.11.).
+> `tools/verify.sh Fokus` grün (6 neue Tests in `AssistantAskTests`). Auf Felix' iPhone
+> installiert (16.11. abends, `2d16a6a`). **Offen:** Felix legt den Kurzbefehl „Text diktieren →
+> Assistent fragen“ auf den Action Button und fragt einmal echt. Entscheidung in `ENTSCHEIDUNGEN.md` (16.11.).
 
 > **Briefing beim Runterwischen neu, Dauern in Stunden (11.11., Felix):** Runterwischen im Dashboard
 > schreibt das Briefing aus dem aktuellen Stand neu (`refresh=true`, Vertrag §8.3; ohne neue Daten
