@@ -101,6 +101,9 @@ Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre),
   App/ Todo/ Forest/ (Store, Schild, Kurzbefehle, die Insel in SceneKit, Tagesziel aus coHabit)
   Evaluation/       persönliche Fragen je Tag, nur auf dem iPhone, Face ID mit 5 Minuten Frist -
                     seit 14.10. hier statt in Healthy (EvaluationImport übernimmt die Datei)
+  Assistant/        „Assistent fragen“ für den Action Button (seit 16.11.): AskAssistantIntent
+                    (App-Intent ohne App-Start) und AssistantAsk (fragt ~20 s nach, rein testbar);
+                    keine Oberfläche in der App
 coHabit/            App: Habits mit Freunden - Heute, Timeline, Statistik, Profil, Detail + Chat,
                     Anlegen, Einladen, Abhaken mit Beweisfoto, Health, Push, Kachel-Vorschau
   App/ Design/ Today/ Detail/ Chat/ CheckIn/ Timeline/ Stats/ Profile/ Create/ Invite/ Onboarding/ Health/

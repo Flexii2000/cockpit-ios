@@ -28,12 +28,18 @@ struct FocusMinutesLeftIntent: AppIntent {
     }
 }
 
-/// Macht die Aktion in der Kurzbefehle-App unter „Fokus" auffindbar.
+/// Macht die Aktionen in der Kurzbefehle-App unter „Fokus" auffindbar. iOS
+/// erlaubt je App nur einen solchen Anbieter — neue Aktionen kommen hierher.
 struct FokusShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: FocusMinutesLeftIntent(),
                     phrases: ["Fokus-Restminuten in \(.applicationName)"],
                     shortTitle: "Restminuten",
                     systemImageName: "tree")
+        AppShortcut(intent: AskAssistantIntent(),
+                    phrases: ["Frag den Assistenten in \(.applicationName)",
+                              "\(.applicationName) Assistent"],
+                    shortTitle: "Assistent fragen",
+                    systemImageName: "bubble.left.and.text.bubble.right")
     }
 }

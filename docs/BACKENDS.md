@@ -1667,6 +1667,25 @@ gültige Sitzung kommt **401/403 als JSON**; eine Cloudflare-Prüfung kommt als 
 Claude Code, „Legal and compliance“). Die App ist Felix' eigene, er hat sich am 02.11.
 bewusst für diesen Weg entschieden; Alternativen in `ENTSCHEIDUNGEN.md`.
 
+## Assistent — `/assistant/api/ask` (seit 2026-11-16, nur Fokus)
+
+Diktierte Fragen an den persönlichen Assistenten (Repo `assistant` auf dem Heimserver): nginx
+reicht sie an den Channel „diktat“ einer dauerhaft laufenden Claude-Code-Sitzung weiter. Der
+Dienst lebt nur, solange die Sitzung läuft (sonst 502 von nginx).
+
+| Methode | Pfad | Antwort |
+|---|---|---|
+| POST | `/assistant/api/ask` mit `{id, text}` | **202** `{id, status: "running"\|"done", answer?}`. `id` vergibt die App (`[A-Za-z0-9-]{8,64}`, hier kleingeschriebene UUID); dieselbe ID zweimal legt keinen zweiten Auftrag an. `text` höchstens 4000 Zeichen (sonst 413), leer 400, mehr als 20 offene Aufträge 429 |
+| GET | `/assistant/api/ask/{id}` | 200 `{id, status, answer?}`, 404 für unbekannte (Aufträge leben eine Stunde) |
+
+**Auth:** nur der Cookie `fh_private`, geprüft in nginx (403 ohne). Der Intent setzt ihn
+ausdrücklich (`httpShouldHandleCookies = false`), weil er ohne App-Start läuft. Dazu prüft der
+Channel ein Kopf-Token, das nginx einsetzt - von der App nicht zu sehen.
+
+**Verhalten:** Die Antwort steht meist nach wenigen Sekunden da. Was länger dauert, schickt die
+Sitzung nach Telegram; dorthin spiegelt sie auch jede Frage samt Antwort (stumm, solange die App
+noch abfragt). `answer` gilt erst bei `status: "done"`.
+
 ## Finance Cockpit — kein API
 
 Bewusst kein JSON. Die Seite ist statisches HTML, das ein täglicher

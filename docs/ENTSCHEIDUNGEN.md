@@ -3,6 +3,17 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-16 — Action Button: App-Intent in Fokus statt reinem Kurzbefehl
+Felix will per Action Button mit seinem Assistenten auf dem Heimserver sprechen: diktieren, die
+Antwort als Fenster sehen, längere Gespräche in Telegram weiterführen (seine Wahl unter drei
+Varianten). Umgesetzt als App-Intent „Assistent fragen“ in Fokus, den ein Kurzbefehl
+(„Text diktieren“ → „Assistent fragen“) auf den Button legt. Der Intent nimmt `fh_private` aus
+dem Schlüsselbund, schickt die Frage, fragt rund 20 s nach und gibt die Antwort als Dialog und
+Wert zurück; danach „Läuft noch – die Antwort kommt in Telegram“. **Verworfen:** ein Kurzbefehl
+ganz ohne App („Inhalte von URL abrufen“) — der Token stünde im Klartext im Kurzbefehl und
+reiste mit iCloud; ein eigener Chat-Bildschirm in Fokus — mehr Arbeit, und das Gespräch hat mit
+Telegram schon einen Ort. Kein Fall in `Backend`: der Assistent ist kein Tab.
+
 ## 2026-11-11 — Briefing: Runterwischen schreibt es neu, Dauern in Stunden und Minuten
 Felix: Das Briefing entstand nur einmal am Tag; beim Runterwischen soll es aus dem aktuellen Stand
 neu entstehen. Und „normale Nacht mit 599 min Schlaf“ versteht niemand. Jetzt schickt das
