@@ -8,8 +8,9 @@
 > neu und optional) und To-Do → ⋯ → Freigaben; dort auch „Schlüssel“ (erzeugen, kopieren,
 > Fingerabdruck). Die Push-Kennung geht zusätzlich ans Gate. `tools/verify.sh Fokus` grün
 > (6 neue Tests in `ApprovalPayloadTests`); die Formate gegen die Java-Prüfung des Gates einmal
-> von Hand gegengeprüft. **Offen:** auf Felix' iPhone installieren, Schlüssel erzeugen, auf dem
-> Server `setup-gate.sh` (Assistent-Repo); Face ID und Secure Enclave gibt es im Simulator nicht.
+> von Hand gegengeprüft; `tools/verify.sh` (alle) grün. Auf Felix' iPhone seit 17.11. 08:22 (`1a4e3b0`).
+> **Offen:** Felix erzeugt den Schlüssel und trägt ihn per `setup-gate.sh` (Assistent-Repo) ein; Face ID
+> und Secure Enclave gibt es im Simulator nicht - der erste echte Durchlauf ist der Test.
 > Entscheidung in `ENTSCHEIDUNGEN.md` (17.11.).
 
 > **Action Button: „Assistent fragen“ (16.11.):** neuer App-Intent in Fokus
