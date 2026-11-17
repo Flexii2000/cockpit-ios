@@ -73,4 +73,24 @@ final class ApprovalPayloadTests: XCTestCase {
         let items = try decoder.decode([ApprovalSummary].self, from: json)
         XCTAssertEqual(items.map(\.status), [.wartet, .unbekannt])
     }
+
+    func testRecipientsFromTheGateAndIbanFormat() throws {
+        let json = Data(#"""
+        [{"iban":"DE89370400440532013000","name":"Person A","seit":"2026-11-17T10:00:00Z","quelle":"import","freigabeId":"x"}]
+        """#.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let list = try decoder.decode([ApprovalRecipient].self, from: json)
+        XCTAssertEqual(list.map(\.name), ["Person A"])
+        XCTAssertEqual(ApprovalRecipient.format(iban: list[0].iban), "DE89 3704 0044 0532 0130 00")
+        XCTAssertEqual(ApprovalRecipient.format(iban: "gb82west12345698765432"), "GB82 WEST 1234 5698 7654 32")
+    }
+
+    /// Ueberweisungen und Empfaenger zeigen alle signierten Felder mit Namen.
+    func testLabelsForMoneyApprovals() {
+        XCTAssertEqual(["name", "iban", "betrag", "zweck", "ausfuehrung", "liste", "anzahl"]
+            .map(ApprovalDetailView.label),
+                       ["Empfänger", "IBAN", "Betrag", "Verwendungszweck", "Ausführung", "Empfänger", "Anzahl"])
+        XCTAssertEqual(ApprovalDetailView.title("empfaengerliste"), "Empfängerliste")
+    }
 }

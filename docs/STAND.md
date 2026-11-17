@@ -1,5 +1,14 @@
 # Stand
 
+> **Überweisungen und Empfängerliste in den Freigaben (17.11.):** Fokus zeigt auch Freigaben der
+> Arten `ueberweisung` (Empfänger, IBAN, Betrag, Verwendungszweck, Ausführung), `empfaenger` und
+> `empfaengerliste` (Sammelfreigabe der Startliste, Liste in Festbreitenschrift) - signiert wird wie
+> bei Mails. Bei Überweisungen liest die Detailansicht bis zu 10 min mit (Zwischenstand „Wartet auf
+> deine Freigabe in der S-pushTAN-App“). Neu: Freigaben → ⋯ → **Empfänger** (Liste, Wischen zum
+> Entfernen, ohne Face ID - nimmt nur Rechte). `tools/verify.sh Fokus` grün (2 neue Tests).
+> **Offen:** auf Felix' iPhone installieren; der Dienst (Gate, Assistent-Repo) ist gebaut, aber noch
+> nicht ausgerollt.
+
 > **Freigaben des Assistenten (17.11.):** Fokus zeigt Mails, die der Assistent schreiben will,
 > und schickt sie erst nach Face ID los (`Fokus/Assistant/Approval*.swift`). Ein P-256-Schlüssel
 > in der Secure Enclave (`.biometryCurrentSet`) signiert `assistant-gate/v1|id|sha256(Inhalt)|Zeit`;

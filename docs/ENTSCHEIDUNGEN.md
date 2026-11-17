@@ -3,6 +3,14 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-17 — Überweisungen nur an eine signierte Empfängerliste
+Felix' Vorgabe: Der Assistent darf Überweisungen nur an IBANs vorbereiten, an die Felix schon
+einmal überwiesen hat; ein neuer Empfänger ist selbst eine Freigabe in Fokus. Die Startliste aus
+dem Haspa-Export kommt als eine Sammelfreigabe (Felix' Wahl), damit jede IBAN der Liste von ihm
+signiert ist. Entfernen geht in Fokus ohne Face ID - es nimmt nur Rechte. **Verworfen:** die
+Startliste ungeprüft übernehmen; Entfernen ebenfalls signieren (unnötige Hürde für etwas, das
+nichts freischaltet).
+
 ## 2026-11-17 — Freigaben des Assistenten: Secure-Enclave-Signatur statt nur Cookie
 Mails des Assistenten (später Überweisungen) gehen erst raus, wenn Felix sie in Fokus freigibt
 (seine Vorgabe: Freigabe nur für Geld und Mail). `fh_private` allein reicht dafür nicht: derselbe

@@ -15,6 +15,7 @@ struct ApprovalsView: View {
     @State private var loaded = false
     @State private var path: [String] = []
     @State private var showsKey = false
+    @State private var showsRecipients = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -46,7 +47,12 @@ struct ApprovalsView: View {
                     Button("Fertig") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { showsKey = true } label: { Label("Schlüssel", systemImage: "key") }
+                    Menu {
+                        Button { showsRecipients = true } label: { Label("Empfänger", systemImage: "person.2") }
+                        Button { showsKey = true } label: { Label("Schlüssel", systemImage: "key") }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
                 }
             }
             .refreshable { await load() }
@@ -55,6 +61,7 @@ struct ApprovalsView: View {
                 await load()
             }
             .sheet(isPresented: $showsKey) { ApprovalKeyView() }
+            .sheet(isPresented: $showsRecipients) { ApprovalRecipientsView() }
         }
     }
 
@@ -119,7 +126,7 @@ struct ApprovalDetailView: View {
                     Section(ApprovalDetailView.label(field.name)) {
                         Text(field.wert)
                             .textSelection(.enabled)
-                            .font(field.name == "iban" ? .body.monospaced() : .body)
+                            .font(["iban", "liste"].contains(field.name) ? .body.monospaced() : .body)
                     }
                 }
                 if let ergebnis = detail.ergebnis, !ergebnis.isEmpty {
@@ -157,7 +164,7 @@ struct ApprovalDetailView: View {
         .task { await load() }
     }
 
-    static func label(_ name: String) -> String {
+    nonisolated static func label(_ name: String) -> String {
         switch name {
         case "an": "An"
         case "cc": "Cc"
@@ -168,14 +175,19 @@ struct ApprovalDetailView: View {
         case "iban": "IBAN"
         case "betrag": "Betrag"
         case "zweck": "Verwendungszweck"
+        case "ausfuehrung": "Ausführung"
+        case "liste": "Empfänger"
+        case "anzahl": "Anzahl"
         default: name
         }
     }
 
-    static func title(_ art: String) -> String {
+    nonisolated static func title(_ art: String) -> String {
         switch art {
         case "mail": "Mail"
         case "ueberweisung": "Überweisung"
+        case "empfaenger": "Empfänger"
+        case "empfaengerliste": "Empfängerliste"
         default: "Freigabe"
         }
     }
@@ -214,11 +226,14 @@ struct ApprovalDetailView: View {
         }
     }
 
-    /// Das Gate sendet im Hintergrund; ein paar Sekunden mitlesen, bis es fertig ist.
+    /// Das Gate fuehrt im Hintergrund aus; mitlesen, bis es fertig ist. Eine
+    /// Ueberweisung dauert Minuten (Anmeldung, pushTAN) - der Zwischenstand
+    /// steht solange im Ergebnis ("Wartet auf deine Freigabe …").
     private func followUntilDone(_ api: ApprovalsAPI) async {
-        for _ in 0..<20 {
-            guard detail?.status == .freigegeben else { break }
-            try? await Task.sleep(for: .seconds(1.5))
+        let transfer = detail?.art == "ueberweisung"
+        for _ in 0..<(transfer ? 300 : 20) {
+            guard detail?.status == .freigegeben, !Task.isCancelled else { break }
+            try? await Task.sleep(for: .seconds(transfer ? 2 : 1.5))
             if let fresh = try? await api.detail(id: id) { detail = fresh }
         }
         onChange()
@@ -232,6 +247,88 @@ struct ApprovalDetailView: View {
             detail = try await api.reject(id: id)
             error = nil
             onChange()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+
+/// Die Empfaengerliste fuer Ueberweisungen: nur an diese IBANs kann der
+/// Assistent eine Ueberweisung vorschlagen. Hinzu kommt ein Empfaenger nur
+/// ueber eine Freigabe; entfernen geht hier ohne Face ID - das nimmt nur Rechte.
+struct ApprovalRecipientsView: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var recipients: [ApprovalRecipient] = []
+    @State private var error: String?
+    @State private var loaded = false
+    @State private var pendingDelete: ApprovalRecipient?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let error {
+                    Section { Text(error).foregroundStyle(.red) }
+                }
+                ForEach(recipients) { recipient in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(recipient.name)
+                        Text(ApprovalRecipient.format(iban: recipient.iban))
+                            .font(.footnote.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                    .swipeActions {
+                        Button("Entfernen", role: .destructive) { pendingDelete = recipient }
+                    }
+                }
+            }
+            .overlay {
+                if loaded && recipients.isEmpty && error == nil {
+                    ContentUnavailableView("Keine Empfänger", systemImage: "person.2")
+                }
+            }
+            .navigationTitle("Empfänger")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") { dismiss() }
+                }
+            }
+            .refreshable { await load() }
+            .task { await load() }
+            .confirmationDialog(pendingDelete.map { "\($0.name) entfernen?" } ?? "",
+                                isPresented: Binding(get: { pendingDelete != nil },
+                                                     set: { if !$0 { pendingDelete = nil } }),
+                                titleVisibility: .visible) {
+                Button("Entfernen", role: .destructive) {
+                    if let target = pendingDelete { Task { await delete(target) } }
+                }
+            }
+        }
+    }
+
+    private func load() async {
+        guard let api = ApprovalsAPI.live() else {
+            error = ApprovalsAPI.Failure.noAccess.localizedDescription
+            loaded = true
+            return
+        }
+        do {
+            recipients = try await api.recipients()
+            error = nil
+        } catch {
+            self.error = error.localizedDescription
+        }
+        loaded = true
+    }
+
+    private func delete(_ recipient: ApprovalRecipient) async {
+        pendingDelete = nil
+        guard let api = ApprovalsAPI.live() else { return }
+        do {
+            try await api.deleteRecipient(iban: recipient.iban)
+            recipients.removeAll { $0.iban == recipient.iban }
         } catch {
             self.error = error.localizedDescription
         }

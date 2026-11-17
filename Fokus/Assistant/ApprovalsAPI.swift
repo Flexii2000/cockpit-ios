@@ -57,6 +57,26 @@ struct ApprovalDetail: Codable, Identifiable, Hashable, Sendable {
     var localHash: String { ApprovalPayload.hash(art: art, fields: felder) }
 }
 
+/// Ein Eintrag der Empfaengerliste fuer Ueberweisungen.
+struct ApprovalRecipient: Codable, Identifiable, Hashable, Sendable {
+    let iban: String
+    let name: String
+    let seit: Date
+    let quelle: String
+
+    var id: String { iban }
+
+    /// "DE89 3704 0044 0532 0130 00"
+    static func format(iban: String) -> String {
+        let compact = iban.replacingOccurrences(of: " ", with: "").uppercased()
+        return stride(from: 0, to: compact.count, by: 4).map { start in
+            let from = compact.index(compact.startIndex, offsetBy: start)
+            let to = compact.index(from, offsetBy: 4, limitedBy: compact.endIndex) ?? compact.endIndex
+            return String(compact[from..<to])
+        }.joined(separator: " ")
+    }
+}
+
 /// Das Gate des Assistenten (`fherrmann.com/assistant/api`), hinter dem
 /// Privat-Cookie. Eigener kleiner Client statt `APIClient`: Freigaben duerfen
 /// nie aus einem Offline-Zwischenstand kommen und nie in einen Postausgang.
@@ -98,6 +118,14 @@ struct ApprovalsAPI: Sendable {
 
     func reject(id: String) async throws -> ApprovalDetail {
         try await send("POST", "freigaben/\(id)/ablehnen")
+    }
+
+    func recipients() async throws -> [ApprovalRecipient] {
+        try await send("GET", "empfaenger")
+    }
+
+    func deleteRecipient(iban: String) async throws {
+        let _: Empty = try await send("DELETE", "empfaenger/\(iban)")
     }
 
     func registerDevice(token deviceToken: String) async throws {

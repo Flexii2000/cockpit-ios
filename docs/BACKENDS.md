@@ -1711,6 +1711,18 @@ der öffentliche Teil (SubjectPublicKeyInfo) steht im Gate (`APPROVAL_PUBLIC_KEY
 
 **Auth:** `fh_private`-Cookie (nginx und Gate). Push: Nutzlast `kind: approval`, `id`.
 
+### Empfängerliste und Überweisungen (seit 2026-11-17)
+
+| Methode | Pfad | Antwort |
+|---|---|---|
+| GET | `/assistant/api/empfaenger` | `[{iban, name, seit, quelle: "import"\|"freigabe", freigabeId}]`, nach Namen sortiert; `iban` ohne Leerzeichen |
+| DELETE | `/assistant/api/empfaenger/{iban}` | 204, 404 unbekannt - ohne Signatur (nimmt nur Rechte) |
+
+Weitere `art` der Freigaben: `ueberweisung` (Felder `name`, `iban` in Vierergruppen, `betrag` als
+„1.234,56 €“, `zweck`, `ausfuehrung` „Echtzeit“/„Standard“), `empfaenger` (`name`, `iban`),
+`empfaengerliste` (`anzahl`, `liste` = je Zeile „Name · IBAN“). Während eine Überweisung läuft
+(`FREIGEGEBEN`), steht der Zwischenstand in `ergebnis`.
+
 ## Finance Cockpit — kein API
 
 Bewusst kein JSON. Die Seite ist statisches HTML, das ein täglicher
