@@ -6,8 +6,8 @@
 > bei Mails. Bei Überweisungen liest die Detailansicht bis zu 10 min mit (Zwischenstand „Wartet auf
 > deine Freigabe in der S-pushTAN-App“). Neu: Freigaben → ⋯ → **Empfänger** (Liste, Wischen zum
 > Entfernen, ohne Face ID - nimmt nur Rechte). `tools/verify.sh Fokus` grün (2 neue Tests).
-> **Offen:** auf Felix' iPhone installieren; der Dienst (Gate, Assistent-Repo) ist gebaut, aber noch
-> nicht ausgerollt.
+> Auf Felix' iPhone seit 17.11. ~09:25 (`375cc3c`). **Offen:** Felix rollt das Gate neu aus
+> (`setup-gate.sh`), dann Startliste per Sammelfreigabe und 1-€-Test an Joana.
 
 > **Freigaben des Assistenten (17.11.):** Fokus zeigt Mails, die der Assistent schreiben will,
 > und schickt sie erst nach Face ID los (`Fokus/Assistant/Approval*.swift`). Ein P-256-Schlüssel
