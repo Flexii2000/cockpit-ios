@@ -9,12 +9,7 @@ import UIKit
 /// Healthy-Vertrag (§5) und gelten auf allen Oberflaechen.
 enum Palette {
     static let measured = Color.adaptive(light: 0x0288D1, dark: 0x4FC3F7)
-    /// „Gewicht ⌀ 7" - Dunkelrot (Felix, 17.11.; vorher Gruen), wie im Web
-    /// und im Vertrag (§5): hell deutlich dunkler als das Rot der Zielkurve,
-    /// dunkel heller, damit die Linie traegt und sich vom Lachsrot abhebt.
-    static let avg7     = Color.adaptive(light: 0x8B0000, dark: 0xC62828)
-    /// Der Normalbereich der Recovery - bleibt Gruen (war frueher `avg7`).
-    static let normalRange = Color.adaptive(light: 0x388E3C, dark: 0x81C784)
+    static let avg7     = Color.adaptive(light: 0x388E3C, dark: 0x81C784)
     static let avg14    = Color.adaptive(light: 0xF57C00, dark: 0xFFB74D)
     static let avg30    = Color.adaptive(light: 0x7B1FA2, dark: 0xBA68C8)
     static let target   = Color.adaptive(light: 0xD32F2F, dark: 0xE57373)
