@@ -21,6 +21,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         // Ein Feature Request von Torben & Co.: der Tipp oeffnet die Karte,
         // dahinter steht der To-Do-Tab mit ihrer Unteraufgabe.
         Task { @MainActor in Router.shared.open(link) }
+    }, onItem: { kind, id in
+        // „approval": eine Mail (spaeter Ueberweisung) des Assistenten wartet
+        // auf Face ID - der Tipp oeffnet genau diesen Auftrag.
+        guard kind == "approval" else { return }
+        Task { @MainActor in Router.shared.showApprovals(open: id) }
     })
 
     func application(
@@ -41,6 +46,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         // Sofort anmelden - der Endpunkt liegt nur hinter dem Privat-Cookie,
         // nicht hinter einer Anmeldung wie bei den Noten.
         Task { try? await TodoAPI().registerDevice(token: hex) }
+        // Dieselbe Kennung beim Gate des Assistenten - fuer die Freigaben.
+        Task { try? await ApprovalsAPI.live()?.registerDevice(token: hex) }
     }
 
     func application(_ application: UIApplication,

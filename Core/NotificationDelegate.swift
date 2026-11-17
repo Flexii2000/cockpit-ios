@@ -24,13 +24,19 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     /// da.“ weg, solange der Chat offen ist (10.11.). Wer nichts uebergibt,
     /// zeigt wie bisher alles.
     private let shouldPresent: (@Sendable (String?) -> Bool)?
+    /// Bekommt Art und `id` aus der Nutzlast, wenn eine `id` dabei ist - bisher
+    /// nur die Freigaben des Assistenten in Fokus (17.11.): der Tipp oeffnet
+    /// genau diesen Auftrag. Wer nichts uebergibt, uebergeht die Kennung.
+    private let onItem: (@Sendable (String?, String) -> Void)?
 
     init(onOpen: @escaping @Sendable (String?) -> Void,
          onLink: (@Sendable (URL) -> Void)? = nil,
-         shouldPresent: (@Sendable (String?) -> Bool)? = nil) {
+         shouldPresent: (@Sendable (String?) -> Bool)? = nil,
+         onItem: (@Sendable (String?, String) -> Void)? = nil) {
         self.onOpen = onOpen
         self.onLink = onLink
         self.shouldPresent = shouldPresent
+        self.onItem = onItem
     }
 
     /// `kind` bei Notendienst und Kalorienzaehler, `tab` beim Cloud-Dienst
@@ -76,6 +82,9 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         onOpen(Self.kind(in: userInfo))
         if let onLink, let link = Self.link(in: userInfo) {
             onLink(link)
+        }
+        if let onItem, let id = userInfo["id"] as? String, !id.isEmpty {
+            onItem(Self.kind(in: userInfo), id)
         }
         completionHandler()
     }

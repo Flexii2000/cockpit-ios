@@ -103,7 +103,9 @@ Fokus/              App: To-Do, Wald (Fokus-Sessions mit Bildschirmzeit-Sperre),
                     seit 14.10. hier statt in Healthy (EvaluationImport übernimmt die Datei)
   Assistant/        „Assistent fragen“ für den Action Button (seit 16.11.): AskAssistantIntent
                     (App-Intent ohne App-Start) und AssistantAsk (fragt ~20 s nach, rein testbar);
-                    keine Oberfläche in der App
+                    seit 17.11. dazu die Freigaben (Approval*): Secure-Enclave-Schlüssel,
+                    signierter Inhalt (ApprovalPayload), Liste/Detail als Blatt über allen Tabs
+                    (Router.showApprovals, Push kind=approval über NotificationDelegate.onItem)
 coHabit/            App: Habits mit Freunden - Heute, Timeline, Statistik, Profil, Detail + Chat,
                     Anlegen, Einladen, Abhaken mit Beweisfoto, Health, Push, Kachel-Vorschau
   App/ Design/ Today/ Detail/ Chat/ CheckIn/ Timeline/ Stats/ Profile/ Create/ Invite/ Onboarding/ Health/

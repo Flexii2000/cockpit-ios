@@ -3,6 +3,19 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-17 — Freigaben des Assistenten: Secure-Enclave-Signatur statt nur Cookie
+Mails des Assistenten (später Überweisungen) gehen erst raus, wenn Felix sie in Fokus freigibt
+(seine Vorgabe: Freigabe nur für Geld und Mail). `fh_private` allein reicht dafür nicht: derselbe
+Token öffnet alles, und der Assistent auf dem Server kann ihn lesen. Deshalb signiert ein
+P-256-Schlüssel aus der Secure Enclave (nur mit Face ID, `.biometryCurrentSet`) jede Freigabe;
+den öffentlichen Teil trägt Felix per Setup-Skript im Gate ein, wo der Assistent ihn nicht
+tauschen kann. Signiert wird der Hash, den Fokus selbst aus den angezeigten Feldern rechnet -
+die Signatur gilt also genau für das Gelesene; dazu Auftrags-ID und Zeit (±120 s, jede Freigabe
+nur einmal). Zugang über den Push und To-Do → ⋯ → Freigaben, kein eigener Tab. **Verworfen:**
+Freigeben mit Cookie und Face-ID-Sperre nur in der App (der Server könnte die Freigabe selbst
+schicken); ein eigener Tab (selten gebraucht, der Push führt direkt hin); den Schlüssel von
+Fokus aus beim Gate anmelden (dann könnte auch der Assistent einen eigenen anmelden).
+
 ## 2026-11-16 — Action Button: App-Intent in Fokus statt reinem Kurzbefehl
 Felix will per Action Button mit seinem Assistenten auf dem Heimserver sprechen: diktieren, die
 Antwort als Fenster sehen, längere Gespräche in Telegram weiterführen (seine Wahl unter drei

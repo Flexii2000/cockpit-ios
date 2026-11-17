@@ -459,7 +459,7 @@ targets:
         # Die Evaluation liegt hinter Face ID (seit 14.10. hier). Ohne den Satz
         # beendet iOS die App beim ersten Abfragen - oder faellt still auf den
         # Code zurueck; in Healthy fehlte er die ganze Zeit.
-        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit deine Evaluation nicht offen daliegt.
+        INFOPLIST_KEY_NSFaceIDUsageDescription: Damit deine Evaluation nicht offen daliegt und nur du Mails des Assistenten freigibst.
         # Fuer den Tab aus Private/ - ohne ihn fragt Fokus nie nach dem Standort.
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: Damit Fokus weiß, ob du am Arbeitsplatz bist.
         INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: Damit Fokus weiß, ob du am Arbeitsplatz bist – auch wenn die App nicht offen ist.

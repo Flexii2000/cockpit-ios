@@ -1,5 +1,17 @@
 # Stand
 
+> **Freigaben des Assistenten (17.11.):** Fokus zeigt Mails, die der Assistent schreiben will,
+> und schickt sie erst nach Face ID los (`Fokus/Assistant/Approval*.swift`). Ein P-256-Schlüssel
+> in der Secure Enclave (`.biometryCurrentSet`) signiert `assistant-gate/v1|id|sha256(Inhalt)|Zeit`;
+> den Hash rechnet Fokus selbst aus den angezeigten Feldern (`ApprovalPayload`, gleicher
+> Testvektor wie das Gate). Erreichbar per Push (`kind: approval`, `id` → `NotificationDelegate.onItem`,
+> neu und optional) und To-Do → ⋯ → Freigaben; dort auch „Schlüssel“ (erzeugen, kopieren,
+> Fingerabdruck). Die Push-Kennung geht zusätzlich ans Gate. `tools/verify.sh Fokus` grün
+> (6 neue Tests in `ApprovalPayloadTests`); die Formate gegen die Java-Prüfung des Gates einmal
+> von Hand gegengeprüft. **Offen:** auf Felix' iPhone installieren, Schlüssel erzeugen, auf dem
+> Server `setup-gate.sh` (Assistent-Repo); Face ID und Secure Enclave gibt es im Simulator nicht.
+> Entscheidung in `ENTSCHEIDUNGEN.md` (17.11.).
+
 > **Action Button: „Assistent fragen“ (16.11.):** neuer App-Intent in Fokus
 > (`Fokus/Assistant/`), schickt eine diktierte Frage an den Assistenten auf dem Heimserver
 > (`/assistant/api/ask`, BACKENDS) und zeigt die Antwort, nach ~20 s „kommt in Telegram“.

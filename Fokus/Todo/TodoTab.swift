@@ -67,6 +67,10 @@ struct TodoTab: View {
                         Toggle("Ältere erledigte zeigen", isOn: Binding(
                             get: { store.showsHidden },
                             set: { value in Task { await store.setShowsHidden(value) } }))
+                        Divider()
+                        Button { Router.shared.showApprovals() } label: {
+                            Label("Freigaben", systemImage: "checkmark.shield")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }

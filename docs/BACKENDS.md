@@ -1686,6 +1686,31 @@ Channel ein Kopf-Token, das nginx einsetzt - von der App nicht zu sehen.
 Sitzung nach Telegram; dorthin spiegelt sie auch jede Frage samt Antwort (stumm, solange die App
 noch abfragt). `answer` gilt erst bei `status: "done"`.
 
+## Assistent — Freigaben `/assistant/api/freigaben` (seit 2026-11-17, nur Fokus)
+
+Das Gate des Assistenten (`assistant-gate`, Repo `assistant`, Ordner `gate/`, Port 48290). Der
+Assistent legt dort Mail-Entwürfe ab; Fokus zeigt sie und gibt sie mit Face ID frei.
+
+| Methode | Pfad | Antwort |
+|---|---|---|
+| GET | `/assistant/api/freigaben` | `[{id, art, titel, status, erstellt, erledigt, ergebnis}]`, offene zuerst, Erledigtes 30 Tage |
+| GET | `/assistant/api/freigaben/{id}` | dazu `felder: [{name, wert}]` (signierter Inhalt, Reihenfolge zählt) und `hash`; 404 unbekannt |
+| POST | `/assistant/api/freigaben/{id}/freigeben` mit `{zeit, signatur}` | Detail mit `FREIGEGEBEN`; ausgeführt wird im Hintergrund (danach `AUSGEFUEHRT` oder `FEHLER` + `ergebnis`). 403 Signatur ungültig, 400 Zeit > 120 s daneben, 409 nicht mehr offen, 503 kein Schlüssel eingetragen |
+| POST | `/assistant/api/freigaben/{id}/ablehnen` | Detail mit `ABGELEHNT`; 409 nicht mehr offen |
+| POST | `/assistant/api/devices` mit `{token}` | 204; Push-Kennung (hex) für `kind: approval` |
+
+`status`: `WARTET`, `FREIGEGEBEN`, `AUSGEFUEHRT`, `ABGELEHNT`, `FEHLER`, `ABGELAUFEN` (nach 24 h).
+`art`: `mail` (Felder `an`, `cc`, `betreff`, `text`, bei Antworten `antwortAuf`), später
+`ueberweisung`. Zeiten ISO-8601 ohne Nachkommastellen. Fehler als `{"fehler": "…"}`.
+
+**Signatur:** ECDSA P-256/SHA-256, DER, Base64, über
+`assistant-gate/v1|<id>|<hash>|<zeit>`; `hash` = SHA-256 (hex) von
+`assistant-gate/v1\nart=<b64>\n` plus `<name>=<b64(wert)>\n` je Feld (`ApprovalPayload`,
+Gegenstück `Canonical.java`, gemeinsamer Testvektor). Der Schlüssel liegt in der Secure Enclave;
+der öffentliche Teil (SubjectPublicKeyInfo) steht im Gate (`APPROVAL_PUBLIC_KEY`).
+
+**Auth:** `fh_private`-Cookie (nginx und Gate). Push: Nutzlast `kind: approval`, `id`.
+
 ## Finance Cockpit — kein API
 
 Bewusst kein JSON. Die Seite ist statisches HTML, das ein täglicher

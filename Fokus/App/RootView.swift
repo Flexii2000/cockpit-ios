@@ -38,8 +38,16 @@ final class Router {
     /// Gemerkt statt sofort geoeffnet: startet der Tipp die App erst, ist sie
     /// beim Eintreffen noch nicht aktiv, und iOS oeffnet dann nichts.
     var pendingLink: URL?
+    /// Die Freigaben des Assistenten (Blatt ueber allen Tabs), optional gleich
+    /// mit einem bestimmten Auftrag aus einem Push.
+    var approvalsPresented = false
+    var approvalID: String?
     private init() {}
     func show(_ tab: TabSelection) { selection = tab }
+    func showApprovals(open id: String? = nil) {
+        approvalID = id
+        approvalsPresented = true
+    }
     /// Gehoert der Link zum privaten Tab, oeffnet sich dieser statt Safari.
     func open(_ link: URL) {
         if let provider = PrivateTab.provider, provider.handles(link) {
@@ -102,6 +110,11 @@ struct RootView: View {
         }
         .sheet(isPresented: $setup.isPresented) {
             SetupView(sections: [.privateToken, .shoppingToken])
+        }
+        .sheet(isPresented: $router.approvalsPresented) {
+            ApprovalsView(openID: router.approvalID)
+                // Ein neuer Push bei offenem Blatt baut es mit dem neuen Auftrag neu auf.
+                .id(router.approvalID)
         }
         // Ein Tipp auf die Fokus-Kachel (`.widgetURL`) - oder die Rueckkehr
         // aus der Kurzbefehle-App (`cockpit-fokus://forest`, siehe
