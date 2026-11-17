@@ -1318,7 +1318,9 @@ als JSON-Fehlerseite — `APIClient.shortMessage` reicht sie so durch.
 Quelle: `../todo/src/main/java/com/fherrmann/todo/`. Anders als Habits hat der
 Dienst eine Weboberfläche (Kacheln nebeneinander); die App ist der zweite
 Client. **Jede Antwort ist das ganze Brett** — die App ersetzt ihren Stand und
-setzt nichts zusammen.
+setzt nichts zusammen. Seit 17.11. liest auch die Countdown-Kachel von Fokus
+`GET /api/board` (Cookie `fh_private` aus der geteilten Keychain-Gruppe, 12 s
+Zeitlimit) und zählt bis `dueAt` der gewählten Aufgabe.
 
 | Methode | Pfad | Was |
 |---|---|---|

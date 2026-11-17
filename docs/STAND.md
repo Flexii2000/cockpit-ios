@@ -1,5 +1,18 @@
 # Stand
 
+> **To-Do-Countdown als Kachel (17.11., Felix):** Fokus hat eine zweite Kachel, „Countdown“: die
+> Tage bis zur Fälligkeit eines To-Dos. Welches, wählt Felix per „Widget bearbeiten“ aus den offenen
+> Aufgaben mit Fälligkeit (nächste zuerst); ohne Wahl steht dort die nächste fällige. Klein auf dem
+> Homebildschirm (Titel, Zahl, Wochentag und Datum; überfällig rot, erledigt mit Haken), dazu rund,
+> rechteckig und als Zeile auf dem Sperrbildschirm - nur die Zahl, kein Ring (Felix' Wahl). Die
+> Kachel holt `/todo/api/board` selbst (stündlich, ein Eintrag je Mitternacht, letzter Stand in
+> ihren UserDefaults); die App lädt sie neu, sobald sich Titel, Fälligkeiten oder Haken ändern
+> (`TodoStore`). Code: `FokusWidget/TodoCountdownWidget.swift`, `Shared/TodoCountdown.swift`,
+> `Shared/TodoCountdownView.swift`. `tools/verify.sh` grün (9 neue Tests in `TodoCountdownTests`),
+> Vorschau hell und dunkel im Simulator angesehen (`COCKPIT_TAB=widget`). **Offen:** Installation
+> auf Felix' iPhone; Auswahl, Sperrbildschirm und den Wechsel um Mitternacht prüft Felix auf dem
+> Gerät. Entscheidung in `ENTSCHEIDUNGEN.md` (17.11.).
+
 > **Überweisungen und Empfängerliste in den Freigaben (17.11.):** Fokus zeigt auch Freigaben der
 > Arten `ueberweisung` (Empfänger, IBAN, Betrag, Verwendungszweck, Ausführung), `empfaenger` und
 > `empfaengerliste` (Sammelfreigabe der Startliste, Liste in Festbreitenschrift) - signiert wird wie

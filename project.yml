@@ -97,6 +97,7 @@ _watch_excludes: &watch_excludes
   - GaugeView.swift
   - FocusActivity.swift
   - FocusWidgetView.swift
+  - TodoCountdownView.swift
   - StepsNow.swift
   - StepsMirror.swift
   - StepsWidgetViews.swift

@@ -61,6 +61,17 @@ struct CalendarDate: Hashable, Comparable, Codable, Sendable {
         return CalendarDate(date: shifted)
     }
 
+    /// Kalendertage bis `other` (negativ: zurueck). In UTC gerechnet: dort hat
+    /// kein Tag 23 oder 25 Stunden, die Zeitumstellung verschiebt nichts.
+    func days(until other: CalendarDate) -> Int {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        guard let from = utc.date(from: DateComponents(year: year, month: month, day: day)),
+              let to = utc.date(from: DateComponents(year: other.year, month: other.month, day: other.day))
+        else { return 0 }
+        return utc.dateComponents([.day], from: from, to: to).day ?? 0
+    }
+
     /// Der Wochentag nach ISO: 1 = Montag … 7 = Sonntag - wie `java.time.DayOfWeek`
     /// im Dienst. Gerechnet in UTC, damit der Tag nicht ueber die Zone kippt.
     var isoWeekday: Int {

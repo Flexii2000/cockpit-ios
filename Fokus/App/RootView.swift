@@ -120,7 +120,12 @@ struct RootView: View {
         // aus der Kurzbefehle-App (`cockpit-fokus://forest`, siehe
         // ShortcutsBridge).
         .onOpenURL { url in
-            if url.host() == "forest" { router.show(.forest) }
+            // Aus den Kacheln: der Wald von der Fokus-Kachel, das To-Do vom Countdown.
+            switch url.host() {
+            case "forest": router.show(.forest)
+            case "todo": router.show(.todo)
+            default: break
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             // Zurueck im Vordergrund heisst oft: zurueck im Netz.

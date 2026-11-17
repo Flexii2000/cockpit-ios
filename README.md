@@ -138,7 +138,8 @@ und der nächste Empfang holt den Stand des Dienstes.
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros), und auf dem
 **Sperrbildschirm** als Ring neben der Uhr oder als Rechteck mit Balken und
 Makros. Dazu in Fokus der Countdown der laufenden Session (ohne Session der
-Stand von heute) und in coHabit die Co-Habits: klein mit Abhak-Knopf, mittel
+Stand von heute) und die Tage bis zur Fälligkeit eines To-Dos (klein und auf dem
+Sperrbildschirm; welches, wählt man per „Widget bearbeiten“), in coHabit die Co-Habits: klein mit Abhak-Knopf, mittel
 „Heute", groß Challenge und Ziele, auf dem Sperrbildschirm Streak und
 Challenge-Platz.
 

@@ -3,6 +3,20 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-17 — To-Do-Countdown: Aufgabe in der Kachel wählen, die Kachel holt selbst
+Felix will in Fokus eine Kachel mit Countdown zu einem bestimmten To-Do („Klausur in 60
+Tagen“). Gezählt wird bis zur Fälligkeit der Aufgabe, in Kalendertagen - der Dienst kennt nur den
+Tag. Welche Aufgabe, wählt er per „Widget bearbeiten“ aus den offenen Aufgaben mit Fälligkeit
+(seine Wahl); ohne Wahl, oder wenn es die Aufgabe nicht mehr gibt, steht dort die nächste
+fällige. Formen: klein auf dem Homebildschirm, rund, rechteckig und als Zeile auf dem
+Sperrbildschirm, jeweils nur die Zahl (seine Wahl). Die Kachel holt das Brett selbst, stündlich
+und mit einem Eintrag je Mitternacht, und merkt sich den letzten Stand in ihren UserDefaults:
+die Dateien des Offline-Caches sind bei gesperrtem Telefon nicht lesbar. Die App lädt sie neu,
+sobald sich an Titeln, Fälligkeiten oder Erledigtem etwas ändert. **Verworfen:** ein
+Countdown-Feld im To-Do-Dienst, gesetzt in der App (Dienständerung, nur ein Countdown zugleich);
+die Daten nur über die App-Gruppe (Änderungen im Browser kämen erst nach dem nächsten Öffnen der
+App an); ein Ring, wie viel der Zeit um ist, und eine mittlere Kachel (beides nicht gewählt).
+
 ## 2026-11-17 — Überweisungen nur an eine signierte Empfängerliste
 Felix' Vorgabe: Der Assistent darf Überweisungen nur an IBANs vorbereiten, an die Felix schon
 einmal überwiesen hat; ein neuer Empfänger ist selbst eine Freigabe in Fokus. Die Startliste aus

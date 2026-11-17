@@ -144,7 +144,8 @@ SportWatch/         Uhr-App von Sport (watchOS 11, in Sport.app/Watch/): Krafttr
                     gestartet und gespiegelt) und Padel-Match (auf der Uhr gestartet), beide in Health
 SportWatchShared/   was Sport und SportWatch teilen: Trainings-Botschaften, das Zählen beim Padel,
                     Postausgang der Ergebnisse
-FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session
+FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session,
+                    seit 17.11. der To-Do-Countdown (Aufgabe per „Widget bearbeiten“, holt das Brett selbst)
 FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
                     Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
 FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallstart
