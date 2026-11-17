@@ -216,7 +216,7 @@ struct HrvChart: View {
                              yEnd: .value("oben", sample.high),
                              series: .value("Band", run.id))
                 }
-                .foregroundStyle(Palette.avg7.opacity(0.18))
+                .foregroundStyle(Palette.normalRange.opacity(0.18))
                 .interpolationMethod(.linear)
             }
             ForEach(runs) { run in
