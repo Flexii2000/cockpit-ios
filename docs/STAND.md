@@ -9,9 +9,9 @@
 > ihren UserDefaults); die App lädt sie neu, sobald sich Titel, Fälligkeiten oder Haken ändern
 > (`TodoStore`). Code: `FokusWidget/TodoCountdownWidget.swift`, `Shared/TodoCountdown.swift`,
 > `Shared/TodoCountdownView.swift`. `tools/verify.sh` grün (9 neue Tests in `TodoCountdownTests`),
-> Vorschau hell und dunkel im Simulator angesehen (`COCKPIT_TAB=widget`). **Offen:** Installation
-> auf Felix' iPhone; Auswahl, Sperrbildschirm und den Wechsel um Mitternacht prüft Felix auf dem
-> Gerät. Entscheidung in `ENTSCHEIDUNGEN.md` (17.11.).
+> Vorschau hell und dunkel im Simulator angesehen (`COCKPIT_TAB=widget`). Auf Felix' iPhone seit
+> 20.11. 11:04 (`install-device.sh Fokus`, WLAN, `8220c80`). **Offen:** Auswahl, Sperrbildschirm und
+> den Wechsel um Mitternacht prüft Felix auf dem Gerät. Entscheidung in `ENTSCHEIDUNGEN.md` (17.11.).
 
 > **Überweisungen und Empfängerliste in den Freigaben (17.11.):** Fokus zeigt auch Freigaben der
 > Arten `ueberweisung` (Empfänger, IBAN, Betrag, Verwendungszweck, Ausführung), `empfaenger` und
