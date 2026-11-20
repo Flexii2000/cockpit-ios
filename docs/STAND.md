@@ -11,10 +11,16 @@
 > heute (`RingsSnapshot`). Code: `HealthyWatchWidget/RingsComplication.swift`,
 > `HealthyWatchShared/HealthRings.swift`, `HealthRingsView.swift`, `WatchStepCount.swift`.
 > `tools/verify.sh` (alle) grün, 14 neue Tests in `HealthRingsTests`; im Uhren-Simulator angesehen
-> (`COCKPIT_WATCH_DEMO=rings`), dazu in Healthy unter `COCKPIT_TAB=widget`. **Offen:** Installation
-> auf iPhone und Uhr; Felix öffnet Healthy einmal auf der Uhr (Health-Dialog für die Schritte), legt
-> „Ringe“ in die Mitte von Modular und prüft auch ein einfarbiges Zifferblatt - das zeigt kein
-> Simulator. Entscheidung in `ENTSCHEIDUNGEN.md` (20.11.).
+> (`COCKPIT_WATCH_DEMO=rings`), dazu in Healthy unter `COCKPIT_TAB=widget`. Healthy auf Felix'
+> iPhone seit 20.11. 11:13 (`b6e3913`, schickt der Uhr schon den Weight-Token); der Gerätebau trägt
+> HealthKit in Uhr-App und Komplikation (`codesign` geprüft). **Die Uhr-App fehlt noch:** die Uhr war
+> von 11:13 bis 11:41 für den Mac „unavailable“ und per Bonjour nicht im WLAN zu sehen (nur iPhone,
+> Wohnzimmer-Geräte, Mac), auch mit ausgeschaltetem Bluetooth am iPhone; letzte Verbindung 10.11.
+> 18:24. Nachholen, sobald sie sichtbar ist:
+> `xcrun devicectl device install app --device 00008310-000C63063AD3601E build/device/Build/Products/Debug-iphoneos/Healthy.app/Watch/HealthyWatch.app`
+> (oder `tools/install-device.sh Healthy`). **Danach offen:** Felix öffnet Healthy einmal auf der Uhr
+> (Health-Dialog für die Schritte), legt „Ringe“ in die Mitte von Modular und prüft auch ein
+> einfarbiges Zifferblatt - das zeigt kein Simulator. Entscheidung in `ENTSCHEIDUNGEN.md` (20.11.).
 
 > **To-Do-Countdown als Kachel (17.11., Felix):** Fokus hat eine zweite Kachel, „Countdown“: die
 > Tage bis zur Fälligkeit eines To-Dos. Welches, wählt Felix per „Widget bearbeiten“ aus den offenen
