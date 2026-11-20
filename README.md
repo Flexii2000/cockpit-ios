@@ -5,7 +5,7 @@ bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Dashboard (Recovery, Strain, Energie, Logbook, Chat), Essen (Kalorienzähler), Gewicht (Weight Tracker), Freunde (Serien); Uhr-App mit kcal-Komplikation | `com.fherrmann.cockpit` | – |
+| **Healthy** | Dashboard (Recovery, Strain, Energie, Logbook, Chat), Essen (Kalorienzähler), Gewicht (Weight Tracker), Freunde (Serien); Uhr-App mit kcal- und Ringe-Komplikation (kcal, Schritte, Strain) | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen, Cloud (AWS, Verda) | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | To-Do, Wald, Einkaufsliste, Evaluation | `com.fherrmann.fokus` | Evaluation, Face ID |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |

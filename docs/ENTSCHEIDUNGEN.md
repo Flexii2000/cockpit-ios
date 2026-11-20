@@ -3,6 +3,26 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-20 — Uhr: Ringe-Komplikation für die Mitte von Modular
+Felix will eine „größere“ Healthy-Komplikation in der Mitte des Modular-Zifferblatts, mit drei
+Ringen für kcal, Schritte und Strain. Seine Wahl (Fragerunde 20.11.): die Ringe **nebeneinander**,
+unter jedem die Zahl (wie die große Sperrbildschirm-Kachel des iPhones), und der Strain-Ring ist
+**beim Tagesziel voll**, darüber voll und orange. kcal füllt sich wie der runde kcal-Ring mit dem
+Gegessenen, darunter der Rest; Schritte gegen das Schrittziel des Weight Trackers. Meine
+Festlegungen: ohne Strain-Ziel (Kalibrieren) misst der Ring an der Skala 0–21; Farben auf
+„Mehrfarbig“ kcal grün→orange wie die kcal-Komplikation, Schritte türkis, Strain im Blau der App;
+keine Einheiten, keine Überschrift. Woher die Werte kommen: die Komplikation holt alles selbst, wie
+die kcal-Komplikation (Entscheidung 02.09.) - Strain und Schrittziel beim Weight Tracker, dafür
+bekommt die Uhr Felix' `weight_app_token` (enger als `fh_private`, das seit 14.10. schon dort
+liegt); die Schritte aus Health **auf der Uhr**, dafür HealthKit wieder in Uhr-App und
+Komplikation (bis 23.10. schon einmal da, fürs Krafttraining). **Verworfen:** Ringe ineinander
+wie die Aktivitätsringe mit den Zahlen daneben, und nur Ringe mit der Zahl darin (beide nicht
+gewählt); Strain auf der Skala 0–21 mit Zielmarke wie in der App (nicht gewählt - die beiden
+anderen Ringe füllen sich auch bis zu ihrem Ziel); Strain und Schritte vom iPhone per
+WatchConnectivity (nur so frisch wie das letzte Öffnen von Healthy, und Komplikations-Übertragungen
+sind auf rund 50 am Tag begrenzt); die Schritte per Schrittzähler der Uhr (`CMPedometer` - eine
+eigene Zählung neben Health, die Zahl wiche von der in Health ab).
+
 ## 2026-11-17 — To-Do-Countdown: Aufgabe in der Kachel wählen, die Kachel holt selbst
 Felix will in Fokus eine Kachel mit Countdown zu einem bestimmten To-Do („Klausur in 60
 Tagen“). Gezählt wird bis zur Fälligkeit der Aufgabe, in Kalendertagen - der Dienst kennt nur den

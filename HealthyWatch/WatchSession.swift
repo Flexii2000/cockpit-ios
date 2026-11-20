@@ -16,9 +16,9 @@ final class WatchSession {
 
     func activate() {
         guard WCSession.isSupported() else { return }
-        relay.onAccess = { owner, health, replacesAll in
+        relay.onAccess = { tokens in
             Task { @MainActor in
-                if ComplicationStore.save(owner: owner, health: health, replacesAll: replacesAll) {
+                if ComplicationStore.save(tokens) {
                     // Ein anderer Zugang heisst ein anderes Tagebuch: der alte
                     // Stand zaehlt nicht mehr.
                     ComplicationStore.clearSnapshot()
@@ -53,16 +53,23 @@ final class WatchSession {
 /// Der Delegat - WatchConnectivity ruft ihn auf einer eigenen Warteschlange.
 final class WatchSessionRelay: NSObject, WCSessionDelegate, @unchecked Sendable {
 
-    /// Privat-Token, persoenlicher Token, und ob der Kontext beide vollstaendig nennt.
-    nonisolated(unsafe) var onAccess: (@Sendable (String?, String?, Bool) -> Void)?
+    /// Die Token des Kontexts, und ob er sie vollstaendig nennt.
+    nonisolated(unsafe) var onAccess: (@Sendable (ComplicationStore.Tokens) -> Void)?
     nonisolated(unsafe) var onSnapshot: (@Sendable (Data) -> Void)?
 
     nonisolated func take(context: [String: Any]) {
         let owner = context[WatchKeys.privateToken] as? String
         let health = context[WatchKeys.healthToken] as? String
+        let weight = context[WatchKeys.weightToken] as? String
         let replacesAll = context[WatchKeys.accessVersion] != nil
+        // Erst ab Version 3 (20.11.) nennt das iPhone den Weight-Token - ein
+        // Kontext von davor sagt ueber ihn nichts.
+        let replacesWeight = (context[WatchKeys.accessVersion] as? Int ?? 0) >= 3
         // Ein leerer Kontext (noch nie etwas gekommen) sagt nichts.
-        if owner != nil || health != nil || replacesAll { onAccess?(owner, health, replacesAll) }
+        if owner != nil || health != nil || weight != nil || replacesAll {
+            onAccess?(ComplicationStore.Tokens(owner: owner, health: health, weight: weight,
+                                               replacesAll: replacesAll, replacesWeight: replacesWeight))
+        }
         if let data = context[WatchKeys.snapshot] as? Data { onSnapshot?(data) }
     }
 

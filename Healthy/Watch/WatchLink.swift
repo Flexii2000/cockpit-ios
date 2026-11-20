@@ -3,7 +3,8 @@ import WatchConnectivity
 
 /// Der Draht zur Uhr ueber WatchConnectivity (14.10.): der Token fuer die
 /// kcal-Komplikation (seit 10.11. der persoenliche Healthy-Token, wo es ihn
-/// gibt) und ihr Stand nach jeder Essensaenderung. Das Krafttraining
+/// gibt, seit 20.11. dazu der Weight-Token fuer die Ringe) und ihr Stand nach
+/// jeder Essensaenderung. Das Krafttraining
 /// ist am 23.10. mit dem Gym-Tab nach Sport gezogen, samt eigener Uhr-App.
 ///
 /// Die Uhr hat ihren eigenen Schluesselbund; an die geteilte Gruppe des iPhones
@@ -55,15 +56,20 @@ final class WatchLink {
     func sendContext() {
         guard let session, session.activationState == .activated, session.isPaired, session.isWatchAppInstalled
         else { return }
-        // Beide Token, die es gibt, und die Marke dazu: so loescht die Uhr auch
+        // Alle Token, die es gibt, und die Marke dazu: so loescht die Uhr auch
         // einen, der auf dem iPhone entfernt wurde. Eine aeltere Uhr-App findet
-        // den Privat-Token weiter unter seinem alten Schluessel.
-        var context: [String: Any] = [WatchKeys.accessVersion: 2]
+        // den Privat-Token weiter unter seinem alten Schluessel. Seit 20.11.
+        // (Version 3) auch Felix' Weight-Token: die Ringe-Komplikation holt
+        // Strain und Schrittziel selbst beim Weight Tracker.
+        var context: [String: Any] = [WatchKeys.accessVersion: 3]
         if let token = Keychain.read(Keychain.privateTokenKey), !token.isEmpty {
             context[WatchKeys.privateToken] = token
         }
         if let token = Keychain.read(Keychain.healthTokenKey), !token.isEmpty {
             context[WatchKeys.healthToken] = token
+        }
+        if let token = Keychain.read(Keychain.weightTokenKey), !token.isEmpty {
+            context[WatchKeys.weightToken] = token
         }
         if let snapshot = lastSent ?? pendingSnapshot, let data = try? JSONEncoder().encode(snapshot) {
             context[WatchKeys.snapshot] = data

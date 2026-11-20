@@ -1,5 +1,21 @@
 # Stand
 
+> **Uhr: Ringe-Komplikation für die Mitte von Modular (20.11., Felix):** neue Komplikation
+> „Ringe“ (`accessoryRectangular`) neben der kcal-Komplikation: kcal, Schritte und Strain als drei
+> Ringe nebeneinander, unter jedem die Zahl (kcal übrig bzw. „+120“, „8.214“, „12,4“). Jeder Ring
+> füllt sich bis zu seinem Ziel; der Strain-Ring beim Strain-Ziel von heute, darüber voll und orange
+> (Felix' Wahl), ohne Ziel an der Skala 0–21. Die Komplikation holt alles selbst: kcal beim
+> Kalorienzähler (`KcalToday`, wie die kcal-Komplikation), Strain und Schrittziel beim Weight Tracker
+> (die Uhr bekommt dafür `weight_app_token`, Kontext-Version 3), Schritte aus Health auf der Uhr
+> (`WatchStepCount` - HealthKit wieder in Uhr-App und Komplikation). Ohne Antwort gilt der Stand von
+> heute (`RingsSnapshot`). Code: `HealthyWatchWidget/RingsComplication.swift`,
+> `HealthyWatchShared/HealthRings.swift`, `HealthRingsView.swift`, `WatchStepCount.swift`.
+> `tools/verify.sh` (alle) grün, 14 neue Tests in `HealthRingsTests`; im Uhren-Simulator angesehen
+> (`COCKPIT_WATCH_DEMO=rings`), dazu in Healthy unter `COCKPIT_TAB=widget`. **Offen:** Installation
+> auf iPhone und Uhr; Felix öffnet Healthy einmal auf der Uhr (Health-Dialog für die Schritte), legt
+> „Ringe“ in die Mitte von Modular und prüft auch ein einfarbiges Zifferblatt - das zeigt kein
+> Simulator. Entscheidung in `ENTSCHEIDUNGEN.md` (20.11.).
+
 > **To-Do-Countdown als Kachel (17.11., Felix):** Fokus hat eine zweite Kachel, „Countdown“: die
 > Tage bis zur Fälligkeit eines To-Dos. Welches, wählt Felix per „Widget bearbeiten“ aus den offenen
 > Aufgaben mit Fälligkeit (nächste zuerst); ohne Wahl steht dort die nächste fällige. Klein auf dem

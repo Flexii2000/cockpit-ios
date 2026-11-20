@@ -21,4 +21,18 @@ enum HealthCookie {
         header(health: Keychain.read(Keychain.healthTokenKey),
                owner: Keychain.read(Keychain.privateTokenKey))
     }
+
+    /// Fuer den Weight Tracker: der kennt `fh_private` nicht, sondern Felix'
+    /// eigenen Token (`weight_app_token`). Der persoenliche Token gilt bei
+    /// beiden Diensten und geht auch hier vor.
+    static func weightHeader(health: String?, weight: String?) -> String? {
+        if let health, !health.isEmpty { return "\(Keychain.healthTokenKey)=\(health)" }
+        if let weight, !weight.isEmpty { return "\(Keychain.weightTokenKey)=\(weight)" }
+        return nil
+    }
+
+    static func currentWeight() -> String? {
+        weightHeader(health: Keychain.read(Keychain.healthTokenKey),
+                     weight: Keychain.read(Keychain.weightTokenKey))
+    }
 }

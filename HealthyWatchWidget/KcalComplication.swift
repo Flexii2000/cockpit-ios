@@ -6,6 +6,7 @@ import WidgetKit
 struct HealthyWatchWidgetBundle: WidgetBundle {
     var body: some Widget {
         KcalComplication()
+        RingsComplication()
     }
 }
 
@@ -38,6 +39,17 @@ struct KcalProvider: TimelineProvider {
     }
 
     private func entry(now: Date = Date()) async -> KcalEntry {
+        let kcal = await KcalToday.load(now: now)
+        return KcalEntry(date: now, consumed: kcal.consumed, target: kcal.target)
+    }
+}
+
+/// Der Tag beim Kalorienzaehler, fuer beide Komplikationen.
+enum KcalToday {
+
+    /// Frisch vom Kalorienzaehler, sonst der abgelegte Stand - von heute; ein
+    /// Stand von gestern zaehlt heute nicht.
+    static func load(now: Date) async -> (consumed: Double?, target: Double?) {
         let today = CalendarDate(date: now)
         if let cookie = ComplicationStore.cookie(),
            let day = try? await FoodAPI(cookie: cookie, timeout: 10).day(today) {
@@ -46,12 +58,10 @@ struct KcalProvider: TimelineProvider {
             ComplicationStore.save(snapshot: ComplicationSnapshot(date: today.iso, consumedKcal: day.consumed.kcal,
                                                                   targetKcal: day.targets.kcal, fetchedAt: now,
                                                                   consumed: day.consumed, targets: day.targets))
-            return KcalEntry(date: now, consumed: day.consumed.kcal, target: day.targets.kcal)
+            return (day.consumed.kcal, day.targets.kcal)
         }
         let snapshot = ComplicationStore.snapshot()
-        return KcalEntry(date: now,
-                         consumed: snapshot?.date == today.iso ? snapshot?.consumedKcal : nil,
-                         target: snapshot?.targetKcal)
+        return (snapshot?.date == today.iso ? snapshot?.consumedKcal : nil, snapshot?.targetKcal)
     }
 }
 
