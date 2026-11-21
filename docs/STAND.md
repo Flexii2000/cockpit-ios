@@ -1,5 +1,13 @@
 # Stand
 
+> **Cappuccino-Zähler in Healthy (21.11., Branch `cappuccino`, vom Server-Agenten):** Zeile über
+> dem Frühstück mit „n/4“, „−“ und „+“ (`FoodTab.cappuccinoSection`, `FoodStore.addCappuccino`/
+> `removeCappuccino` über die normale Warteschlange). Tachos, Kachel und Uhr rechnen gegen
+> `DaySummary.dayTargets` (Ziel + Cappuccino-Budget), das Ziele-Blatt weiter gegen `targets`.
+> Dienst `food` ist live. **Ungeprüft:** auf dem Server gibt es kein Xcode - weder gebaut noch
+> getestet. **Offen:** `tools/verify.sh Healthy` (2 neue Tests in `FoodModelTests`), Blick im
+> Simulator, mergen, `tools/install-device.sh Healthy`.
+
 > **Überweisungen und Empfängerliste in den Freigaben (17.11.):** Fokus zeigt auch Freigaben der
 > Arten `ueberweisung` (Empfänger, IBAN, Betrag, Verwendungszweck, Ausführung), `empfaenger` und
 > `empfaengerliste` (Sammelfreigabe der Startliste, Liste in Festbreitenschrift) - signiert wird wie

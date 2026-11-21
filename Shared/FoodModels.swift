@@ -80,12 +80,53 @@ struct FoodEntry: Decodable, Identifiable, Equatable, Sendable {
     var total: Nutrients { per100g?.scaled(gramsOf: grams) ?? .zero }
 }
 
+/// Der Cappuccino-Zaehler ueber dem Fruehstueck (Felix, 21.11.; Dienst:
+/// `CappuccinoCounter`). Ein Cappuccino ist ein normaler Eintrag des
+/// Cappuccino-Gerichts, eine Portion schwer. Bis `budget` am Tag zaehlen sie
+/// nicht gegen das Ziel: das Ziel des Tages ist `targets + bonus`.
+struct CappuccinoDay: Decodable, Equatable, Sendable {
+    /// `nil`, solange es kein Cappuccino-Gericht gibt - dann legt das erste
+    /// „+" eins mit `perCup` an.
+    let dishId: String?
+    let name: String
+    let count: Int
+    let budget: Int
+    let portionG: Double
+    let perCup: Nutrients
+    /// kcal, Kohlenhydrate und Fett der Cappuccinos bis zum Budget; Eiweiss 0.
+    let bonus: Nutrients
+
+    /// Derselbe Zaehler, aus Eintraegen neu gezaehlt - fuer das, was noch auf
+    /// das Netz wartet (`FoodOverlay`). Dieselbe Regel wie im Dienst: alle
+    /// Eintraege des Gerichts in Portionen, der Zuschlag aus ihren eigenen
+    /// Werten, hoechstens `budget` Portionen.
+    func recounted(_ entries: [FoodEntry]) -> CappuccinoDay {
+        guard let dishId, portionG > 0 else { return self }
+        var grams = 0.0
+        var left = Double(budget) * portionG
+        var bonus = Nutrients.zero
+        for entry in entries where entry.dishId == dishId {
+            grams += entry.grams
+            let counted = min(entry.grams, left)
+            if counted > 0, let per100g = entry.per100g {
+                bonus = bonus + per100g.scaled(gramsOf: counted)
+                left -= counted
+            }
+        }
+        return CappuccinoDay(dishId: dishId, name: name, count: Int((grams / portionG).rounded()),
+                             budget: budget, portionG: portionG, perCup: perCup,
+                             bonus: Nutrients(kcal: bonus.kcal, proteinG: 0, carbsG: bonus.carbsG, fatG: bonus.fatG))
+    }
+}
+
 struct DaySummary: Decodable, Sendable {
     let date: CalendarDate
     let targets: Nutrients
     let consumed: Nutrients
     let remaining: Nutrients
     let entries: [FoodEntry]
+    /// Nur fuer Personen mit Cappuccino-Zaehler, sonst `nil` (fehlt im JSON).
+    var cappuccino: CappuccinoDay? = nil
     /// kcal-Ziel je Mahlzeit. Als `[String: Double]` gelesen und erst danach
     /// zugeordnet: ein Dictionary mit Enum-Schluessel laesst sich zwar
     /// decodieren, aber nur ueber `CodingKeyRepresentable` - der Umweg ist
@@ -98,11 +139,31 @@ struct DaySummary: Decodable, Sendable {
         })
     }
 
+    /// Das Ziel des Tages: das gespeicherte plus das Budget der Cappuccinos.
+    /// Fuer Tachos, Kachel und Uhr - **nicht** fuer das Ziele-Blatt, das
+    /// fuellt sich aus `targets`, sonst wuerde der Zuschlag beim Speichern zur
+    /// festen Zahl.
+    var dayTargets: Nutrients {
+        guard let bonus = cappuccino?.bonus else { return targets }
+        return Nutrients(kcal: targets.kcal + bonus.kcal, proteinG: targets.proteinG + bonus.proteinG,
+                         carbsG: targets.carbsG + bonus.carbsG, fatG: targets.fatG + bonus.fatG,
+                         proteinMinG: targets.proteinMinG, proteinMinDefault: targets.proteinMinDefault)
+    }
+
+    /// Das kcal-Ziel einer Mahlzeit, wie es die Liste zeigt: die Cappuccinos
+    /// stehen im Fruehstueck, ihr Budget gehoert dann auch dorthin.
+    func shownTarget(for meal: Meal) -> Double? {
+        guard let target = targetsByMeal[meal] else { return nil }
+        return meal == .breakfast ? target + (cappuccino?.bonus.kcal ?? 0) : target
+    }
+
     /// Derselbe Tag mit anderen Eintraegen und Summen - fuer das, was noch wartet
-    /// (`FoodOverlay`). Der Rest folgt wie beim Dienst: Ziel minus Verzehrtes.
+    /// (`FoodOverlay`). Der Rest folgt wie beim Dienst: Ziel des Tages minus Verzehrtes.
     func replacing(entries: [FoodEntry], consumed: Nutrients) -> DaySummary {
-        DaySummary(date: date, targets: targets, consumed: consumed, remaining: targets - consumed,
-                   entries: entries, mealTargets: mealTargets)
+        let cups = cappuccino?.recounted(entries)
+        return DaySummary(date: date, targets: targets, consumed: consumed,
+                          remaining: targets + (cups?.bonus ?? .zero) - consumed,
+                          entries: entries, cappuccino: cups, mealTargets: mealTargets)
     }
 }
 

@@ -636,6 +636,8 @@ Friend { id, person, name, since,
 | POST | `/api/food/quick-capture` | Body `{date, text, meal, imageJpegBase64?}` → `QuickCaptureJob`; mit Foto darf `text` leer sein (Kontext) |
 | GET | `/api/food/quick-capture/{id}` | `QuickCaptureJob` |
 | GET | `/api/food/status` | `StatusInfo` (für das Statusboard) |
+| POST | `/api/food/cappuccino` | Body `{date?, id?}` (oder leer) → `DaySummary`. Cappuccino-Zähler (seit 2026-11-21): ein Eintrag des Cappuccino-Gerichts, eine Portion, Mahlzeit `BREAKFAST`. Die App nimmt stattdessen `POST /entries` mit `cappuccino.dishId` und `portionG` über die Warteschlange - dasselbe Ergebnis, aber offline |
+| DELETE | `/api/food/cappuccino?date=` | `DaySummary`; nimmt vom jüngsten Eintrag des Gerichts eine Portion weg (bis 1,5 Portionen: Eintrag weg), 404 ohne Cappuccino. Die App macht dasselbe mit `PUT`/`DELETE /entries/{id}` |
 | POST | `/api/food/devices` | Body `{token, environment?}` → 204. Meldet ein Gerät für Push an; `environment` siehe unten |
 
 ```
@@ -644,7 +646,12 @@ Meal           BREAKFAST | LUNCH | DINNER | SNACK
 Dish           id, name, per100g: Nutrients, portionG?, lastUsedOn?
 FoodEntry      id, date, dishId?, name, grams, per100g, meal, createdAt: Instant
 DaySummary     date, targets, consumed, remaining,
-               entries: [FoodEntry], mealTargets: [Meal: Double]
+               entries: [FoodEntry], mealTargets: [Meal: Double],
+               cappuccino?: CappuccinoDay   (seit 2026-11-21, nur für Personen mit Zähler)
+CappuccinoDay  dishId?, name, count, budget (4), portionG, perCup: Nutrients, bonus: Nutrients
+               bonus = kcal/KH/Fett der Cappuccinos bis zum Budget (Eiweiß 0). Ziel des Tages
+               = targets + bonus; `remaining` rechnet es schon ein, `targets` und
+               `mealTargets` NICHT (das Ziele-Blatt füllt sich daraus). App: `dayTargets`
 DayTotal       date, consumed: Nutrients, meals: [Meal]   (meals seit 2026-10-09, Branch recovery:
                Mahlzeiten mit mindestens einem Eintrag - für die Regel „getrackter Tag" im
                Weight Tracker; die App liest das Feld nicht)

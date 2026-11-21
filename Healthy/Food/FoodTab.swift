@@ -201,6 +201,10 @@ struct FoodTab: View {
                         .simultaneousGesture(cardDrag)
                 }
                 ForEach(FoodStore.mealSections(of: day)) { section in
+                    // Der Cappuccino-Zaehler steht ueber dem Fruehstueck (Felix, 21.11.).
+                    if section.meal == .breakfast, let cups = day.cappuccino {
+                        cappuccinoSection(cups)
+                    }
                     mealSection(section, day: day)
                 }
                 historySection(day)
@@ -363,6 +367,8 @@ struct FoodTab: View {
     // MARK: - Tachos
 
     /// - Parameter provisional: Eintraege warten noch und zaehlen schon mit.
+    /// Gegen das Ziel des Tages (`dayTargets`): bis vier Cappuccinos kommen zum
+    /// gespeicherten Ziel dazu, statt es aufzufressen.
     private func gauges(_ day: DaySummary, provisional: Bool) -> some View {
         VStack(spacing: 16) {
             // Makros oben, kcal darunter: die drei kleinen zeigen das schon
@@ -371,11 +377,11 @@ struct FoodTab: View {
                 ForEach(Macro.allCases) { macro in
                     VStack(spacing: 4) {
                         GaugeView(
-                            ratio: ratio(macro.value(day.consumed), macro.value(day.targets)),
+                            ratio: ratio(macro.value(day.consumed), macro.value(day.dayTargets)),
                             tone: NutritionTone.tone(for: macro, consumed: day.consumed,
-                                                     targets: day.targets),
+                                                     targets: day.dayTargets),
                             main: macro.value(day.consumed).whole,
-                            sub: "von \(macro.value(day.targets).whole) g",
+                            sub: "von \(macro.value(day.dayTargets).whole) g",
                             lineWidth: 6,
                             mainFont: .subheadline,
                             subFont: .system(size: 9))
@@ -392,8 +398,8 @@ struct FoodTab: View {
 
             HStack(spacing: 16) {
                 GaugeView(
-                    ratio: ratio(day.consumed.kcal, day.targets.kcal),
-                    tone: NutritionTone.kcalTone(consumed: day.consumed, targets: day.targets),
+                    ratio: ratio(day.consumed.kcal, day.dayTargets.kcal),
+                    tone: NutritionTone.kcalTone(consumed: day.consumed, targets: day.dayTargets),
                     main: abs(day.remaining.kcal).whole,
                     sub: day.remaining.kcal < 0 ? "kcal drüber" : "kcal übrig",
                     lineWidth: 8,
@@ -404,7 +410,7 @@ struct FoodTab: View {
                     Text(provisional ? "Verzehrt · vorläufig" : "Verzehrt").font(.caption).foregroundStyle(.secondary)
                         .accessibilityIdentifier(provisional ? "foodProvisional" : "foodConsumed")
                     Text("\(day.consumed.kcal.whole) kcal").font(.title3.weight(.semibold))
-                    Text("von \(day.targets.kcal.whole) kcal")
+                    Text("von \(day.dayTargets.kcal.whole) kcal")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -417,6 +423,46 @@ struct FoodTab: View {
     /// Zielmarke am Ende und man saehe nie, ob man knapp oder weit darueber ist.
     private func ratio(_ consumed: Double, _ target: Double) -> Double {
         target > 0 ? consumed / (target * 1.25) : 0
+    }
+
+    // MARK: - Cappuccino
+
+    /// „+" traegt einen Cappuccino zum Fruehstueck ein (eine Portion des
+    /// Gerichts, ohne Netz spaeter), „−" nimmt den juengsten wieder weg.
+    private func cappuccinoSection(_ cups: CappuccinoDay) -> some View {
+        Section {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Cappuccino")
+                    Text(cups.bonus.kcal > 0
+                         ? "je \(cups.perCup.kcal.whole) kcal · Ziel +\(cups.bonus.kcal.whole) kcal"
+                         : "je \(cups.perCup.kcal.whole) kcal · eigenes Budget")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(cups.count)/\(cups.budget)")
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(cups.count > cups.budget ? .orange : .primary)
+                    .accessibilityIdentifier("cappuccinoCount")
+                Button {
+                    Task { await store.removeCappuccino() }
+                } label: {
+                    Image(systemName: "minus.circle.fill").font(.title2)
+                }
+                .disabled(cups.count <= 0)
+                .accessibilityLabel("Einen Cappuccino weniger")
+                Button {
+                    Task { await store.addCappuccino() }
+                } label: {
+                    Image(systemName: "plus.circle.fill").font(.title2)
+                }
+                .accessibilityLabel("Einen Cappuccino mehr")
+                .accessibilityIdentifier("cappuccinoPlus")
+            }
+            // Zwei Knoepfe in einer Zeile: ohne eigenen Stil loest ein Tipp in
+            // einer List-Zeile beide aus.
+            .buttonStyle(.borderless)
+        }
     }
 
     // MARK: - Mahlzeiten
@@ -484,7 +530,7 @@ struct FoodTab: View {
                 // Teilsumme gegen das Ziel dieser Mahlzeit - „war das
                 // Fruehstueck zu gross?" laesst sich an einer Tagessumme
                 // nicht beantworten.
-                if let meal = section.meal, let target = day.targetsByMeal[meal], target > 0 {
+                if let meal = section.meal, let target = day.shownTarget(for: meal), target > 0 {
                     Text("\(section.total.kcal.whole)/\(target.whole) kcal")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(section.total.kcal > target + NutritionTone.kcalTolerance

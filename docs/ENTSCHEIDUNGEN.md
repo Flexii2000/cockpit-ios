@@ -3,6 +3,14 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-21 — Cappuccino-Budget als Zuschlag im Tag, nicht im Ziel
+Bis vier Cappuccinos am Tag sollen das Ziel erhöhen statt es aufzufressen. Der Dienst liefert
+den Zuschlag als `cappuccino.bonus` und rechnet ihn in `remaining` ein; `targets` und
+`mealTargets` bleiben das gespeicherte Ziel. **Verworfen:** `targets` im Tag erhöhen - das
+Ziele-Blatt füllt sich aus `day.targets`, beim nächsten Sichern wäre der Zuschlag eines Tages
+zum festen Ziel geworden. Die Knöpfe nutzen `POST/PUT/DELETE /entries` über die
+Warteschlange statt `/cappuccino`, damit „+“ auch ohne Netz geht.
+
 ## 2026-11-17 — Überweisungen nur an eine signierte Empfängerliste
 Felix' Vorgabe: Der Assistent darf Überweisungen nur an IBANs vorbereiten, an die Felix schon
 einmal überwiesen hat; ein neuer Empfänger ist selbst eine Freigabe in Fokus. Die Startliste aus

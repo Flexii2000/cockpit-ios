@@ -377,6 +377,37 @@ final class FoodStore {
         changedLocally()
     }
 
+    /// Ein Cappuccino mehr: ein normaler Eintrag des Cappuccino-Gerichts, eine
+    /// Portion, zum Fruehstueck - geht also ohne Netz in dieselbe Warteschlange.
+    /// Gibt es das Gericht noch nicht, legt der Eintrag es mit den Werten an,
+    /// die der Dienst als `perCup` nennt.
+    func addCappuccino() async {
+        guard let cups = summary(for: date)?.cappuccino, cups.portionG > 0 else { return }
+        if let dishId = cups.dishId {
+            _ = await addEntry(dishId: dishId, dish: nil, grams: cups.portionG, meal: .breakfast)
+        } else {
+            let factor = 100 / cups.portionG
+            let dish = DishRequest(name: cups.name, kcal: cups.perCup.kcal * factor,
+                                   proteinG: cups.perCup.proteinG * factor, carbsG: cups.perCup.carbsG * factor,
+                                   fatG: cups.perCup.fatG * factor, portionG: cups.portionG)
+            _ = await addEntry(dishId: nil, dish: dish, grams: cups.portionG, meal: .breakfast)
+        }
+    }
+
+    /// Ein Cappuccino weniger: vom juengsten Eintrag des Gerichts eine Portion
+    /// weg, bis anderthalb Portionen faellt er ganz weg - wie `DELETE
+    /// /api/food/cappuccino`, aber ueber die Warteschlange.
+    func removeCappuccino() async {
+        guard let day = summary(for: date), let cups = day.cappuccino, let dishId = cups.dishId,
+              let newest = day.entries.filter({ $0.dishId == dishId }).max(by: { $0.createdAt < $1.createdAt })
+        else { return }
+        if newest.grams > cups.portionG * 1.5 {
+            _ = await updateEntry(newest, grams: newest.grams - cups.portionG, meal: newest.meal, date: nil)
+        } else {
+            await deleteEntry(newest)
+        }
+    }
+
     /// Nach einer Aenderung, die erst einmal nur hier steht: die Kachel rechnet mit.
     private func changedLocally() {
         clearError()
