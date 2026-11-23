@@ -11,6 +11,40 @@ Ziele-Blatt füllt sich aus `day.targets`, beim nächsten Sichern wäre der Zusc
 zum festen Ziel geworden. Die Knöpfe nutzen `POST/PUT/DELETE /entries` über die
 Warteschlange statt `/cappuccino`, damit „+“ auch ohne Netz geht.
 
+## 2026-11-20 — Uhr: Ringe-Komplikation für die Mitte von Modular
+Felix will eine „größere“ Healthy-Komplikation in der Mitte des Modular-Zifferblatts, mit drei
+Ringen für kcal, Schritte und Strain. Seine Wahl (Fragerunde 20.11.): die Ringe **nebeneinander**,
+unter jedem die Zahl (wie die große Sperrbildschirm-Kachel des iPhones), und der Strain-Ring ist
+**beim Tagesziel voll**, darüber voll und orange. kcal füllt sich wie der runde kcal-Ring mit dem
+Gegessenen, darunter der Rest; Schritte gegen das Schrittziel des Weight Trackers. Meine
+Festlegungen: ohne Strain-Ziel (Kalibrieren) misst der Ring an der Skala 0–21; Farben auf
+„Mehrfarbig“ kcal grün→orange wie die kcal-Komplikation, Schritte türkis, Strain im Blau der App;
+keine Einheiten, keine Überschrift. Woher die Werte kommen: die Komplikation holt alles selbst, wie
+die kcal-Komplikation (Entscheidung 02.09.) - Strain und Schrittziel beim Weight Tracker, dafür
+bekommt die Uhr Felix' `weight_app_token` (enger als `fh_private`, das seit 14.10. schon dort
+liegt); die Schritte aus Health **auf der Uhr**, dafür HealthKit wieder in Uhr-App und
+Komplikation (bis 23.10. schon einmal da, fürs Krafttraining). **Verworfen:** Ringe ineinander
+wie die Aktivitätsringe mit den Zahlen daneben, und nur Ringe mit der Zahl darin (beide nicht
+gewählt); Strain auf der Skala 0–21 mit Zielmarke wie in der App (nicht gewählt - die beiden
+anderen Ringe füllen sich auch bis zu ihrem Ziel); Strain und Schritte vom iPhone per
+WatchConnectivity (nur so frisch wie das letzte Öffnen von Healthy, und Komplikations-Übertragungen
+sind auf rund 50 am Tag begrenzt); die Schritte per Schrittzähler der Uhr (`CMPedometer` - eine
+eigene Zählung neben Health, die Zahl wiche von der in Health ab).
+
+## 2026-11-17 — To-Do-Countdown: Aufgabe in der Kachel wählen, die Kachel holt selbst
+Felix will in Fokus eine Kachel mit Countdown zu einem bestimmten To-Do („Klausur in 60
+Tagen“). Gezählt wird bis zur Fälligkeit der Aufgabe, in Kalendertagen - der Dienst kennt nur den
+Tag. Welche Aufgabe, wählt er per „Widget bearbeiten“ aus den offenen Aufgaben mit Fälligkeit
+(seine Wahl); ohne Wahl, oder wenn es die Aufgabe nicht mehr gibt, steht dort die nächste
+fällige. Formen: klein auf dem Homebildschirm, rund, rechteckig und als Zeile auf dem
+Sperrbildschirm, jeweils nur die Zahl (seine Wahl). Die Kachel holt das Brett selbst, stündlich
+und mit einem Eintrag je Mitternacht, und merkt sich den letzten Stand in ihren UserDefaults:
+die Dateien des Offline-Caches sind bei gesperrtem Telefon nicht lesbar. Die App lädt sie neu,
+sobald sich an Titeln, Fälligkeiten oder Erledigtem etwas ändert. **Verworfen:** ein
+Countdown-Feld im To-Do-Dienst, gesetzt in der App (Dienständerung, nur ein Countdown zugleich);
+die Daten nur über die App-Gruppe (Änderungen im Browser kämen erst nach dem nächsten Öffnen der
+App an); ein Ring, wie viel der Zeit um ist, und eine mittlere Kachel (beides nicht gewählt).
+
 ## 2026-11-17 — Überweisungen nur an eine signierte Empfängerliste
 Felix' Vorgabe: Der Assistent darf Überweisungen nur an IBANs vorbereiten, an die Felix schon
 einmal überwiesen hat; ein neuer Empfänger ist selbst eine Freigabe in Fokus. Die Startliste aus

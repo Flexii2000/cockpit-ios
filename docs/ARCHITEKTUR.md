@@ -136,15 +136,18 @@ HealthyWidget/      Kalorien-Kacheln (Bundle-ID com.fherrmann.cockpit.widget, un
 HealthyWatch/       Uhr-App von Healthy (watchOS 11, in Healthy.app/Watch/): Tagesstand, seit 10.11.
                     darunter die Makros als drei kleine Tachos, Eiweiß in seiner Farbe; holt den Tag
                     selbst wie die Komplikation (das Training seit 23.10. in SportWatch)
-HealthyWatchWidget/ kcal-Komplikation der Uhr (Stil der Temperatur-Komplikation)
+HealthyWatchWidget/ Komplikationen der Uhr: kcal (Stil der Temperatur-Komplikation) und seit 20.11.
+                    die Ringe (kcal, Schritte, Strain) für die Mitte von Modular
 HealthyWatchShared/ was iPhone und Uhr teilen: Botschaften (WatchMessages), Komplikations-Stand
-                    und -Ansicht, die Farben der Makro-Zeilen der Uhr (MacroTone+WatchColor) -
-                    Healthy, HealthyWatch und HealthyWatchWidget übersetzen es
+                    und -Ansichten (KcalGaugeView, HealthRings/HealthRingsView), die Schritte aus
+                    Health auf der Uhr (WatchStepCount), die Farben der Makro-Zeilen der Uhr
+                    (MacroTone+WatchColor) - Healthy, HealthyWatch und HealthyWatchWidget übersetzen es
 SportWatch/         Uhr-App von Sport (watchOS 11, in Sport.app/Watch/): Krafttraining (vom iPhone
                     gestartet und gespiegelt) und Padel-Match (auf der Uhr gestartet), beide in Health
 SportWatchShared/   was Sport und SportWatch teilen: Trainings-Botschaften, das Zählen beim Padel,
                     Postausgang der Ergebnisse
-FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session
+FokusWidget/        Fokus-Countdown-Kachel (ohne Session: Stand von heute), Live-Aktivität der Session,
+                    seit 17.11. der To-Do-Countdown (Aufgabe per „Widget bearbeiten“, holt das Brett selbst)
 FocusShared/        was Fokus UND FokusMonitor teilen: laufende Session, erlaubte
                     Apps, Schild-Regel - in der App-Gruppe group.com.fherrmann.fokus
 FokusMonitor/       DeviceActivity-Erweiterung von Fokus: legt beim Intervallstart
@@ -415,7 +418,8 @@ darauf neu.
 Sperrbildschirm als Ring und Rechteck; ein Tipp öffnet `healthy://food`, also
 Essen mit heute), seit 14.10. die Schritte als Ring und „Heute" (zwei Ringe,
 kcal gegessen und Schritte) auf dem Sperrbildschirm (`healthy://dashboard`) und
-die kcal-Komplikation auf der Uhr; Fokus den Countdown der Session (ohne
+auf der Uhr die kcal-Komplikation, seit 20.11. dazu die Ringe (kcal, Schritte,
+Strain nebeneinander, `accessoryRectangular`); Fokus den Countdown der Session (ohne
 Session den Stand von heute aus der App-Gruppe); die Habits-Kachel ist mit den
 Habits nach coHabit umgezogen (siehe oben). Eigener Prozess, eigener
 Container.
@@ -434,6 +438,15 @@ Komplikation öffnet sie), und zeigt unter dem kcal-Bogen Eiweiß, Fett und
 Kohlenhydrate; der Stand (`ComplicationSnapshot`) trägt dafür den ganzen Tag
 samt Zielen. `Shared/Macro.swift` baut deshalb auch auf der Uhr - ohne SwiftUI,
 die Verläufe des iPhones stehen in `MacroTone+Gradient.swift`.
+Die Ringe-Komplikation (seit 20.11., `HealthyWatchWidget/RingsComplication`)
+holt drei Quellen selbst und nebeneinander: den Tag beim Kalorienzähler (wie
+die kcal-Komplikation, `KcalToday`), Strain und Schrittziel beim Weight Tracker
+(mit Felix' `weight_app_token`, den `WatchLink` seit Kontext-Version 3
+mitschickt) und die Schritte aus **Health auf der Uhr** (`WatchStepCount`,
+HealthKit wieder in Uhr-App und Komplikation; fragen kann nur die Uhr-App, beim
+ersten Öffnen). Was nicht antwortet - Uhr gesperrt, kein Netz -, kommt aus dem
+Stand von heute (`RingsSnapshot` im Schlüsselbund der Uhr); Schritte nehmen das
+Größere aus beidem. Auffrischen alle 15 Minuten und kurz nach Mitternacht.
 
 **Push-Umgebung (seit 10.11.):** Felix' iPhone bekommt Healthy als
 Entwickler-Install, ein zweites über TestFlight - die Push-Kennungen stammen

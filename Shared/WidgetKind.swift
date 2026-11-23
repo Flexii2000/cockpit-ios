@@ -13,5 +13,9 @@ enum WidgetKind {
     static let today = "TodayOverview"
     /// Die kcal-Komplikation der Uhr (HealthyWatchWidget).
     static let watchKcal = "WatchKcal"
+    /// Seit 20.11.: die grosse Komplikation der Uhr - kcal, Schritte, Strain als Ringe.
+    static let watchRings = "WatchRings"
     static let focus = "FocusCountdown"
+    /// Seit 17.11.: Tage bis zur Faelligkeit einer gewaehlten Aufgabe (Fokus).
+    static let todoCountdown = "TodoCountdown"
 }

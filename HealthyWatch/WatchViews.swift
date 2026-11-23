@@ -11,6 +11,18 @@ struct WatchHomeView: View {
     @State private var snapshot = ComplicationStore.snapshot()
 
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["COCKPIT_WATCH_DEMO"] == "rings" {
+            RingsDemoView()
+        } else {
+            home
+        }
+        #else
+        home
+        #endif
+    }
+
+    private var home: some View {
         ScrollView {
             VStack(spacing: 4) {
                 KcalGaugeView(consumed: isToday ? snapshot?.consumedKcal : nil, target: snapshot?.targetKcal)
@@ -34,7 +46,10 @@ struct WatchHomeView: View {
                 }
             }
         }
-        .task { await refresh() }
+        .task {
+            await refresh()
+            await askForSteps()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refresh() } }
         }
@@ -58,8 +73,19 @@ struct WatchHomeView: View {
                                          consumed: day.consumed, targets: day.targets)
         ComplicationStore.save(snapshot: fresh)
         snapshot = fresh
-        // Die Komplikation zeigt denselben Tag - sie soll nicht aelter sein als die App.
+        // Die Komplikationen zeigen denselben Tag - sie sollen nicht aelter sein als die App.
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.watchKcal)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.watchRings)
+    }
+
+    /// Der Schritte-Ring liest Health auf der Uhr (20.11.); fragen kann nur die
+    /// App. Einmal beantwortet, fragt watchOS nicht wieder.
+    private func askForSteps() async {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["COCKPIT_WATCH_DEMO"] != nil { return }
+        #endif
+        await WatchStepCount.requestAuthorization()
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.watchRings)
     }
 
     private var isToday: Bool { snapshot?.date == Self.todayISO }
@@ -79,6 +105,30 @@ struct WatchHomeView: View {
     }
     #endif
 }
+
+#if DEBUG
+/// Die Ringe-Komplikation fuer Bilder (`COCKPIT_WATCH_DEMO=rings`): der
+/// Uhren-Simulator legt keine Komplikation aufs Zifferblatt. Gezeichnet in etwa
+/// in der Groesse des Rechtecks auf Modular - gross (46 mm) und klein (40 mm) -,
+/// mit erfundenen Werten: normal, Strain ueber dem Ziel, ohne Werte.
+private struct RingsDemoView: View {
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                HealthRingsView(rings: .sample)
+                    .frame(width: 186, height: 58)
+                HealthRingsView(rings: HealthRings(kcalConsumed: 2420, kcalTarget: 2300, steps: 12_345,
+                                                   stepsGoal: 10_000, strain: 15.2, targetStrain: 14.1))
+                    .frame(width: 186, height: 58)
+                HealthRingsView(rings: HealthRings(kcalConsumed: nil, kcalTarget: nil, steps: nil,
+                                                   stepsGoal: 10_000, strain: nil, targetStrain: 14.1))
+                    .frame(width: 150, height: 47)
+            }
+        }
+    }
+}
+#endif
 
 /// Ein Makro als kleiner Tacho (Felix, 10.11.: Tachos statt Balken): ein offener
 /// Bogen wie in der Essen-Ansicht des iPhones, der sich bis zum Ziel fuellt, in

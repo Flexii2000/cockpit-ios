@@ -2,7 +2,8 @@
 
 Sechs iOS-Apps aus einem Repo, die Felix' Heimserver-Dienste bedienen:
 **Healthy** (Kalorienzähler `food.fherrmann.com`, Weight Tracker
-`weight.fherrmann.com`; dazu eine Uhr-App mit kcal-Komplikation),
+`weight.fherrmann.com`; dazu eine Uhr-App mit kcal-Komplikation und seit 20.11. den Ringen
+kcal, Schritte, Strain für die Mitte von Modular),
 **Vault** (Notenübersicht `fherrmann.com/grades`, Finance Cockpit
 `finanzen.fherrmann.com`), **Fokus** (To-Do `fherrmann.com/todo`, Wald —
 Fokus-Sessions beim Habits-Dienst, Einkaufsliste `fherrmann.com/shopping-list`,
@@ -35,7 +36,7 @@ Tagessummen); die Apps zeigen.
 | `Healthy/`, `Vault/`, `Fokus/`, `Einkaufsliste/`, `Sport/` | genau diese App | alles |
 | `FocusShared/` | Fokus, `FokusMonitor` **und** `FokusWidget` | laufende Session, Tagesstand, erlaubte Apps, die Schild-Regel — was Erweiterungen aus der App-Gruppe `group.com.fherrmann.fokus` brauchen (Schild neu legen, Countdown zeigen) |
 | `HealthyWatch/`, `HealthyWatchWidget/` | die Uhr-App von Healthy und ihre Komplikation (watchOS) | dazu `Shared/` **ohne** die iPhone-Kacheln (`_watch_excludes` in project.yml: `CaloriesWidgetView`, `Color+Hex`, `MacroTone+Gradient`, `GaugeView`, `Focus*`, `Steps*`) — was dort neu dazukommt, muss auf watchOS bauen. `Macro.swift` baut seit 10.11. mit (die Uhr zeigt die Makros) und bleibt deshalb **ohne SwiftUI** |
-| `HealthyWatchShared/` | Healthy, HealthyWatch **und** HealthyWatchWidget | Botschaften zwischen iPhone und Uhr, Komplikations-Stand und -Ansicht — nur Foundation/SwiftUI |
+| `HealthyWatchShared/` | Healthy, HealthyWatch **und** HealthyWatchWidget | Botschaften zwischen iPhone und Uhr, Komplikations-Stand und -Ansichten, seit 20.11. die Ringe (`HealthRings`, `HealthRingsView`) und die Schritte aus Health auf der Uhr (`WatchStepCount`) — nur Foundation, SwiftUI, WidgetKit und HealthKit (gibt es auf beiden), nichts aus einer der Apps |
 | `SportWatch/` | die Uhr-App von Sport (watchOS) | Krafttraining und Padel-Match; dazu `Shared/` mit denselben `_watch_excludes` wie HealthyWatch |
 | `SportWatchShared/` | Sport **und** SportWatch | Botschaften des Trainings (`WorkoutMessage`, `WorkoutPlan`), das Zählen beim Padel (`PadelScore`), Ergebnisse auf dem Weg zum Dienst (`PadelReportOutbox`) — nur Foundation, kein HealthKit |
 | `coHabit/` | nur coHabit | alles |
@@ -213,9 +214,9 @@ Debug-Schalter, die nur im Debug-Build wirken:
 
 | Schalter | Wofür |
 |---|---|
-| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `friends` (Healthy, seit 10.11.), `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`; Sport `padel`, `gym`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `strain` samt dem Strain-Fenster, `chat` samt dem Chat (beide seit 10.11.), `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten |
+| `COCKPIT_TAB=weight` | mit welchem Tab die App aufmacht (`dashboard`, `food`, `weight`, `friends` (Healthy, seit 10.11.), `finance`, `grades`, `todo`, `forest`, `shopping`, `evaluation`; coHabit `timeline`, `stats`, `profile`, `new`; Sport `padel`, `gym`); `recovery` öffnet in Healthy das Dashboard samt dieser Seite, `strain` samt dem Strain-Fenster, `chat` samt dem Chat (beide seit 10.11.), `logbook` und `effects` das Dashboard an dieser Stelle; `setup` öffnet das Zugang-Blatt; `widget` zeigt die Kacheln mit echten Daten (den To-Do-Countdown in Fokus mit erfundenen Aufgaben) |
 | `COCKPIT_GYM_DEMO=1` | füllt den Gym-Tab (Sport, bis 23.10. Healthy) mit zwei erfundenen Tagen („Tag A", „Gerät A", zwei Spannen, Notiz „Sitz 4") und acht Wochen Verlauf - nur im Speicher, nie gesendet; `COCKPIT_GYM_WORKOUT=1` startet dazu gleich das Training samt erfundener Uhr-Werte |
-| `COCKPIT_WATCH_DEMO=kcal` | in der Uhr-App von Healthy (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 samt Makros (E 96/195 mit Erhalt 140 - also rot -, F 41/70, KH 180/236) - der Uhren-Simulator legt keine Komplikation aufs Zifferblatt und hat keinen Zugang |
+| `COCKPIT_WATCH_DEMO=kcal\|rings` | in der Uhr-App von Healthy (per `SIMCTL_CHILD_` beim `simctl launch`): Tagesstand 1550/2300 samt Makros (E 96/195 mit Erhalt 140 - also rot -, F 41/70, KH 180/236) - der Uhren-Simulator legt keine Komplikation aufs Zifferblatt und hat keinen Zugang. `rings` zeigt stattdessen die Ringe-Komplikation (20.11.) in etwa der Größe des Rechtecks auf Modular, dreimal mit erfundenen Werten: normal, über dem Ziel, ohne Werte. Die Ringe stehen außerdem in Healthy unter `COCKPIT_TAB=widget` (oben, mit echten Daten) |
 | `COCKPIT_HEALTH_TOKEN=<token>` | Healthy als **eine Person** statt als Felix (seit 10.11.): ihr persönlicher Token (`HEALTH_TOKENS` des Dienstes), als wäre er im Zugang-Blatt eingetragen. `run-simulator.sh` und `uitest.sh` nehmen dann Felix' Token im Simulator weg (`COCKPIT_FH_PRIVATE_TOKEN=none`, `COCKPIT_WEIGHT_TOKEN=none`) und geben ohne die Variable `none` mit - der Schlüsselbund des Simulators überlebt jeden Lauf, und ein liegengebliebener persönlicher Token überstimmte Felix' Cookies. `COCKPIT_HEALTH_NAME=person-a` setzt den Namen fürs Zugang-Blatt („✓ Person-a“). ⚠️ Immer mit `COCKPIT_NO_HEALTH=1`, sonst lädt der Abgleich die Health-Daten des Geräts ins Konto der Person; und nur gegen lokal gestartete Dienste mit einer Testperson |
 | `COCKPIT_FH_PRIVATE_TOKEN=none`, `COCKPIT_WEIGHT_TOKEN=none` | nimmt Felix' Token im Simulator weg - zusammen das Zugang-Blatt eines frischen iPhones (Feld „Token oder Link“, darunter zugeklappt „Besitzer-Token“) |
 | `COCKPIT_WATCH_DEMO=padel\|padel-metrics\|workout\|stations\|home` | in der Uhr-App von Sport (ebenso per `SIMCTL_CHILD_`): ein Padel-Match bei 6:4 3:2 und 40:40 mit Golden Point (`padel-metrics` auf der Seite mit Dauer, Puls und kcal), ein laufendes Krafttraining (`stations` auf der Geräteliste) bzw. der Start ohne Health-Dialog mit einem Ergebnis von heute - der Uhren-Simulator spiegelt kein Training, misst nichts und kann nicht blättern. Werte erfunden, nichts geht an Health oder den Dienst |

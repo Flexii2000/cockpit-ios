@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import WidgetKit
 
 /// Haelt das Brett und schickt Haken, neue Aufgaben, neue Bereiche.
 ///
@@ -24,6 +25,8 @@ final class TodoStore {
     /// ersetzt ihn nicht - etwa ein Abruf, der vor einem Haken losging und nach
     /// dessen Antwort ankommt.
     @ObservationIgnored private var serverSequence = 0
+    /// Was die Countdown-Kachel zuletzt zu sehen bekam - siehe `reloadCountdownIfChanged`.
+    @ObservationIgnored private var countdownTodos: [TodoCountdown]?
     private(set) var isLoading = false
     private(set) var errorMessage: String?
     private(set) var isAccessProblem = false
@@ -214,6 +217,17 @@ final class TodoStore {
         serverBoard = board
         errorMessage = nil
         isAccessProblem = false
+        reloadCountdownIfChanged(board)
+    }
+
+    /// Die Countdown-Kachel holt das Brett selbst, sonst nur stuendlich. Nach
+    /// einer Aenderung hier soll sie es gleich tun - aber nicht bei jedem Haken
+    /// irgendwo, nur wenn sich an Titeln, Faelligkeiten oder Erledigtem etwas tat.
+    private func reloadCountdownIfChanged(_ board: TodoBoard) {
+        let todos = TodoCountdown.all(in: board)
+        guard todos != countdownTodos else { return }
+        countdownTodos = todos
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKind.todoCountdown)
     }
 
     private func handle(_ event: PendingEvent) {

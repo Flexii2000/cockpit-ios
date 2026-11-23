@@ -97,6 +97,7 @@ _watch_excludes: &watch_excludes
   - GaugeView.swift
   - FocusActivity.swift
   - FocusWidgetView.swift
+  - TodoCountdownView.swift
   - StepsNow.swift
   - StepsMirror.swift
   - StepsWidgetViews.swift
@@ -255,11 +256,17 @@ targets:
     entitlements:
       path: HealthyWatch/HealthyWatch.entitlements
       properties:
+        # Seit 20.11. wieder: der Schritte-Ring der grossen Komplikation liest
+        # Health auf der Uhr. Fragen kann nur die App, lesen tut die Komplikation.
+        com.apple.developer.healthkit: true
         keychain-access-groups:
           - *shared_group
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.watchkitapp
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Damit deine Schritte im Ring auf dem Zifferblatt stehen.
+        # App Store Connect verlangt den Satz auch ohne Schreiben (10.11., Healthy).
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Healthy liest nur aus Health und schreibt nichts hinein.
 
   HealthyWatchWidget:
     type: app-extension
@@ -273,11 +280,17 @@ targets:
     entitlements:
       path: HealthyWatchWidget/HealthyWatchWidget.entitlements
       properties:
+        # Die Ringe-Komplikation (20.11.) liest die Schritte aus Health - mit der
+        # Erlaubnis, die die Uhr-App einholt.
+        com.apple.developer.healthkit: true
         keychain-access-groups:
           - *shared_group
     info:
       path: HealthyWatchWidget/Info.plist
-      properties: *widget_info
+      properties:
+        <<: *widget_info
+        NSHealthShareUsageDescription: Damit deine Schritte im Ring auf dem Zifferblatt stehen.
+        NSHealthUpdateUsageDescription: Healthy liest nur aus Health und schreibt nichts hinein.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.fherrmann.cockpit.watchkitapp.widget

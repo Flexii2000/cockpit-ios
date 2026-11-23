@@ -48,6 +48,13 @@ Zwei verschiedene Token, beide langlebig, beide als Cookie:
   Zugang-Blatt, vorher geprüft gegen `/api/food/features` und
   `/api/weight/summary`). Kacheln und Uhr hängen denselben Cookie selbst an
   (`HealthCookie`). Die übrigen Apps kennen ihn nicht.
+- **Uhr (seit 2026-11-20):** die Ringe-Komplikation holt beim Weight Tracker
+  `GET /api/strain/today` (nur `date`, `strain`, `targetStrain`) und
+  `GET /api/steps/goal`. Der Weight Tracker kennt `fh_private` nicht - die Uhr
+  bekommt dafür Felix' `weight_app_token` per WatchConnectivity
+  (`WatchKeys.weightToken`, Kontext-Version 3) und schickt ihn als Cookie
+  `weight_app_token`; ein persönlicher `health_token` geht vor
+  (`HealthCookie.weightHeader`).
 - **`shopping_token`** — eigenes Token **je Person** nur für
   `/shopping-list`, im Browser über `/shopping-list/setup?token=…`. Der
   Dienst liegt **nicht** hinter dem Privat-Gate und nimmt den Token als
@@ -1325,7 +1332,9 @@ als JSON-Fehlerseite — `APIClient.shortMessage` reicht sie so durch.
 Quelle: `../todo/src/main/java/com/fherrmann/todo/`. Anders als Habits hat der
 Dienst eine Weboberfläche (Kacheln nebeneinander); die App ist der zweite
 Client. **Jede Antwort ist das ganze Brett** — die App ersetzt ihren Stand und
-setzt nichts zusammen.
+setzt nichts zusammen. Seit 17.11. liest auch die Countdown-Kachel von Fokus
+`GET /api/board` (Cookie `fh_private` aus der geteilten Keychain-Gruppe, 12 s
+Zeitlimit) und zählt bis `dueAt` der gewählten Aufgabe.
 
 | Methode | Pfad | Was |
 |---|---|---|

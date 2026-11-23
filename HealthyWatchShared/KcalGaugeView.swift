@@ -42,12 +42,12 @@ struct KcalGaugeView: View {
 
     /// Der Rest in der Mitte, drueber mit Plus davor - wie der runde kcal-Ring auf
     /// dem iPhone-Sperrbildschirm: fuer „drüber“ ist kein Platz.
-    static func center(consumed: Double, target: Double) -> String {
+    nonisolated static func center(consumed: Double, target: Double) -> String {
         let rest = Int((target - consumed).rounded())
         return rest < 0 ? "+\(-rest)" : "\(rest)"
     }
 
-    private static func spokenRest(consumed: Double, target: Double) -> String {
+    nonisolated static func spokenRest(consumed: Double, target: Double) -> String {
         let rest = Int((target - consumed).rounded())
         return rest < 0 ? "\(-rest) kcal drüber" : "\(rest) kcal übrig"
     }

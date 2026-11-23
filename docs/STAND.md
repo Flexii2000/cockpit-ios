@@ -8,6 +8,41 @@
 > getestet. **Offen:** `tools/verify.sh Healthy` (2 neue Tests in `FoodModelTests`), Blick im
 > Simulator, mergen, `tools/install-device.sh Healthy`.
 
+> **Uhr: Ringe-Komplikation für die Mitte von Modular (20.11., Felix):** neue Komplikation
+> „Ringe“ (`accessoryRectangular`) neben der kcal-Komplikation: kcal, Schritte und Strain als drei
+> Ringe nebeneinander, unter jedem die Zahl (kcal übrig bzw. „+120“, „8.214“, „12,4“). Jeder Ring
+> füllt sich bis zu seinem Ziel; der Strain-Ring beim Strain-Ziel von heute, darüber voll und orange
+> (Felix' Wahl), ohne Ziel an der Skala 0–21. Die Komplikation holt alles selbst: kcal beim
+> Kalorienzähler (`KcalToday`, wie die kcal-Komplikation), Strain und Schrittziel beim Weight Tracker
+> (die Uhr bekommt dafür `weight_app_token`, Kontext-Version 3), Schritte aus Health auf der Uhr
+> (`WatchStepCount` - HealthKit wieder in Uhr-App und Komplikation). Ohne Antwort gilt der Stand von
+> heute (`RingsSnapshot`). Code: `HealthyWatchWidget/RingsComplication.swift`,
+> `HealthyWatchShared/HealthRings.swift`, `HealthRingsView.swift`, `WatchStepCount.swift`.
+> `tools/verify.sh` (alle) grün, 14 neue Tests in `HealthRingsTests`; im Uhren-Simulator angesehen
+> (`COCKPIT_WATCH_DEMO=rings`), dazu in Healthy unter `COCKPIT_TAB=widget`. Healthy auf Felix'
+> iPhone seit 20.11. 11:13 (`b6e3913`, schickt der Uhr schon den Weight-Token); der Gerätebau trägt
+> HealthKit in Uhr-App und Komplikation (`codesign` geprüft). **Die Uhr-App fehlt noch:** die Uhr war
+> von 11:13 bis 11:41 für den Mac „unavailable“ und per Bonjour nicht im WLAN zu sehen (nur iPhone,
+> Wohnzimmer-Geräte, Mac), auch mit ausgeschaltetem Bluetooth am iPhone; letzte Verbindung 10.11.
+> 18:24. Nachholen, sobald sie sichtbar ist:
+> `xcrun devicectl device install app --device 00008310-000C63063AD3601E build/device/Build/Products/Debug-iphoneos/Healthy.app/Watch/HealthyWatch.app`
+> (oder `tools/install-device.sh Healthy`). **Danach offen:** Felix öffnet Healthy einmal auf der Uhr
+> (Health-Dialog für die Schritte), legt „Ringe“ in die Mitte von Modular und prüft auch ein
+> einfarbiges Zifferblatt - das zeigt kein Simulator. Entscheidung in `ENTSCHEIDUNGEN.md` (20.11.).
+
+> **To-Do-Countdown als Kachel (17.11., Felix):** Fokus hat eine zweite Kachel, „Countdown“: die
+> Tage bis zur Fälligkeit eines To-Dos. Welches, wählt Felix per „Widget bearbeiten“ aus den offenen
+> Aufgaben mit Fälligkeit (nächste zuerst); ohne Wahl steht dort die nächste fällige. Klein auf dem
+> Homebildschirm (Titel, Zahl, Wochentag und Datum; überfällig rot, erledigt mit Haken), dazu rund,
+> rechteckig und als Zeile auf dem Sperrbildschirm - nur die Zahl, kein Ring (Felix' Wahl). Die
+> Kachel holt `/todo/api/board` selbst (stündlich, ein Eintrag je Mitternacht, letzter Stand in
+> ihren UserDefaults); die App lädt sie neu, sobald sich Titel, Fälligkeiten oder Haken ändern
+> (`TodoStore`). Code: `FokusWidget/TodoCountdownWidget.swift`, `Shared/TodoCountdown.swift`,
+> `Shared/TodoCountdownView.swift`. `tools/verify.sh` grün (9 neue Tests in `TodoCountdownTests`),
+> Vorschau hell und dunkel im Simulator angesehen (`COCKPIT_TAB=widget`). Auf Felix' iPhone seit
+> 20.11. 11:04 (`install-device.sh Fokus`, WLAN, `8220c80`). **Offen:** Auswahl, Sperrbildschirm und
+> den Wechsel um Mitternacht prüft Felix auf dem Gerät. Entscheidung in `ENTSCHEIDUNGEN.md` (17.11.).
+
 > **Überweisungen und Empfängerliste in den Freigaben (17.11.):** Fokus zeigt auch Freigaben der
 > Arten `ueberweisung` (Empfänger, IBAN, Betrag, Verwendungszweck, Ausführung), `empfaenger` und
 > `empfaengerliste` (Sammelfreigabe der Startliste, Liste in Festbreitenschrift) - signiert wird wie

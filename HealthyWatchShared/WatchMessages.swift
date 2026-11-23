@@ -34,10 +34,16 @@ enum WatchKeys {
     /// Der persoenliche Healthy-Token (seit 10.11.) - auf einem iPhone, das
     /// Felix' Privat-Token nicht hat.
     static let healthToken = "health_token"
-    /// Seit 10.11. im Kontext: das iPhone nennt **beide** Token, die es hat.
-    /// Steht die Marke da, gilt auch das Fehlen - ein Token, der nicht mehr
-    /// mitkommt, wird auf der Uhr geloescht. Ein Kontext ohne Marke stammt von
-    /// einer aelteren iPhone-App und sagt ueber den persoenlichen Token nichts.
+    /// Felix' Token fuer den Weight Tracker (seit 20.11.): die Ringe-Komplikation
+    /// holt dort Strain und Schrittziel, und der Weight Tracker kennt
+    /// `fh_private` nicht. Der persoenliche Token gilt dort ohnehin.
+    static let weightToken = "weight_app_token"
+    /// Seit 10.11. im Kontext: das iPhone nennt **alle** Token, die es hat
+    /// (seit 20.11. Version 3, samt Weight-Token). Steht die Marke da, gilt auch
+    /// das Fehlen - ein Token, der nicht mehr mitkommt, wird auf der Uhr
+    /// geloescht. Ein Kontext ohne Marke stammt von einer aelteren iPhone-App
+    /// und sagt ueber den persoenlichen Token nichts; einer mit Version 2 nichts
+    /// ueber den Weight-Token.
     static let accessVersion = "access_version"
     /// `transferCurrentComplicationUserInfo`: `ComplicationSnapshot` als JSON.
     static let snapshot = "complication"

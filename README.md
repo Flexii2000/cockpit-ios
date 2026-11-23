@@ -5,7 +5,7 @@ bedienen:
 
 | App | Tabs | Bundle-ID | Sperre |
 |---|---|---|---|
-| **Healthy** | Dashboard (Recovery, Strain, Energie, Logbook, Chat), Essen (Kalorienzähler), Gewicht (Weight Tracker), Freunde (Serien); Uhr-App mit kcal-Komplikation | `com.fherrmann.cockpit` | – |
+| **Healthy** | Dashboard (Recovery, Strain, Energie, Logbook, Chat), Essen (Kalorienzähler), Gewicht (Weight Tracker), Freunde (Serien); Uhr-App mit kcal- und Ringe-Komplikation (kcal, Schritte, Strain) | `com.fherrmann.cockpit` | – |
 | **Vault** | Noten, Finanzen, Cloud (AWS, Verda) | `com.fherrmann.vault` | ganze App, Face ID |
 | **Fokus** | To-Do, Wald, Einkaufsliste, Evaluation | `com.fherrmann.fokus` | Evaluation, Face ID |
 | **Einkaufsliste** | nur die Einkaufsliste — für ein zweites Handy | `com.fherrmann.einkauf` | – |
@@ -138,7 +138,8 @@ und der nächste Empfang holt den Stand des Dienstes.
 (Tacho und Zahl) oder mittel (zusätzlich die drei Makros), und auf dem
 **Sperrbildschirm** als Ring neben der Uhr oder als Rechteck mit Balken und
 Makros. Dazu in Fokus der Countdown der laufenden Session (ohne Session der
-Stand von heute) und in coHabit die Co-Habits: klein mit Abhak-Knopf, mittel
+Stand von heute) und die Tage bis zur Fälligkeit eines To-Dos (klein und auf dem
+Sperrbildschirm; welches, wählt man per „Widget bearbeiten“), in coHabit die Co-Habits: klein mit Abhak-Knopf, mittel
 „Heute", groß Challenge und Ziele, auf dem Sperrbildschirm Streak und
 Challenge-Platz.
 
