@@ -39,7 +39,7 @@ enum FoodWidgetBridge {
         reloadKcalWidgets()
         // Die Uhr zeigt, was die App zeigt - samt Wartendem.
         WatchLink.shared.send(snapshot: ComplicationSnapshot(date: shown.date.iso, consumedKcal: shown.consumed.kcal,
-                                                             targetKcal: shown.dayTargets.kcal, fetchedAt: Date(),
-                                                             consumed: shown.consumed, targets: shown.dayTargets))
+                                                             targetKcal: shown.targets.kcal, fetchedAt: Date(),
+                                                             consumed: shown.consumed, targets: shown.targets))
     }
 }

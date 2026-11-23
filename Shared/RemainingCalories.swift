@@ -22,9 +22,7 @@ struct RemainingCalories: Codable, Equatable, Sendable {
     init(day: DaySummary, fetchedAt: Date = Date(), provisional: Bool = false) {
         self.date = day.date
         self.consumed = day.consumed
-        // Das Ziel des Tages samt Cappuccino-Budget - `remaining` vom Dienst
-        // rechnet es schon ein, Bogen und „von …“ muessen dazu passen.
-        self.targets = day.dayTargets
+        self.targets = day.targets
         self.remaining = day.remaining
         self.fetchedAt = fetchedAt
         self.provisional = provisional ? true : nil

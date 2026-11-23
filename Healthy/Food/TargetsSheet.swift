@@ -18,14 +18,20 @@ struct TargetsSheet: View {
     /// Anteile in Prozent, damit die Mahlzeitenziele mitwandern, wenn sich
     /// das Tagesziel aendert.
     @State private var shares: [Meal: String] = [:]
+    /// Der Anteil der Cappuccinos (seit 23.11., Vertrag §11.6) - nur mit Zaehler.
+    @State private var cappuccinoShare = ""
     @State private var isSaving = false
+
+    private var hasCappuccino: Bool { store.day?.cappuccino != nil }
 
     private var shareSum: Double {
         Meal.allCases.reduce(0) { $0 + (AddEntrySheet.number(shares[$1] ?? "") ?? 0) }
+            + (hasCappuccino ? AddEntrySheet.number(cappuccinoShare) ?? 0 : 0)
     }
 
     /// Der Server nimmt eine Aufteilung nur an, wenn **alle vier** Mahlzeiten
-    /// drinstehen und die Summe 100 % ergibt (`validShares` in FoodService).
+    /// drinstehen und die Summe 100 % ergibt (`validShares` in FoodService) -
+    /// mit Cappuccino-Zaehler samt dessen Anteil.
     /// Das hier vorher zu pruefen erspart eine Fehlermeldung fuer etwas, das
     /// man auf dem Bildschirm sieht.
     private var sharesAreValid: Bool {
@@ -50,6 +56,9 @@ struct TargetsSheet: View {
                                 get: { shares[meal] ?? "" },
                                 set: { shares[meal] = $0 }))
                         }
+                    }
+                    if hasCappuccino {
+                        LabeledContent("Cappuccino") { field($cappuccinoShare) }
                     }
                 } header: {
                     Text("Aufteilung des kcal-Ziels (%)")
@@ -95,6 +104,9 @@ struct TargetsSheet: View {
         for (meal, value) in day.targetsByMeal {
             shares[meal] = (value / total * 100).whole
         }
+        if let share = day.cappuccino?.share {
+            cappuccinoShare = (share * 100).whole
+        }
     }
 
     /// Was fuer den Erhalt zum Dienst geht (Vertrag §11.1).
@@ -116,11 +128,15 @@ struct TargetsSheet: View {
         defer { isSaving = false }
         // Alle vier Mahlzeiten muessen mit - eine fehlende weist der Server
         // ab, auch wenn ihr Anteil null waere. Und er rechnet mit Anteilen,
-        // nicht mit Prozent.
+        // nicht mit Prozent. Mit Zaehler gehoeren die Cappuccinos zu den 100 %.
         var mealShares: [String: Double] = [:]
+        var cups: Double?
         if shareSum > 0 {
             for meal in Meal.allCases {
                 mealShares[meal.rawValue] = (AddEntrySheet.number(shares[meal] ?? "") ?? 0) / 100
+            }
+            if hasCappuccino {
+                cups = (AddEntrySheet.number(cappuccinoShare) ?? 0) / 100
             }
         }
         let request = TargetsRequest(kcal: AddEntrySheet.number(kcal),
@@ -130,7 +146,8 @@ struct TargetsSheet: View {
                                      mealShares: mealShares.isEmpty ? nil : mealShares,
                                      proteinMinG: Self.proteinMinChange(
                                         entered: proteinMin, loaded: loadedProteinMin,
-                                        isServerDefault: store.day?.targets.proteinMinDefault ?? true))
+                                        isServerDefault: store.day?.targets.proteinMinDefault ?? true),
+                                     cappuccinoShare: cups)
         if await store.updateTargets(request) { dismiss() }
     }
 }

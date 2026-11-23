@@ -126,18 +126,60 @@ final class NutritionToneTests: XCTestCase {
         XCTAssertEqual(NutritionTone.tone(for: .protein, consumed: consumed, targets: none), .good)
     }
 
-    /// Cappuccino-Zaehler (Dienst: `CappuccinoCounter`): das Ziel des Tages waechst um
-    /// den Zuschlag, das gespeicherte Ziel nicht - und ohne Netz zaehlt die App nach
-    /// derselben Regel weiter.
-    func testCappuccinoBudgetRaisesTheDayButNotTheStoredTarget() throws {
+    /// Cappuccino-Zaehler (Dienst: `CappuccinoCounter`, seit 23.11.): ein eigenes Budget
+    /// als Anteil am Tagesziel wie eine Mahlzeit. Das Tagesziel bleibt, die Eintraege des
+    /// Gerichts stehen im eigenen Abschnitt statt im Fruehstueck - ein Cappuccino aus dem
+    /// Café (anderes Gericht) bleibt in seiner Mahlzeit.
+    func testCappuccinoHasItsOwnShareAndLeavesBreakfast() throws {
+        let json = Data("""
+        {"date":"2026-11-23",
+         "targets":{"kcal":2300,"proteinG":195,"carbsG":236,"fatG":70,"proteinMinG":142,"proteinMinDefault":true},
+         "consumed":{"kcal":550,"proteinG":12.8,"carbsG":67.4,"fatG":17.4},
+         "remaining":{"kcal":1750,"proteinG":182.2,"carbsG":168.6,"fatG":52.6},
+         "entries":[{"id":"e1","date":"2026-11-23","dishId":"cap","name":"Cappuccino","grams":246,
+                     "per100g":{"kcal":61,"proteinG":1.1,"carbsG":7.1,"fatG":3.0},
+                     "meal":"BREAKFAST","createdAt":"2026-11-23T07:12:03Z"},
+                    {"id":"e2","date":"2026-11-23","dishId":"bread","name":"Brot","grams":100,
+                     "per100g":{"kcal":250,"proteinG":8,"carbsG":45,"fatG":3},
+                     "meal":"BREAKFAST","createdAt":"2026-11-23T07:20:00Z"},
+                    {"id":"e3","date":"2026-11-23","dishId":"cafe","name":"Cappuccino Café","grams":200,
+                     "per100g":{"kcal":75,"proteinG":1,"carbsG":3.5,"fatG":3.5},
+                     "meal":"SNACK","createdAt":"2026-11-23T15:00:00Z"}],
+         "mealTargets":{"BREAKFAST":345,"LUNCH":805,"DINNER":690,"SNACK":230},
+         "cappuccino":{"dishId":"cap","name":"Cappuccino","count":2,"portionG":123,
+                       "perCup":{"kcal":75,"proteinG":1.4,"carbsG":8.7,"fatG":3.7},
+                       "share":0.1,"target":230}}
+        """.utf8)
+        let day = try APIClient.decoder().decode(DaySummary.self, from: json)
+        XCTAssertEqual(day.cappuccino?.count, 2)
+        XCTAssertEqual(day.cappuccino?.share, 0.1)
+        XCTAssertEqual(day.cappuccino?.target, 230)
+        XCTAssertEqual(day.targets.kcal, 2300)
+
+        let sections = FoodStore.mealSections(of: day)
+        XCTAssertEqual(sections.first { $0.meal == .breakfast }?.entries.map(\.id), ["e2"])
+        XCTAssertEqual(sections.first { $0.meal == .snack }?.entries.map(\.id), ["e3"])
+        XCTAssertEqual(FoodStore.cappuccinoEntries(of: day).map(\.id), ["e1"])
+
+        // Einer mehr ohne Netz: der Zaehler zaehlt nach, der Rest folgt dem festen Ziel.
+        let more = FoodEntry(id: "e4", date: day.date, dishId: "cap", name: "Cappuccino", grams: 123,
+                             per100g: day.entries[0].per100g, meal: .breakfast, createdAt: Date())
+        let offline = day.replacing(entries: day.entries + [more], consumed: day.consumed + more.total)
+        XCTAssertEqual(offline.cappuccino?.count, 3)
+        XCTAssertEqual(offline.cappuccino?.target, 230)
+        XCTAssertEqual(offline.remaining.kcal, 2300 - offline.consumed.kcal, accuracy: 0.001)
+        XCTAssertEqual(FoodStore.cappuccinoEntries(of: offline).map(\.id), ["e1", "e4"])
+    }
+
+    /// Ein Dienst vor dem 23.11. schickt `budget` und `bonus` statt `share` und `target` -
+    /// der Tag muss trotzdem lesbar bleiben, nur ohne Budget.
+    func testAnOlderCounterWithoutShareStillDecodes() throws {
         let json = Data("""
         {"date":"2026-11-21",
-         "targets":{"kcal":2300,"proteinG":195,"carbsG":236,"fatG":70,"proteinMinG":142,"proteinMinDefault":true},
+         "targets":{"kcal":2300,"proteinG":195,"carbsG":236,"fatG":70},
          "consumed":{"kcal":150,"proteinG":2.8,"carbsG":17.4,"fatG":7.4},
          "remaining":{"kcal":2300,"proteinG":192.2,"carbsG":236,"fatG":70},
-         "entries":[{"id":"e1","date":"2026-11-21","dishId":"cap","name":"Cappuccino","grams":246,
-                     "per100g":{"kcal":61,"proteinG":1.1,"carbsG":7.1,"fatG":3.0},
-                     "meal":"BREAKFAST","createdAt":"2026-11-21T07:12:03Z"}],
+         "entries":[],
          "mealTargets":{"BREAKFAST":575,"LUNCH":690,"DINNER":920,"SNACK":115},
          "cappuccino":{"dishId":"cap","name":"Cappuccino","count":2,"budget":4,"portionG":123,
                        "perCup":{"kcal":75,"proteinG":1.4,"carbsG":8.7,"fatG":3.7},
@@ -145,22 +187,8 @@ final class NutritionToneTests: XCTestCase {
         """.utf8)
         let day = try APIClient.decoder().decode(DaySummary.self, from: json)
         XCTAssertEqual(day.cappuccino?.count, 2)
-        XCTAssertEqual(day.targets.kcal, 2300)
-        XCTAssertEqual(day.dayTargets.kcal, 2450.1, accuracy: 0.001)
-        XCTAssertEqual(day.dayTargets.proteinG, 195)
-        XCTAssertEqual(day.dayTargets.proteinMinG, 142)
-        XCTAssertEqual(day.shownTarget(for: .breakfast) ?? 0, 725.1, accuracy: 0.001)
-        XCTAssertEqual(day.shownTarget(for: .lunch), 690)
-
-        // Drei weitere ohne Netz: fuenf insgesamt, der Zuschlag bleibt bei vier.
-        let more = FoodEntry(id: "e2", date: day.date, dishId: "cap", name: "Cappuccino", grams: 369,
-                             per100g: day.entries[0].per100g, meal: .breakfast, createdAt: Date())
-        let offline = day.replacing(entries: day.entries + [more],
-                                    consumed: day.consumed + more.total)
-        XCTAssertEqual(offline.cappuccino?.count, 5)
-        XCTAssertEqual(offline.cappuccino?.bonus.kcal ?? 0, 300.12, accuracy: 0.01)
-        XCTAssertEqual(offline.remaining.kcal,
-                       offline.targets.kcal + 300.12 - offline.consumed.kcal, accuracy: 0.01)
+        XCTAssertNil(day.cappuccino?.target)
+        XCTAssertNil(day.cappuccino?.share)
     }
 
     func testADayWithoutTheCounterKeepsItsTargets() throws {
@@ -174,7 +202,19 @@ final class NutritionToneTests: XCTestCase {
         """.utf8)
         let day = try APIClient.decoder().decode(DaySummary.self, from: json)
         XCTAssertNil(day.cappuccino)
-        XCTAssertEqual(day.dayTargets, day.targets)
-        XCTAssertEqual(day.shownTarget(for: .breakfast), 575)
+        XCTAssertEqual(day.targetsByMeal[.breakfast], 575)
+        XCTAssertTrue(FoodStore.cappuccinoEntries(of: day).isEmpty)
+    }
+
+    /// Der Anteil geht als Bruchteil wie `mealShares` und fehlt ohne Zaehler ganz.
+    func testTheTargetsRequestCarriesTheCupShareOnlyWhenSet() throws {
+        let withShare = TargetsRequest(kcal: 2300, proteinG: 195, carbsG: 236, fatG: 70,
+                                  mealShares: ["BREAKFAST": 0.15, "LUNCH": 0.35, "DINNER": 0.3, "SNACK": 0.1],
+                                  cappuccinoShare: 0.1)
+        let without = TargetsRequest(kcal: 2300, proteinG: 195, carbsG: 236, fatG: 70, mealShares: nil)
+        let encoded = try XCTUnwrap(String(data: JSONEncoder().encode(withShare), encoding: .utf8))
+        XCTAssertTrue(encoded.contains("\"cappuccinoShare\":0.1"), encoded)
+        let plain = try XCTUnwrap(String(data: JSONEncoder().encode(without), encoding: .utf8))
+        XCTAssertFalse(plain.contains("cappuccinoShare"), plain)
     }
 }

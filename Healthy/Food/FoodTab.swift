@@ -201,9 +201,9 @@ struct FoodTab: View {
                         .simultaneousGesture(cardDrag)
                 }
                 ForEach(FoodStore.mealSections(of: day)) { section in
-                    // Der Cappuccino-Zaehler steht ueber dem Fruehstueck (Felix, 21.11.).
+                    // Der Cappuccino-Abschnitt steht ueber dem Fruehstueck (Felix, 21.11.).
                     if section.meal == .breakfast, let cups = day.cappuccino {
-                        cappuccinoSection(cups)
+                        cappuccinoSection(cups, entries: FoodStore.cappuccinoEntries(of: day))
                     }
                     mealSection(section, day: day)
                 }
@@ -367,8 +367,6 @@ struct FoodTab: View {
     // MARK: - Tachos
 
     /// - Parameter provisional: Eintraege warten noch und zaehlen schon mit.
-    /// Gegen das Ziel des Tages (`dayTargets`): bis vier Cappuccinos kommen zum
-    /// gespeicherten Ziel dazu, statt es aufzufressen.
     private func gauges(_ day: DaySummary, provisional: Bool) -> some View {
         VStack(spacing: 16) {
             // Makros oben, kcal darunter: die drei kleinen zeigen das schon
@@ -377,11 +375,11 @@ struct FoodTab: View {
                 ForEach(Macro.allCases) { macro in
                     VStack(spacing: 4) {
                         GaugeView(
-                            ratio: ratio(macro.value(day.consumed), macro.value(day.dayTargets)),
+                            ratio: ratio(macro.value(day.consumed), macro.value(day.targets)),
                             tone: NutritionTone.tone(for: macro, consumed: day.consumed,
-                                                     targets: day.dayTargets),
+                                                     targets: day.targets),
                             main: macro.value(day.consumed).whole,
-                            sub: "von \(macro.value(day.dayTargets).whole) g",
+                            sub: "von \(macro.value(day.targets).whole) g",
                             lineWidth: 6,
                             mainFont: .subheadline,
                             subFont: .system(size: 9))
@@ -398,8 +396,8 @@ struct FoodTab: View {
 
             HStack(spacing: 16) {
                 GaugeView(
-                    ratio: ratio(day.consumed.kcal, day.dayTargets.kcal),
-                    tone: NutritionTone.kcalTone(consumed: day.consumed, targets: day.dayTargets),
+                    ratio: ratio(day.consumed.kcal, day.targets.kcal),
+                    tone: NutritionTone.kcalTone(consumed: day.consumed, targets: day.targets),
                     main: abs(day.remaining.kcal).whole,
                     sub: day.remaining.kcal < 0 ? "kcal drüber" : "kcal übrig",
                     lineWidth: 8,
@@ -410,7 +408,7 @@ struct FoodTab: View {
                     Text(provisional ? "Verzehrt · vorläufig" : "Verzehrt").font(.caption).foregroundStyle(.secondary)
                         .accessibilityIdentifier(provisional ? "foodProvisional" : "foodConsumed")
                     Text("\(day.consumed.kcal.whole) kcal").font(.title3.weight(.semibold))
-                    Text("von \(day.dayTargets.kcal.whole) kcal")
+                    Text("von \(day.targets.kcal.whole) kcal")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -427,23 +425,20 @@ struct FoodTab: View {
 
     // MARK: - Cappuccino
 
-    /// „+" traegt einen Cappuccino zum Fruehstueck ein (eine Portion des
-    /// Gerichts, ohne Netz spaeter), „−" nimmt den juengsten wieder weg.
-    private func cappuccinoSection(_ cups: CappuccinoDay) -> some View {
-        Section {
+    /// Der Cappuccino-Abschnitt (Felix, 23.11.): im Kopf die Summe gegen das
+    /// eigene Budget wie bei den Mahlzeiten, darunter die Anzahl mit „−" und
+    /// „+" und die Eintraege selbst. „+" traegt eine Portion des Gerichts ein
+    /// (ohne Netz spaeter), „−" nimmt den juengsten wieder weg.
+    private func cappuccinoSection(_ cups: CappuccinoDay, entries: [FoodEntry]) -> some View {
+        let total = entries.reduce(0) { $0 + $1.total.kcal }
+        return Section {
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Cappuccino")
-                    Text(cups.bonus.kcal > 0
-                         ? "je \(cups.perCup.kcal.whole) kcal · Ziel +\(cups.bonus.kcal.whole) kcal"
-                         : "je \(cups.perCup.kcal.whole) kcal · eigenes Budget")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Text("\(cups.count)/\(cups.budget)")
+                Text("\(cups.count)×")
                     .font(.title3.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(cups.count > cups.budget ? .orange : .primary)
                     .accessibilityIdentifier("cappuccinoCount")
+                Text("je \(cups.perCup.kcal.whole) kcal")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
                 Button {
                     Task { await store.removeCappuccino() }
                 } label: {
@@ -462,6 +457,28 @@ struct FoodTab: View {
             // Zwei Knoepfe in einer Zeile: ohne eigenen Stil loest ein Tipp in
             // einer List-Zeile beide aus.
             .buttonStyle(.borderless)
+
+            ForEach(entries) { entry in
+                entryRow(entry)
+            }
+        } header: {
+            HStack {
+                Text("Cappuccino")
+                Spacer()
+                if let target = cups.target, target > 0 {
+                    // Orange, sobald das Budget ueberschritten ist (Felix' Wahl) - ohne die
+                    // 100 kcal Toleranz der Mahlzeiten, die waeren hier mehr als ein Cappuccino.
+                    Text("\(total.whole)/\(target.whole) kcal")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(total > target + 0.5 ? .orange : .secondary)
+                } else if !entries.isEmpty {
+                    Text("\(total.whole) kcal")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+            .simultaneousGesture(cardDrag)
         }
     }
 
@@ -470,48 +487,7 @@ struct FoodTab: View {
     private func mealSection(_ section: MealSection, day: DaySummary) -> some View {
         Section {
             ForEach(section.entries) { entry in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.name)
-                        Text("\(entry.grams.whole) g")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if store.isWaiting(entry) {
-                        Image(systemName: "clock.fill")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                            .accessibilityLabel("wartet auf Netz")
-                    }
-                    Text("\(entry.total.kcal.whole) kcal")
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .contentShape(Rectangle())
-                // Antippen berichtigt: Menge, Mahlzeit, Tag. Das Gericht
-                // bleibt - wer etwas anderes gegessen hat, loescht und traegt
-                // neu ein.
-                .onTapGesture { editing = entry }
-                // Stabiler Griff fuer den UI-Test. Ueber die Beschriftung zu
-                // suchen bricht, sobald ein anderes Gericht oben steht.
-                .accessibilityIdentifier("foodEntry")
-                // Eigene Wischaktion statt `onDelete`: die zeigt "Löschen"
-                // ausgeschrieben. Die Mülltonne sagt dasselbe und braucht
-                // weniger Weg - der Titel bleibt aber am Label stehen, damit
-                // VoiceOver etwas vorzulesen hat.
-                // Kein Tageswechsel auf diesen Zeilen: nach links wischen
-                // heisst hier schon loeschen.
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        Task { await store.deleteEntry(entry) }
-                    } label: {
-                        Label("Löschen", systemImage: "trash")
-                            .labelStyle(.iconOnly)
-                    }
-                }
+                entryRow(entry)
             }
 
             if let meal = section.meal {
@@ -530,7 +506,7 @@ struct FoodTab: View {
                 // Teilsumme gegen das Ziel dieser Mahlzeit - „war das
                 // Fruehstueck zu gross?" laesst sich an einer Tagessumme
                 // nicht beantworten.
-                if let meal = section.meal, let target = day.shownTarget(for: meal), target > 0 {
+                if let meal = section.meal, let target = day.targetsByMeal[meal], target > 0 {
                     Text("\(section.total.kcal.whole)/\(target.whole) kcal")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(section.total.kcal > target + NutritionTone.kcalTolerance
@@ -543,6 +519,52 @@ struct FoodTab: View {
             }
             .contentShape(Rectangle())
             .simultaneousGesture(cardDrag)
+        }
+    }
+
+    /// Eine Zeile der Tagesliste: Antippen berichtigt, nach links wischen loescht.
+    private func entryRow(_ entry: FoodEntry) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name)
+                Text("\(entry.grams.whole) g")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if store.isWaiting(entry) {
+                Image(systemName: "clock.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .accessibilityLabel("wartet auf Netz")
+            }
+            Text("\(entry.total.kcal.whole) kcal")
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        // Antippen berichtigt: Menge, Mahlzeit, Tag. Das Gericht
+        // bleibt - wer etwas anderes gegessen hat, loescht und traegt
+        // neu ein.
+        .onTapGesture { editing = entry }
+        // Stabiler Griff fuer den UI-Test. Ueber die Beschriftung zu
+        // suchen bricht, sobald ein anderes Gericht oben steht.
+        .accessibilityIdentifier("foodEntry")
+        // Eigene Wischaktion statt `onDelete`: die zeigt "Löschen"
+        // ausgeschrieben. Die Mülltonne sagt dasselbe und braucht
+        // weniger Weg - der Titel bleibt aber am Label stehen, damit
+        // VoiceOver etwas vorzulesen hat.
+        // Kein Tageswechsel auf diesen Zeilen: nach links wischen
+        // heisst hier schon loeschen.
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                Task { await store.deleteEntry(entry) }
+            } label: {
+                Label("Löschen", systemImage: "trash")
+                    .labelStyle(.iconOnly)
+            }
         }
     }
 

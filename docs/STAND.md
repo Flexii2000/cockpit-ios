@@ -1,15 +1,16 @@
 # Stand
 
-> **Cappuccino-Zähler in Healthy (21.11. vom Server-Agenten ohne Xcode geschrieben, 23.11. geprüft):**
-> Zeile über dem Frühstück mit „n/4“, „−“ und „+“ (`FoodTab.cappuccinoSection`,
-> `FoodStore.addCappuccino`/`removeCappuccino` über die normale Warteschlange). Tachos, Kachel und
-> Uhr rechnen gegen `DaySummary.dayTargets` (Ziel + Cappuccino-Budget), das Ziele-Blatt weiter
-> gegen `targets`. Dienst `food` ist live. `tools/verify.sh` (alle) grün; im Simulator mit echten
-> Daten hell und dunkel angesehen („3/4“, „je 75 kcal · Ziel +226 kcal“, Frühstück „814/801 kcal“).
-> Auf Felix' iPhone seit 23.11. 19:52 (WLAN; `install-device.sh` scheiterte zuerst mit 4016, der
-> zweite Versuch direkt per `devicectl` ging). **Offen:** Felix prüft „+“ und „−“ auf dem Gerät
-> (löst nur der gedrückte Knopf aus?). Die Uhr-App mit dem neuen Ziel kommt zusammen mit der
-> Ringe-Komplikation, sobald die Uhr erreichbar ist (siehe unten).
+> **Cappuccino-Zähler mit eigenem Budget (23.11. abends, Felix):** Die Cappuccinos haben einen
+> eigenen Anteil am Tagesziel wie die Mahlzeiten (Start: Frühstück 15 %, Cappuccino 10 % = 230
+> kcal bei 2.300), das Tagesziel wächst nicht mehr mit (der Zuschlag vom 21.11. ist weg). Über dem
+> Frühstück ein eigener Abschnitt: Kopf „Cappuccino 300/230 kcal“ (über dem Budget orange), Zeile
+> „4× je 75 kcal“ mit „−“/„+“, darunter die Einträge des Gerichts - die zählen nicht mehr im
+> Frühstück (`FoodStore.mealSections`/`cappuccinoEntries`). Im Ziele-Blatt ein fünftes Feld
+> „Cappuccino“ (`TargetsRequest.cappuccinoShare`). Dienst `food` `59e308a` live seit 23.11. 20:32,
+> Vertrag §11.6 nachgezogen. `tools/verify.sh` (alle) grün; im Simulator mit echten Daten hell und
+> dunkel angesehen. Auf Felix' iPhone seit 23.11. abends. **Nicht angesehen:** das Ziele-Blatt mit
+> dem neuen Feld (lässt sich im Simulator nur über die Demo-Daten öffnen, die keinen Zähler haben)
+> - Felix prüft es auf dem Gerät. Die Uhr-App kommt mit der Ringe-Komplikation (siehe unten).
 
 > **Uhr: Ringe-Komplikation für die Mitte von Modular (20.11., Felix):** neue Komplikation
 > „Ringe“ (`accessoryRectangular`) neben der kcal-Komplikation: kcal, Schritte und Strain als drei

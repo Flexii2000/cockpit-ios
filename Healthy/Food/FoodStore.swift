@@ -162,15 +162,25 @@ final class FoodStore {
         return Self.mealSections(of: day)
     }
 
-    static func mealSections(of day: DaySummary) -> [MealSection] {
+    nonisolated static func mealSections(of day: DaySummary) -> [MealSection] {
+        // Die Cappuccinos des Zaehlers haben ihr eigenes Budget (Felix, 23.11.):
+        // sie stehen in ihrem Abschnitt, nicht in der Mahlzeit, unter der sie
+        // gespeichert sind.
+        let entries = day.entries.filter { !(day.cappuccino?.contains($0) ?? false) }
         var sections = Meal.allCases.map { meal in
-            MealSection(meal: meal, entries: day.entries.filter { $0.meal == meal })
+            MealSection(meal: meal, entries: entries.filter { $0.meal == meal })
         }
-        let unassigned = day.entries.filter { $0.meal == nil }
+        let unassigned = entries.filter { $0.meal == nil }
         if !unassigned.isEmpty {
             sections.append(MealSection(meal: nil, entries: unassigned))
         }
         return sections
+    }
+
+    /// Die Eintraege des Cappuccino-Zaehlers, fuer seinen eigenen Abschnitt.
+    nonisolated static func cappuccinoEntries(of day: DaySummary) -> [FoodEntry] {
+        guard let cups = day.cappuccino else { return [] }
+        return day.entries.filter(cups.contains)
     }
 
     func load() async {

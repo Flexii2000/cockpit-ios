@@ -638,7 +638,7 @@ Friend { id, person, name, since,
 | POST | `/api/food/entries` | Body `NewEntryRequest` → `DaySummary`; seit 12.10. mit `id` (kleingeschriebene UUID der App): dieselbe noch einmal legt nichts an, sondern liefert den Tag des vorhandenen Eintrags - die App schickt jeden Eintrag so über die Warteschlange (`FoodChange`) |
 | DELETE | `/api/food/entries/{id}` | `DaySummary` |
 | PUT | `/api/food/entries/{id}` | `{grams, meal?, date?}` — Menge, Mahlzeit, Tag berichtigen; das Gericht bleibt. Antwort: der Tag, auf dem der Eintrag danach liegt — bei einem Tagwechsel also **nicht** der angezeigte |
-| GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest`. Mit der Runde vom 2026-11-10 (Vertrag §11.1, kommt mit dem Dienst dieser Runde) tragen die Ziele `proteinMinG` (Eiweiß Erhalt) und `proteinMinDefault`; `PUT` nimmt `proteinMinG` (fehlend = unverändert, `0` = Vorgabe). Die App färbt Eiweiß damit rot/gelb/grün (`NutritionTone.proteinTone`); ohne das Feld gilt die alte Regel |
+| GET/PUT | `/api/food/targets` | `Nutrients` / Body `TargetsRequest`. Mit der Runde vom 2026-11-10 (Vertrag §11.1, kommt mit dem Dienst dieser Runde) tragen die Ziele `proteinMinG` (Eiweiß Erhalt) und `proteinMinDefault`; `PUT` nimmt `proteinMinG` (fehlend = unverändert, `0` = Vorgabe). Die App färbt Eiweiß damit rot/gelb/grün (`NutritionTone.proteinTone`); ohne das Feld gilt die alte Regel Seit 2026-11-23 (Vertrag §11.6) nimmt `PUT` mit Cappuccino-Zähler `cappuccinoShare` (Bruchteil wie `mealShares`): die vier Mahlzeiten und er ergeben zusammen 100 %, sonst 400 - fehlt er, zählt der gespeicherte bzw. die Vorgabe (10 % vom Frühstück) mit. |
 | GET | `/api/food/features` | `{quickCapture: Bool, me: String?}` — `me` nennt die Person des Zugangs; die App zeigt sie im Zugang-Blatt |
 | POST | `/api/food/quick-capture` | Body `{date, text, meal, imageJpegBase64?}` → `QuickCaptureJob`; mit Foto darf `text` leer sein (Kontext) |
 | GET | `/api/food/quick-capture/{id}` | `QuickCaptureJob` |
@@ -655,10 +655,13 @@ FoodEntry      id, date, dishId?, name, grams, per100g, meal, createdAt: Instant
 DaySummary     date, targets, consumed, remaining,
                entries: [FoodEntry], mealTargets: [Meal: Double],
                cappuccino?: CappuccinoDay   (seit 2026-11-21, nur für Personen mit Zähler)
-CappuccinoDay  dishId?, name, count, budget (4), portionG, perCup: Nutrients, bonus: Nutrients
-               bonus = kcal/KH/Fett der Cappuccinos bis zum Budget (Eiweiß 0). Ziel des Tages
-               = targets + bonus; `remaining` rechnet es schon ein, `targets` und
-               `mealTargets` NICHT (das Ziele-Blatt füllt sich daraus). App: `dayTargets`
+CappuccinoDay  dishId?, name, count, portionG, perCup: Nutrients, share, target   (seit 2026-11-23)
+               eigenes Budget wie eine Mahlzeit: share = Anteil am kcal-Tagesziel, target =
+               Tagesziel × share; mealTargets + target = Tagesziel. Die Einträge des Gerichts
+               (`dishId`) zählen dort und NICHT in ihrer Mahlzeit (App: `mealSections` zieht sie
+               heraus, `cappuccinoEntries`). `remaining` = targets − consumed. Bis 23.11.
+               stattdessen `budget` (4) und `bonus` (Zuschlag aufs Tagesziel) - die App liest
+               beides nicht mehr, `share`/`target` sind optional (älterer Dienst = ohne Budget)
 DayTotal       date, consumed: Nutrients, meals: [Meal]   (meals seit 2026-10-09, Branch recovery:
                Mahlzeiten mit mindestens einem Eintrag - für die Regel „getrackter Tag" im
                Weight Tracker; die App liest das Feld nicht)

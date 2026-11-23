@@ -3,7 +3,24 @@
 Neueste zuerst. Jede mit Datum, Begründung und der verworfenen Alternative —
 sonst wird sie in drei Monaten neu diskutiert.
 
+## 2026-11-23 — Cappuccino-Budget als eigener Anteil am Tagesziel, wie eine Mahlzeit
+Felix (23.11.): Die Cappuccinos sollen ein eigenes Budget haben, prozentual einstellbar wie
+Frühstück, Mittag, Abend und Snacks, und nicht ins Frühstück zählen. Damit ist der Zuschlag vom
+21.11. (bis vier Cappuccinos erhöhten das Tagesziel) ersetzt: das Tagesziel bleibt 2.300 kcal,
+der Dienst teilt es auf vier Mahlzeiten und den Cappuccino-Anteil auf (zusammen 100 %). Seine
+Wahl in der Fragerunde: Start mit Frühstück 15 % und Cappuccino 10 % (die 10 % kommen vom
+Frühstück, dort zählten die Cappuccinos bis dahin mit); im Abschnitt Anzahl mit „−“/„+“ und die
+Summe gegen das Budget, über dem Budget orange (ohne die 100 kcal Toleranz der Mahlzeiten -
+das wäre mehr als ein Cappuccino); nur der Zähler-Cappuccino, ein Cappuccino aus dem Café zählt
+in seiner Mahlzeit. Die Einträge bleiben unter `BREAKFAST` gespeichert; dass sie zum
+Cappuccino-Budget gehören, entscheidet das Gericht (`dishId`). **Verworfen:** eine fünfte
+Mahlzeit `CAPPUCCINO` im Dienst - jedes Enum `Meal` in Apps, Android-App, Weight Tracker und
+Agenten hätte sie kennen müssen, und gespeicherte Aufteilungen mit vier Anteilen wären auf die
+Vorgabe zurückgefallen; alle Einträge mit „Cappu…“ im Namen (nicht gewählt); „n/4“ als Anzeige
+(mit einem kcal-Budget gibt es keine feste Höchstzahl mehr).
+
 ## 2026-11-21 — Cappuccino-Budget als Zuschlag im Tag, nicht im Ziel
+**Ersetzt am 23.11.** (siehe oben) - so hatte der Server-Agent Felix' Wunsch verstanden.
 Bis vier Cappuccinos am Tag sollen das Ziel erhöhen statt es aufzufressen. Der Dienst liefert
 den Zuschlag als `cappuccino.bonus` und rechnet ihn in `remaining` ein; `targets` und
 `mealTargets` bleiben das gespeicherte Ziel. **Verworfen:** `targets` im Tag erhöhen - das
