@@ -1,12 +1,15 @@
 # Stand
 
-> **Cappuccino-Zähler in Healthy (21.11., Branch `cappuccino`, vom Server-Agenten):** Zeile über
-> dem Frühstück mit „n/4“, „−“ und „+“ (`FoodTab.cappuccinoSection`, `FoodStore.addCappuccino`/
-> `removeCappuccino` über die normale Warteschlange). Tachos, Kachel und Uhr rechnen gegen
-> `DaySummary.dayTargets` (Ziel + Cappuccino-Budget), das Ziele-Blatt weiter gegen `targets`.
-> Dienst `food` ist live. **Ungeprüft:** auf dem Server gibt es kein Xcode - weder gebaut noch
-> getestet. **Offen:** `tools/verify.sh Healthy` (2 neue Tests in `FoodModelTests`), Blick im
-> Simulator, mergen, `tools/install-device.sh Healthy`.
+> **Cappuccino-Zähler in Healthy (21.11. vom Server-Agenten ohne Xcode geschrieben, 23.11. geprüft):**
+> Zeile über dem Frühstück mit „n/4“, „−“ und „+“ (`FoodTab.cappuccinoSection`,
+> `FoodStore.addCappuccino`/`removeCappuccino` über die normale Warteschlange). Tachos, Kachel und
+> Uhr rechnen gegen `DaySummary.dayTargets` (Ziel + Cappuccino-Budget), das Ziele-Blatt weiter
+> gegen `targets`. Dienst `food` ist live. `tools/verify.sh` (alle) grün; im Simulator mit echten
+> Daten hell und dunkel angesehen („3/4“, „je 75 kcal · Ziel +226 kcal“, Frühstück „814/801 kcal“).
+> Auf Felix' iPhone seit 23.11. 19:52 (WLAN; `install-device.sh` scheiterte zuerst mit 4016, der
+> zweite Versuch direkt per `devicectl` ging). **Offen:** Felix prüft „+“ und „−“ auf dem Gerät
+> (löst nur der gedrückte Knopf aus?). Die Uhr-App mit dem neuen Ziel kommt zusammen mit der
+> Ringe-Komplikation, sobald die Uhr erreichbar ist (siehe unten).
 
 > **Uhr: Ringe-Komplikation für die Mitte von Modular (20.11., Felix):** neue Komplikation
 > „Ringe“ (`accessoryRectangular`) neben der kcal-Komplikation: kcal, Schritte und Strain als drei
