@@ -659,7 +659,8 @@ CappuccinoDay  dishId?, name, count, portionG, perCup: Nutrients, share, target 
                eigenes Budget wie eine Mahlzeit: share = Anteil am kcal-Tagesziel, target =
                Tagesziel × share; mealTargets + target = Tagesziel. Die Einträge des Gerichts
                (`dishId`) zählen dort und NICHT in ihrer Mahlzeit (App: `mealSections` zieht sie
-               heraus, `cappuccinoEntries`). `remaining` = targets − consumed. Bis 23.11.
+               heraus, `cappuccinoEntries` nur für die Summe - aufgelistet werden sie nicht,
+               der Abschnitt zeigt nur den Zähler). `remaining` = targets − consumed. Bis 23.11.
                stattdessen `budget` (4) und `bonus` (Zuschlag aufs Tagesziel) - die App liest
                beides nicht mehr, `share`/`target` sind optional (älterer Dienst = ohne Budget)
 DayTotal       date, consumed: Nutrients, meals: [Meal]   (meals seit 2026-10-09, Branch recovery:

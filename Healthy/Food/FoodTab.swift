@@ -426,9 +426,11 @@ struct FoodTab: View {
     // MARK: - Cappuccino
 
     /// Der Cappuccino-Abschnitt (Felix, 23.11.): im Kopf die Summe gegen das
-    /// eigene Budget wie bei den Mahlzeiten, darunter die Anzahl mit „−" und
-    /// „+" und die Eintraege selbst. „+" traegt eine Portion des Gerichts ein
-    /// (ohne Netz spaeter), „−" nimmt den juengsten wieder weg.
+    /// eigene Budget wie bei den Mahlzeiten, darunter nur der Zaehler mit „−"
+    /// und „+". Die Eintraege selbst stehen nicht darunter - neben „4×" waeren
+    /// sie dieselbe Angabe noch einmal (Felix, 23.11. abends); sie zaehlen nur
+    /// in die Summe. „+" traegt eine Portion des Gerichts ein (ohne Netz
+    /// spaeter), „−" nimmt den juengsten wieder weg.
     private func cappuccinoSection(_ cups: CappuccinoDay, entries: [FoodEntry]) -> some View {
         let total = entries.reduce(0) { $0 + $1.total.kcal }
         return Section {
@@ -457,10 +459,6 @@ struct FoodTab: View {
             // Zwei Knoepfe in einer Zeile: ohne eigenen Stil loest ein Tipp in
             // einer List-Zeile beide aus.
             .buttonStyle(.borderless)
-
-            ForEach(entries) { entry in
-                entryRow(entry)
-            }
         } header: {
             HStack {
                 Text("Cappuccino")

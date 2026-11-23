@@ -3,9 +3,10 @@
 > **Cappuccino-Zähler mit eigenem Budget (23.11. abends, Felix):** Die Cappuccinos haben einen
 > eigenen Anteil am Tagesziel wie die Mahlzeiten (Start: Frühstück 15 %, Cappuccino 10 % = 230
 > kcal bei 2.300), das Tagesziel wächst nicht mehr mit (der Zuschlag vom 21.11. ist weg). Über dem
-> Frühstück ein eigener Abschnitt: Kopf „Cappuccino 300/230 kcal“ (über dem Budget orange), Zeile
-> „4× je 75 kcal“ mit „−“/„+“, darunter die Einträge des Gerichts - die zählen nicht mehr im
-> Frühstück (`FoodStore.mealSections`/`cappuccinoEntries`). Im Ziele-Blatt ein fünftes Feld
+> Frühstück ein eigener Abschnitt: Kopf „Cappuccino 300/230 kcal“ (über dem Budget orange), darunter
+> nur der Zähler „4× je 75 kcal“ mit „−“/„+“. Die Einträge des Gerichts stehen weder dort (Felix,
+> 23.11. 22:30: sonst doppelt) noch im Frühstück, sie zählen nur in die Summe
+> (`FoodStore.mealSections`/`cappuccinoEntries`); App und Web seit 22:35. Im Ziele-Blatt ein fünftes Feld
 > „Cappuccino“ (`TargetsRequest.cappuccinoShare`). Dienst `food` `59e308a` live seit 23.11. 20:32,
 > Vertrag §11.6 nachgezogen. `tools/verify.sh` (alle) grün; im Simulator mit echten Daten hell und
 > dunkel angesehen. Auf Felix' iPhone seit 23.11. abends. **Nicht angesehen:** das Ziele-Blatt mit

@@ -18,6 +18,10 @@ Mahlzeit `CAPPUCCINO` im Dienst - jedes Enum `Meal` in Apps, Android-App, Weight
 Agenten hätte sie kennen müssen, und gespeicherte Aufteilungen mit vier Anteilen wären auf die
 Vorgabe zurückgefallen; alle Einträge mit „Cappu…“ im Namen (nicht gewählt); „n/4“ als Anzeige
 (mit einem kcal-Budget gibt es keine feste Höchstzahl mehr).
+**Nachtrag 23.11. abends:** Im Abschnitt steht nur der Zähler, die Einträge des Gerichts werden
+nicht aufgelistet - Felix: neben „4×“ sind sie dieselbe Angabe doppelt. Ändern geht über „−“/„+“.
+**Verworfen:** die Einträge unter dem Zähler (so zuerst gebaut, damit sich ein einzelner
+Cappuccino antippen und berichtigen lässt).
 
 ## 2026-11-21 — Cappuccino-Budget als Zuschlag im Tag, nicht im Ziel
 **Ersetzt am 23.11.** (siehe oben) - so hatte der Server-Agent Felix' Wunsch verstanden.
